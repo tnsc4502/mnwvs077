@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Center">
+      <UniqueIdentifier>{ab5572ef-26a9-4566-a74f-099c67a04171}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{3b187ca5-15ac-42a8-a615-8699cf49c696}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="InGame">
+      <UniqueIdentifier>{b4489ea9-be9d-48f3-8202-a9c1a8ab9112}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="InGame\Item">
+      <UniqueIdentifier>{58caa6c9-dead-4923-b913-3f25d5eb29f0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="WvsCenter.cpp">
+      <Filter>Center</Filter>
+    </ClCompile>
+    <ClCompile Include="LocalServer.cpp">
+      <Filter>Center</Filter>
+    </ClCompile>
+    <ClCompile Include="UserTransferStatus.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="WvsWorld.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="LocalServerEntry.cpp">
+      <Filter>Center</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WvsGame\ItemInfo.cpp">
+      <Filter>InGame\Item</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WvsCenter.h">
+      <Filter>Center</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalServer.h">
+      <Filter>Center</Filter>
+    </ClInclude>
+    <ClInclude Include="UserTransferStatus.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="WvsWorld.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalServerEntry.h">
+      <Filter>Center</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WvsGame\ItemInfo.h">
+      <Filter>InGame\Item</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

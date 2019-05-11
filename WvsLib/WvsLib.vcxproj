@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{56876BF3-9F97-4676-8205-4FBC078224F2}</ProjectGuid>
+    <RootNamespace>WvsLib</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WVSLIB;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\Library\boost_1_63_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\Library\boost_1_63_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WVSLIB;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>..\Library\boost_1_63_0\stage\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/FORCE %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\Library\boost_1_63_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WVSLIB;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\CommonDef.h" />
+    <ClInclude Include="Common\ConfigLoader.hpp" />
+    <ClInclude Include="Common\CryptoConstants.hpp" />
+    <ClInclude Include="Common\ServerConstants.hpp" />
+    <ClInclude Include="Common\WvsGameConstants.hpp" />
+    <ClInclude Include="Common\WvsLoginConstants.hpp" />
+    <ClInclude Include="Crypto\aes.h" />
+    <ClInclude Include="Crypto\aesopt.h" />
+    <ClInclude Include="Crypto\aestab.h" />
+    <ClInclude Include="Crypto\aes_ni.h" />
+    <ClInclude Include="Crypto\brg_endian.h" />
+    <ClInclude Include="Crypto\brg_types.h" />
+    <ClInclude Include="Crypto\WvsCrypto.hpp" />
+    <ClInclude Include="DateTime\GameDateTime.h" />
+    <ClInclude Include="Evaluator\Evaluator.h" />
+    <ClInclude Include="Evaluator\exprtk.hpp" />
+    <ClInclude Include="Logger\WvsLogger.h" />
+    <ClInclude Include="Memory\Arena.h" />
+    <ClInclude Include="Memory\ArenaVector.h" />
+    <ClInclude Include="Memory\BufferPool.h" />
+    <ClInclude Include="Memory\MemoryBlocks.h" />
+    <ClInclude Include="Memory\MemoryPool.h" />
+    <ClInclude Include="Memory\MemoryPoolMan.hpp" />
+    <ClInclude Include="Memory\stdinc.h" />
+    <ClInclude Include="Net\asio.hpp" />
+    <ClInclude Include="Net\InPacket.h" />
+    <ClInclude Include="Net\OutPacket.h" />
+    <ClInclude Include="Net\PacketFlags\AffectedAreaPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\CenterPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\DropPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\EmployeePacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\FieldPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\GamePacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\LoginPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\MessageBoxPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\MobPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\NPCPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\PacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\ReactorPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\ShopPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\SummonedPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\TownPortalPacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\UserPacketFlags.hpp" />
+    <ClInclude Include="Net\SocketBase.h" />
+    <ClInclude Include="Net\WorldInfo.h" />
+    <ClInclude Include="Net\WvsBase.h" />
+    <ClInclude Include="Random\Rand32.h" />
+    <ClInclude Include="Script\lapi.h" />
+    <ClInclude Include="Script\lauxlib.h" />
+    <ClInclude Include="Script\lcode.h" />
+    <ClInclude Include="Script\lctype.h" />
+    <ClInclude Include="Script\ldebug.h" />
+    <ClInclude Include="Script\ldo.h" />
+    <ClInclude Include="Script\lfunc.h" />
+    <ClInclude Include="Script\lgc.h" />
+    <ClInclude Include="Script\llex.h" />
+    <ClInclude Include="Script\llimits.h" />
+    <ClInclude Include="Script\lmem.h" />
+    <ClInclude Include="Script\lobject.h" />
+    <ClInclude Include="Script\lopcodes.h" />
+    <ClInclude Include="Script\lparser.h" />
+    <ClInclude Include="Script\lprefix.h" />
+    <ClInclude Include="Script\lstate.h" />
+    <ClInclude Include="Script\lstring.h" />
+    <ClInclude Include="Script\ltable.h" />
+    <ClInclude Include="Script\ltm.h" />
+    <ClInclude Include="Script\lua.h" />
+    <ClInclude Include="Script\lua.hpp" />
+    <ClInclude Include="Script\luaconf.h" />
+    <ClInclude Include="Script\lualib.h" />
+    <ClInclude Include="Script\luawrapper.hpp" />
+    <ClInclude Include="Script\luawrapperutil.hpp" />
+    <ClInclude Include="Script\lundump.h" />
+    <ClInclude Include="Script\lvm.h" />
+    <ClInclude Include="Script\lzio.h" />
+    <ClInclude Include="String\StringUtility.h" />
+    <ClInclude Include="Task\AsyncScheduler.h" />
+    <ClInclude Include="Wz\ImgAccessor.h" />
+    <ClInclude Include="Wz\mapfile.hpp" />
+    <ClInclude Include="Wz\sprite.hpp" />
+    <ClInclude Include="Wz\spritedata.hpp" />
+    <ClInclude Include="Wz\wz.hpp" />
+    <ClInclude Include="Wz\WzAES.hpp" />
+    <ClInclude Include="Wz\wzcrypto.hpp" />
+    <ClInclude Include="Wz\wzimg.hpp" />
+    <ClInclude Include="Wz\wzmain.hpp" />
+    <ClInclude Include="Wz\WzResMan.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common\ConfigLoader.cpp" />
+    <ClCompile Include="Crypto\aescrypt.c" />
+    <ClCompile Include="Crypto\aeskey.c" />
+    <ClCompile Include="Crypto\aestab.c" />
+    <ClCompile Include="Crypto\aes_modes.c" />
+    <ClCompile Include="Crypto\aes_ni.c" />
+    <ClCompile Include="Crypto\WvsCrypto.cpp" />
+    <ClCompile Include="DateTime\GameDateTime.cpp" />
+    <ClCompile Include="Evaluator\Evaluator.cpp" />
+    <ClCompile Include="Logger\WvsLogger.cpp" />
+    <ClCompile Include="Memory\Arena.cpp" />
+    <ClCompile Include="Memory\BufferPool.cpp" />
+    <ClCompile Include="Memory\MemoryBlocks.cpp" />
+    <ClCompile Include="Memory\MemoryPool.cpp" />
+    <ClCompile Include="Memory\MemoryPoolMan.cpp" />
+    <ClCompile Include="Net\InPacket.cpp" />
+    <ClCompile Include="Net\OutPacket.cpp" />
+    <ClCompile Include="Net\PacketFlags\AffectedAreaPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\CenterPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\DropPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\EmployeePacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\FieldPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\GamePacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\LoginPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\MessageBoxPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\MobPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\NPCPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\ReactorPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\ShopPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\SummonedPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\TownPortalPacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\UserPacketFlags.cpp" />
+    <ClCompile Include="Net\SocketBase.cpp" />
+    <ClCompile Include="Net\WvsBase.cpp" />
+    <ClCompile Include="Random\Rand32.cpp" />
+    <ClCompile Include="Script\lapi.cpp" />
+    <ClCompile Include="Script\lauxlib.cpp" />
+    <ClCompile Include="Script\lbaselib.cpp" />
+    <ClCompile Include="Script\lbitlib.cpp" />
+    <ClCompile Include="Script\lcode.cpp" />
+    <ClCompile Include="Script\lcorolib.cpp" />
+    <ClCompile Include="Script\lctype.cpp" />
+    <ClCompile Include="Script\ldblib.cpp" />
+    <ClCompile Include="Script\ldebug.cpp" />
+    <ClCompile Include="Script\ldo.cpp" />
+    <ClCompile Include="Script\ldump.cpp" />
+    <ClCompile Include="Script\lfunc.cpp" />
+    <ClCompile Include="Script\lgc.cpp" />
+    <ClCompile Include="Script\linit.cpp" />
+    <ClCompile Include="Script\liolib.cpp" />
+    <ClCompile Include="Script\llex.cpp" />
+    <ClCompile Include="Script\lmathlib.cpp" />
+    <ClCompile Include="Script\lmem.cpp" />
+    <ClCompile Include="Script\loadlib.cpp" />
+    <ClCompile Include="Script\lobject.cpp" />
+    <ClCompile Include="Script\lopcodes.cpp" />
+    <ClCompile Include="Script\loslib.cpp" />
+    <ClCompile Include="Script\lparser.cpp" />
+    <ClCompile Include="Script\lstate.cpp" />
+    <ClCompile Include="Script\lstring.cpp" />
+    <ClCompile Include="Script\lstrlib.cpp" />
+    <ClCompile Include="Script\ltable.cpp" />
+    <ClCompile Include="Script\ltablib.cpp" />
+    <ClCompile Include="Script\ltm.cpp" />
+    <ClCompile Include="Script\lua.cpp" />
+    <ClCompile Include="Script\luac.cpp" />
+    <ClCompile Include="Script\lundump.cpp" />
+    <ClCompile Include="Script\lutf8lib.cpp" />
+    <ClCompile Include="Script\lvm.cpp" />
+    <ClCompile Include="Script\lzio.cpp" />
+    <ClCompile Include="String\StringUtility.cpp" />
+    <ClCompile Include="Task\AsyncScheduler.cpp" />
+    <ClCompile Include="Wz\ImgAccessor.cpp" />
+    <ClCompile Include="Wz\mapfile.cpp" />
+    <ClCompile Include="Wz\WzAES.cpp" />
+    <ClCompile Include="Wz\wzcrypto.cpp" />
+    <ClCompile Include="Wz\wzimg.cpp" />
+    <ClCompile Include="Wz\wzmain.cpp" />
+    <ClCompile Include="Wz\wznode.cpp" />
+    <ClCompile Include="Wz\WzResMan.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Memory\MemoryPool.tcc" />
+    <None Include="Script\Makefile" />
+    <None Include="Script\ScriptLib.vcxproj" />
+    <None Include="Script\ScriptLib.vcxproj.filters" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
