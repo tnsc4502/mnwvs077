@@ -12,6 +12,10 @@ class User;
 class WvsWorld
 {
 public:
+	const static int 
+		CHANNELID_NOT_MIGRATED_IN = -2,
+		CHANNELID_SHOP = -1;
+
 	struct WorldUser
 	{
 		bool m_bMigrating = false, 
@@ -28,7 +32,6 @@ public:
 
 private:
 	std::mutex m_mtxWorldLock;
-
 	ConfigLoader* m_pCfgLoader;
 	WorldInfo m_WorldInfo;
 
@@ -42,20 +45,12 @@ public:
 	void SetConfigLoader(ConfigLoader* pCfg);
 	void InitializeWorld();
 	const WorldInfo& GetWorldInfo() const;
-
-	static WvsWorld* GetInstance()
-	{
-		static WvsWorld* pInstance = new WvsWorld;
-		return pInstance;
-	}
-
-
+	static WvsWorld* GetInstance();
 	void SetUserTransferStatus(int nUserID, UserTransferStatus* pStatus);
 	const UserTransferStatus* GetUserTransferStatus(int nUserID) const;
 	void ClearUserTransferStatus(int nUserID);
-
-	void UserMigrateIn(User *pUser, int nCharacterID, int nLocalSrvIdx, int uLockSocketSN);
-
+	void UserMigrateIn(int nCharacterID, int nChannelID);
+	void RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate);
 	void SetUser(int nUserID, WorldUser *pWorldUser);
 	WorldUser* GetUser(int nUserID);
 };

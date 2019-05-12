@@ -52,8 +52,8 @@ void WvsGame::SetConfigLoader(ConfigLoader * pCfg)
 void WvsGame::InitializeCenter()
 {
 	m_nChannelID = m_pCfgLoader->IntValue("ChannelID");
-	m_sCenterIP = m_pCfgLoader->StrValue("Center" + std::to_string(m_nChannelID) + "_IP");
-	m_nCenterPort = m_pCfgLoader->IntValue("Center" + std::to_string(m_nChannelID) + "_Port");
+	m_sCenterIP = m_pCfgLoader->StrValue("Center0_IP");
+	m_nCenterPort = m_pCfgLoader->IntValue("Center0_Port");
 	m_pCenterServerService = new asio::io_service();
 	m_pCenterInstance = std::make_shared<Center>(*m_pCenterServerService);
 	m_pCenterWorkThread = new std::thread(&WvsGame::ConnectToCenter, this, 0);
@@ -74,6 +74,7 @@ void WvsGame::OnUserConnected(std::shared_ptr<User> &pUser)
 {
 	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
 	m_mUserMap[pUser->GetUserID()] = pUser;
+	m_mUserNameMap[pUser->GetName()] = pUser;
 }
 
 void WvsGame::OnNotifySocketDisconnected(SocketBase *pSocket)
@@ -83,6 +84,7 @@ void WvsGame::OnNotifySocketDisconnected(SocketBase *pSocket)
 	if (pClient->GetUser())
 	{
 		m_mUserMap.erase(pClient->GetUser()->GetUserID());
+		m_mUserNameMap.erase(pClient->GetUser()->GetName());
 		pClient->SetUser(nullptr);
 	}
 }
@@ -97,6 +99,15 @@ User * WvsGame::FindUser(int nUserID)
 	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserMap.find(nUserID);
 	if (findIter == m_mUserMap.end())
+		return nullptr;
+	return findIter->second.get();
+}
+
+User * WvsGame::FindUserByName(const std::string & strName)
+{
+	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	auto findIter = m_mUserNameMap.find(strName);
+	if (findIter == m_mUserNameMap.end())
 		return nullptr;
 	return findIter->second.get();
 }

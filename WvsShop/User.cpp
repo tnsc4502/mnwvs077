@@ -53,6 +53,7 @@ User::~User()
 	OutPacket oPacket;
 	oPacket.Encode2((short)ShopInternalPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
+	oPacket.Encode4(-1);
 	oPacket.Encode4(GetUserID());
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);

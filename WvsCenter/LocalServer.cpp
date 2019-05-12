@@ -14,6 +14,7 @@
 #include "WvsWorld.h"
 #include "UserTransferStatus.h"
 #include "..\WvsGame\ItemInfo.h"
+#include "..\WvsGame\PartyMan.h"
 
 LocalServer::LocalServer(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -78,6 +79,7 @@ void LocalServer::OnPacket(InPacket *iPacket)
 			OnReuqestMoveSlotToLocker(iPacket);
 			break;
 		case GameSendPacketFlag::PartyRequest:
+			OnPartyRequest(iPacket);
 			break;
 	}
 }
@@ -262,12 +264,14 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 		pUserTransferStatus->Encode(&oPacket);
 	}
 	this->SendPacket(&oPacket);
-	pUser->m_nLocalSocketSN = nClientSocketID;
+
+	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, nChannelID);
 }
 
 void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 {
 	int nClientSocketID = iPacket->Decode4();
+	int nChannelID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 
 	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
@@ -284,12 +288,7 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 	else if (nGameEndType == 0) //Migrate out from the game server.
 	{
 		WvsWorld::GetInstance()->ClearUserTransferStatus(nCharacterID);
-		pUser->m_bMigrated = false;
-		pUser->m_bMigrating = false;
-		pUser->m_bLoggedIn = false;
-		pUser->m_bInShop = false;
-		pUser->m_nChannelID = -1;
-		pUser->m_nLocalSocketSN = 0;
+		WvsWorld::GetInstance()->RemoveUser(nCharacterID, nChannelID, nClientSocketID, false);
 	}
 	// nGameEndType = 2 : From shop to game server
 }
@@ -314,7 +313,8 @@ void LocalServer::OnRequestTransferChannel(InPacket * iPacket)
 	}
 	this->SendPacket(&oPacket);
 
-	pUser->m_nChannelID = nChannelID;
+	if(pUser)
+		pUser->m_nChannelID = nChannelID;
 }
 
 void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
@@ -337,8 +337,11 @@ void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
 		oPacket.Encode4(0);
 	}
 	this->SendPacket(&oPacket);
-	pUser->m_nChannelID = -1;
+
+	pUser->m_nChannelID = WvsWorld::CHANNELID_SHOP;
 	pUser->m_bInShop = true;
+
+	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, WvsWorld::CHANNELID_SHOP);
 }
 
 void LocalServer::OnRequestBuyCashItem(InPacket * iPacket)
@@ -378,4 +381,27 @@ void LocalServer::OnReuqestMoveSlotToLocker(InPacket * iPacket)
 
 void LocalServer::OnPartyRequest(InPacket * iPacket)
 {
+	int nRequest = iPacket->Decode1();
+	OutPacket oPacket;
+	switch (nRequest)
+	{
+		case PartyMan::PartyRequest::rq_Party_Create:
+		{
+			PartyMan::GetInstance()->OnCreateNewPartyRequest(iPacket, &oPacket);
+			break;
+		}
+		case PartyMan::PartyRequest::rq_Party_Load:
+		{
+			PartyMan::GetInstance()->OnLoadPartyRequest(iPacket, &oPacket);
+			break;
+		}
+		case PartyMan::PartyRequest::rq_Party_Join:
+		{
+			PartyMan::GetInstance()->OnJoinPartyRequest(iPacket, &oPacket);
+			break;
+		}
+	}
+
+	if (oPacket.GetPacketSize() != 0)
+		SendPacket(&oPacket);
 }

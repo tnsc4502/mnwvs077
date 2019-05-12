@@ -192,6 +192,7 @@ private:
 	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
 	std::vector<Summoned*> m_lSummoned;
 	std::vector<int> m_aMigrateSummoned;
+	std::vector<int> m_lnPartyInvitedCharacterID;
 
 	void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket);
 	AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
@@ -202,6 +203,7 @@ private:
 public:
 
 	static User* FindUser(int nUserID);
+	static User* FindUserByName(const std::string& strName);
 
 	User(ClientSocket *pSocket, InPacket *iPacket);
 	~User();
@@ -209,6 +211,7 @@ public:
 	//Basic Routine
 	int GetUserID() const;
 	int GetChannelID() const;
+	const std::string& GetName() const;
 	std::recursive_mutex& GetLock();
 	void Update();
 
@@ -306,5 +309,10 @@ public:
 	void ReregisterSummoned();
 	void CreateSummoned(const SkillEntry* pSkill, int nSLV, const FieldPoint& pt, bool bMigrate);
 	void RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID); //nForceRemoveSkillID = -1 means that remove all summoneds.
+
+	//Party
+	void AddPartyInvitedCharacterID(int nCharacterID);
+	bool IsPartyInvitedCharacterID(int nCharacterID);
+	void RemovePartyInvitedCharacterID(int nCharacterID);
 };
 

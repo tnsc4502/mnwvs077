@@ -52,7 +52,7 @@
 #include "Pet.h"
 #include "Summoned.h"
 #include "SummonedPool.h"
-
+#include "PartyMan.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -76,6 +76,7 @@ User::~User()
 	OutPacket oPacket;
 	oPacket.Encode2(GameSendPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
 	oPacket.Encode4(GetUserID());
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);
@@ -93,7 +94,8 @@ User::~User()
 	//m_pField->OnLeave(this);
 	RemoveSummoned(0, 0, -1);
 	LeaveField();
-	
+	PartyMan::GetInstance()->OnLeave(this, false);
+
 	try {
 		if (GetScript())
 			GetScript()->Abort();
@@ -122,6 +124,11 @@ int User::GetUserID() const
 int User::GetChannelID() const
 {
 	return WvsBase::GetInstance<WvsGame>()->GetChannelID();
+}
+
+const std::string & User::GetName() const
+{
+	return m_pCharacterData->strName;
 }
 
 void User::SendPacket(OutPacket *oPacket)
@@ -203,6 +210,8 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 
 void User::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
+	oPacket->Encode2(UserSendPacketFlag::UserRemote_OnMakeLeaveFieldPacket);
+	oPacket->Encode4(GetUserID());
 }
 
 void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
@@ -343,21 +352,6 @@ void User::OnPacket(InPacket *iPacket)
 	case UserRecvPacketFlag::User_OnStatChangeItemCancelRequest:
 		OnStatChangeItemCancelRequest(iPacket);
 		break;
-	case 0x16B:
-	{
-		std::string strSkill = iPacket->DecodeStr();
-		int nLVL1 = iPacket->Decode4();
-		int nLVL2 = iPacket->Decode4();
-		OutPacket oPacket;
-		oPacket.Encode2(0xC1);
-		oPacket.EncodeStr(strSkill);
-		oPacket.Encode4(nLVL1);
-		oPacket.Encode4(nLVL2);
-		oPacket.Encode1(0);
-		oPacket.Encode4(0);
-		SendPacket(&oPacket);
-		break;
-	}
 	case UserRecvPacketFlag::User_OnUserChat:
 		OnChat(iPacket);
 		break;
@@ -412,6 +406,9 @@ void User::OnPacket(InPacket *iPacket)
 		break;
 	case UserRecvPacketFlag::User_OnActivatePetRequest:
 		OnActivatePetRequest(iPacket);
+		break;
+	case UserRecvPacketFlag::User_OnPartyRequest:
+		PartyMan::GetInstance()->OnPartyRequest(this, iPacket);
 		break;
 	default:
 		iPacket->RestorePacket();
@@ -911,6 +908,11 @@ User::TransferStatus User::GetTransferStatus() const
 User * User::FindUser(int nUserID)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUser(nUserID);
+}
+
+User * User::FindUserByName(const std::string & strName)
+{
+	return WvsGame::GetInstance<WvsGame>()->FindUserByName(strName);
 }
 
 void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest)
@@ -1442,6 +1444,7 @@ void User::OnPetPacket(InPacket * iPacket)
 
 void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
 	int nAvailableIdx = -1;
 	int nMaxIndex = GetMaxPetIndex();
 	GW_ItemSlotPet *pPetSlot = nullptr;
@@ -1523,6 +1526,7 @@ void User::ReregisterSummoned()
 
 void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint & pt, bool bMigrate)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
 	if (!m_pField)
 	{
 		m_aMigrateSummoned.push_back(pSkill->GetSkillID());
@@ -1538,6 +1542,7 @@ void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint 
 //nForceRemoveSkillID = -1 means that remove all summoneds.
 void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
 	if (nForceRemoveSkillID == -1 || nForceRemoveSkillID != 0)
 	{
 		int nSummoned = (int)m_lSummoned.size();
@@ -1558,6 +1563,34 @@ void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 	}
 	if (m_pField)
 		m_pField->GetSummonedPool()->RemoveSummoned(GetUserID(), nSkillID, nLeaveType);
+}
+
+void User::AddPartyInvitedCharacterID(int nCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	m_lnPartyInvitedCharacterID.push_back(nCharacterID);
+}
+
+bool User::IsPartyInvitedCharacterID(int nCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	for (auto& nID : m_lnPartyInvitedCharacterID)
+		if (nID == nCharacterID)
+			return true;
+	return false;
+}
+
+void User::RemovePartyInvitedCharacterID(int nCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	for(int i = 0; i < m_lnPartyInvitedCharacterID.size(); ++i)
+		if (m_lnPartyInvitedCharacterID[i] == nCharacterID)
+		{
+			m_lnPartyInvitedCharacterID.erase(
+				m_lnPartyInvitedCharacterID.begin() + i
+			);
+			return;
+		}
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
@@ -1625,4 +1658,10 @@ void User::OnMigrateIn()
 			true);
 	}
 	m_aMigrateSummoned.clear();
+
+	OutPacket oPacket;
+	oPacket.Encode2(GameSendPacketFlag::PartyRequest);
+	oPacket.Encode1(PartyMan::PartyRequest::rq_Party_Load);
+	oPacket.Encode4(GetUserID());
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }

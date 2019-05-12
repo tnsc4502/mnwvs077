@@ -304,6 +304,18 @@ long long int QWUser::GetEXP(User * pUser)
 	return pUser->GetCharacterData()->mStat->nExp;
 }
 
+short QWUser::GetJob(User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	return pUser->GetCharacterData()->mStat->nJob;
+}
+
+unsigned char QWUser::GetLevel(User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	return pUser->GetCharacterData()->mLevel->nLevel;
+}
+
 long long int QWUser::SetFace(User * pUser, int nFace)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());

@@ -39,6 +39,8 @@ public:
 	static long long int GetMaxHPVal(User* pUser);
 	static long long int GetMaxMPVal(User* pUser);
 	static long long int GetEXP(User* pUser);
+	static short GetJob(User* pUser);
+	static unsigned char GetLevel(User* pUser);
 
 	static long long int SetFace(User * pUser, int nFace);
 	static long long int SetHair(User * pUser, int nHair);

@@ -420,7 +420,7 @@ void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oP
 		if (pInfo->m_nSkillID == 4211006)
 			oPacket->Encode1((char)dmgInfo.second.size());
 		for (const auto& dmgValue : dmgInfo.second)
-			oPacket->Encode4(dmgValue);
+			oPacket->Encode4((int)dmgValue);
 	}
 
 	if (pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)

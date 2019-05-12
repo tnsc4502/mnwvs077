@@ -21,7 +21,7 @@ class SummonedPool;
 
 class Field
 {
-	std::mutex m_mtxFieldUserMutex, m_mtxFieldLock;
+	std::recursive_mutex m_mtxFieldUserMutex, m_mtxFieldLock;
 	std::map<int, User*> m_mUser; //m_lUser in WvsGame.idb
 	int m_nFieldID = 0;
 	LifePool *m_pLifePool;
@@ -142,7 +142,7 @@ public:
 	ReactorPool* GetReactorPool();
 	SummonedPool* GetSummonedPool();
 
-	std::mutex& GetFieldLock();
+	std::recursive_mutex& GetFieldLock();
 
 	WvsPhysicalSpace2D* GetSpace2D();
 

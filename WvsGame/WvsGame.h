@@ -16,6 +16,8 @@ class WvsGame : public WvsBase
 
 	std::mutex m_mUserLock;
 	std::map<int, std::shared_ptr<User>> m_mUserMap;
+	std::map<std::string, std::shared_ptr<User>> m_mUserNameMap;
+
 	std::string m_sCenterIP;
 	std::shared_ptr<Center> m_pCenterInstance;
 	asio::io_service* m_pCenterServerService;
@@ -42,4 +44,5 @@ public:
 	int GetChannelID() const;
 
 	User* FindUser(int nUserID);
+	User* FindUserByName(const std::string& strName);
 };

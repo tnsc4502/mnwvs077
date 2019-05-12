@@ -12,7 +12,7 @@ MAKE_FLAG_COLLECTION_BODY(UserSendPacketFlag)
 
 //¹ïÀ³ClientªºWvsContext::OnPacket
 
-MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnTransferChannel, 0x11);
+MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnTransferChannel, 8);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnInventoryOperation, 22);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnInventoryGrow, 23);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnStatChanged, 24);
@@ -171,6 +171,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnMapTransferItemUseRequest, 0x50);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPortalScrollUseRequest, 0x51); 
 MAKE_USER_RECV_PACKET_FLAG(User_OnItemUpgradeRequest, 0x52);
 MAKE_USER_RECV_PACKET_FLAG(User_OnQuestRequest, 0x57);
+MAKE_USER_RECV_PACKET_FLAG(User_OnPartyRequest, 0x60);
 
 
 MAKE_USER_RECV_PACKET_FLAG(User_OnFuncKeyMappedModified, 0x6B);

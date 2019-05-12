@@ -17,6 +17,7 @@
 #include "DropPool.h"
 #include "FieldSet.h"
 #include "User.h"
+#include "PartyMan.h"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "WvsPhysicalSpace2D.h"
 
@@ -52,7 +53,7 @@ Field::~Field()
 
 void Field::BroadcastPacket(OutPacket * oPacket)
 {
-	std::lock_guard<std::mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 
 	if (m_mUser.size() == 0)
@@ -230,7 +231,7 @@ FieldSet * Field::GetFieldSet()
 
 void Field::InitLifePool()
 {
-	std::lock_guard<std::mutex> lifePoolGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> lifePoolGuard(m_mtxFieldUserMutex);
 	m_pLifePool->Init(this, m_nFieldID);
 }
 
@@ -246,7 +247,7 @@ DropPool * Field::GetDropPool()
 
 void Field::OnEnter(User *pUser)
 {
-	std::lock_guard<std::mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
 	//if (!m_asyncUpdateTimer->IsStarted())
 	//	m_asyncUpdateTimer->Start();
 	m_mUser.insert({ pUser->GetUserID(), pUser });
@@ -256,14 +257,15 @@ void Field::OnEnter(User *pUser)
 	if (m_pParentFieldSet != nullptr)
 		m_pParentFieldSet->OnUserEnterField(pUser);
 
+	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
+
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeEnterFieldPacket(&oPacketForBroadcasting);
+	SplitSendPacket(&oPacketForBroadcasting, pUser);
 	for (auto pFieldUser : m_mUser) 
 	{
 		if (pFieldUser.second != pUser)
 		{
-			pFieldUser.second->SendPacket(&oPacketForBroadcasting);
-
 			OutPacket oPacketToTarget;
 			pFieldUser.second->MakeEnterFieldPacket(&oPacketToTarget);
 			pUser->SendPacket(&oPacketToTarget);
@@ -273,17 +275,21 @@ void Field::OnEnter(User *pUser)
 
 void Field::OnLeave(User * pUser)
 {
-	std::lock_guard<std::mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
 	m_mUser.erase(pUser->GetUserID());
 	m_pLifePool->RemoveController(pUser);
 	//if (m_mUser.size() == 0 && m_asyncUpdateTimer->IsStarted())
 	//	m_asyncUpdateTimer->Pause();
+
+	OutPacket oPacketForBroadcasting;
+	pUser->MakeLeaveFieldPacket(&oPacketForBroadcasting);
+	SplitSendPacket(&oPacketForBroadcasting, nullptr);
 }
 
 //發送oPacket給該地圖的其他User，其中pExcept是例外對象
 void Field::SplitSendPacket(OutPacket *oPacket, User *pExcept)
 {
-	std::lock_guard<std::mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 
 	for (auto& user : m_mUser)
@@ -339,7 +345,7 @@ SummonedPool * Field::GetSummonedPool()
 	return m_pSummonedPool;
 }
 
-std::mutex & Field::GetFieldLock()
+std::recursive_mutex & Field::GetFieldLock()
 {
 	return m_mtxFieldLock;
 }

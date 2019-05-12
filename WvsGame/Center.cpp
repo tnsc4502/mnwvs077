@@ -19,6 +19,7 @@
 #include "WvsGame.h"
 #include "User.h"
 #include "FieldMan.h"
+#include "PartyMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -91,6 +92,9 @@ void Center::OnPacket(InPacket *iPacket)
 	case CenterSendPacketFlag::MigrateCashShopResult:
 	case CenterSendPacketFlag::TransferChannelResult:
 		OnTransferChannelResult(iPacket);
+		break;
+	case CenterSendPacketFlag::PartyResult:
+		PartyMan::GetInstance()->OnPacket(iPacket);
 		break;
 	}
 }

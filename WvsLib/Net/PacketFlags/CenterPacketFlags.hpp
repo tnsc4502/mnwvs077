@@ -14,6 +14,7 @@ MAKE_CENTER_SEND_PACKET_FLAG(CenterMigrateInResult, 5);
 MAKE_CENTER_SEND_PACKET_FLAG(TransferChannelResult, 6);
 MAKE_CENTER_SEND_PACKET_FLAG(MigrateCashShopResult, 7);
 MAKE_CENTER_SEND_PACKET_FLAG(CreateCharacterResult, 8);
+MAKE_CENTER_SEND_PACKET_FLAG(PartyResult, 9);
 
 //Center To Shop
 MAKE_CENTER_SEND_PACKET_FLAG(CashItemResult, 0x40);
