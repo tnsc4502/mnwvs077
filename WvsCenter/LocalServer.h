@@ -1,10 +1,12 @@
 #pragma once
+#include <map>
 #include "..\WvsLib\Net\SocketBase.h"
 
 //Server ºÝ¤§ Session
 class LocalServer : public SocketBase
 {
 private:
+	std::set<int> m_sUser;
 	void OnClosed();
 
 public:
@@ -12,8 +14,6 @@ public:
 	~LocalServer();
 
 	void OnPacket(InPacket *iPacket);
-
-
 	void OnRegisterCenterRequest(InPacket *iPacket);
 	void OnRequestCharacterList(InPacket *iPacket);
 	void OnRequestCreateNewCharacter(InPacket *iPacket);
@@ -32,5 +32,8 @@ public:
 
 	//Party
 	void OnPartyRequest(InPacket *iPacket);
+
+	//Guild
+	void OnGuildRequest(InPacket *iPacket);
 };
 

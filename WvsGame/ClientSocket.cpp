@@ -2,7 +2,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
-#include "..\WvsLib\Net\PacketFlags\GamePacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
@@ -51,7 +51,7 @@ void ClientSocket::OnMigrateIn(InPacket *iPacket)
 	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
 	int nCharacterID = iPacket->Decode4();
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::RequestMigrateIn);
+	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateIn);
 	oPacket.Encode4(GetSocketID());
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());

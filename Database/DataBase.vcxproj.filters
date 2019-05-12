@@ -6,7 +6,6 @@
   <ItemGroup>
     <ClInclude Include="WvsUnified.h" />
     <ClInclude Include="CharacterDBAccessor.h" />
-    <ClInclude Include="DBConstants.h" />
     <ClInclude Include="GW_CharacterList.hpp" />
     <ClInclude Include="GW_Avatar.hpp" />
     <ClInclude Include="GA_Character.hpp" />
@@ -25,6 +24,7 @@
     <ClInclude Include="GW_Account.h" />
     <ClInclude Include="GW_FuncKeyMapped.h" />
     <ClInclude Include="GW_Shop.h" />
+    <ClInclude Include="GuildDBAccessor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -47,5 +47,6 @@
     <ClCompile Include="GW_Account.cpp" />
     <ClCompile Include="GW_FuncKeyMapped.cpp" />
     <ClCompile Include="GW_Shop.cpp" />
+    <ClCompile Include="GuildDBAccessor.cpp" />
   </ItemGroup>
 </Project>

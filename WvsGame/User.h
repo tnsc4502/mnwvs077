@@ -2,6 +2,7 @@
 #include "FieldObj.h"
 #include <mutex>
 #include <map>
+#include <set>
 #include <vector>
 #include "TemporaryStat.h"
 
@@ -180,19 +181,35 @@ private:
 
 	std::recursive_mutex m_mtxUserlock, m_scriptLock;
 	int m_tLastUpdateTime = 0;
+
+	//Network
 	ClientSocket *m_pSocket;
+	TransferStatus m_nTransferStatus;
+
+	//Stat
 	GA_Character *m_pCharacterData;
-	GW_FuncKeyMapped *m_pFuncKeyMapped;
 	BasicStat* m_pBasicStat;
 	SecondaryStat* m_pSecondaryStat;
+	GW_FuncKeyMapped *m_pFuncKeyMapped;
+
+	//System
 	AsyncScheduler *m_pUpdateTimer;
 	Script* m_pScript = nullptr;
-	TransferStatus m_nTransferStatus;
 	Npc *m_pTradingNpc = nullptr;
+
+	//Pet
 	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
+
+	//Summoned
 	std::vector<Summoned*> m_lSummoned;
 	std::vector<int> m_aMigrateSummoned;
-	std::vector<int> m_lnPartyInvitedCharacterID;
+
+	//World
+	std::set<int> m_snPartyInvitedCharacterID, m_snGuildInvitedCharacterID;
+
+	//Guild
+	std::string m_sGuildName;
+	int m_nMarkBg = 0, m_nMarkBgColor = 0, m_nMark = 0, m_nMarkColor = 0;
 
 	void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket);
 	AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
@@ -314,5 +331,14 @@ public:
 	void AddPartyInvitedCharacterID(int nCharacterID);
 	bool IsPartyInvitedCharacterID(int nCharacterID);
 	void RemovePartyInvitedCharacterID(int nCharacterID);
+	void ClearPartyInvitedCharacterID();
+
+	//Guild
+	void AddGuildInvitedCharacterID(int nCharacterID);
+	const std::set<int>& GetGuildInvitedCharacterID() const;
+	void RemoveGuildInvitedCharacterID(int nCharacterID);
+	void ClearGuildInvitedCharacterID();
+	void SetGuildName(const std::string& strName);
+	void SetGuildMark(int nMarkBg, int nMarkBgColor, int nMark, int nMarkColor);
 };
 

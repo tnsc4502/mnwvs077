@@ -20,6 +20,10 @@
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "ScriptMan.h"
+#include "GuildMan.h"
+
+#undef GetJob
+#include "QWUser.h"
 
 CommandManager::CommandManager()
 {
@@ -170,6 +174,24 @@ void CommandManager::Process(User * pUser, const std::string & input)
 			pUser->SetScript(pScript);
 
 			pScript->Run();
+		}
+		else if (sCmd == "#cg")
+		{
+
+			GuildMan::MemberData memberData;
+			memberData.Set(
+				pUser->GetName(),
+				QWUser::GetLevel(pUser),
+				QWUser::GetJob(pUser),
+				true
+			);
+			GuildMan::GetInstance()->OnCreateNewGuildRequest(
+				pUser,
+				"Hello",
+				{
+					{pUser->GetUserID(), memberData }
+				}
+			);
 		}
 	}
 }

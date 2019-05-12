@@ -139,8 +139,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CharacterDBAccessor.h" />
-    <ClInclude Include="DBConstants.h" />
     <ClInclude Include="GA_Character.hpp" />
+    <ClInclude Include="GuildDBAccessor.h" />
     <ClInclude Include="GW_Account.h" />
     <ClInclude Include="GW_Avatar.hpp" />
     <ClInclude Include="GW_CashItemInfo.h" />
@@ -163,6 +163,7 @@
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
     <ClCompile Include="GA_Character.cpp" />
+    <ClCompile Include="GuildDBAccessor.cpp" />
     <ClCompile Include="GW_Account.cpp" />
     <ClCompile Include="GW_Avatar.cpp" />
     <ClCompile Include="GW_CashItemInfo.cpp" />

@@ -6,7 +6,7 @@
 #include "Field.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GamePacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
@@ -37,7 +37,11 @@ int PartyMan::FindUser(int nUserID, PartyData * pParty)
 
 PartyMan::PartyMan()
 {
+
+#ifdef _WVSCENTER
 	m_atiPartyIDCounter = 1;
+#endif
+
 }
 
 PartyMan::~PartyMan()
@@ -51,74 +55,32 @@ void PartyMan::OnPartyRequest(User *pUser, InPacket * iPacket)
 	switch (nRequest)
 	{
 		case PartyRequest::rq_Party_Create:
-		{
-			OutPacket oPacket;
-			oPacket.Encode2(GameSendPacketFlag::PartyRequest);
-			oPacket.Encode1(PartyRequest::rq_Party_Create);
-			ENCODE_MEMBER_INFO(pUser);
-			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+			OnCreateNewPartyRequest(pUser, iPacket);
 			break;
-		}
 		case PartyRequest::rq_Party_Invite:
-		{
-			OutPacket oPacket;
-			int nPartyID = GetPartyIDByCharID(pUser->GetUserID());
-			if (nPartyID > 0 && IsPartyBoss(nPartyID, pUser->GetUserID()))
-			{
-				std::string strToInvite = iPacket->DecodeStr();
-				auto pToInvite = User::FindUserByName(strToInvite);
-				if (pToInvite)
-				{
-					if (GetPartyIDByCharID(pToInvite->GetUserID()) > 0)
-					{
-						oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
-						oPacket.Encode1(PartyResult::res_Party_Invite_Failed_AlreadyInParty);
-						pUser->SendPacket(&oPacket);
-					}
-					else
-					{
-						oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
-						oPacket.Encode1(PartyRequest::rq_Party_Invite);
-						oPacket.Encode4(pUser->GetUserID());
-						oPacket.EncodeStr(pUser->GetName());
-						oPacket.Encode4(QWUser::GetLevel(pUser));
-						oPacket.Encode4(QWUser::GetJob(pUser));
-						oPacket.Encode1(0);
-
-						pToInvite->SendPacket(&oPacket);
-						pToInvite->AddPartyInvitedCharacterID(pUser->GetUserID());
-					}
-				}
-			}
+			OnInvitePartyRequest(pUser, iPacket);
 			break;
-		}
 		case PartyRequest::rq_Party_Join:
-		{
-			OutPacket oPacket;
-			int nPartyBossID = iPacket->Decode4();
-			auto pBoss = User::FindUser(nPartyBossID);
-			if (!pBoss || GetPartyIDByCharID(pUser->GetUserID()) > 0)
-			{
-				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
-				oPacket.Encode1(PartyResult::res_Party_Invite_Failed_UnableToProcess);
-				pUser->SendPacket(&oPacket);
-				return;
-			}
-			int nPartyID = GetPartyIDByCharID(nPartyBossID);
-			if (nPartyID > 0 && 
-				IsPartyBoss(nPartyID, nPartyBossID) &&
-				pUser->IsPartyInvitedCharacterID(nPartyBossID))
-			{
-				oPacket.Encode2(GameSendPacketFlag::PartyRequest);
-				oPacket.Encode1(PartyRequest::rq_Party_Join);
-				oPacket.Encode4(nPartyID);
-				oPacket.Encode4(nPartyBossID);
-				ENCODE_MEMBER_INFO(pUser);
-				WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
-				pUser->RemovePartyInvitedCharacterID(nPartyBossID);
-			}
+			OnJoinPartyRequest(pUser, iPacket);
 			break;
-		}
+		case PartyRequest::rq_Party_Withdraw:
+		case PartyRequest::rq_Party_Withdraw_Kick:
+			OnWithdrawPartyRequest(nRequest, pUser, iPacket);
+			break;
+		case PartyRequest::rq_Party_ChangeBoss:
+			OnChangePartyBossRequest(pUser, iPacket);
+			break;
+	}
+}
+
+void PartyMan::OnPartyRequestRejected(User * pUser, InPacket * iPacket)
+{
+	int nReason = iPacket->Decode1();
+	switch (nReason)
+	{
+		case PartyRejectReason::rs_Party_Reject_Invitation:
+			OnRejectInvitation(pUser, iPacket);
+			break;
 	}
 }
 
@@ -139,7 +101,22 @@ void PartyMan::OnPacket(InPacket *iPacket)
 		case PartyResult::res_Party_MigrateIn:
 			OnUserMigration(iPacket);
 			break;
+		case PartyResult::res_Party_Withdraw:
+			OnWithdrawPartyDone(iPacket);
+			break;
+		case PartyResult::res_Party_ChangeBoss:
+			OnChangePartyBossDone(iPacket);
+			break;
 	}
+}
+
+void PartyMan::OnCreateNewPartyRequest(User * pUser, InPacket * iPacket)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+	oPacket.Encode1(PartyRequest::rq_Party_Create);
+	ENCODE_MEMBER_INFO(pUser);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
 void PartyMan::OnCreateNewPartyDone(InPacket *iPacket)
@@ -191,6 +168,16 @@ void PartyMan::OnLoadPartyDone(InPacket * iPacket)
 	int nCharacterID = iPacket->Decode4();
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+
+	if (nPartyID == -1)
+	{
+		//The party existed in local server had been removed in remote server. Sync.
+		auto pParty = GetPartyByCharID(nCharacterID);
+		if (pParty)
+			RemoveParty(pParty);
+		return;
+	}
+
 	auto pParty = GetParty(nPartyID);
 	auto pUser = User::FindUser(nCharacterID);
 	auto iterUserInParty = m_mCharacterIDToPartyID.find(nCharacterID);
@@ -202,19 +189,82 @@ void PartyMan::OnLoadPartyDone(InPacket * iPacket)
 	else if (!pUser)
 		return;
 	
-	pParty = AllocObj(PartyData);
-	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
-		pParty->party.Initialize(i);
+	if (!pParty)
+	{
+		pParty = AllocObj(PartyData);
+		for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+			pParty->party.Initialize(i);
 
-	pParty->nPartyID = nPartyID;
-	pParty->Decode(iPacket);
+		pParty->nPartyID = nPartyID;
+		m_mParty[nPartyID] = pParty;
+	}
+	pParty->party.Decode(iPacket);
 	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
 		if (pParty->party.anChannelID[i] != WvsBase::GetInstance<WvsGame>()->GetChannelID())
 			pParty->party.anFieldID[i] = 999999999;
 
-	m_mParty[nPartyID] = pParty;
 	m_mCharacterIDToPartyID[nCharacterID] = nPartyID;
 	NotifyTransferField(nCharacterID, pUser->GetField()->GetFieldID());
+}
+
+void PartyMan::OnInvitePartyRequest(User * pUser, InPacket * iPacket)
+{
+	OutPacket oPacket;
+	int nPartyID = GetPartyIDByCharID(pUser->GetUserID());
+	if (nPartyID > 0 && IsPartyBoss(nPartyID, pUser->GetUserID()))
+	{
+		std::string strToInvite = iPacket->DecodeStr();
+		auto pToInvite = User::FindUserByName(strToInvite);
+		if (pToInvite)
+		{
+			if (GetPartyIDByCharID(pToInvite->GetUserID()) > 0)
+			{
+				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+				oPacket.Encode1(PartyResult::res_Party_Failed_AlreadyInParty);
+				pUser->SendPacket(&oPacket);
+			}
+			else
+			{
+				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+				oPacket.Encode1(PartyRequest::rq_Party_Invite);
+				oPacket.Encode4(pUser->GetUserID());
+				oPacket.EncodeStr(pUser->GetName());
+				oPacket.Encode4(QWUser::GetLevel(pUser));
+				oPacket.Encode4(QWUser::GetJob(pUser));
+				oPacket.Encode1(0);
+
+				pToInvite->SendPacket(&oPacket);
+				pToInvite->AddPartyInvitedCharacterID(pUser->GetUserID());
+			}
+		}
+	}
+}
+
+void PartyMan::OnJoinPartyRequest(User * pUser, InPacket * iPacket)
+{
+	OutPacket oPacket;
+	int nPartyBossID = iPacket->Decode4();
+	auto pBoss = User::FindUser(nPartyBossID);
+	if (!pBoss || GetPartyIDByCharID(pUser->GetUserID()) > 0)
+	{
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode1(PartyResult::res_Party_Failed_UnableToProcess);
+		pUser->SendPacket(&oPacket);
+		return;
+	}
+	int nPartyID = GetPartyIDByCharID(nPartyBossID);
+	if (nPartyID > 0 &&
+		IsPartyBoss(nPartyID, nPartyBossID) &&
+		pUser->IsPartyInvitedCharacterID(nPartyBossID))
+	{
+		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode1(PartyRequest::rq_Party_Join);
+		oPacket.Encode4(nPartyID);
+		oPacket.Encode4(nPartyBossID);
+		ENCODE_MEMBER_INFO(pUser);
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		pUser->RemovePartyInvitedCharacterID(nPartyBossID);
+	}
 }
 
 void PartyMan::OnJoinPartyDone(InPacket * iPacket)
@@ -230,7 +280,7 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 	JOIN_FAILED:
 		OutPacket oPacket;
 		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
-		oPacket.Encode1(PartyResult::res_Party_Invite_Failed_UnableToProcess);
+		oPacket.Encode1(PartyResult::res_Party_Failed_UnableToProcess);
 		pUser->SendPacket(&oPacket);
 		return;
 	}
@@ -258,6 +308,121 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 	oPacket.EncodeStr(pUser->GetName());
 	pParty->Encode(&oPacket);
 	Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+
+	pUser->ClearPartyInvitedCharacterID();
+}
+
+void PartyMan::OnWithdrawPartyRequest(int nType, User *pUser, InPacket *iPacket)
+{
+	int nCharacterID = pUser->GetUserID();
+	auto nPartyID = GetPartyIDByCharID(nCharacterID);
+	if (nPartyID > 0 && 
+		(IsPartyBoss(nPartyID, nCharacterID) || iPacket->Decode1() == 0))
+	{
+		auto pParty = GetParty(nPartyID);
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode1(PartyRequest::rq_Party_Withdraw_Kick);
+		oPacket.Encode4(nPartyID);
+		if (nType == PartyRequest::rq_Party_Withdraw) 
+		{
+			oPacket.Encode1(0); //bKicked
+			oPacket.Encode4(nCharacterID);
+		}
+		else 
+		{
+			int nToKick = iPacket->Decode4();
+			if (FindUser(nToKick, pParty) >= 0)
+			{
+				oPacket.Encode1(1); //bKicked
+				oPacket.Encode4(nToKick);
+			}
+			else
+				return;
+		}
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
+{
+	int nPartyID = iPacket->Decode4();
+	int nWithdrawTarget = iPacket->Decode4();
+	int nResult = iPacket->Decode1();
+	auto pParty = GetParty(nPartyID);
+	int nIdx = -1;
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+	oPacket.Encode1(PartyResult::res_Party_Withdraw);
+	oPacket.Encode4(nPartyID);
+	oPacket.Encode4(nWithdrawTarget);
+	oPacket.Encode1((char)nResult);
+	if (pParty && ((nIdx = FindUser(nWithdrawTarget, pParty)), nIdx >= 0))
+	{
+		if (nResult == 0)
+		{
+			oPacket.Encode4(nWithdrawTarget);
+			Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+			RemoveParty(pParty);
+		}
+		else
+		{
+			oPacket.Encode1(iPacket->Decode1()); //bKicked
+			oPacket.EncodeStr(iPacket->DecodeStr());
+			pParty->party.Initialize(nIdx);
+			pParty->Encode(&oPacket);
+			auto pKickedUser = User::FindUser(nWithdrawTarget);
+			Broadcast(&oPacket, pParty->party.anCharacterID, nWithdrawTarget);
+			m_mCharacterIDToPartyID.erase(nWithdrawTarget);
+		}
+	}
+}
+
+void PartyMan::OnChangePartyBossRequest(User *pUser, InPacket *iPacket)
+{
+	int nCharacterID = pUser->GetUserID();
+	int nTargetID = iPacket->Decode4();
+	auto pParty = GetPartyByCharID(nCharacterID);
+	int nIdx = -1;
+	if (pParty && 
+		(nCharacterID != nTargetID) && 
+		IsPartyBoss(pParty->nPartyID, nCharacterID) &&
+		((nIdx = FindUser(nTargetID, pParty)), nIdx >= 0))
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+		if (pParty->party.anChannelID[nIdx] < 0)
+			return;
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode1(PartyRequest::rq_Party_ChangeBoss);
+		oPacket.Encode4(pParty->nPartyID);
+		oPacket.Encode4(nCharacterID);
+		oPacket.Encode4(nTargetID);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void PartyMan::OnChangePartyBossDone(InPacket *iPacket)
+{
+	int nPartyID = iPacket->Decode4();
+	auto pParty = GetParty(nPartyID);
+	bool bSuccess = iPacket->Decode1() == 1;
+
+	if (bSuccess && pParty)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+		int nTargetID = iPacket->Decode4();
+		pParty->party.nPartyBossCharacterID = nTargetID;
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
+		oPacket.Encode4(nTargetID);
+		oPacket.Encode1(iPacket->Decode1());
+		Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+	}
 }
 
 void PartyMan::OnLeave(User * pUser, bool bMigrate)
@@ -270,20 +435,6 @@ void PartyMan::OnLeave(User * pUser, bool bMigrate)
 		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 		if (pParty)
 		{
-			int nIdx = FindUser(nCharacterID, pParty);
-			if (nIdx != -1)
-			{
-				if (pParty->party.anCharacterID[nIdx] == pParty->party.nPartyBossCharacterID)
-				{
-					for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
-						if (i == nIdx)
-							continue;
-						else if (pParty->party.anChannelID[i] >= 0)
-						{
-							//New Party Boss
-						}
-				}
-			}
 			m_mCharacterIDToPartyID.erase(nCharacterID);
 			NotifyTransferField(nCharacterID, 999999999);
 		}
@@ -305,7 +456,7 @@ void PartyMan::OnUserMigration(InPacket * iPacket)
 
 		OutPacket oPacket;
 		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
-		oPacket.Encode1(PartyResult::res_Party_Update);
+		oPacket.Encode1(PartyResult::res_Party_MigrateIn);
 		oPacket.Encode4(pParty->nPartyID);
 		pParty->Encode(&oPacket);
 		Broadcast(&oPacket, pParty->party.anCharacterID, 0);
@@ -339,8 +490,17 @@ void PartyMan::NotifyTransferField(int nCharacterID, int nFieldID)
 	}
 }
 
+void PartyMan::OnRejectInvitation(User * pUser, InPacket * iPacket)
+{
+	auto pInviter = User::FindUserByName(iPacket->DecodeStr());
+	if (pInviter && pUser->IsPartyInvitedCharacterID(pInviter->GetUserID()))
+		pUser->RemovePartyInvitedCharacterID(pInviter->GetUserID());
+}
+
 void PartyMan::Broadcast(OutPacket *oPacket, int * anCharacterID, int nPlusOne)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 	if (nPlusOne != 0)
 	{
@@ -396,14 +556,35 @@ PartyMan::PartyData *PartyMan::GetParty(int nPartyID)
 	return findIter->second;
 }
 
+void PartyMan::RemoveParty(PartyData * pParty)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+
+	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+		if (pParty->party.anCharacterID[i])
+			m_mCharacterIDToPartyID.erase(pParty->party.anCharacterID[i]);
+	m_mParty.erase(pParty->nPartyID);
+	FreeObj(pParty);
+}
+
 bool PartyMan::IsPartyBoss(int nPartyID, int nUserID)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+
 	auto pParty = GetPartyByCharID(nUserID);
 	return pParty->party.nPartyBossCharacterID == nUserID;
 }
 
+bool PartyMan::IsPartyMember(int nPartyID, int nUserID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+
+	auto pParty = GetPartyByCharID(nUserID);
+	return pParty && (nPartyID == pParty->nPartyID);
+}
+
 #ifdef _WVSCENTER
-void PartyMan::OnCreateNewPartyRequest(InPacket * iPacket, OutPacket *oPacket)
+void PartyMan::CreateNewParty(InPacket * iPacket, OutPacket *oPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	int nUserChannelID = iPacket->Decode4();
@@ -444,7 +625,7 @@ void PartyMan::OnCreateNewPartyRequest(InPacket * iPacket, OutPacket *oPacket)
 	oPacket->Encode4(nPartyCreateResult);
 }
 
-void PartyMan::OnLoadPartyRequest(InPacket * iPacket, OutPacket *oPacket)
+void PartyMan::LoadParty(InPacket * iPacket, OutPacket *oPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	auto pParty = GetPartyByCharID(nCharacterID);
@@ -456,13 +637,16 @@ void PartyMan::OnLoadPartyRequest(InPacket * iPacket, OutPacket *oPacket)
 	{
 		oPacket->Encode4(pParty->nPartyID);
 		oPacket->Encode4(nCharacterID);
-		pParty->Encode(oPacket);
+		pParty->party.Encode(oPacket);
 	}
 	else
+	{
 		oPacket->Encode4(-1);
+		oPacket->Encode4(nCharacterID);
+	}
 }
 
-void PartyMan::OnJoinPartyRequest(InPacket * iPacket, OutPacket *oPacket)
+void PartyMan::JoinParty(InPacket * iPacket, OutPacket *oPacket)
 {
 	int nPartyID = iPacket->Decode4();
 	int nBossID = iPacket->Decode4();
@@ -502,6 +686,66 @@ void PartyMan::OnJoinPartyRequest(InPacket * iPacket, OutPacket *oPacket)
 		oPacket->Encode4(nPartyID);
 }
 
+void PartyMan::WithdrawParty(InPacket * iPacket, OutPacket * oPacket)
+{
+	int nPartyID = iPacket->Decode4();
+	char bKicked = iPacket->Decode1();
+	int nToKick = iPacket->Decode4();
+	int nIdx = -1;
+	auto pParty = GetParty(nPartyID);
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+	if (pParty && ((nIdx = FindUser(nToKick, pParty)), nIdx >= 0))
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket.Encode1(PartyResult::res_Party_Withdraw);
+		oPacket.Encode4(nPartyID);
+		oPacket.Encode4(nToKick);
+		if (IsPartyBoss(nPartyID, nToKick))
+		{
+			oPacket.Encode1(0);
+			SendPacket(&oPacket, pParty);
+			RemoveParty(pParty);
+		}
+		else
+		{
+			oPacket.Encode1(1);
+			oPacket.Encode1(bKicked); //bKicked
+			oPacket.EncodeStr(pParty->party.asCharacterName[nIdx]);
+			SendPacket(&oPacket, pParty);
+			m_mCharacterIDToPartyID.erase(nToKick);
+			pParty->party.Initialize(nIdx);
+		}
+	}
+}
+
+void PartyMan::ChangePartyBoss(InPacket * iPacket, OutPacket * oPacket)
+{
+	int nPartyID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	int nTargetID = iPacket->Decode4();
+	int nIdx = -1;
+	auto pParty = GetParty(nPartyID);
+	if (pParty && 
+		(nCharacterID != nTargetID) && 
+		IsPartyBoss(nPartyID, nCharacterID) &&
+		((nIdx = FindUser(nTargetID, pParty), nIdx >= 0)))
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+		pParty->party.nPartyBossCharacterID = nTargetID;
+
+		OutPacket oPacket;
+		oPacket.Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
+		oPacket.Encode4(nPartyID);
+		oPacket.Encode1(1);
+		oPacket.Encode4(nTargetID);
+		oPacket.Encode1(0); //bChangedByCenter
+		SendPacket(&oPacket, pParty);
+	}
+}
+
 void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 {
 	auto pParty = GetPartyByCharID(nCharacterID);
@@ -519,27 +763,82 @@ void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 		oPacket.Encode4(nChannelID);
 
 		SendPacket(&oPacket, pParty);
+
+		if (pParty->party.nPartyBossCharacterID == nCharacterID &&
+			nChannelID == WvsWorld::CHANNELID_NOT_MIGRATED_IN)
+		{
+			for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+				if (i == nIdx)
+					continue;
+				else if (pParty->party.anChannelID[i] >= 0)
+				{
+					pParty->party.nPartyBossCharacterID = pParty->party.anCharacterID[i];
+
+					OutPacket oPacket;
+					oPacket.Encode2(CenterSendPacketFlag::PartyResult);
+					oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
+					oPacket.Encode4(pParty->nPartyID);
+					oPacket.Encode1(1);
+					oPacket.Encode4(pParty->party.anCharacterID[i]);
+					oPacket.Encode1(1); //bChangedByCenter
+					SendPacket(&oPacket, pParty);
+				}
+		}
 	}
 }
 
 void PartyMan::SendPacket(OutPacket *oPacket, PartyData *pParty)
 {
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
-
+	bool bChannelSent[30] { 0 };
 	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
 	{
 		if (pParty->party.anChannelID[i] >= 0)
 		{
+			if (bChannelSent[pParty->party.anChannelID[i]])
+				continue;
 			auto pChannel = WvsBase::GetInstance<WvsCenter>()->GetChannel(
 				pParty->party.anChannelID[i]
 			);
-			if(pChannel)
+			if (pChannel) 
+			{
 				pChannel->GetLocalSocket()->SendPacket(oPacket);
+				bChannelSent[pParty->party.anChannelID[i]] = true;
+			}
 		}
 	}
 }
 
 #endif
+
+void PartyMan::PartyMember::Encode(OutPacket * oPacket)
+{
+	typedef unsigned char* BuffType;
+	oPacket->EncodeBuffer((BuffType)(anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+		oPacket->EncodeBuffer((BuffType)asCharacterName[i].c_str(), 13);
+	oPacket->EncodeBuffer((BuffType)(anJob), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	oPacket->EncodeBuffer((BuffType)(anLevel), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	oPacket->EncodeBuffer((BuffType)(anChannelID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	oPacket->Encode4(nPartyBossCharacterID);
+}
+
+void PartyMan::PartyMember::Decode(InPacket * iPacket)
+{
+	typedef unsigned char* BuffType;
+	iPacket->DecodeBuffer((BuffType)(anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+
+	char aBuffName[14]{ 0 };
+	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+	{
+		iPacket->DecodeBuffer((unsigned char*)aBuffName, 13);
+		asCharacterName[i] = aBuffName;
+	}
+	iPacket->DecodeBuffer((BuffType)(anJob), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	iPacket->DecodeBuffer((BuffType)(anLevel), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	iPacket->DecodeBuffer((BuffType)(anChannelID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	nPartyBossCharacterID = iPacket->Decode4();
+}
 
 void PartyMan::PartyMember::Initialize(int nIdx)
 {
@@ -557,13 +856,7 @@ void PartyMan::PartyMember::Initialize(int nIdx)
 void PartyMan::PartyData::Encode(OutPacket *oPacket)
 {
 	typedef unsigned char* BuffType;
-	oPacket->EncodeBuffer((BuffType)(party.anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
-		oPacket->EncodeBuffer((BuffType)party.asCharacterName[i].c_str(), 13);
-	oPacket->EncodeBuffer((BuffType)(party.anJob), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	oPacket->EncodeBuffer((BuffType)(party.anLevel), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	oPacket->EncodeBuffer((BuffType)(party.anChannelID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	oPacket->Encode4(party.nPartyBossCharacterID);
+	party.Encode(oPacket);
 	oPacket->EncodeBuffer((BuffType)(party.anFieldID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 	oPacket->EncodeBuffer((BuffType)(party.aTownPortal), sizeof(PartyTownPortal) * MAX_PARTY_MEMBER_COUNT);
 }
@@ -571,24 +864,8 @@ void PartyMan::PartyData::Encode(OutPacket *oPacket)
 void PartyMan::PartyData::Decode(InPacket * iPacket)
 {
 	typedef unsigned char* BuffType;
-	iPacket->DecodeBuffer((BuffType)(party.anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
+	party.Decode(iPacket);
 
-	char aBuffName[14]{ 0 };
-	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
-	{
-		iPacket->DecodeBuffer((unsigned char*)aBuffName, 13);
-		party.asCharacterName[i] = aBuffName;
-	}
-	iPacket->DecodeBuffer((BuffType)(party.anJob), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	iPacket->DecodeBuffer((BuffType)(party.anLevel), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	iPacket->DecodeBuffer((BuffType)(party.anChannelID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	party.nPartyBossCharacterID = iPacket->Decode4();
-	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
-	{
-		WvsLogger::LogFormat("Decode Party [IDX: %d][ID: %d][Channel: %d][Name: %s]\n", i, party.anCharacterID[i], party.anChannelID[i], party.asCharacterName[i].c_str());
-		//iPacket->DecodeBuffer((unsigned char*)aBuffName, 13);
-		//party.asCharacterName[i] = aBuffName;
-	}
 	iPacket->DecodeBuffer((BuffType)(party.anFieldID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 	iPacket->DecodeBuffer((BuffType)(party.aTownPortal), sizeof(PartyTownPortal) * MAX_PARTY_MEMBER_COUNT);
 }

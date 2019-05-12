@@ -7,7 +7,7 @@
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GamePacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "WvsCenter.h"
@@ -15,6 +15,7 @@
 #include "UserTransferStatus.h"
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsGame\PartyMan.h"
+#include "..\WvsGame\GuildMan.h"
 
 LocalServer::LocalServer(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -23,6 +24,10 @@ LocalServer::LocalServer(asio::io_service& serverService)
 
 LocalServer::~LocalServer()
 {
+	for (auto& nCharacterID : m_sUser)
+		WvsWorld::GetInstance()->RemoveUser(
+			nCharacterID, -1, -1, false
+		);
 }
 
 void LocalServer::OnClosed()
@@ -49,18 +54,18 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case LoginSendPacketFlag::Center_RequestGameServerInfo:
 			OnRequestGameServerInfo(iPacket);
 			break;
-		case GameSendPacketFlag::RequestMigrateIn:
+		case GameSrvSendPacketFlag::RequestMigrateIn:
 			OnRequestMigrateIn(iPacket);
 			break;
 		case ShopInternalPacketFlag::RequestMigrateOut:
-		case GameSendPacketFlag::RequestMigrateOut:
+		case GameSrvSendPacketFlag::RequestMigrateOut:
 			OnRequestMigrateOut(iPacket);
 			break;
 		case ShopInternalPacketFlag::RequestTransferToGame:
-		case GameSendPacketFlag::RequestTransferChannel:
+		case GameSrvSendPacketFlag::RequestTransferChannel:
 			OnRequestTransferChannel(iPacket);
 			break;
-		case GameSendPacketFlag::RequestTransferShop:
+		case GameSrvSendPacketFlag::RequestTransferShop:
 			OnRequestMigrateCashShop(iPacket);
 			break;
 		case ShopInternalPacketFlag::RequestBuyCashItem:
@@ -78,8 +83,11 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case ShopInternalPacketFlag::RequestMoveSToL:
 			OnReuqestMoveSlotToLocker(iPacket);
 			break;
-		case GameSendPacketFlag::PartyRequest:
+		case GameSrvSendPacketFlag::PartyRequest:
 			OnPartyRequest(iPacket);
+			break;
+		case GameSrvSendPacketFlag::GuildRequest:
+			OnGuildRequest(iPacket);
 			break;
 	}
 }
@@ -108,7 +116,6 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 		oPacket.EncodeStr(pWorld->GetWorldInfo().strWorldDesc);
 		oPacket.EncodeStr(pWorld->GetWorldInfo().strEventDesc);
 		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
-		//printf("[LocalServer::OnRegisterCenterRequest]Encoding World Information.\n");
 	}
 	
 	if (serverType == ServerConstants::SRV_SHOP)
@@ -249,6 +256,7 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Migration Status Suspected User ID = %d\n", nCharacterID);
 	}
 
+	m_sUser.insert(nCharacterID);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
@@ -274,10 +282,10 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 	int nChannelID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 
-	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
 	char nGameEndType = iPacket->Decode1();
 	WvsLogger::LogFormat("OnRequestMigrateOut code = %d\n", (int)nGameEndType);
+	m_sUser.erase(nCharacterID);
 
 	if (nGameEndType == 1) //Transfer to another game server or to the shop.
 	{
@@ -386,20 +394,41 @@ void LocalServer::OnPartyRequest(InPacket * iPacket)
 	switch (nRequest)
 	{
 		case PartyMan::PartyRequest::rq_Party_Create:
-		{
-			PartyMan::GetInstance()->OnCreateNewPartyRequest(iPacket, &oPacket);
+			PartyMan::GetInstance()->CreateNewParty(iPacket, &oPacket);
 			break;
-		}
 		case PartyMan::PartyRequest::rq_Party_Load:
-		{
-			PartyMan::GetInstance()->OnLoadPartyRequest(iPacket, &oPacket);
+			PartyMan::GetInstance()->LoadParty(iPacket, &oPacket);
 			break;
-		}
 		case PartyMan::PartyRequest::rq_Party_Join:
-		{
-			PartyMan::GetInstance()->OnJoinPartyRequest(iPacket, &oPacket);
+			PartyMan::GetInstance()->JoinParty(iPacket, &oPacket);
 			break;
-		}
+		case PartyMan::PartyRequest::rq_Party_Withdraw_Kick:
+			PartyMan::GetInstance()->WithdrawParty(iPacket, &oPacket);
+			break;
+		case PartyMan::PartyRequest::rq_Party_ChangeBoss:
+			PartyMan::GetInstance()->ChangePartyBoss(iPacket, &oPacket);
+			break;
+	}
+
+	if (oPacket.GetPacketSize() != 0)
+		SendPacket(&oPacket);
+}
+
+void LocalServer::OnGuildRequest(InPacket * iPacket)
+{
+	int nRequest = iPacket->Decode1();
+	OutPacket oPacket;
+	switch (nRequest)
+	{
+		case GuildMan::GuildRequest::rq_Guild_Load:
+			GuildMan::GetInstance()->LoadGuild(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_Create:
+			GuildMan::GetInstance()->CreateNewGuild(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_Join:
+			GuildMan::GetInstance()->JoinGuild(iPacket, &oPacket);
+			break;
 	}
 
 	if (oPacket.GetPacketSize() != 0)

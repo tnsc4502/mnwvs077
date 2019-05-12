@@ -432,6 +432,9 @@
     <ClInclude Include="PartyMan.h">
       <Filter>WvsGame\InGame\World</Filter>
     </ClInclude>
+    <ClInclude Include="GuildMan.h">
+      <Filter>WvsGame\InGame\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -640,6 +643,9 @@
       <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
     <ClCompile Include="PartyMan.cpp">
+      <Filter>WvsGame\InGame\World</Filter>
+    </ClCompile>
+    <ClCompile Include="GuildMan.cpp">
       <Filter>WvsGame\InGame\World</Filter>
     </ClCompile>
   </ItemGroup>

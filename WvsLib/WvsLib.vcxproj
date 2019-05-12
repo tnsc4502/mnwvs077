@@ -152,7 +152,7 @@
     <ClInclude Include="Net\PacketFlags\DropPacketFlags.hpp" />
     <ClInclude Include="Net\PacketFlags\EmployeePacketFlags.hpp" />
     <ClInclude Include="Net\PacketFlags\FieldPacketFlags.hpp" />
-    <ClInclude Include="Net\PacketFlags\GamePacketFlags.hpp" />
+    <ClInclude Include="Net\PacketFlags\GameSrvPacketFlags.hpp" />
     <ClInclude Include="Net\PacketFlags\LoginPacketFlags.hpp" />
     <ClInclude Include="Net\PacketFlags\MessageBoxPacketFlags.hpp" />
     <ClInclude Include="Net\PacketFlags\MobPacketFlags.hpp" />
@@ -231,7 +231,7 @@
     <ClCompile Include="Net\PacketFlags\DropPacketFlags.cpp" />
     <ClCompile Include="Net\PacketFlags\EmployeePacketFlags.cpp" />
     <ClCompile Include="Net\PacketFlags\FieldPacketFlags.cpp" />
-    <ClCompile Include="Net\PacketFlags\GamePacketFlags.cpp" />
+    <ClCompile Include="Net\PacketFlags\GameSrvPacketFlags.cpp" />
     <ClCompile Include="Net\PacketFlags\LoginPacketFlags.cpp" />
     <ClCompile Include="Net\PacketFlags\MessageBoxPacketFlags.cpp" />
     <ClCompile Include="Net\PacketFlags\MobPacketFlags.cpp" />

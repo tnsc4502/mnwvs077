@@ -104,7 +104,7 @@ void SkillInfo::IterateSkillInfo()
 		nRootID = atoi(node.Name().c_str());
 		//LoadSkillRoot(nRootID, (void*)(&node["skill"]));
 		auto& rootNode = node["skill"];
-		for (auto& n : rootNode) n; //Extand all nodes before entering the thread.
+		for (auto& n : rootNode) n.Name(); //Expand all nodes before entering the thread.
 		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (void*)(&rootNode));
 		t.detach();
 	}

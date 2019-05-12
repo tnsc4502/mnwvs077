@@ -12,7 +12,7 @@
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GamePacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
@@ -53,6 +53,7 @@
 #include "Summoned.h"
 #include "SummonedPool.h"
 #include "PartyMan.h"
+#include "GuildMan.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -74,7 +75,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 User::~User()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::RequestMigrateOut);
+	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
 	oPacket.Encode4(GetUserID());
@@ -95,6 +96,7 @@ User::~User()
 	RemoveSummoned(0, 0, -1);
 	LeaveField();
 	PartyMan::GetInstance()->OnLeave(this, false);
+	GuildMan::GetInstance()->OnLeave(this);
 
 	try {
 		if (GetScript())
@@ -153,8 +155,12 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->EncodeStr(m_pCharacterData->strName);
 
 	//==========Guild Info=========
-	oPacket->Encode8(0);
-
+	//oPacket->Encode8(0);
+	oPacket->EncodeStr(m_sGuildName);
+	oPacket->Encode2(m_nMarkBg);
+	oPacket->Encode1(m_nMarkBgColor);
+	oPacket->Encode2(m_nMark);
+	oPacket->Encode1(m_nMarkColor);
 
 	//SecondaryStat::EncodeForRemote
 	m_pSecondaryStat->EncodeForRemote(oPacket, TemporaryStat::TS_Flag::GetDefault());
@@ -410,6 +416,12 @@ void User::OnPacket(InPacket *iPacket)
 	case UserRecvPacketFlag::User_OnPartyRequest:
 		PartyMan::GetInstance()->OnPartyRequest(this, iPacket);
 		break;
+	case UserRecvPacketFlag::User_OnPartyRequestRejected:
+		PartyMan::GetInstance()->OnPartyRequestRejected(this, iPacket);
+		break;
+	case UserRecvPacketFlag::User_OnGuildRequest:
+		GuildMan::GetInstance()->OnGuildReuqest(this, iPacket);
+		break;
 	default:
 		iPacket->RestorePacket();
 
@@ -496,7 +508,7 @@ void User::OnTransferChannelRequest(InPacket * iPacket)
 
 	SetTransferStatus(TransferStatus::eOnTransferChannel);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::RequestTransferChannel);
+	oPacket.Encode2(GameSrvSendPacketFlag::RequestTransferChannel);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(nChannelID);
@@ -509,7 +521,7 @@ void User::OnMigrateToCashShopRequest(InPacket * iPacket)
 	//Check if the user can attach additional process.
 	SetTransferStatus(TransferStatus::eOnTransferShop);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::RequestTransferShop);
+	oPacket.Encode2(GameSrvSendPacketFlag::RequestTransferShop);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -546,7 +558,7 @@ void User::EncodeChatMessage(OutPacket *oPacket, const std::string strMsg, bool 
 void User::PostTransferField(int dwFieldID, Portal * pPortal, int bForce)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)GameSendPacketFlag::Client_SetFieldStage); //Set Stage
+	oPacket.Encode2((short)GameSrvSendPacketFlag::Client_SetFieldStage); //Set Stage
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //nChannel
 
 	oPacket.Encode1(1); //bCharacterData?
@@ -905,12 +917,12 @@ User::TransferStatus User::GetTransferStatus() const
 	return m_nTransferStatus;
 }
 
-User * User::FindUser(int nUserID)
+User* User::FindUser(int nUserID)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUser(nUserID);
 }
 
-User * User::FindUserByName(const std::string & strName)
+User* User::FindUserByName(const std::string & strName)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUserByName(strName);
 }
@@ -1568,29 +1580,82 @@ void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 void User::AddPartyInvitedCharacterID(int nCharacterID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
-	m_lnPartyInvitedCharacterID.push_back(nCharacterID);
+	m_snPartyInvitedCharacterID.insert(nCharacterID);
 }
 
 bool User::IsPartyInvitedCharacterID(int nCharacterID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
-	for (auto& nID : m_lnPartyInvitedCharacterID)
-		if (nID == nCharacterID)
-			return true;
-	return false;
+
+	return m_snPartyInvitedCharacterID.find(nCharacterID) 
+		!= m_snPartyInvitedCharacterID.end();
 }
 
 void User::RemovePartyInvitedCharacterID(int nCharacterID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
-	for(int i = 0; i < m_lnPartyInvitedCharacterID.size(); ++i)
-		if (m_lnPartyInvitedCharacterID[i] == nCharacterID)
-		{
-			m_lnPartyInvitedCharacterID.erase(
-				m_lnPartyInvitedCharacterID.begin() + i
-			);
-			return;
-		}
+	m_snPartyInvitedCharacterID.erase(nCharacterID);
+}
+
+void User::ClearPartyInvitedCharacterID()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	m_snPartyInvitedCharacterID.clear();
+}
+
+void User::AddGuildInvitedCharacterID(int nCharacterID)
+{
+	m_snGuildInvitedCharacterID.insert(nCharacterID);
+}
+
+const std::set<int>& User::GetGuildInvitedCharacterID() const
+{
+	return m_snGuildInvitedCharacterID;
+}
+
+void User::RemoveGuildInvitedCharacterID(int nCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	m_snGuildInvitedCharacterID.erase(nCharacterID);
+}
+
+void User::ClearGuildInvitedCharacterID()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	m_snGuildInvitedCharacterID.clear();
+}
+
+void User::SetGuildName(const std::string & strName)
+{
+	m_sGuildName = strName;
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnGuildNameChanged);
+	oPacket.Encode4(GetUserID());
+	oPacket.EncodeStr(m_sGuildName);
+
+	GetField()->SplitSendPacket(
+		&oPacket, nullptr
+	);
+}
+
+void User::SetGuildMark(int nMarkBg, int nMarkBgColor, int nMark, int nMarkColor)
+{
+	m_nMarkBg = nMarkBg;
+	m_nMarkBgColor = nMarkBgColor;
+	m_nMark = nMark;
+	m_nMarkColor = nMarkColor;
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnGuildMarkChanged);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode2(m_nMarkBg);
+	oPacket.Encode1(m_nMarkBgColor);
+	oPacket.Encode2(m_nMark);
+	oPacket.Encode1(m_nMarkColor);
+
+	GetField()->SplitSendPacket(
+		&oPacket, nullptr
+	);
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
@@ -1660,8 +1725,14 @@ void User::OnMigrateIn()
 	m_aMigrateSummoned.clear();
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::PartyRequest);
+	oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
 	oPacket.Encode1(PartyMan::PartyRequest::rq_Party_Load);
 	oPacket.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+
+	OutPacket oPacketForGuildLoading;
+	oPacketForGuildLoading.Encode2(GameSrvSendPacketFlag::GuildRequest);
+	oPacketForGuildLoading.Encode1(GuildMan::GuildRequest::rq_Guild_Load);
+	oPacketForGuildLoading.Encode4(GetUserID());
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForGuildLoading);
 }
