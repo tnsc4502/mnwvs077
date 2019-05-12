@@ -7,7 +7,7 @@
 
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GamePacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 
@@ -20,6 +20,7 @@
 #include "User.h"
 #include "FieldMan.h"
 #include "PartyMan.h"
+#include "GuildMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -96,6 +97,9 @@ void Center::OnPacket(InPacket *iPacket)
 	case CenterSendPacketFlag::PartyResult:
 		PartyMan::GetInstance()->OnPacket(iPacket);
 		break;
+	case CenterSendPacketFlag::GuildResult:
+		GuildMan::GetInstance()->OnPacket(iPacket);
+		break;
 	}
 }
 
@@ -114,7 +118,7 @@ void Center::OnCenterMigrateInResult(InPacket *iPacket)
 	unsigned int nClientSocketID = iPacket->Decode4();
 	auto pSocket = WvsBase::GetInstance<WvsGame>()->GetSocket(nClientSocketID);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSendPacketFlag::Client_SetFieldStage);
+	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
 	oPacket.Encode1(1); //bCharacterData
 	oPacket.Encode1(1); //bCharacterData
