@@ -298,15 +298,16 @@ public:
 	}*/
 };
 
+static MemoryPool<char[32]> __gMemPool32 { 32 * 2048 };
+static MemoryPool<char[64]> __gMemPool64 { 64 * 1024 };
+static MemoryPool<char[128]> __gMemPool128 { 128 * 512 };
+static MemoryPool<char[256]> __gMemPool256 { 256 * 512 };
+static MemoryPool<char[512]> __gMemPool512 { 512 * 512 };
+										   
 class WvsArrayAllocator
 {
 	std::mutex m_mtxLock;
 
-		static MemoryPool<char[32]> __gMemPool32  ;
-		static MemoryPool<char[64]> __gMemPool64  ;
-		static MemoryPool<char[128]> __gMemPool128;
-		static MemoryPool<char[256]> __gMemPool256;
-		static MemoryPool<char[512]> __gMemPool512;
 private:
 	template<typename T>
 	inline void * ResourceMgr(bool allocate = true, int nSize = 1, void *pDel = nullptr)

@@ -39,57 +39,74 @@ void GuildDBAccessor::CreateNewGuild(void *pGuild_, int nWorldID)
 	{
 		auto pGuild = (GuildMan::GuildData*)pGuild_;
 
-		Poco::Data::Statement queryStatement(GET_DB_SESSION);
-		queryStatement << "INSERT INTO GuildInfo (GuildID, WorldID, GuildName, MaxMemberNum, MarkBg, MarkBgColor, Mark, MarkColor, Notice, Point, GradeName1, GradeName2, GradeName3, GradeName4, GradeName5) VALUES(";
-		queryStatement << pGuild->nGuildID << ", "
-			<< nWorldID << ", "
-			<< "'" << pGuild->sGuildName << "', "
-			<< pGuild->nMaxMemberNum << ", "
-			<< pGuild->nMarkBg << ","
-			<< pGuild->nMarkBgColor << ","
-			<< pGuild->nMark << ","
-			<< pGuild->nMarkColor << ","
-			<< "'" << pGuild->sNotice << "' ,"
-			<< pGuild->nPoint << ","
-			<< "'" << pGuild->asGradeName[0] << "' ,"
-			<< "'" << pGuild->asGradeName[1] << "' ,"
-			<< "'" << pGuild->asGradeName[2] << "' ,"
-			<< "'" << pGuild->asGradeName[3] << "' ,"
-			<< "'" << pGuild->asGradeName[4] << "')";
-
-		WvsLogger::LogFormat("Create GuildInfo : %s\n", queryStatement.toString().c_str());
-		queryStatement.execute();
-		queryStatement.reset(GET_DB_SESSION);
-
-		queryStatement << "INSERT INTO GuildMember(GuildID, WorldID, CharacterID, CharacterName, Job, Level, Grade, Contribution) VALUES";
-
+		UpdateGuild(pGuild, nWorldID);
 		for (int i = 0; i < pGuild->anCharacterID.size(); ++i)
 		{
-			queryStatement << "("
-				<< pGuild->nGuildID << ", "
-				<< nWorldID << ", "
-				<< pGuild->anCharacterID[i] << ", "
-				<< "'" << pGuild->aMemberData[i].sCharacterName << "', "
-				<< pGuild->aMemberData[i].nJob << ", "
-				<< pGuild->aMemberData[i].nLevel << ", "
-				<< pGuild->aMemberData[i].nGrade << ", "
-				<< pGuild->aMemberData[i].nContribution << ") ";
-			if (i != pGuild->anCharacterID.size() - 1)
-				queryStatement << ", ";
+			JoinGuild(
+				&(pGuild->aMemberData[i]),
+				pGuild->anCharacterID[i],
+				pGuild->nGuildID,
+				nWorldID
+			);
 		}
-
-		queryStatement << " ON DUPLICATE KEY UPDATE CharacterID = VALUES (CharacterID), "
-			<< "`GuildID`=VALUES(`GuildID`),"
-			<< "`Grade`=VALUES(`Grade`),"
-			<< "`Contribution`=VALUES(`Contribution`)";
-
-		WvsLogger::LogFormat("Create GuildMember : %s\n", queryStatement.toString().c_str());
-		queryStatement.execute();
 	}
 	catch (Poco::Data::MySQL::MySQLException& se) 
 	{
 		WvsLogger::LogFormat("Create Guild Failed : %s\n", se.message());
 	}
+}
+
+void GuildDBAccessor::UpdateGuild(void * pGuild_, int nWorldID)
+{
+	auto pGuild = (GuildMan::GuildData*)pGuild_;
+
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "INSERT INTO GuildInfo (GuildID, WorldID, GuildName, MaxMemberNum, MarkBg, MarkBgColor, Mark, MarkColor, Notice, Point, GradeName1, GradeName2, GradeName3, GradeName4, GradeName5) VALUES(";
+	queryStatement << pGuild->nGuildID << ", "
+		<< nWorldID << ", "
+		<< "'" << pGuild->sGuildName << "', "
+		<< pGuild->nMaxMemberNum << ", "
+		<< pGuild->nMarkBg << ","
+		<< pGuild->nMarkBgColor << ","
+		<< pGuild->nMark << ","
+		<< pGuild->nMarkColor << ","
+		<< "'" << pGuild->sNotice << "' ,"
+		<< pGuild->nPoint << ","
+		<< "'" << pGuild->asGradeName[0] << "' ,"
+		<< "'" << pGuild->asGradeName[1] << "' ,"
+		<< "'" << pGuild->asGradeName[2] << "' ,"
+		<< "'" << pGuild->asGradeName[3] << "' ,"
+		<< "'" << pGuild->asGradeName[4] << "')";
+
+	queryStatement << " ON DUPLICATE KEY UPDATE "
+		<< "GuildName = '" << pGuild->sGuildName << "', "
+		<< "MaxMemberNum = " << pGuild->nMaxMemberNum << ", "
+		<< "MarkBg = " << pGuild->nMarkBg << ", "
+		<< "MarkBgColor = " << pGuild->nMarkBgColor << ", "
+		<< "Mark = " << pGuild->nMark << ", "
+		<< "MarkColor = " << pGuild->nMarkColor << ", "
+		<< "Mark = " << pGuild->nMark << ", "
+		<< "Notice = '" << pGuild->sNotice << "', "
+		<< "Point = " << pGuild->nPoint << ", "
+		<< "GradeName1 = '" << pGuild->asGradeName[0] << "', "
+		<< "GradeName2 = '" << pGuild->asGradeName[1] << "', "
+		<< "GradeName3 = '" << pGuild->asGradeName[2] << "', "
+		<< "GradeName4 = '" << pGuild->asGradeName[3] << "', "
+		<< "GradeName5 = '" << pGuild->asGradeName[4] << "'";
+	queryStatement.execute();
+}
+
+std::vector<void*> GuildDBAccessor::LoadAllGuild(int nWorldID)
+{
+	std::vector<void*> aRet;
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT GuildID From GuildID Where WorldID = " << nWorldID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement); (queryStatement);
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+		aRet.push_back(LoadGuild((int)recordSet["GuildID"]));
+	
+	return aRet;
 }
 
 void GuildDBAccessor::JoinGuild(void * pMemberData_, int nCharacterID, int nGuildID, int nWorldID)
@@ -108,29 +125,53 @@ void GuildDBAccessor::JoinGuild(void * pMemberData_, int nCharacterID, int nGuil
 		<< pMemberData->nGrade << ", "
 		<< pMemberData->nContribution << ") ";
 
-	queryStatement << " ON DUPLICATE KEY UPDATE CharacterID = VALUES (CharacterID), "
-		<< "`GuildID`=VALUES(`GuildID`),"
-		<< "`Grade`=VALUES(`Grade`),"
-		<< "`Contribution`=VALUES(`Contribution`)";
-
+	WvsLogger::LogFormat("Join GuildMember : %s\n", queryStatement.toString().c_str());
 	queryStatement.execute();
 }
 
-void * GuildDBAccessor::LoadGuild(int nCharacterID)
+void GuildDBAccessor::WithdrawGuild(int nCharacterID, int nGuildID, int nWorldID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "DELETE From GuildMember Where CharacterID = " 
+		<< nCharacterID << " AND GuildID = " << nGuildID << " AND WorldID = " << nWorldID;
+	queryStatement.execute();
+}
+
+void GuildDBAccessor::RemoveGuild(int nGuildID, int nWorldID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "DELETE From GuildInfo Where GuildID = " << nGuildID << " AND WorldID = " << nWorldID;
+	queryStatement.execute();
+}
+
+int GuildDBAccessor::LoadGuildID(int nCharacterID)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT GuildID From GuildMember Where CharacterID = " << nCharacterID;
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	if (recordSet.rowCount() == 0)
-		return nullptr;
+		return -1;
 
-	int nGuildID = recordSet["GuildID"];
+	return (int)recordSet["GuildID"];
+}
+
+void * GuildDBAccessor::LoadGuildByCharID(int nCharacterID)
+{
+	int nGuildID = LoadGuildID(nCharacterID);
+	if (nGuildID == -1)
+		return nullptr;
+	
+	return LoadGuild(nGuildID);
+}
+
+void * GuildDBAccessor::LoadGuild(int nGuildID)
+{
 	GuildMan::GuildData* pGuild = AllocObj(GuildMan::GuildData);
-	queryStatement.reset(GET_DB_SESSION);
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT * From GuildInfo Where GuildID = " << nGuildID;
 	queryStatement.execute();
-	recordSet.reset(queryStatement);
+	Poco::Data::RecordSet recordSet(queryStatement); (queryStatement);
 
 	pGuild->nGuildID = recordSet["GuildID"];
 	pGuild->sGuildName = recordSet["GuildName"].toString();

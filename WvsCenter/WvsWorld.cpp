@@ -1,6 +1,7 @@
 #include "WvsWorld.h"
 #include "UserTransferStatus.h"
 #include "..\WvsGame\PartyMan.h"
+#include "..\WvsGame\GuildMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -53,7 +54,8 @@ void WvsWorld::UserMigrateIn(int nCharacterID, int nChannelID)
 		pwUser->m_bMigrated = true;
 		pwUser->m_nChannelID = nChannelID;
 
-		PartyMan::GetInstance()->NotifyMigrateIn(nCharacterID, nChannelID);
+		PartyMan::GetInstance()->NotifyMigrateIn(nCharacterID, nChannelID);		
+		GuildMan::GetInstance()->NotifyLoginOrLogout(nCharacterID, true);
 	}
 }
 
@@ -61,7 +63,7 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 {
 	auto pwUser = GetUser(nUserID);
 
-	std::lock_guard<std::mutex> lock(m_mtxWorldLock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 	if (pwUser)
 	{
 		WvsLogger::LogFormat("WvsWorld::RemoveUser[pwUser = [nIdx = %d], [nLocalSocketSN = %d]], Received: [nIdx = %d], [nLocalSocketSN = %d]\n",
@@ -69,6 +71,10 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 		PartyMan::GetInstance()->NotifyMigrateIn(
 			nUserID,
 			WvsWorld::CHANNELID_NOT_MIGRATED_IN
+		);
+		GuildMan::GetInstance()->NotifyLoginOrLogout(
+			nUserID,
+			false
 		);
 		m_mUser.erase(nUserID);
 		FreeObj(pwUser);
@@ -79,7 +85,7 @@ void WvsWorld::SetUser(int nUserID, WorldUser * pWorldUser)
 {
 	auto pUser = GetUser(nUserID);
 
-	std::lock_guard<std::mutex> lock(m_mtxWorldLock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 	m_mUser[nUserID] = pWorldUser;
 	if (pUser)
 		FreeObj(pUser);
@@ -87,7 +93,7 @@ void WvsWorld::SetUser(int nUserID, WorldUser * pWorldUser)
 
 WvsWorld::WorldUser * WvsWorld::GetUser(int nUserID)
 {
-	std::lock_guard<std::mutex> lock(m_mtxWorldLock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 
 	auto findIter = m_mUser.find(nUserID);
 	return findIter == m_mUser.end() ? nullptr : findIter->second;

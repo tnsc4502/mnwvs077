@@ -60,6 +60,8 @@ GuildMan::GuildData * GuildMan::GetGuildByName(const std::string & strName)
 
 int GuildMan::FindUser(int nCharacterID, GuildData * pData)
 {
+	if (!pData)
+		return -1;
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
 	int nCount = (int)pData->anCharacterID.size();
 
@@ -88,7 +90,7 @@ void GuildMan::OnLeave(User * pUser)
 void GuildMan::Broadcast(OutPacket *oPacket, const std::vector<int>& anMemberID, int nPlusOne)
 {
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
-	if (nPlusOne != 0)
+	if (nPlusOne >= 0)
 	{
 		auto pUser = User::FindUser(nPlusOne);
 		if (pUser)
@@ -97,6 +99,8 @@ void GuildMan::Broadcast(OutPacket *oPacket, const std::vector<int>& anMemberID,
 
 	for (auto& nID : anMemberID)
 	{
+		if (nID * -1 == nPlusOne)
+			continue;
 		auto pUser = User::FindUser(nID);
 		if (pUser)
 			pUser->SendPacket(oPacket);
@@ -117,6 +121,18 @@ void GuildMan::OnPacket(InPacket * iPacket)
 		case GuildMan::GuildResult::res_Guild_Join:
 			OnJoinGuildDone(iPacket);
 			break;
+		case GuildMan::GuildResult::res_Guild_Notify_LoginOrLogout:
+			OnNotifyLoginOrLogout(iPacket);
+			break;
+		case GuildMan::GuildResult::res_Guild_Withdraw:
+			OnWithdrawGuildDone(iPacket);
+			break;
+		case GuildMan::GuildResult::res_Guild_SetGradeName:
+			OnSetGradeNameDone(iPacket);
+			break;
+		case GuildMan::GuildResult::res_Guild_SetNotice:
+			OnSetNoticeDone(iPacket);
+			break;
 	}
 }
 
@@ -131,6 +147,16 @@ void GuildMan::OnGuildReuqest(User * pUser, InPacket * iPacket)
 		case GuildMan::GuildRequest::rq_Guild_Join:
 			OnJoinGuildReqest(pUser, iPacket);
 			break;
+		case GuildMan::GuildRequest::rq_Guild_Withdraw:
+		case GuildMan::GuildRequest::rq_Guild_Withdraw_Kick:
+			OnWithdrawGuildRequest(pUser, iPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_SetGradeName:
+			OnSetGradeNameRequest(pUser, iPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_SetNotice:
+			OnSetNoticeRequest(pUser, iPacket);
+			break;
 	}
 }
 
@@ -144,20 +170,9 @@ void GuildMan::OnGuildLoadDone(InPacket * iPacket)
 	//Not in the guild
 	if (pGuild || nGuildID == -1)
 	{
+		//Kicked
 		if (nGuildID == -1 && pGuild)
-		{
-			auto nIdx = FindUser(nUserID, pGuild);
-			if (nIdx >= 0)
-			{
-				pGuild->anCharacterID.erase(
-					pGuild->anCharacterID.begin() + nIdx
-				); 
-				pGuild->aMemberData.erase(
-					pGuild->aMemberData.begin() + nIdx
-				);
-			}
-			m_mCharIDToGuildID.erase(nUserID);
-		}
+			RemoveUser(pGuild, nUserID);
 		else if(nGuildID == -1 && ((pGuild = GetGuild(nGuildID)), pGuild))
 		{
 			for (auto& nID : pGuild->anCharacterID)
@@ -207,14 +222,21 @@ void GuildMan::OnCreateNewGuildDone(InPacket * iPacket)
 		pGuild->Decode(iPacket);
 		for (int i = 0; i < pGuild->anCharacterID.size(); ++i) 
 		{
-			m_mCharIDToGuildID[pGuild->anCharacterID[i]] = pGuild->nGuildID;
 			auto pUser = User::FindUser(pGuild->anCharacterID[i]);
 			if (pUser)
 			{
+				m_mCharIDToGuildID[pGuild->anCharacterID[i]] = pGuild->nGuildID;
 				pGuild->aMemberData[i].sCharacterName = pUser->GetName();
 				pGuild->aMemberData[i].nJob = QWUser::GetJob(pUser);
 				pGuild->aMemberData[i].nLevel = QWUser::GetLevel(pUser);
 				pGuild->aMemberData[i].bOnline = true;
+				pUser->SetGuildName(pGuild->sGuildName);
+				pUser->SetGuildMark(
+					pGuild->nMarkBg,
+					pGuild->nMarkBgColor,
+					pGuild->nMark,
+					pGuild->nMarkColor
+				);
 			}
 			else
 				pGuild->aMemberData[i].bOnline = false;
@@ -265,6 +287,23 @@ void GuildMan::OnGuildInviteRequest(User * pUser, InPacket * iPacket)
 	}
 }
 
+void GuildMan::OnRemoveGuildRequest(User * pUser)
+{
+	auto pGuild = GetGuildByCharID(pUser->GetUserID());
+	if (pGuild && IsGuildMaster(pGuild->nGuildID, pUser->GetUserID()))
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::GuildRequest);
+		oPacket.Encode1(GuildRequest::rq_Guild_Withdraw_Kick);
+		oPacket.Encode4(pGuild->nGuildID);
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(0); //bKicked
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
 void GuildMan::OnJoinGuildReqest(User * pUser, InPacket * iPacket)
 {
 	int nGuildID = iPacket->Decode4();
@@ -297,6 +336,100 @@ void GuildMan::OnJoinGuildReqest(User * pUser, InPacket * iPacket)
 	}
 }
 
+void GuildMan::OnWithdrawGuildRequest(User * pUser, InPacket * iPacket)
+{
+	int nCharacterID = pUser->GetUserID();
+	int nTargetID = iPacket->Decode4();
+	std::string strTargetName = iPacket->DecodeStr();
+	auto pGuild = GetGuildByCharID(pUser->GetUserID());
+	if (pGuild && 
+			//Withdraw by self                       //Is kicked, check the privilege
+		((nCharacterID == nTargetID) || GetMemberGrade(pGuild->nGuildID, pUser->GetUserID()) <= 2))
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		auto nIdx = FindUser(nTargetID, pGuild);
+		if(nIdx >= 0 && pGuild->aMemberData[nIdx].sCharacterName == strTargetName)
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(GameSrvSendPacketFlag::GuildRequest);
+			oPacket.Encode1(GuildRequest::rq_Guild_Withdraw_Kick);
+			oPacket.Encode4(pGuild->nGuildID);
+			oPacket.Encode4(pUser->GetUserID());
+			oPacket.Encode4(nTargetID);
+			oPacket.Encode1(nCharacterID != nTargetID); //bKicked
+
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		}
+	}
+}
+
+void GuildMan::OnWithdrawGuildDone(InPacket * iPacket)
+{
+	int nMasterID = iPacket->Decode4();
+	int nGuildID = iPacket->Decode4();
+	User *pMaster = nullptr;
+
+	auto pGuild = GetGuild(nGuildID);
+	if (pGuild)
+	{
+		int nTargetID = iPacket->Decode4();
+		auto pTarget = User::FindUser(nTargetID);
+		std::string strTargetName = iPacket->DecodeStr();
+		bool bKicked = iPacket->Decode1() == 1;
+
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+
+		//Remove Guild
+		if (!bKicked && IsGuildMaster(nGuildID, nTargetID))
+		{
+			oPacket.Encode1(GuildResult::res_Guild_Send_Guild_DisbandSuccess_Dialog);
+			oPacket.Encode4(nGuildID);
+			oPacket.Encode1(1);
+			Broadcast(&oPacket, pGuild->anCharacterID, 0);
+
+			for (auto& nID : pGuild->anCharacterID) 
+				RemoveUser(pGuild, nID);
+
+			m_mGuild.erase(nGuildID);
+			FreeObj(pGuild);
+		}
+		else
+		{
+			oPacket.Encode1(
+				bKicked ? 
+				GuildResult::res_Guild_Withdraw_Kicked : GuildResult::res_Guild_Withdraw
+			);
+			oPacket.Encode4(nGuildID);
+			oPacket.Encode4(nTargetID);
+			oPacket.EncodeStr(strTargetName);
+
+			Broadcast(&oPacket, pGuild->anCharacterID, 0);
+			RemoveUser(pGuild, nTargetID);
+		}
+	}
+	else if ((pMaster = User::FindUser(nMasterID)))
+	{
+	}
+}
+
+void GuildMan::OnSetGradeNameRequest(User * pUser, InPacket * iPacket)
+{
+}
+
+void GuildMan::OnSetGradeNameDone(InPacket * iPacket)
+{
+}
+
+void GuildMan::OnSetNoticeRequest(User * pUser, InPacket * iPacket)
+{
+}
+
+void GuildMan::OnSetNoticeDone(InPacket * iPacket)
+{
+}
+
 void GuildMan::OnCreateNewGuildRequest(User *pUser, const std::string &strGuildName, const std::vector<std::pair<int, MemberData>>& aMember)
 {
 	auto pGuild = GetGuildByCharID(pUser->GetUserID());
@@ -321,6 +454,9 @@ void GuildMan::OnCreateNewGuildRequest(User *pUser, const std::string &strGuildN
 void GuildMan::OnJoinGuildDone(InPacket * iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+		pUser->ClearGuildInvitedCharacterID();
 	int nGuildID = iPacket->Decode4();
 	auto pGuild = GetGuild(nGuildID);
 	if (nGuildID != -1 && pGuild)
@@ -336,9 +472,10 @@ void GuildMan::OnJoinGuildDone(InPacket * iPacket)
 		memberData.Encode(&oPacket);
 		pGuild->anCharacterID.push_back(nCharacterID);
 		pGuild->aMemberData.push_back(std::move(memberData));
-		auto pUser = User::FindUser(nCharacterID);
+
 		if (pUser)
 		{
+			m_mCharIDToGuildID[nCharacterID] = nGuildID;
 			OutPacket oPacketForGuildUpdating;
 			MakeGuildUpdatePacket(&oPacketForGuildUpdating, pGuild);
 			pUser->SendPacket(&oPacketForGuildUpdating);
@@ -351,9 +488,33 @@ void GuildMan::OnJoinGuildDone(InPacket * iPacket)
 			);
 		}
 		Broadcast(&oPacket, pGuild->anCharacterID, 0);
-		
 	}
 }
+
+void GuildMan::OnNotifyLoginOrLogout(InPacket * iPacket)
+{
+	int nGuildID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	auto pGuild = GetGuild(nGuildID);
+	if (pGuild)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		int nIdx = FindUser(nCharacterID, pGuild);
+		if (nIdx >= 0)
+		{
+			pGuild->aMemberData[nIdx].bOnline = iPacket->Decode1() == 1;
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+			oPacket.Encode1(GuildResult::res_Guild_Notify_LoginOrLogout);
+			oPacket.Encode4(nGuildID);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode1(pGuild->aMemberData[nIdx].bOnline);
+
+			Broadcast(&oPacket, pGuild->anCharacterID, -nCharacterID);
+		}
+	}
+}
+
 void GuildMan::MakeGuildUpdatePacket(OutPacket * oPacket, GuildData * pGuild)
 {
 	oPacket->Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
@@ -362,6 +523,76 @@ void GuildMan::MakeGuildUpdatePacket(OutPacket * oPacket, GuildData * pGuild)
 	pGuild->Encode(oPacket);
 }
 #endif
+
+bool GuildMan::IsGuildMaster(int nGuildID, int nCharacterID)
+{
+	auto pGuild = GetGuild(nGuildID);
+	auto nIdx = FindUser(nCharacterID, pGuild);
+	if (nIdx >= 0)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		return pGuild->aMemberData[nIdx].nGrade == 1;
+	}
+	return false;
+}
+
+bool GuildMan::IsGuildSubMaster(int nGuildID, int nCharacterID)
+{
+	auto pGuild = GetGuild(nGuildID);
+	auto nIdx = FindUser(nCharacterID, pGuild);
+	if (nIdx >= 0)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		return pGuild->aMemberData[nIdx].nGrade == 2;
+	}
+	return false;
+}
+
+bool GuildMan::IsGuildMember(int nGuildID, int nCharacterID)
+{
+	auto pGuild = GetGuild(nGuildID);
+	return FindUser(nCharacterID, pGuild) >= 0;
+}
+
+bool GuildMan::IsGuildFull(int nGuildID)
+{
+	auto pGuild = GetGuild(nGuildID);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	return (int)pGuild->aMemberData.size() == pGuild->nMaxMemberNum;
+}
+
+int GuildMan::GetMemberGrade(int nGuildID, int nCharacterID)
+{
+	auto pGuild = GetGuild(nGuildID);
+	int nIdx = FindUser(nCharacterID, pGuild);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	return nIdx >= 0 ? pGuild->aMemberData[nIdx].nGrade : 0xFFFF;
+}
+
+void GuildMan::RemoveUser(GuildData *pGuild, int nCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	int nIdx = FindUser(nCharacterID, pGuild);
+	if (pGuild && nIdx >= 0)
+	{
+		pGuild->aMemberData.erase(
+			pGuild->aMemberData.begin() + nIdx
+		);
+		pGuild->anCharacterID.erase(
+			pGuild->anCharacterID.begin() + nIdx
+		);
+		m_mCharIDToGuildID.erase(nCharacterID);
+
+#ifdef _WVSGAME
+		auto pUser = User::FindUser(nCharacterID);
+		if (pUser)
+		{
+			pUser->SetGuildName("");
+			pUser->SetGuildMark(0, 0, 0, 0);
+		}
+#endif
+	}
+}
 
 #ifdef _WVSCENTER
 void GuildMan::SendToAll(GuildData * pGuild, OutPacket * oPacket)
@@ -393,12 +624,13 @@ void GuildMan::LoadGuild(InPacket *iPacket, OutPacket * oPacket)
 	oPacket->Encode4(nCharacterID);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
-	if (pGuild)
-	{
-		oPacket->Encode4(pGuild->nGuildID);
-		pGuild->Encode(oPacket);
-	}
-	else if((pGuild = (GuildData*)GuildDBAccessor::GetInstance()->LoadGuild(nCharacterID)), pGuild != nullptr)
+
+	//Existed
+	if (!pGuild && (pGuild = GetGuild(GuildDBAccessor::GetInstance()->LoadGuildID(nCharacterID))))
+		m_mCharIDToGuildID[nCharacterID] = pGuild->nGuildID;
+
+	//Load
+	else if(!pGuild && (pGuild = (GuildData*)GuildDBAccessor::GetInstance()->LoadGuildByCharID(nCharacterID)), pGuild != nullptr)
 	{
 		m_mGuild[pGuild->nGuildID] = pGuild;
 		m_mNameToGuild[pGuild->sGuildName] = pGuild;
@@ -406,11 +638,15 @@ void GuildMan::LoadGuild(InPacket *iPacket, OutPacket * oPacket)
 		for (int i = 0; i < pGuild->anCharacterID.size(); ++i) 
 		{
 			nID = pGuild->anCharacterID[i];
-			if (WvsWorld::GetInstance()->GetUser(nID) != nullptr)
-				pGuild->aMemberData[i].bOnline = true;
-			m_mCharIDToGuildID[nID] = pGuild->nGuildID;
+			auto pwUser = WvsWorld::GetInstance()->GetUser(nID);
+			pGuild->aMemberData[i].bOnline = (pwUser != nullptr);
+			if(pwUser)
+				m_mCharIDToGuildID[nID] = pGuild->nGuildID;
 		}
+	}
 
+	if (pGuild)
+	{
 		oPacket->Encode4(pGuild->nGuildID);
 		pGuild->Encode(oPacket);
 	}
@@ -451,9 +687,14 @@ void GuildMan::CreateNewGuild(InPacket *iPacket, OutPacket *oPacket)
 				return;
 			}
 		}
+
+		pGuild->nGuildID = ++m_atiGuildIDCounter;
+		for (auto& nID : aMemberID)
+			if(WvsWorld::GetInstance()->GetUser(nID))
+				m_mCharIDToGuildID[nID] = pGuild->nGuildID;
+
 		pGuild->anCharacterID = std::move(aMemberID);
 		pGuild->aMemberData = std::move(aMemberData);
-		pGuild->nGuildID = ++m_atiGuildIDCounter;
 		pGuild->sGuildName = strGuildName;
 		pGuild->nLoggedInUserCount = nMemberCount;
 		pGuild->asGradeName.push_back("A");
@@ -465,8 +706,6 @@ void GuildMan::CreateNewGuild(InPacket *iPacket, OutPacket *oPacket)
 
 		m_mNameToGuild[strGuildName] = pGuild;
 		m_mGuild[pGuild->nGuildID] = pGuild;
-		for (auto& nID : aMemberID)
-			m_mCharIDToGuildID[nID] = pGuild->nGuildID;
 
 		oPacket->Encode1(0);
 		pGuild->Encode(oPacket);
@@ -533,6 +772,116 @@ void GuildMan::JoinGuild(InPacket * iPacket, OutPacket * oPacket)
 	}
 	else
 		oPacket->Encode4(-1);
+}
+
+void GuildMan::WithdrawGuild(InPacket * iPacket, OutPacket * oPacket)
+{
+	int nGuildID = iPacket->Decode4();
+	int nMasterID = iPacket->Decode4();
+	int nTargetID = iPacket->Decode4();
+	bool bKicked = iPacket->Decode1() == 1;
+	auto pGuild = GetGuild(nGuildID);
+
+	oPacket->Encode2(CenterSendPacketFlag::GuildResult);
+	oPacket->Encode1(GuildResult::res_Guild_Withdraw);
+	oPacket->Encode4(nMasterID);
+	if (pGuild)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		int nMasterIdx = FindUser(nMasterID, pGuild);
+		int nTargetIdx = FindUser(nTargetID, pGuild);
+		int nMasterGrade = GetMemberGrade(nGuildID, nMasterID);
+		if (nMasterIdx >= 0 &&
+			nTargetIdx >= 0 &&
+			GuildDBAccessor::GetInstance()->LoadGuildID(nTargetID) == nGuildID && //Check Again
+			WvsWorld::GetInstance()->GetUser(nMasterID) &&
+		 //Withdraw by self
+			(!bKicked || (nMasterGrade <= 2 && GetMemberGrade(nGuildID, nTargetID) > nMasterGrade)))
+		{
+			oPacket->Encode4(nGuildID);
+			oPacket->Encode4(nTargetID);
+			oPacket->EncodeStr(pGuild->aMemberData[nTargetIdx].sCharacterName);
+			oPacket->Encode1((char)bKicked);
+			SendToAll(pGuild, oPacket);
+			oPacket->Reset();
+			if (!bKicked && IsGuildMaster(nGuildID, nTargetID))
+			{
+				for (auto& nID : pGuild->anCharacterID)
+				{
+					GuildDBAccessor::GetInstance()->WithdrawGuild(
+						nID,
+						nGuildID,
+						WvsWorld::GetInstance()->GetWorldInfo().nWorldID
+					);
+				}
+				for (auto& nID : pGuild->anCharacterID)
+					RemoveUser(pGuild, nID);
+
+				m_mGuild.erase(nGuildID);
+				GuildDBAccessor::GetInstance()->RemoveGuild(
+					nGuildID, 
+					WvsWorld::GetInstance()->GetWorldInfo().nWorldID
+				);
+				FreeObj(pGuild);
+			}
+			else
+			{
+				RemoveUser(pGuild, nTargetID);
+				GuildDBAccessor::GetInstance()->WithdrawGuild(
+					nTargetID,
+					nGuildID,
+					WvsWorld::GetInstance()->GetWorldInfo().nWorldID
+				);
+			}
+		}
+		else
+			oPacket->Encode4(-1);
+	}
+}
+
+void GuildMan::SetNotice(InPacket * iPacket, OutPacket * oPacket)
+{
+}
+
+void GuildMan::SetGradeName(InPacket * iPacket, OutPacket * oPacket)
+{
+}
+
+void GuildMan::NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn)
+{
+	auto pGuild = GetGuildByCharID(nCharacterID);
+	int nGuildID = -1;
+
+	//Guild not exists or not yet been loaded.
+	if (!pGuild && !(pGuild = GetGuild(GuildDBAccessor::GetInstance()->LoadGuildID(nCharacterID))))
+		pGuild = (GuildData*)GuildDBAccessor::GetInstance()->LoadGuildByCharID(nCharacterID);
+
+	//If the guild exists and is loaded, then notify all members.
+	if (pGuild)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		auto nIdx = FindUser(nCharacterID, pGuild);
+		bool bChangeChannel = pGuild->aMemberData[nIdx].bOnline && bMigrateIn;
+
+		if (nIdx >= 0)
+			pGuild->aMemberData[nIdx].bOnline = bMigrateIn;
+		if (!bMigrateIn)
+			m_mCharIDToGuildID.erase(nCharacterID);
+		else
+			m_mCharIDToGuildID[nCharacterID] = pGuild->nGuildID;
+
+		if (!bChangeChannel)
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(CenterSendPacketFlag::GuildResult);
+			oPacket.Encode1(GuildResult::res_Guild_Notify_LoginOrLogout);
+			oPacket.Encode4(pGuild->nGuildID);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode1(bMigrateIn);
+
+			SendToAll(pGuild, &oPacket);
+		}
+	}
 }
 #endif
 

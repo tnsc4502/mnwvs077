@@ -18,14 +18,24 @@
 
 #include "..\WvsLib\Logger\WvsLogger.h"
 
+#define CHECK_TS_REMOTE_N(name, size)\
+if(flag & GET_TS_FLAG(name))\
+	oPacket->Encode##size(n##name)
+
+#define CHECK_TS_REMOTE_R(name, size)\
+if(flag & GET_TS_FLAG(name))\
+	oPacket->Encode##size(n##name)
+
 #define CHECK_TS_NORMAL(name) \
-if (flag & GET_TS_FLAG(name)) \
-{ if (EnDecode4Byte(flag))oPacket->Encode4(n##name); else oPacket->Encode2(n##name);\
-oPacket->Encode4(r##name); oPacket->Encode4(t##name); }
+if (flag & GET_TS_FLAG(name)) { \
+oPacket->Encode2(n##name);\
+oPacket->Encode4(r##name); \
+oPacket->Encode4(t##name); }
 
 
 SecondaryStat::SecondaryStat()
 {
+	m_tsFlagSet = TemporaryStat::TS_Flag::GetDefault();
 }
 
 
@@ -117,20 +127,61 @@ void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag &
 	CHECK_TS_NORMAL(Craft);
 	CHECK_TS_NORMAL(Speed);
 	CHECK_TS_NORMAL(Jump);
+	CHECK_TS_NORMAL(MagicGuard);
+	CHECK_TS_NORMAL(DarkSight);
+	CHECK_TS_NORMAL(Booster);
+	CHECK_TS_NORMAL(PowerGuard);
+	CHECK_TS_NORMAL(MaxHP);
+	CHECK_TS_NORMAL(MaxMP);
+	CHECK_TS_NORMAL(Invincible);
+	CHECK_TS_NORMAL(SoulArrow);
+	CHECK_TS_NORMAL(Stun);
+	CHECK_TS_NORMAL(Poison);
+	CHECK_TS_NORMAL(Seal);
+	CHECK_TS_NORMAL(Darkness);
+	CHECK_TS_NORMAL(ComboCounter);
+	CHECK_TS_NORMAL(WeaponCharge);
+	CHECK_TS_NORMAL(DragonBlood);
+	CHECK_TS_NORMAL(HolySymbol);
+	CHECK_TS_NORMAL(MesoUp);
+	CHECK_TS_NORMAL(ShadowPartner);
+	CHECK_TS_NORMAL(PickPocket);
+	CHECK_TS_NORMAL(MesoGuard);
+	CHECK_TS_NORMAL(Thaw);
+	CHECK_TS_NORMAL(Weakness);
+	CHECK_TS_NORMAL(Curse);
+	CHECK_TS_NORMAL(Slow);
+	CHECK_TS_NORMAL(Morph);
+	CHECK_TS_NORMAL(Ghost);
+	CHECK_TS_NORMAL(Regen);
+	CHECK_TS_NORMAL(BasicStatUp);
+	CHECK_TS_NORMAL(Stance);
+	CHECK_TS_NORMAL(SharpEyes);
+	CHECK_TS_NORMAL(ManaReflection);
+	CHECK_TS_NORMAL(Attract);
+	CHECK_TS_NORMAL(SpiritJavelin);
+	CHECK_TS_NORMAL(Infinity);
+	CHECK_TS_NORMAL(HolyShield);
+	CHECK_TS_NORMAL(HamString);
+	CHECK_TS_NORMAL(Blind);
+	CHECK_TS_NORMAL(Concentration);
+	CHECK_TS_NORMAL(BanMap);
+	CHECK_TS_NORMAL(MaxLevelBuff);
+	CHECK_TS_NORMAL(Barrier);
+	CHECK_TS_NORMAL(ReverseInput);
+	CHECK_TS_NORMAL(MesoUpByItem);
+	CHECK_TS_NORMAL(ItemUpByItem);
+	CHECK_TS_NORMAL(RespectPImmune);
+	CHECK_TS_NORMAL(RespectMImmune);
+	CHECK_TS_NORMAL(DefenseAtt);
+	CHECK_TS_NORMAL(DefenseState);
 
-	int nCount = 0;
-	oPacket->Encode2(nCount);
-	for (int i = 0; i < nCount; ++i)
-	{
-		oPacket->Encode4(0); //mBuffedForSpecMap
-		oPacket->Encode1(0); //bEnable
-	}
 	oPacket->Encode1((int)nDefenseAtt);
 	oPacket->Encode1((int)nDefenseState);
-	oPacket->Encode1((int)nPVPDamage);
+	//oPacket->Encode1((int)nPVPDamage);
 
 
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 6; ++i)
 	{
 		if (flag & TemporaryStat::TS_Flag(TemporaryStat::TS_EnergyCharged + i))
 		{
@@ -140,17 +191,6 @@ void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag &
 			oPacket->Encode4(0);
 		}
 	}
-	//EncodeIndieTempStat(oPacket, flag);
-	//EecodeIndieTempStat
-
-	oPacket->Encode2(1);
-	oPacket->Encode1(0);
-	oPacket->Encode1(0);
-	oPacket->Encode1(0);
-	oPacket->Encode4(0);
-	oPacket->Encode1(0);
-	oPacket->Encode4(0);
-	oPacket->Encode4(0);
 
 	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "Encode Local TS : \n");
 	oPacket->Print();
@@ -159,6 +199,27 @@ void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag &
 void SecondaryStat::EncodeForRemote(OutPacket * oPacket, TemporaryStat::TS_Flag & flag)
 {
 	flag.Encode(oPacket);
+	CHECK_TS_REMOTE_N(Speed, 1);
+	CHECK_TS_REMOTE_N(ComboCounter, 1);
+	CHECK_TS_REMOTE_R(WeaponCharge, 4);
+	CHECK_TS_REMOTE_R(Stun, 4);
+	CHECK_TS_REMOTE_R(Darkness, 4);
+	CHECK_TS_REMOTE_R(Seal, 4);
+	CHECK_TS_REMOTE_R(Weakness, 4);
+	CHECK_TS_REMOTE_R(Curse, 4);
+	CHECK_TS_REMOTE_N(Poison, 2);
+	CHECK_TS_REMOTE_R(Poison, 4);
+	CHECK_TS_REMOTE_N(Morph, 2);
+	CHECK_TS_REMOTE_N(Ghost, 2);
+	CHECK_TS_REMOTE_R(Attract, 4);
+	CHECK_TS_REMOTE_R(SpiritJavelin, 4);
+	CHECK_TS_REMOTE_R(BanMap, 4);
+	CHECK_TS_REMOTE_R(Barrier, 4);
+	CHECK_TS_REMOTE_R(ReverseInput, 4);
+	CHECK_TS_REMOTE_R(RespectPImmune, 4);
+	CHECK_TS_REMOTE_R(RespectMImmune, 4);
+	CHECK_TS_REMOTE_R(DefenseAtt, 4);
+	CHECK_TS_REMOTE_R(DefenseState, 4);
 
 	oPacket->Encode1((char)nDefenseAtt);
 	oPacket->Encode1((char)nDefenseState);

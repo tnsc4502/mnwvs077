@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <atomic>
+#include <vector>
 
 class InPacket;
 
@@ -22,6 +23,7 @@ public:
 		bool m_bBroadcasting = false;
 
 		std::atomic<int> nRefCount;
+		std::vector<void*> aBroadcasted;
 
 	public:
 		SharedPacket();
@@ -32,6 +34,7 @@ public:
 
 		void IncRefCount();
 		void DecRefCount();
+		void AttachBroadcastingPacket(void* p);
 	};
 
 	void ExtendSize(int nExtendRate);

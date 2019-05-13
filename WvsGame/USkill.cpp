@@ -52,26 +52,15 @@ pSS->n##name = bResetBySkill ? 0 : value;\
 pSS->r##name = bResetBySkill ? 0 : nSkillID;\
 pSS->t##name = bResetBySkill ? 0 : nDuration;\
 pSS->nLv##name = bResetBySkill ? 0 : nSLV;\
+pSS->m_tsFlagSet ^= TemporaryStat::TS_##name;\
 if(!bResetBySkill)\
 {\
+	pSS->m_tsFlagSet |= TemporaryStat::TS_##name;\
 	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
 	pRef->second.push_back(&pSS->n##name);\
 	pRef->second.push_back(&pSS->r##name);\
 	pRef->second.push_back(&pSS->t##name);\
 	pRef->second.push_back(&pSS->nLv##name);\
-}\
-
-#define REGISTER_INDIE_TS(name, value)\
-tsFlag |= GET_TS_FLAG(##name);\
-pRefIndie = &pSS->m_mSetByIndieTS[TemporaryStat::TS_##name][nSkillID]; pRefIndie->second.clear();\
-pSS->n##name += bResetBySkill ? -value : value;\
-if(!bResetBySkill)\
-{\
-	pRefIndie->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
-	pRefIndie->second.push_back(value);\
-	pRefIndie->second.push_back(nSkillID);\
-	pRefIndie->second.push_back(nDuration);\
-	pRefIndie->second.push_back(nSLV);\
 }\
 
 void USkill::ValidateSecondaryStat(User * pUser)
@@ -181,7 +170,7 @@ void USkill::OnSkillCancelRequest(User * pUser, InPacket * iPacket)
 	{
 		USkill::OnSkillUseRequest(
 			pUser,
-			iPacket,
+			nullptr,
 			pSkill,
 			nSLV,
 			true,
@@ -245,208 +234,139 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 	auto iter = pSS->m_mSetByTS.begin();
 	switch (nSkillID)
 	{
-		case 1321015:
-		{
-			//REGISTER_TS(IgnoreTargetDEF, pSkillLVLData->m_nIgnoreMobpdpR);
-			//REGISTER_TS(BDR, pSkillLVLData->m_nBdR);
+		case 2001002: // magic guard
+			REGISTER_TS(MagicGuard, pSkillLVLData->m_nX);
 			break;
-		}
-		case 2001002:
-		{
-			REGISTER_TS(MagicGuard, pSkillLVLData->m_nY);
-			break;
-		}
 		case 2301003: // invincible
-		{
 			REGISTER_TS(Invincible, pSkillLVLData->m_nX);
 			break;
-		}
-		case 35120000://Extreme proto
-		case 35001002://mech proto
-
-			break;
-		case 9101004:
-		case 9001004: // hide
-		{
+		case 9101004: // hide
+			//ret.duration = 2100000000;
+			//ret.overTime = true;
+		case 4001003: // darksight
 			REGISTER_TS(DarkSight, pSkillLVLData->m_nX);
 			break;
-		}
-		case 4001003: // Dark Sight
-		{
-			REGISTER_TS(DarkSight, pSkillLVLData->m_nX); // d
-			break;
-		}
 		case 4211003: // pickpocket
-		{
 			REGISTER_TS(PickPocket, pSkillLVLData->m_nX);
 			break;
-		}
 		case 4211005: // mesoguard
-		case 4201011:
-		{
 			REGISTER_TS(MesoGuard, pSkillLVLData->m_nX);
 			break;
-		}
 		case 4111001: // mesoup
-		{
 			REGISTER_TS(MesoUp, pSkillLVLData->m_nX);
 			break;
-		}
-		case 4211008:
-		{
-			REGISTER_TS(ShadowPartner, nSLV);
+		case 4111002: // shadowpartner
+			REGISTER_TS(ShadowPartner, pSkillLVLData->m_nX);
 			break;
-		}
 		case 3101004: // soul arrow
 		case 3201004:
 		case 2311002: // mystic door - hacked buff icon
-		{
 			REGISTER_TS(SoulArrow, pSkillLVLData->m_nX);
 			break;
-		}
-		case 2321010:
-		case 2221009:
-		case 2121009:
-		{
-			//REGISTER_TS(BUFF_MASTERY, pSkillLVLData->m_nX);
-			break;
-		}
-		case 1211006: // wk charges
+		case 1211003:
 		case 1211004:
+		case 1211005:
+		case 1211006: // wk charges
+		case 1211007:
 		case 1211008:
+		case 1221003:
 		case 1221004:
-			// case 51111003: // Mihile's Radiant Charge
-		{
 			REGISTER_TS(WeaponCharge, pSkillLVLData->m_nX);
-			//REGISTER_TS(DamR, pSkillLVLData->m_nZ);
 			break;
-			//                    case 51111004:
-			//                        REGISTER_TS(ABNORMAL_STATUS_R, pSkillLVLData->m_nY);
-			//                        REGISTER_TS(ELEMENTAL_STATUS_R, pSkillLVLData->m_nZ);
-			//                        REGISTER_TS(DEFENCE_BOOST_R, pSkillLVLData->m_nX);
-			//                        break;
-			//                    case 51121006:
-			//                        REGISTER_TS(DAMAGE_BUFF, pSkillLVLData->m_nX);
-			//                        REGISTER_TS(HowlingCritical, pSkillLVLData->m_ncriticaldamageMin.x);
-			//                        REGISTER_TS(HowlingCritical, pSkillLVLData->m_ncriticaldamageMax.x);
-			//                        break;
-		}
-		case 2211008:
-		{
-			//REGISTER_TS(ElementalReset, pSkillLVLData->m_nX);
-			break;
-		}
-		case 3111000:
-		case 3121008:
-		{
-			REGISTER_TS(Concentration, pSkillLVLData->m_nX);
-			break;
-		}
-		case 5110001: // Energy Charge
-		{
-			REGISTER_TS(EnergyCharged, 0);
-			break;
-		}
 		case 1101004:
+		case 1101005: // booster
 		case 1201004:
+		case 1201005:
 		case 1301004:
-		case 2111005:
+		case 1301005:
+		case 2111005: // spell booster, do these work the same?
 		case 2211005:
-		case 2311006:
 		case 3101002:
 		case 3201002:
 		case 4101003:
 		case 4201002:
 		case 5101006:
 		case 5201003:
-		case 5301002:
-		{
-			REGISTER_TS(Booster, pSkillLVLData->m_nX * 2);
-		}
-		break;
-		case 5111007:
-		case 5211007:
-		case 5120012:
-		case 5220014:
-		{
-			//REGISTER_TS(Dice, 0);
+			//WvsLogger::LogFormat("Weapon Charge, NX = %d\n", pSkillLVLData->m_nX);
+			REGISTER_TS(Booster, nSLV);
 			break;
-		}
-		case 5120011:
-		case 5220012:
-		{
-			//REGISTER_TS(DAMAGE_RATE, (int)ret.info.get(MapleStatInfo.damR); //i think
-			break;
-		}
+			//case 5121009:
+			//	statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SPEED_INFUSION, ret.x));
+			//	break; 		
 		case 5121009:
-		{
-			REGISTER_TS(Speed, pSkillLVLData->m_nX);
+		case 5221010:
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SPEED_INFUSION, Integer.valueOf(-4)));
 			break;
-		}
-		case 4321000: //tornado spin uses same buffstats
-		{
-			REGISTER_TS(Dash_Speed, 100 + pSkillLVLData->m_nX);
-			REGISTER_TS(Dash_Jump, pSkillLVLData->m_nY); //always 0 but its there
+		case 1101006: // rage
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
 			break;
-		}
+		case 1121010: // enrage
+			REGISTER_TS(PAD, pSkillLVLData->m_nPad);
+			break;
+		case 1301006: // iron will
+			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
+		case 1001003: // iron body
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
+			break;
+		case 2001003: // magic armor
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
+			break;
+		case 2101001: // meditation
+		case 2201001: // meditation
+			REGISTER_TS(MAD, pSkillLVLData->m_nMad);
+			break;
+		case 4101004: // haste
+		case 4201003: // haste
+		case 9101001: // gm haste
+			REGISTER_TS(Speed, pSkillLVLData->m_nSpeed);
+			REGISTER_TS(Jump, pSkillLVLData->m_nJump);
+			break;
+		case 2301004: // bless
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
+			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
+		case 3001003: // focus
+			REGISTER_TS(ACC, pSkillLVLData->m_nAcc);
+			REGISTER_TS(EVA, pSkillLVLData->m_nEva);
+			break;
+		case 9101003: // gm bless
+			REGISTER_TS(MAD, pSkillLVLData->m_nMad);
+		case 3121008: // concentrate
+
+			REGISTER_TS(Concentration, pSkillLVLData->m_nX);
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.WATK, Integer.valueOf(ret.watk)));
+			break;
 		case 5001005: // Dash
-		{
-			REGISTER_TS(Dash_Speed, pSkillLVLData->m_nX);
-			REGISTER_TS(Dash_Jump, pSkillLVLData->m_nY);
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.DASH, Integer.valueOf(1)));
 			break;
-		}
 		case 1101007: // pguard
 		case 1201007:
-		{
 			REGISTER_TS(PowerGuard, pSkillLVLData->m_nX);
 			break;
-		}
-		case 1301007: // hyper body
-		case 9001008:
+		case 1301007:
 		case 9101008:
-		{
 			REGISTER_TS(MaxHP, pSkillLVLData->m_nX);
-			REGISTER_TS(MaxMP, pSkillLVLData->m_nX);
+			REGISTER_TS(MaxMP, pSkillLVLData->m_nY);
 			break;
-		}
+		case 1001: // recovery
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.RECOVERY, Integer.valueOf(x)));
+			break;
 		case 1111002: // combo
-		case 11111001: // combo
-		case 1101013:
-		{
 			REGISTER_TS(ComboCounter, 1);
-			//  System.out.println("Combo just buff stat");
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.COMBO, Integer.valueOf(1)));
 			break;
-		}
-		case 5211006: // Homing Beacon
-		case 5220011: // Bullseye
-		{
-			//REGISTER_TS(StopForceAtomInfo, pSkillLVLData->m_nX);
+		case 1004: // monster riding 
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.MONSTER_RIDING, Integer.valueOf(1)));
 			break;
-		}
-		case 1311015: // Cross Surge
-		{
-			//REGISTER_TS(CROSS_SURGE, pSkillLVLData->m_nX);
+		case 5221006: // 4th Job - Pirate riding 
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.MONSTER_RIDING, 1932000));
 			break;
-		}
-		case 21111009: //combo recharge
 		case 1311006: //dragon roar
-		case 1311005: //NOT A BUFF - Sacrifice
-			//ret.hpR = -ret.info.get(MapleStatInfo.x) / 100.0;
+			//ret.hpR = -x / 100.0;
 			break;
-		case 1211010: //NOT A BUFF - HP Recover
-			//ret.hpR = ret.info.get(MapleStatInfo.x) / 100.0;
-			break;
-		case 4331003:
-		{
-			//REGISTER_TS(OWL_SPIRIT, pSkillLVLData->m_nY);
-			break;
-		}
 		case 1311008: // dragon blood
-					  // REGISTER_TS(DRAGONBLOOD, pSkillLVLData->m_nX);
+			REGISTER_TS(DragonBlood, pSkillLVLData->m_nX);
 			break;
-		case 5321005:
 		case 1121000: // maple warrior, all classes
-		case 5721000:
 		case 1221000:
 		case 1321000:
 		case 2121000:
@@ -458,127 +378,137 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 4221000:
 		case 5121000:
 		case 5221000:
-						// case 51121005: //Mihile's Maple Warrior
-			//REGISTER_INDIE_TS(IndiePAD, pSkillLVLData->m_nX);
-			//REGISTER_TS(BasicStatUp, pSkillLVLData->m_nX);
-			break;
-		case 15111006: //spark
-			//REGISTER_TS(SPARK, pSkillLVLData->m_nX);
+			REGISTER_TS(BasicStatUp, pSkillLVLData->m_nX);
 			break;
 		case 3121002: // sharp eyes bow master
 		case 3221002: // sharp eyes marksmen
-			//REGISTER_TS(SharpEyes, (pSkillLVLData->m_nX << 8) + (pSkillLVLData->m_nCriticaldamageMax));
-			break;
-		case 2000007:
-			//REGISTER_TS(WeaknessMdamage, pSkillLVLData->m_nX);
-			break;
-		case 1211009:
-		case 1111007:
-		case 1311007: //magic crash
-			//ret.monsterStatus.put(MonsterStatus.MOB_STAT_MagicCrash, 1);
-			break;
-		case 1220013:
-		{
-			//REGISTER_TS(BlessingArmor, pSkillLVLData->m_nX + 1);
-			break;
-		}
-		case 1211011: 
-		{
-			//REGISTER_TS(CombatOrders, pSkillLVLData->m_nX);
-			break;
-		}
-		case 2311009: //holy magic
-			//REGISTER_TS(HolyMagicShell, pSkillLVLData->m_nX);
-			
-			//ret.hpR = ret.info.get(MapleStatInfo.z) / 100.0;
-			break;
-		case 1121010: //enrage
-			//REGISTER_TS(Enrage, pSkillLVLData->m_nX * 100 + pSkillLVLData->m_nMobCount);
-			break;
-		case 3120012:
-		case 3220012:
-		case 3111002: // puppet ranger
-		case 3211002: // puppet sniper
-		case 5211001: // Pirate octopus summon
-		case 5220002: // wrath of the octopi
-		case 5321003:
-		case 5211014:
-			//REGISTER_TS(PUPPET, 1);
-			break;
-		case 3120006:
-		case 3220005:
-			//REGISTER_TS(TerR, pSkillLVLData->m_nTerR);
-			//REGISTER_TS(SpiritLink, 1);
+					  // hack much (TODO is the order correct?)
+			REGISTER_TS(SharpEyes, ((pSkillLVLData->m_nX << 8) | pSkillLVLData->m_nY));
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SHARP_EYES, Integer.valueOf(ret.x << 8 | ret.y)));
 			break;
 		case 1321007: // Beholder
-		case 1301013: // Evil Eye
-		case 1311013: // Evil Eye of Domination
-			//REGISTER_TS(Beholder, nSLV);
+		case 2221005: // ifrit
+		case 2311006: // summon dragon
+		case 2321003: // bahamut
+		case 3121006: // phoenix
+		case 5211001: // Pirate octopus summon
+		case 5211002: // Pirate bird summon
+		case 5220002: // wrath of the octopi
+			REGISTER_TS(Summon, pSkillLVLData->m_nX);
 			break;
 		case 2311003: // hs
-		case 9001002: // GM hs
-		case 9101002:
-			//REGISTER_TS(HolySymbol, pSkillLVLData->m_nX);
+		case 9101002: // GM hs
+			REGISTER_TS(HolySymbol, pSkillLVLData->m_nX);
 			break;
-		case 4111009: // Shadow Stars
-		case 5201008:
-			//REGISTER_TS(NoBulletConsume, 0);
+		case 4121006: // spirit claw
+			REGISTER_TS(Attract, pSkillLVLData->m_nX);
 			break;
 		case 2121004:
 		case 2221004:
 		case 2321004: // Infinity
-			//ret.hpR = ret.info.get(MapleStatInfo.y) / 100.0;
-			//ret.mpR = ret.info.get(MapleStatInfo.y) / 100.0;
 			REGISTER_TS(Infinity, pSkillLVLData->m_nX);
-			REGISTER_TS(Stance, pSkillLVLData->m_nProp);
 			break;
 		case 1121002:
 		case 1221002:
-		case 1321002:
-		case 5321010:
-			REGISTER_TS(Stance, pSkillLVLData->m_nProp);
+		case 1321002: // Stance
+			REGISTER_TS(Stance, pSkillLVLData->m_nX);
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.STANCE, Integer.valueOf(iprop)));
+			break;
+		case 1005: // Echo of Hero
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.ECHO_OF_HERO, Integer.valueOf(ret.x)));
 			break;
 		case 2121002: // mana reflection
 		case 2221002:
 		case 2321002:
-			REGISTER_TS(ManaReflection, 1);
+			REGISTER_TS(ManaReflection, pSkillLVLData->m_nX);
 			break;
-		case 2321005: // holy shield, TODO Jump
-					  //                            REGISTER_TS(AdvancedBless, GameConstants.GMS ? (int) ret.level : ret.info.get(MapleStatInfo.x);
-			//REGISTER_TS(AdvancedBless, pSkillLVLData->m_nX);
-			//REGISTER_TS(IncMaxHP, pSkillLVLData->m_nY);//fix names
-			//REGISTER_TS(IncMaxMP, pSkillLVLData->m_nZ);
+		case 2321005: // holy shield
+			REGISTER_TS(HolyShield, pSkillLVLData->m_nX);
+			break;
+		case 3111002: // puppet ranger
+		case 3211002: // puppet sniper
+
+			REGISTER_TS(PickPocket, 1);
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.PUPPET, Integer.valueOf(1)));
+			break;
+
+			// ----------------------------- MONSTER STATUS PUT! ----------------------------- //
+		case 4001002: // disorder
+			//monsterStatus.put(MonsterStatus.WATK, Integer.valueOf(ret.x));
+			//monsterStatus.put(MonsterStatus.WDEF, Integer.valueOf(ret.y));
+			break;
+		case 1201006: // threaten
+			//monsterStatus.put(MonsterStatus.WATK, Integer.valueOf(ret.x));
+			//monsterStatus.put(MonsterStatus.WDEF, Integer.valueOf(ret.y));
+			break;
+		case 1111005: // coma: sword
+		case 1111006: // coma: axe
+		case 1111008: // shout
+		case 1211002: // charged blow
+		case 3101005: // arrow bomb
+		case 4211002: // assaulter
+		case 4221007: // boomerang step
+		case 5101002: // Backspin Blow
+		case 5101003: // Double Uppercut
+		case 5121004: // pirate 8 hit punches
+		case 5121005: // pirate pull mob skill? O.o
+		case 5121007: // pirate 6 hit shyt...
+		case 5201004: // pirate blank shot
+			//monsterStatus.put(MonsterStatus.STUN, Integer.valueOf(1));
+			break;
+			//case 5201004: // pirate blank shot
+		case 4121003:
+		case 4221003:
+			//monsterStatus.put(MonsterStatus.SHOWDOWN, Integer.valueOf(1));
+			break;
+		case 2201004: // cold beam
+		case 2211002: // ice strike
+		case 2211006: // il elemental compo
+		case 2221007: // Blizzard
+		case 3211003: // blizzard
+		case 5211005:
+			//monsterStatus.put(MonsterStatus.FREEZE, Integer.valueOf(1));
+			//ret.duration *= 2; // freezing skills are a little strange
+			break;
+		case 2121006://Paralyze
+		case 2101003: // fp slow
+		case 2201003: // il slow
+			//monsterStatus.put(MonsterStatus.SPEED, Integer.valueOf(ret.x));
+			break;
+		case 2101005: // poison breath
+		case 2111006: // fp elemental compo
+			//monsterStatus.put(MonsterStatus.POISON, Integer.valueOf(1));
+			break;
+		case 2311005:
+			//monsterStatus.put(MonsterStatus.DOOM, Integer.valueOf(1));
+			break;
+		case 3111005: // golden hawk
+		case 3211005: // golden eagle
+			REGISTER_TS(Summon, pSkillLVLData->m_nX);
+			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SUMMON, Integer.valueOf(1)));
+			//monsterStatus.put(MonsterStatus.STUN, Integer.valueOf(1));
+			break;
+		case 2121005: // elquines
+		case 3221005: // frostprey
+			REGISTER_TS(Summon, pSkillLVLData->m_nX);
+			//monsterStatus.put(MonsterStatus.FREEZE, Integer.valueOf(1));
+			break;
+		case 2111004: // fp seal
+		case 2211004: // il seal
+			//monsterStatus.put(MonsterStatus.SEAL, 1);
+			break;
+		case 4111003: // shadow web
+			//monsterStatus.put(MonsterStatus.SHADOW_WEB, 1);
 			break;
 		case 3121007: // Hamstring
-			//REGISTER_TS(IllusionStep, pSkillLVLData->m_nX);
-			//ret.monsterStatus.put(MonsterStatus.SPEED, pSkillLVLData->m_nX);
+			REGISTER_TS(HamString, pSkillLVLData->m_nX);
+			//monsterStatus.put(MonsterStatus.SPEED, x);
 			break;
 		case 3221006: // Blind
 			REGISTER_TS(Blind, pSkillLVLData->m_nX);
-			//ret.monsterStatus.put(MonsterStatus.ACC, pSkillLVLData->m_nX);
+			//monsterStatus.put(MonsterStatus.ACC, x);
 			break;
-		case 2301004:
-		case 9001003:
-			//REGISTER_TS(Bless, nSLV);
-			break;
-		case 5121015:
-			//REGISTER_TS(DamR, pSkillLVLData->m_nX);
-			break;
-		case 5211009:
-			
-			break;
-		case 4111002:
-			REGISTER_TS(ShadowPartner, pSkillLVLData->m_nX);
-			break;
-		case 4311009:
-			REGISTER_TS(Booster, pSkillLVLData->m_nX);
-			break;
-		case 5221053://epic Aventure corsair
-			//REGISTER_TS(IndieDamR, pSkillLVLData->m_nIndieDamR);
-			//REGISTER_TS(IndieMaxDamageOver, pSkillLVLData->m_nIndieMaxDamageOver);
-			break;
-		case 4121054: // bleed dart
-			REGISTER_TS(Speed, 1);
+		default:
 			break;
 	}
 	pUser->ValidateStat();

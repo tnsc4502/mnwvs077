@@ -232,7 +232,7 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 
 		pEntry->AddLevelData(pLevelData);
 	}
-	pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size());
+	pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);
 }
 
 int SkillInfo::GetSkillLevel(GA_Character * pCharacter, int nSkillID, SkillEntry ** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot)

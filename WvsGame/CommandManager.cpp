@@ -193,5 +193,11 @@ void CommandManager::Process(User * pUser, const std::string & input)
 				}
 			);
 		}
+		else if (sCmd == "#dg")
+		{
+			GuildMan::GetInstance()->OnRemoveGuildRequest(
+				pUser
+			);
+		}
 	}
 }

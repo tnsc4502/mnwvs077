@@ -168,9 +168,16 @@ void OutPacket::SharedPacket::DecRefCount()
 	if (--nRefCount <= 0)
 	{
 		FreeArray(aBuff, nBuffSize);
+		for (auto p : aBroadcasted) 
+			FreeArray((unsigned char*)p, nPacketSize - THIS_PTR_OFFSET);
 		//delete[] aBuff;
 		//MSMemoryPoolMan::GetInstance()->DestructArray(aBuff);
 		//delete this;
 		FreeObj(this);
 	}
+}
+
+void OutPacket::SharedPacket::AttachBroadcastingPacket(void * p)
+{
+	aBroadcasted.push_back(p);
 }

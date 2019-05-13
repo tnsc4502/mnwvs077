@@ -196,6 +196,7 @@ void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
 	{
 		bufferPtr = AllocArray(unsigned char, oPacket->GetPacketSize() + OutPacket::HEADER_OFFSET) + OutPacket::HEADER_OFFSET;
 		memcpy(bufferPtr, oPacket->GetPacket(), oPacket->GetPacketSize());
+		oPacket->GetSharedPacket()->AttachBroadcastingPacket(bufferPtr - OutPacket::HEADER_OFFSET);
 	}
 
 	if (!handShakePacket)
@@ -228,8 +229,8 @@ void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
 void SocketBase::OnSendPacketFinished(const std::error_code &ec, std::size_t bytes_transferred, unsigned char *buffer, void *pPacket)
 {
 	//WvsLogger::LogFormat("SocketBase::OnSendPacketFinished, size = %d\n", (int)bytes_transferred);
-	if (((OutPacket::SharedPacket*)pPacket)->IsBroadcasting())
-		FreeArray(buffer, bytes_transferred);
+	//if (((OutPacket::SharedPacket*)pPacket)->IsBroadcasting())
+	//	FreeArray(buffer, ((OutPacket::SharedPacket*)pPacket)->);
 	((OutPacket::SharedPacket*)pPacket)->DecRefCount();
 }
 

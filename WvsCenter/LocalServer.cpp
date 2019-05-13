@@ -132,7 +132,7 @@ void LocalServer::OnRequestCharacterList(InPacket *iPacket)
 	if (WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) != nullptr) 
 	{
 		auto aID = CharacterDBAccessor::GetInstance()->PostLoadCharacterListRequest(this, nLoginSocketID, nAccountID, WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
-		for (auto nID : aID)
+		/*for (auto nID : aID)
 		{
 			auto pUser = WvsWorld::GetInstance()->GetUser(nID);
 			if (!pUser) 
@@ -146,7 +146,7 @@ void LocalServer::OnRequestCharacterList(InPacket *iPacket)
 			pUser->m_nChannelID = nChannelID;
 			pUser->m_nLocalSrvIdx = 0; //
 			pUser->m_nLocalSocketSN = nLoginSocketID;
-		}
+		}*/
 	}
 }
 
@@ -245,7 +245,7 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode4();
-	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+	/*auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	if (!pUser ||
 		pUser->m_bLoggedIn == false ||
 		pUser->m_bMigrating ||
@@ -254,9 +254,19 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 		pUser->m_bInShop)
 	{
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Migration Status Suspected User ID = %d\n", nCharacterID);
-	}
+	}*/
 
 	m_sUser.insert(nCharacterID);
+	auto pwUser = AllocObj(WvsWorld::WorldUser);
+	pwUser->m_bInShop = false;
+	pwUser->m_bMigrated = true;
+	pwUser->m_nChannelID = nChannelID;
+	pwUser->m_nLocalSocketSN = nClientSocketID;
+
+	WvsWorld::GetInstance()->SetUser(
+		nCharacterID,
+		pwUser
+	);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
@@ -428,6 +438,16 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 			break;
 		case GuildMan::GuildRequest::rq_Guild_Join:
 			GuildMan::GetInstance()->JoinGuild(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_Withdraw:
+		case GuildMan::GuildRequest::rq_Guild_Withdraw_Kick:
+			GuildMan::GetInstance()->WithdrawGuild(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_SetGradeName:
+			GuildMan::GetInstance()->SetGradeName(iPacket, &oPacket);
+			break; 
+		case GuildMan::GuildRequest::rq_Guild_SetNotice:
+			GuildMan::GetInstance()->SetNotice(iPacket, &oPacket);
 			break;
 	}
 

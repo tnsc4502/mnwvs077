@@ -31,7 +31,7 @@ public:
 	};
 
 private:
-	std::mutex m_mtxWorldLock;
+	std::recursive_mutex m_mtxWorldLock;
 	ConfigLoader* m_pCfgLoader;
 	WorldInfo m_WorldInfo;
 

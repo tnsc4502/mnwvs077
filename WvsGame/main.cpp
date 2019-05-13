@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 		SkillInfo::GetInstance()->IterateSkillInfo();
 	}
 	catch (...) {}
-
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
 	if (argc > 1)

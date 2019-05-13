@@ -18,6 +18,7 @@ struct TemporaryStat
 		TS_Flag(int dwFlagValue);
 		void Encode(OutPacket *oPacket);
 		TS_Flag& operator |= (const TS_Flag& rhs);
+		TS_Flag& operator ^= (const TS_Flag& rhs);
 		bool operator & (const TS_Flag& rhs);
 		bool IsEmpty() const;
 		bool IsIndieTS() const;
@@ -68,7 +69,7 @@ struct TemporaryStat
 	ADD_TS_FLAG(Attract, 39);
 	ADD_TS_FLAG(SpiritJavelin, 40);
 	ADD_TS_FLAG(Infinity, 41);
-	ADD_TS_FLAG(Holyshield, 42);
+	ADD_TS_FLAG(HolyShield, 42);
 	ADD_TS_FLAG(HamString, 43);
 	ADD_TS_FLAG(Blind, 44);
 	ADD_TS_FLAG(Concentration, 45);

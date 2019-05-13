@@ -791,7 +791,15 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTemporaryStatSet);
 	m_pSecondaryStat->EncodeForLocal(&oPacket, flag);
+	oPacket.Encode2(0);
+	oPacket.Encode1(0);
 	SendPacket(&oPacket);
+
+	OutPacket oForRemote;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
+	oPacket.Encode4(GetUserID());
+	m_pSecondaryStat->EncodeForRemote(&oPacket, flag);
+	GetField()->SplitSendPacket(&oPacket, nullptr);
 }
 
 void User::OnAttack(int nType, InPacket * iPacket)
