@@ -96,6 +96,26 @@ void GuildDBAccessor::UpdateGuild(void * pGuild_, int nWorldID)
 	queryStatement.execute();
 }
 
+void GuildDBAccessor::UpdateGuildMember(void *pMemberData_, int nCharacterID, int nGuildID, int nWorldID)
+{
+	auto pMemberData = (GuildMan::MemberData*)pMemberData_;
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+
+	queryStatement << "UPDATE GuildMember Set " <<
+		"CharacterName = '" << pMemberData->sCharacterName << "', "
+		"Grade = " << pMemberData->nGrade << ", " <<
+		"Contribution = " << pMemberData->nContribution << ", " <<
+		"Job = " << pMemberData->nJob << ", " <<
+		"Level = " << pMemberData->nLevel 
+
+		<< " WHERE CharacterID = " << nCharacterID 
+		<< " AND GuildID = " << nGuildID 
+		<< " AND WorldID = " << nWorldID;
+
+	WvsLogger::LogFormat("Update GuildMember : %s\n", queryStatement.toString().c_str());
+	queryStatement.execute();
+}
+
 std::vector<void*> GuildDBAccessor::LoadAllGuild(int nWorldID)
 {
 	std::vector<void*> aRet;
@@ -125,7 +145,7 @@ void GuildDBAccessor::JoinGuild(void * pMemberData_, int nCharacterID, int nGuil
 		<< pMemberData->nGrade << ", "
 		<< pMemberData->nContribution << ") ";
 
-	WvsLogger::LogFormat("Join GuildMember : %s\n", queryStatement.toString().c_str());
+	//WvsLogger::LogFormat("Join GuildMember : %s\n", queryStatement.toString().c_str());
 	queryStatement.execute();
 }
 

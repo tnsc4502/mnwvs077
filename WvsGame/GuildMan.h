@@ -21,17 +21,23 @@ public:
 		rq_Guild_Withdraw = 0x07,
 		rq_Guild_Withdraw_Kick = 0x08,
 		rq_Guild_SetGradeName = 0x0D,
+		rq_Guild_SetMemberGrade = 0x0E,
+		rq_Guild_SetMark = 0x0F,
 		rq_Guild_SetNotice = 0x10,
+		rq_Guild_IncMaxMemberNum = 0x11,
+		rq_Guild_IncPoint = 0x12,
 	};
 
 	enum GuildResult
 	{
-		res_Guild_Load = 0x00,
-		res_Guild_Create = 0x01,
-		res_Guild_Invite = 0x05,
-		res_Guild_Update = 0x1A,
+		res_Guild_Load = 0,
+		res_Guild_Create = 1,
+		res_Guild_Invite = 5,
+		res_Guild_AskMark = 17,
+		res_Guild_Update = 26,
 		res_Guild_Failed_AlreadyInGuild = 40,
 		res_Guild_Join = 39,
+		res_Guild_Failed_JoinFailed = 43,
 		res_Guild_Withdraw = 44,
 		res_Guild_Withdraw_Kicked = 47,
 		res_Guild_Send_Guild_DisbandSuccess_Dialog = 50,
@@ -39,10 +45,14 @@ public:
 		res_Guild_Failed_NotAllowedToInvite = 53,
 		res_Guild_Failed_InProcessing = 54,
 		res_Guild_Failed_InvitationRejected = 55,
-		res_Guild_IncMaxMemberNum_Failed = 59,
+		res_Guild_IncMaxMemberNum = 58,
+		res_Guild_Failed_IncMaxMemberNumError = 59,
 		res_Guild_Notify_LoginOrLogout = 61,
 		res_Guild_SetGradeName = 62,
-		res_Guild_SetNotice = 70,
+		res_Guild_SetMemberGrade = 64,
+		res_Guild_SetMark = 66,
+		res_Guild_SetNotice = 68,
+		res_Guild_IncPoint = 73,
 	};
 
 	struct MemberData
@@ -123,8 +133,12 @@ public:
 	void OnSetGradeNameDone(InPacket *iPacket);
 	void OnSetNoticeRequest(User *pUser, InPacket *iPacket);
 	void OnSetNoticeDone(InPacket *iPacket);
+	void OnSetMemberGradeRequest(User *pUser, InPacket *iPacket);
+	void OnSetMemberGradeDone(InPacket *iPacket);
+	void OnAskGuildMark(User *pUser);
+	void OnSetMarkRequest(User *pUser, InPacket *iPacket);
+	void OnSetMarkDone(InPacket *iPacket);
 	void OnNotifyLoginOrLogout(InPacket *iPacket);
-
 	void MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild);
 
 	///==========================CENTER=================================
@@ -136,6 +150,10 @@ public:
 	void WithdrawGuild(InPacket *iPacket, OutPacket *oPacket);
 	void SetNotice(InPacket *iPacket, OutPacket *oPacket);
 	void SetGradeName(InPacket *iPacket, OutPacket *oPacket);
+	void SetMemberGrade(InPacket *iPacket, OutPacket *oPacket);
+	void SetMark(InPacket *iPacket, OutPacket *oPacket);
+	void IncMaxMemberNum(InPacket *iPacket, OutPacket *oPacket);
+	void IncPoint(InPacket *iPacket, OutPacket *oPacket);
 	void NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn);
 #endif
 };

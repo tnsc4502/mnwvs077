@@ -258,6 +258,7 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 
 	m_sUser.insert(nCharacterID);
 	auto pwUser = AllocObj(WvsWorld::WorldUser);
+	pwUser->m_nCharacterID = nCharacterID;
 	pwUser->m_bInShop = false;
 	pwUser->m_bMigrated = true;
 	pwUser->m_nChannelID = nChannelID;
@@ -449,6 +450,19 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 		case GuildMan::GuildRequest::rq_Guild_SetNotice:
 			GuildMan::GetInstance()->SetNotice(iPacket, &oPacket);
 			break;
+		case GuildMan::GuildRequest::rq_Guild_SetMark:
+			GuildMan::GetInstance()->SetMark(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_SetMemberGrade:
+			GuildMan::GetInstance()->SetMemberGrade(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_IncMaxMemberNum:
+			GuildMan::GetInstance()->IncMaxMemberNum(iPacket, &oPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_IncPoint:
+			GuildMan::GetInstance()->IncPoint(iPacket, &oPacket);
+			break;
+			
 	}
 
 	if (oPacket.GetPacketSize() != 0)
