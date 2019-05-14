@@ -43,6 +43,9 @@
     <ClCompile Include="..\WvsGame\GuildMan.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="..\WvsGame\FriendMan.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsCenter.h">
@@ -67,6 +70,9 @@
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="..\WvsGame\GuildMan.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WvsGame\FriendMan.h">
       <Filter>World</Filter>
     </ClInclude>
   </ItemGroup>

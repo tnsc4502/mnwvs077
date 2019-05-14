@@ -174,6 +174,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnQuestRequest, 0x57);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPartyRequest, 0x60);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPartyRequestRejected, 0x61);
 MAKE_USER_RECV_PACKET_FLAG(User_OnGuildRequest, 0x62);
+MAKE_USER_RECV_PACKET_FLAG(User_OnFriendRequest, 0x66);
 
 
 MAKE_USER_RECV_PACKET_FLAG(User_OnFuncKeyMappedModified, 0x6B);

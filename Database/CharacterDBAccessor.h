@@ -64,6 +64,8 @@ public:
 	void PostUpdateCashRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
 	void PostMoveSlotToLockerRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
 	void PostMoveLockerToSlotRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
+	int QueryCharacterIDByName(const std::string& strName);
+	int QueryCharacterFriendMax(int nCharacterID);
 	//void PostChargeCashRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
 	void OnCharacterSaveRequest(void *iPacket);
 };

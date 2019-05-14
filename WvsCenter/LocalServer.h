@@ -30,10 +30,9 @@ public:
 	void OnReuqestMoveLockerToSlot(InPacket *iPacket);
 	void OnReuqestMoveSlotToLocker(InPacket *iPacket);
 
-	//Party
+	//World System
 	void OnPartyRequest(InPacket *iPacket);
-
-	//Guild
 	void OnGuildRequest(InPacket *iPacket);
+	void OnFriendRequest(InPacket *iPacket);
 };
 

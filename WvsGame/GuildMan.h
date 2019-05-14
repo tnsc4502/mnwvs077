@@ -52,7 +52,7 @@ public:
 		res_Guild_SetMemberGrade = 64,
 		res_Guild_SetMark = 66,
 		res_Guild_SetNotice = 68,
-		res_Guild_IncPoint = 73,
+		res_Guild_IncPoint = 72,
 	};
 
 	struct MemberData
@@ -86,7 +86,7 @@ public:
 			nMarkBgColor = 0,
 			nLoggedInUserCount = 0;
 
-		void Encode(OutPacket *oPacket) const;
+		void Encode(OutPacket *oPacket);
 		void Decode(InPacket *iPacket);
 	};
 
@@ -111,7 +111,7 @@ public:
 	void OnLeave(User *pUser);
 	void Broadcast(OutPacket *oPacket, const std::vector<int>& anMemberID, int nPlusOne);
 	void OnPacket(InPacket *iPacket);
-	void OnGuildReuqest(User *pUser, InPacket *iPacket);
+	void OnGuildRequest(User *pUser, InPacket *iPacket);
 	void OnGuildLoadDone(InPacket *iPacket);
 	void OnCreateNewGuildDone(InPacket *iPacket);
 	bool IsGuildMaster(int nGuildID, int nCharacterID);
@@ -139,6 +139,10 @@ public:
 	void OnSetMarkRequest(User *pUser, InPacket *iPacket);
 	void OnSetMarkDone(InPacket *iPacket);
 	void OnNotifyLoginOrLogout(InPacket *iPacket);
+	void OnIncMaxMemberNumRequest(User *pUser, int nInc);
+	void OnIncMaxMemberNum(InPacket *iPacket);
+	void OnIncPointRequest(int nGuildID, int nInc);
+	void OnIncPoint(InPacket *iPacket);
 	void MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild);
 
 	///==========================CENTER=================================

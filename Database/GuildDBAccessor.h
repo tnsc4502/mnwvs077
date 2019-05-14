@@ -1,5 +1,5 @@
 #pragma once
-#include "WvsUnified.h"
+#include <vector>
 
 struct GuildData;
 

@@ -54,6 +54,7 @@
 #include "SummonedPool.h"
 #include "PartyMan.h"
 #include "GuildMan.h"
+#include "FriendMan.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -97,6 +98,7 @@ User::~User()
 	LeaveField();
 	PartyMan::GetInstance()->OnLeave(this, false);
 	GuildMan::GetInstance()->OnLeave(this);
+	FriendMan::GetInstance()->OnLeave(this);
 
 	try {
 		if (GetScript())
@@ -420,7 +422,10 @@ void User::OnPacket(InPacket *iPacket)
 		PartyMan::GetInstance()->OnPartyRequestRejected(this, iPacket);
 		break;
 	case UserRecvPacketFlag::User_OnGuildRequest:
-		GuildMan::GetInstance()->OnGuildReuqest(this, iPacket);
+		GuildMan::GetInstance()->OnGuildRequest(this, iPacket);
+		break;
+	case UserRecvPacketFlag::User_OnFriendRequest:
+		FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
 		break;
 	default:
 		iPacket->RestorePacket();
@@ -1743,4 +1748,10 @@ void User::OnMigrateIn()
 	oPacketForGuildLoading.Encode1(GuildMan::GuildRequest::rq_Guild_Load);
 	oPacketForGuildLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForGuildLoading);
+
+	OutPacket oPacketForFriendLoading;
+	oPacketForFriendLoading.Encode2(GameSrvSendPacketFlag::FriendRequest);
+	oPacketForFriendLoading.Encode1(FriendMan::FriendRequest::rq_Friend_Load);
+	oPacketForFriendLoading.Encode4(GetUserID());
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);
 }

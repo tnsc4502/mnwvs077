@@ -40,7 +40,7 @@ private:
 
 public:
 
-	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID;
+	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax;
 	std::string strName;
 
 	GW_Avatar *mAvatarData = nullptr;

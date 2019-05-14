@@ -2,6 +2,7 @@
 #include "UserTransferStatus.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
+#include "..\WvsGame\FriendMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -56,6 +57,7 @@ void WvsWorld::UserMigrateIn(int nCharacterID, int nChannelID)
 
 		PartyMan::GetInstance()->NotifyMigrateIn(nCharacterID, nChannelID);		
 		GuildMan::GetInstance()->NotifyLoginOrLogout(nCharacterID, true);
+		FriendMan::GetInstance()->NotifyLogin(nCharacterID, nChannelID, (nChannelID == WvsWorld::CHANNELID_SHOP));
 	}
 }
 
@@ -76,6 +78,7 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 			nUserID,
 			false
 		);
+		FriendMan::GetInstance()->NotifyLogout(nUserID);
 		m_mUser.erase(nUserID);
 		FreeObj(pwUser);
 	}

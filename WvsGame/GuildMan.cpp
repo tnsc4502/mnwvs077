@@ -142,13 +142,15 @@ void GuildMan::OnPacket(InPacket * iPacket)
 			OnSetMemberGradeDone(iPacket);
 			break;
 		case GuildMan::GuildResult::res_Guild_IncMaxMemberNum:
+			OnIncMaxMemberNum(iPacket);
 			break;
 		case GuildMan::GuildResult::res_Guild_IncPoint:
+			OnIncPoint(iPacket);
 			break;
 	}
 }
 
-void GuildMan::OnGuildReuqest(User * pUser, InPacket * iPacket)
+void GuildMan::OnGuildRequest(User * pUser, InPacket * iPacket)
 {
 	int nRequest = iPacket->Decode1();
 	switch (nRequest)
@@ -280,28 +282,31 @@ void GuildMan::OnGuildInviteRequest(User * pUser, InPacket * iPacket)
 {
 	std::string strTargetName = iPacket->DecodeStr();
 	auto pTarget = User::FindUserByName(strTargetName);
-	auto pGuild = GetGuildByCharID(pUser->GetUserID());
-	auto nTargetGuildID = GetGuildIDByCharID(pTarget->GetUserID());
-
-	if (pTarget && pGuild && nTargetGuildID == -1)
+	if (pTarget)
 	{
-		int nIdx = FindUser(pUser->GetUserID(), pGuild);
+		auto pGuild = GetGuildByCharID(pUser->GetUserID());
+		auto nTargetGuildID = GetGuildIDByCharID(pTarget->GetUserID());
 
-		//會長/副會長 = 1/2
-		if (nIdx >= 0 && 
-			pGuild->aMemberData[nIdx].nGrade <= 2 &&
-			(int)pGuild->anCharacterID.size() < pGuild->nMaxMemberNum)
+		if (pTarget && pGuild && nTargetGuildID == -1)
 		{
-			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
-			oPacket.Encode1(GuildResult::res_Guild_Invite);
-			oPacket.Encode4(pGuild->nGuildID);
-			oPacket.EncodeStr(pUser->GetName());
-			oPacket.Encode4(QWUser::GetLevel(pUser));
-			oPacket.Encode4(QWUser::GetJob(pUser));
+			int nIdx = FindUser(pUser->GetUserID(), pGuild);
 
-			pTarget->SendPacket(&oPacket);
-			pTarget->AddGuildInvitedCharacterID(pUser->GetUserID());
+			//會長/副會長 = 1/2
+			if (nIdx >= 0 &&
+				pGuild->aMemberData[nIdx].nGrade <= 2 &&
+				(int)pGuild->anCharacterID.size() < pGuild->nMaxMemberNum)
+			{
+				OutPacket oPacket;
+				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+				oPacket.Encode1(GuildResult::res_Guild_Invite);
+				oPacket.Encode4(pGuild->nGuildID);
+				oPacket.EncodeStr(pUser->GetName());
+				oPacket.Encode4(QWUser::GetLevel(pUser));
+				oPacket.Encode4(QWUser::GetJob(pUser));
+
+				pTarget->SendPacket(&oPacket);
+				pTarget->AddGuildInvitedCharacterID(pUser->GetUserID());
+			}
 		}
 	}
 }
@@ -686,7 +691,7 @@ void GuildMan::OnCreateNewGuildRequest(User *pUser, const std::string &strGuildN
 	}
 }
 
-void GuildMan::OnJoinGuildDone(InPacket * iPacket)
+void GuildMan::OnJoinGuildDone(InPacket *iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	auto pUser = User::FindUser(nCharacterID);
@@ -726,7 +731,7 @@ void GuildMan::OnJoinGuildDone(InPacket * iPacket)
 	}
 }
 
-void GuildMan::OnNotifyLoginOrLogout(InPacket * iPacket)
+void GuildMan::OnNotifyLoginOrLogout(InPacket *iPacket)
 {
 	int nGuildID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
@@ -750,7 +755,86 @@ void GuildMan::OnNotifyLoginOrLogout(InPacket * iPacket)
 	}
 }
 
-void GuildMan::MakeGuildUpdatePacket(OutPacket * oPacket, GuildData * pGuild)
+void GuildMan::OnIncMaxMemberNumRequest(User *pUser, int nInc)
+{
+	auto pGuild = GetGuildByCharID(pUser->GetUserID());
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	if (pGuild && 
+		IsGuildMaster(pGuild->nGuildID, pUser->GetUserID()) &&
+		pGuild->nMaxMemberNum + nInc <= 100) 
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::GuildRequest);
+		oPacket.Encode1(GuildRequest::rq_Guild_IncMaxMemberNum);
+		oPacket.Encode4(pGuild->nGuildID);
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1((char)nInc);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void GuildMan::OnIncMaxMemberNum(InPacket *iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nGuildID = iPacket->Decode4();
+	auto pGuild = GetGuild(nGuildID);
+	if (pGuild)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		pGuild->nMaxMemberNum = iPacket->Decode1();
+
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+		oPacket.Encode1(GuildResult::res_Guild_IncMaxMemberNum);
+		oPacket.Encode4(nGuildID);
+		oPacket.Encode1((char)pGuild->nMaxMemberNum);
+
+		Broadcast(&oPacket, pGuild->anCharacterID, 0);
+	}
+	else
+	{
+		//Send an error message to pUser.
+	}
+}
+
+void GuildMan::OnIncPointRequest(int nGuildID, int nInc)
+{
+	auto pGuild = GetGuild(nGuildID);
+
+	if (pGuild)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::GuildRequest);
+		oPacket.Encode1(GuildRequest::rq_Guild_IncPoint);
+		oPacket.Encode4(pGuild->nGuildID);
+		oPacket.Encode4((char)nInc);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void GuildMan::OnIncPoint(InPacket *iPacket)
+{
+	int nGuildID = iPacket->Decode4();
+	auto pGuild = GetGuild(nGuildID);
+	if (pGuild)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+		pGuild->nPoint = iPacket->Decode4();
+
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+		oPacket.Encode1(GuildResult::res_Guild_IncPoint);
+		oPacket.Encode4(nGuildID);
+		oPacket.Encode4(pGuild->nPoint);
+
+		Broadcast(&oPacket, pGuild->anCharacterID, 0);
+	}
+}
+
+void GuildMan::MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild)
 {
 	oPacket->Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
 	oPacket->Encode1(GuildResult::res_Guild_Update);
@@ -834,7 +918,7 @@ void GuildMan::SendToAll(GuildData * pGuild, OutPacket * oPacket)
 {
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 
-	bool bSrvSent[30]{ 0 };
+	bool bSrvSent[WvsWorld::MAX_CHANNEL_COUNT]{ 0 };
 	for (auto& nID : pGuild->anCharacterID)
 	{
 		auto pUser = WvsWorld::GetInstance()->GetUser(nID);
@@ -1226,18 +1310,23 @@ void GuildMan::IncMaxMemberNum(InPacket * iPacket, OutPacket * oPacket)
 	auto pGuild = GetGuild(nGuildID);
 	if (pGuild && IsGuildMaster(nGuildID, nMasterID))
 	{
-		int nToInc = iPacket->Decode4();
+		int nToInc = iPacket->Decode1();
 		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
-		pGuild->nMaxMemberNum += nToInc;
+		if (nToInc + pGuild->nMaxMemberNum <= 100)
+		{
+			pGuild->nMaxMemberNum += nToInc;
 
-		GuildDBAccessor::GetInstance()->UpdateGuild(
-			pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
-		);
+			GuildDBAccessor::GetInstance()->UpdateGuild(
+				pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
+			);
 
-		oPacket->Encode4(nGuildID);
-		oPacket->Encode1(pGuild->nMaxMemberNum);
-		SendToAll(pGuild, oPacket);
-		oPacket->Reset();
+			oPacket->Encode4(nGuildID);
+			oPacket->Encode1(pGuild->nMaxMemberNum);
+			SendToAll(pGuild, oPacket);
+			oPacket->Reset();
+		}
+		else
+			oPacket->Encode4(-1);
 	}
 	else
 		oPacket->Encode4(-1);
@@ -1261,7 +1350,7 @@ void GuildMan::IncPoint(InPacket * iPacket, OutPacket * oPacket)
 		);
 
 		oPacket->Encode4(nGuildID);
-		oPacket->Encode1(pGuild->nMaxMemberNum);
+		oPacket->Encode4(pGuild->nPoint);
 		SendToAll(pGuild, oPacket);
 		oPacket->Reset();
 	}
@@ -1317,7 +1406,9 @@ void GuildMan::MemberData::Set(const std::string & strName, int nLevel, int nJob
 
 void GuildMan::MemberData::Encode(OutPacket * oPacket) const
 {
-	oPacket->EncodeBuffer((unsigned char*)sCharacterName.c_str(), 13);
+	oPacket->EncodeBuffer(
+		(unsigned char*)sCharacterName.c_str(), 13, std::max(0, (int)sCharacterName.size() - 13)
+	);
 	oPacket->Encode4(nJob);
 	oPacket->Encode4(nLevel);
 	oPacket->Encode4(nGrade);
@@ -1327,7 +1418,7 @@ void GuildMan::MemberData::Encode(OutPacket * oPacket) const
 
 void GuildMan::MemberData::Decode(InPacket * iPacket)
 {
-	char strBuffer[14]{ 0 };
+	char strBuffer[15] { 0 };
 	iPacket->DecodeBuffer((unsigned char*)strBuffer, 13);
 	sCharacterName = strBuffer;
 
@@ -1338,7 +1429,7 @@ void GuildMan::MemberData::Decode(InPacket * iPacket)
 	nContribution = iPacket->Decode4();
 }
 
-void GuildMan::GuildData::Encode(OutPacket * oPacket) const
+void GuildMan::GuildData::Encode(OutPacket * oPacket)
 {
 	oPacket->Encode4(nGuildID);
 	oPacket->EncodeStr(sGuildName);

@@ -1,4 +1,5 @@
 #include "GuildDBAccessor.h"
+#include "WvsUnified.h"
 #include "Poco\Data\MySQL\MySQLException.h"
 
 #include "..\WvsLib\Logger\WvsLogger.h"

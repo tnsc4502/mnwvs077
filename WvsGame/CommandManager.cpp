@@ -215,6 +215,21 @@ CommandManager::CommandManager()
 			pScript->Run(); 
 			return 1;
 	});
+
+	m_mCmdInvoke["#igm"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		GuildMan::GetInstance()->OnIncMaxMemberNumRequest(pUser, 5);
+		return 1;
+	});
+
+	m_mCmdInvoke["#igg"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		GuildMan::GetInstance()->OnIncPointRequest(
+			GuildMan::GetInstance()->GetGuildIDByCharID(pUser->GetUserID()), 5);
+		return 1;
+	});
 }
 
 CommandManager::~CommandManager()

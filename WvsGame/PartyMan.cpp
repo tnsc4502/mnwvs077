@@ -686,7 +686,7 @@ void PartyMan::JoinParty(InPacket * iPacket, OutPacket *oPacket)
 		oPacket->Encode4(nPartyID);
 }
 
-void PartyMan::WithdrawParty(InPacket * iPacket, OutPacket * oPacket)
+void PartyMan::WithdrawParty(InPacket *iPacket, OutPacket *oPacket)
 {
 	int nPartyID = iPacket->Decode4();
 	char bKicked = iPacket->Decode1();
@@ -697,23 +697,25 @@ void PartyMan::WithdrawParty(InPacket * iPacket, OutPacket * oPacket)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 	if (pParty && ((nIdx = FindUser(nToKick, pParty)), nIdx >= 0))
 	{
-		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::PartyResult);
-		oPacket.Encode1(PartyResult::res_Party_Withdraw);
-		oPacket.Encode4(nPartyID);
-		oPacket.Encode4(nToKick);
+		oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket->Encode1(PartyResult::res_Party_Withdraw);
+		oPacket->Encode4(nPartyID);
+		oPacket->Encode4(nToKick);
 		if (IsPartyBoss(nPartyID, nToKick))
 		{
-			oPacket.Encode1(0);
-			SendPacket(&oPacket, pParty);
+			oPacket->Encode1(0);
+			SendPacket(oPacket, pParty);
+			oPacket->Reset();
 			RemoveParty(pParty);
 		}
 		else
 		{
-			oPacket.Encode1(1);
-			oPacket.Encode1(bKicked); //bKicked
-			oPacket.EncodeStr(pParty->party.asCharacterName[nIdx]);
-			SendPacket(&oPacket, pParty);
+			oPacket->Encode1(1);
+			oPacket->Encode1(bKicked); //bKicked
+			oPacket->EncodeStr(pParty->party.asCharacterName[nIdx]);
+			SendPacket(oPacket, pParty);
+			oPacket->Reset();
+
 			m_mCharacterIDToPartyID.erase(nToKick);
 			pParty->party.Initialize(nIdx);
 		}
@@ -735,14 +737,14 @@ void PartyMan::ChangePartyBoss(InPacket * iPacket, OutPacket * oPacket)
 		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 		pParty->party.nPartyBossCharacterID = nTargetID;
 
-		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::PartyResult);
-		oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
-		oPacket.Encode4(nPartyID);
-		oPacket.Encode1(1);
-		oPacket.Encode4(nTargetID);
-		oPacket.Encode1(0); //bChangedByCenter
-		SendPacket(&oPacket, pParty);
+		oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket->Encode1(PartyResult::res_Party_ChangeBoss);
+		oPacket->Encode4(nPartyID);
+		oPacket->Encode1(1);
+		oPacket->Encode4(nTargetID);
+		oPacket->Encode1(0); //bChangedByCenter
+		SendPacket(oPacket, pParty);
+		oPacket->Reset();
 	}
 }
 
@@ -790,7 +792,7 @@ void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 void PartyMan::SendPacket(OutPacket *oPacket, PartyData *pParty)
 {
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
-	bool bChannelSent[30] { 0 };
+	bool bChannelSent[WvsWorld::MAX_CHANNEL_COUNT] { 0 };
 	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
 	{
 		if (pParty->party.anChannelID[i] >= 0)
@@ -815,8 +817,11 @@ void PartyMan::PartyMember::Encode(OutPacket * oPacket)
 {
 	typedef unsigned char* BuffType;
 	oPacket->EncodeBuffer((BuffType)(anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
-	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i) 
+	{
+		asCharacterName[i].reserve(15);
 		oPacket->EncodeBuffer((BuffType)asCharacterName[i].c_str(), 13);
+	}
 	oPacket->EncodeBuffer((BuffType)(anJob), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 	oPacket->EncodeBuffer((BuffType)(anLevel), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 	oPacket->EncodeBuffer((BuffType)(anChannelID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
@@ -828,7 +833,7 @@ void PartyMan::PartyMember::Decode(InPacket * iPacket)
 	typedef unsigned char* BuffType;
 	iPacket->DecodeBuffer((BuffType)(anCharacterID), sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 
-	char aBuffName[14]{ 0 };
+	char aBuffName[15] { 0 };
 	for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
 	{
 		iPacket->DecodeBuffer((unsigned char*)aBuffName, 13);

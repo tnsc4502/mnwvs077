@@ -152,6 +152,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\WvsGame\FriendMan.cpp" />
     <ClCompile Include="..\WvsGame\GuildMan.cpp" />
     <ClCompile Include="..\WvsGame\ItemInfo.cpp" />
     <ClCompile Include="..\WvsGame\PartyMan.cpp" />
@@ -163,6 +164,7 @@
     <ClCompile Include="WvsWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\WvsGame\FriendMan.h" />
     <ClInclude Include="..\WvsGame\GuildMan.h" />
     <ClInclude Include="..\WvsGame\ItemInfo.h" />
     <ClInclude Include="..\WvsGame\PartyMan.h" />

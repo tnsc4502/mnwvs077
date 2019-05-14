@@ -25,6 +25,7 @@
     <ClInclude Include="GW_FuncKeyMapped.h" />
     <ClInclude Include="GW_Shop.h" />
     <ClInclude Include="GuildDBAccessor.h" />
+    <ClInclude Include="GW_Friend.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -48,5 +49,6 @@
     <ClCompile Include="GW_FuncKeyMapped.cpp" />
     <ClCompile Include="GW_Shop.cpp" />
     <ClCompile Include="GuildDBAccessor.cpp" />
+    <ClCompile Include="GW_Friend.cpp" />
   </ItemGroup>
 </Project>

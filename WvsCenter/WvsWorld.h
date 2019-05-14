@@ -14,7 +14,8 @@ class WvsWorld
 public:
 	const static int 
 		CHANNELID_NOT_MIGRATED_IN = -2,
-		CHANNELID_SHOP = -1;
+		CHANNELID_SHOP = -1,
+		MAX_CHANNEL_COUNT = 30;
 
 	struct WorldUser
 	{

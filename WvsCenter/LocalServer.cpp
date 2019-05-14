@@ -16,6 +16,7 @@
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
+#include "..\WvsGame\FriendMan.h"
 
 LocalServer::LocalServer(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -88,6 +89,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 			break;
 		case GameSrvSendPacketFlag::GuildRequest:
 			OnGuildRequest(iPacket);
+			break;
+		case GameSrvSendPacketFlag::FriendRequest:
+			OnFriendRequest(iPacket);
 			break;
 	}
 }
@@ -463,6 +467,30 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 			GuildMan::GetInstance()->IncPoint(iPacket, &oPacket);
 			break;
 			
+	}
+
+	if (oPacket.GetPacketSize() != 0)
+		SendPacket(&oPacket);
+}
+
+void LocalServer::OnFriendRequest(InPacket * iPacket)
+{
+	int nRequest = iPacket->Decode1();
+	OutPacket oPacket;
+	switch (nRequest)
+	{
+		case FriendMan::FriendRequest::rq_Friend_Set:
+			FriendMan::GetInstance()->SetFriend(iPacket, &oPacket);
+			break;
+		case FriendMan::FriendRequest::rq_Friend_Load:
+			FriendMan::GetInstance()->LoadFriend(iPacket, &oPacket);
+			break;
+		case FriendMan::FriendRequest::rq_Friend_Accept:
+			FriendMan::GetInstance()->AcceptFriend(iPacket, &oPacket);
+			break;
+		case FriendMan::FriendRequest::rq_Friend_Delete:
+			FriendMan::GetInstance()->DeleteFriend(iPacket, &oPacket);
+			break;
 	}
 
 	if (oPacket.GetPacketSize() != 0)

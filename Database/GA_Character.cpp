@@ -79,6 +79,7 @@ void GA_Character::LoadAvatar(int nCharacterID)
 	nGuildID = recordSet["GuildID"];
 	nPartyID = recordSet["PartyID"];
 	nFieldID = recordSet["FieldID"];
+	nFriendMax = recordSet["FriendMaxNum"];
 	//nGender = recordSet["Gender"];
 }
 
@@ -440,7 +441,7 @@ void GA_Character::DecodeCharacterData(InPacket *iPacket, bool bForInternal)
 	if (flag & 1)
 	{
 		DecodeStat(iPacket);
-		int nBuddyCapicity = iPacket->Decode1(); //BUDDY LIST CAPACITY
+		nFriendMax = iPacket->Decode1(); //BUDDY LIST CAPACITY
 		iPacket->Decode8(); //Current Time
 	}
 
@@ -671,7 +672,7 @@ void GA_Character::EncodeCharacterData(OutPacket *oPacket, bool bForInternal)
 	if (flag & 1)
 	{
 		EncodeStat(oPacket);
-		oPacket->Encode1(25); //BUDDY LIST CAPACITY
+		oPacket->Encode1((char)nFriendMax); //BUDDY LIST CAPACITY
 		oPacket->Encode8(GameDateTime::GetCurrentDate()); //TIME CURRENT TIME
 	}
 

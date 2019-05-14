@@ -392,6 +392,24 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 	pSrv->SendPacket(&oPacket);
 }
 
+int CharacterDBAccessor::QueryCharacterIDByName(const std::string & strName)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT CharacterID From Characters Where CharacterName = '" << strName << "'";
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	return recordSet.rowCount() == 0 ? -1 : recordSet["CharacterID"];
+}
+
+int CharacterDBAccessor::QueryCharacterFriendMax(int nCharacterID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT FriendMaxNum From Characters Where CharacterID = " << nCharacterID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	return recordSet.rowCount() == 0 ? -1 : recordSet["FriendMaxNum"];
+}
+
 void CharacterDBAccessor::OnCharacterSaveRequest(void *iPacket)
 {
 	InPacket *iPacket_ = (InPacket*)iPacket;

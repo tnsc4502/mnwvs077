@@ -4,7 +4,6 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
@@ -13,7 +12,8 @@
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
-
+#include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 
 #include "WvsGame.h"
@@ -21,8 +21,7 @@
 #include "FieldMan.h"
 #include "PartyMan.h"
 #include "GuildMan.h"
-#include "..\WvsLib\Logger\WvsLogger.h"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "FriendMan.h"
 
 Center::Center(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -76,30 +75,33 @@ void Center::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-	case CenterSendPacketFlag::RegisterCenterAck:
-	{
-		auto result = iPacket->Decode1();
-		if (!result)
+		case CenterSendPacketFlag::RegisterCenterAck:
 		{
-			WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Warning]The Center Server Didn't Accept This Socket. Program Will Terminated.\n");
-			exit(0);
+			auto result = iPacket->Decode1();
+			if (!result)
+			{
+				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Warning]The Center Server Didn't Accept This Socket. Program Will Terminated.\n");
+				exit(0);
+			}
+			WvsLogger::LogRaw("Center Server Authenciated Ok. The Connection Between Local Server Has Builded.\n");
+			break;
 		}
-		WvsLogger::LogRaw("Center Server Authenciated Ok. The Connection Between Local Server Has Builded.\n");
-		break;
-	}
-	case CenterSendPacketFlag::CenterMigrateInResult:
-		OnCenterMigrateInResult(iPacket);
-		break;
-	case CenterSendPacketFlag::MigrateCashShopResult:
-	case CenterSendPacketFlag::TransferChannelResult:
-		OnTransferChannelResult(iPacket);
-		break;
-	case CenterSendPacketFlag::PartyResult:
-		PartyMan::GetInstance()->OnPacket(iPacket);
-		break;
-	case CenterSendPacketFlag::GuildResult:
-		GuildMan::GetInstance()->OnPacket(iPacket);
-		break;
+		case CenterSendPacketFlag::CenterMigrateInResult:
+			OnCenterMigrateInResult(iPacket);
+			break;
+		case CenterSendPacketFlag::MigrateCashShopResult:
+		case CenterSendPacketFlag::TransferChannelResult:
+			OnTransferChannelResult(iPacket);
+			break;
+		case CenterSendPacketFlag::PartyResult:
+			PartyMan::GetInstance()->OnPacket(iPacket);
+			break;
+		case CenterSendPacketFlag::GuildResult:
+			GuildMan::GetInstance()->OnPacket(iPacket);
+			break;
+		case CenterSendPacketFlag::FriendResult:
+			FriendMan::GetInstance()->OnPacket(iPacket);
+			break;
 	}
 }
 

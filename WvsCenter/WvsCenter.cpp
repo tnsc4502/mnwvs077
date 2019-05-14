@@ -39,9 +39,9 @@ void WvsCenter::OnNotifySocketDisconnected(SocketBase *pSocket)
 	}
 }
 
-LocalServerEntry * WvsCenter::GetChannel(int idx)
+LocalServerEntry * WvsCenter::GetChannel(int nIdx)
 {
-	auto findIter = m_mChannel.find(idx);
+	auto findIter = m_mChannel.find(nIdx);
 	return findIter == m_mChannel.end() ? nullptr : findIter->second;
 }
 
@@ -61,7 +61,6 @@ void WvsCenter::NotifyWorldChanged()
 	{
 		if (socket.second->GetServerType() == ServerConstants::SRV_LOGIN)
 		{
-			//printf("On Notify World Changed\n");
 			OutPacket oPacket;
 			oPacket.Encode2(CenterSendPacketFlag::CenterStatChanged);
 			oPacket.Encode2(WvsBase::GetInstance<WvsCenter>()->GetChannelCount());
