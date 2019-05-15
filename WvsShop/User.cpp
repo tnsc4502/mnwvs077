@@ -40,10 +40,24 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	m_pUpdateTimer = AsyncScheduler::CreateTask(bindT, 2000, true);
 	m_pUpdateTimer->Start();
 
-	OnQueryCashRequest();
 	OnRequestCenterUpdateCash();
+	OnQueryCashRequest();
 	OnRequestCenterLoadLocker();
+
 	//ValidateState();
+
+	OutPacket oPacket;
+	oPacket.Encode2(ShopSendPacketFlag::Client_SetCashShop);
+	m_pCharacterData->EncodeCharacterData(&oPacket, false);
+	oPacket.EncodeStr("Maple");
+	oPacket.Encode4(0); //0082C69E NotLimited
+	ShopInfo::GetInstance()->EncodeModifiedCommodity(&oPacket);
+	oPacket.Encode1(0);
+	oPacket.EncodeBuffer(nullptr, 1080); //004599FF BestItems
+	oPacket.Encode2(0); //45A1B7
+	oPacket.Encode2(0); //45A1FE
+	oPacket.Encode2(0); //
+	SendPacket(&oPacket);
 	//m_pSecondaryStat->DecodeInternal(this, iPacket);
 }
 
@@ -53,8 +67,8 @@ User::~User()
 	OutPacket oPacket;
 	oPacket.Encode2((short)ShopInternalPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
-	oPacket.Encode4(-1);
 	oPacket.Encode4(GetUserID());
+	oPacket.Encode4(-1);
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);
 
@@ -72,6 +86,11 @@ User::~User()
 User * User::FindUser(int nUserID)
 {
 	return WvsBase::GetInstance<WvsShop>()->FindUser(nUserID);
+}
+
+GA_Character* User::GetCharacterData()
+{
+	return m_pCharacterData;
 }
 
 int User::GetUserID() const
@@ -133,6 +152,7 @@ void User::OnPacket(InPacket *iPacket)
 			OnQueryCashRequest();
 			break;
 	}
+	ValidateState();
 }
 
 void User::OnUserCashItemRequest(InPacket * iPacket)
@@ -186,7 +206,6 @@ void User::OnCenterResLoadLockerDone(InPacket * iPacket)
 	OutPacket oPacket;
 	oPacket.Encode2((short)ShopSendPacketFlag::User_CashItemResult);
 	oPacket.Encode1(CashItemRequest::Send_OnCashItemResLoadLockerDone);
-	oPacket.Encode1(0);
 	oPacket.EncodeBuffer(
 		iPacket->GetPacket() + iPacket->GetReadCount(),
 		iPacket->GetPacketSize() - iPacket->GetReadCount());
@@ -231,7 +250,6 @@ void User::OnCenterMoveItemToSlotDone(InPacket * iPacket)
 		iPacket->GetPacket() + iPacket->GetReadCount(),
 		iPacket->GetPacketSize() - iPacket->GetReadCount()
 	);
-	iPacket->Decode1();
 	int nPOS = iPacket->Decode2();
 	int nInstanceType = iPacket->Decode1();
 	iPacket->Offset(-1);
@@ -294,7 +312,6 @@ void User::OnRequestCenterUpdateCash()
 void User::OnRequestBuyCashItem(InPacket * iPacket)
 {
 	int nChargeType = iPacket->Decode1();
-	iPacket->Decode2();
 	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(iPacket->Decode4());
 	if (pCommodity)
 	{

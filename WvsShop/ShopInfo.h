@@ -5,10 +5,11 @@
 
 struct GW_CashItemInfo;
 struct CSCommodity;
+class OutPacket;
 
 class ShopInfo
 {
-	std::map<int, CSCommodity> m_mOriginalCommodity, m_mCommodity;
+	std::map<int, CSCommodity> m_mOriginalCommodity, m_mCommodity, m_mModifiedCommodity;
 
 public:
 	ShopInfo();
@@ -19,5 +20,6 @@ public:
 	void LoadCommodity(void *pCashPackage, bool bCheckValid);
 	GW_CashItemInfo* GetCashItemInfo(const CSCommodity *pCS) const;
 	void Init();
+	void EncodeModifiedCommodity(OutPacket *oPacket);
 };
 

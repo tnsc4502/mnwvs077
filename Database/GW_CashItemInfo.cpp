@@ -25,18 +25,19 @@ void GW_CashItemInfo::Encode(OutPacket * oPacket)
 	oPacket->EncodeBuffer(
 		(unsigned char*)sBuyCharacterID.data(), 
 		(int)sBuyCharacterID.size(),
-		15 - (int)sBuyCharacterID.size()
+		std::max(0, 13 - (int)sBuyCharacterID.size())
 	);
 	oPacket->Encode8(liDateExpire);
-	oPacket->Encode4(nPaybackRate);
-	long long int* pD = (long long int*)(&dDiscountRate);
-	oPacket->Encode8(*pD);
-	oPacket->Encode4(nOrderNo);
+	oPacket->Encode8(liSN);
+	//oPacket->Encode4(nPaybackRate);
+	//long long int* pD = (long long int*)(&dDiscountRate);
+	//oPacket->Encode8(*pD);
+	/*oPacket->Encode4(nOrderNo);
 	oPacket->Encode4(nProductNo);
 	oPacket->Encode1(bRefundable);
 	oPacket->Encode1(nSourceFlag);
-	oPacket->Encode1(nStoreBank);
-	cashItemOption.Encode(oPacket);
+	oPacket->Encode1(nStoreBank);*/
+	//cashItemOption.Encode(oPacket);
 }
 
 void GW_CashItemInfo::Decode(InPacket * iPacket)
@@ -48,17 +49,18 @@ void GW_CashItemInfo::Decode(InPacket * iPacket)
 	nCommodityID = iPacket->Decode4();
 	nNumber = iPacket->Decode2();
 	unsigned char buffer[16] = { 0 };
-	iPacket->DecodeBuffer((unsigned char*)&buffer, 15);
+	iPacket->DecodeBuffer((unsigned char*)&buffer, 13);
 	liDateExpire = iPacket->Decode8();
-	nPaybackRate = iPacket->Decode4();
-	long long int liD = iPacket->Decode8();
-	dDiscountRate = *((double*)(&liD));
-	nOrderNo = iPacket->Decode4();
+	iPacket->Decode8();
+	//nPaybackRate = iPacket->Decode4();
+	//long long int liD = iPacket->Decode8();
+	//dDiscountRate = *((double*)(&liD));
+	/*nOrderNo = iPacket->Decode4();
 	nProductNo = iPacket->Decode4();
 	bRefundable = iPacket->Decode1() == 1;
 	nSourceFlag = iPacket->Decode1();
-	nStoreBank = iPacket->Decode1();
-	cashItemOption.Decode(iPacket);
+	nStoreBank = iPacket->Decode1();*/
+	//cashItemOption.Decode(iPacket);
 }
 
 void GW_CashItemInfo::Load(long long int liCashItemSN)

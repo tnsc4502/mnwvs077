@@ -271,10 +271,10 @@ void CharacterDBAccessor::PostLoadLockerRequest(SocketBase *pSrv, int uClientSoc
 	//for (auto& pet : aPet)
 	//	pet.Encode(&oPacket, false);
 
+	/*oPacket.Encode2(0);
 	oPacket.Encode2(0);
 	oPacket.Encode2(0);
-	oPacket.Encode2(0);
-	oPacket.Encode2(0);
+	oPacket.Encode2(0);*/
 
 	pSrv->SendPacket(&oPacket);
 }
@@ -383,7 +383,7 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 
 	oPacket.Encode2(ShopInternalPacketFlag::OnCenterMoveToSlotDone);
 	oPacket.Encode8(pItem->liItemSN);
-	oPacket.Encode1(1);
+	//oPacket.Encode1(1);
 	oPacket.Encode2(nPOS);
 	pItem->RawEncode(&oPacket);
 	oPacket.Encode4(0);

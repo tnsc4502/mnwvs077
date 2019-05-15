@@ -70,9 +70,9 @@ void FriendMan::OnInviteRequest(InPacket * iPacket)
 		oPacket.Encode4(nRequestFrom);
 		strNameFrom.reserve(15);
 		oPacket.EncodeBuffer((unsigned char*)strNameFrom.data(), 13);
-		oPacket.Encode1(0);
-		oPacket.Encode4(0);
 		oPacket.Encode1(1);
+		oPacket.Encode4(1);
+		oPacket.Encode1(0);
 		pUser->SendPacket(&oPacket);
 	}
 }

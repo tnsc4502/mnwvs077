@@ -10,18 +10,18 @@
 
 //==================================SHOP SEND===============================
 MAKE_FLAG_COLLECTION_BODY(ShopSendPacketFlag)
-MAKE_SHOP_SEND_PACKET_FLAG(Client_ValidateState, 0x14); //Stage::OnSetCashShop
-MAKE_SHOP_SEND_PACKET_FLAG(Client_SetCashShop, 0x1C4); //Stage::OnSetCashShop
-MAKE_SHOP_SEND_PACKET_FLAG(User_QueryCashResult, 0x5B6);
-MAKE_SHOP_SEND_PACKET_FLAG(User_CashItemResult, 0x5B7);
+MAKE_SHOP_SEND_PACKET_FLAG(Client_ValidateState, 10); //Stage::OnSetCashShop
+MAKE_SHOP_SEND_PACKET_FLAG(Client_SetCashShop, 79); //Stage::OnSetCashShop
+MAKE_SHOP_SEND_PACKET_FLAG(User_QueryCashResult, 244);
+MAKE_SHOP_SEND_PACKET_FLAG(User_CashItemResult, 245);
 
 FLAG_COLLECTION_BODY_END
 
 
 //==================================SHOP RECV===============================
 MAKE_FLAG_COLLECTION_BODY(ShopRecvPacketFlag)
-MAKE_SHOP_RECV_PACKET_FLAG(User_OnQueryCashReques, 0x45E); 
-MAKE_SHOP_RECV_PACKET_FLAG(User_OnCashItemRequest, 0x45F); 
+MAKE_SHOP_RECV_PACKET_FLAG(User_OnQueryCashReques, 0xB5); 
+MAKE_SHOP_RECV_PACKET_FLAG(User_OnCashItemRequest, 0xB6); 
 MAKE_SHOP_RECV_PACKET_FLAG(User_OnCouponRequest, 0x460);
 FLAG_COLLECTION_BODY_END
 

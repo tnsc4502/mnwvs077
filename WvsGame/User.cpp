@@ -1514,7 +1514,7 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 		InventoryManipulator::InsertChangeLog(
 			aChangeLog,
 			InventoryManipulator::Change_AddToSlot,
-			GW_ItemSlotBase::CASH, nPos, pPetSlot, 0, 0
+			GW_ItemSlotBase::CASH, nPos, pPetSlot->MakeClone(), 0, 0
 		);
 		QWUInventory::SendInventoryOperation(this, true, aChangeLog);
 	}
