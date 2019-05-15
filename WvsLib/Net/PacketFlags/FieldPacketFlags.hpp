@@ -4,6 +4,30 @@
 
 #include "PacketFlags.hpp"
 
+namespace WhisperResult
+{
+	enum WhisperType
+	{
+		e_Whisper_Type_QueryLocation = 0x05,
+		e_Whisper_Type_SendMessage = 0x06,
+	};
+
+	enum WhisperMessageResult
+	{
+		e_Whisper_Res_QuerySuccess = 0x09,
+		e_Whisper_Res_Message_Ack = 0x0A,
+		e_Whisper_Res_Message_Send = 0x12,
+	};
+
+	enum WhisperQuery
+	{
+		e_Whisper_QR_NotMigratedIn = 0x00,
+		e_Whisper_QR_FieldID = 0x01,
+		e_Whisper_QR_InShop = 0x02,
+		e_Whisper_QR_ChannelID = 0x03,
+	};
+}
+
 #define MAKE_FIELD_SEND_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static FieldSendPacketFlag flagName {value, #flagName}; } const static int flagName = value
 
 MAKE_FLAG_COLLECTION_BODY(FieldSendPacketFlag)

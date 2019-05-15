@@ -216,7 +216,7 @@ CommandManager::CommandManager()
 			return 1;
 	});
 
-	m_mCmdInvoke["#igm"] = (
+	/*m_mCmdInvoke["#igm"] = (
 		[](User*pUser, PARAM_TYPE aInput)->int
 	{
 		GuildMan::GetInstance()->OnIncMaxMemberNumRequest(pUser, 5);
@@ -228,6 +228,22 @@ CommandManager::CommandManager()
 	{
 		GuildMan::GetInstance()->OnIncPointRequest(
 			GuildMan::GetInstance()->GetGuildIDByCharID(pUser->GetUserID()), 5);
+		return 1;
+	});*/
+
+	m_mCmdInvoke["#job"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		auto liFlag = QWUser::SetJob(pUser, GetInt(aInput, 1));
+		pUser->SendCharacterStat(false, liFlag);
+		return 1;
+	});
+
+	m_mCmdInvoke["#level"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		auto liFlag = QWUser::SetLevel(pUser, GetInt(aInput, 1));
+		pUser->SendCharacterStat(false, liFlag);
 		return 1;
 	});
 }

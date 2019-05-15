@@ -6,7 +6,8 @@ public:
 	~GameDateTime();
 
 	const static long long int TIME_PERMANENT = 150841440000000000L;
-	const static long long int TIME_UNLIMITED = 94354848000000000L;
+	const static long long int TIME_UNLIMITED = -1;
+	//const static long long int TIME_UNLIMITED = 94354848000000000L;
 
 	static long long int GetCurrentDate();
 	static long long int GetDateExpireFromPeriod(int nPeriod);

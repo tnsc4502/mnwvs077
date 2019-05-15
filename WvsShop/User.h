@@ -86,6 +86,7 @@ public:
 	User(ClientSocket *pSocket, InPacket *iPacket);
 	~User();
 	int GetUserID() const;
+	int GetAccountID() const;
 	static User * FindUser(int nUserID);
 	GA_Character* GetCharacterData();
 	void SendPacket(OutPacket *oPacket);

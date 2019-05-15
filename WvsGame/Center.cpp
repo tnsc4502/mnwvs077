@@ -64,6 +64,16 @@ void Center::OnConnected()
 	//Encode Port
 	oPacket.Encode2(WvsBase::GetInstance<WvsGame>()->GetExternalPort());
 
+	//Encode Existing Users.
+	std::lock_guard<std::mutex> lock(WvsBase::GetInstance<WvsGame>()->GetUserLock());
+	auto& mConnectedUser = WvsBase::GetInstance<WvsGame>()->GetConnectedUser();
+	oPacket.Encode4((int)mConnectedUser.size());
+	for (auto& prUser : mConnectedUser) 
+	{
+		oPacket.Encode4(prUser.first);
+		oPacket.Encode4(prUser.second->GetAccountID());
+	}
+
 	SendPacket(&oPacket);
 	OnWaitingPacket();
 }
@@ -101,6 +111,9 @@ void Center::OnPacket(InPacket *iPacket)
 			break;
 		case CenterSendPacketFlag::FriendResult:
 			FriendMan::GetInstance()->OnPacket(iPacket);
+			break;
+		case CenterSendPacketFlag::RemoteBroadcasting:
+			OnRemoteBroadcasting(iPacket);
 			break;
 	}
 }
@@ -162,5 +175,28 @@ void Center::OnTransferChannelResult(InPacket * iPacket)
 		oPacket.Encode1(1);
 	}
 	pSocket->SendPacket(&oPacket);
+}
+
+void Center::OnRemoteBroadcasting(InPacket *iPacket)
+{
+	int nUserID = iPacket->Decode4();
+
+	OutPacket oPacket;
+	oPacket.EncodeBuffer(
+		iPacket->GetPacket() + iPacket->GetReadCount(),
+		iPacket->GetPacketSize() - iPacket->GetReadCount()
+	);
+	if (nUserID == -1)
+	{
+		auto& mConnectedUser = WvsBase::GetInstance<WvsGame>()->GetConnectedUser();
+		for (auto& prUser : mConnectedUser)
+			prUser.second->SendPacket(&oPacket);
+	}
+	else
+	{
+		auto pUser = User::FindUser(nUserID);
+		if (pUser)
+			pUser->SendPacket(&oPacket);
+	}
 }
 

@@ -171,6 +171,8 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnMapTransferItemUseRequest, 0x50);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPortalScrollUseRequest, 0x51); 
 MAKE_USER_RECV_PACKET_FLAG(User_OnItemUpgradeRequest, 0x52);
 MAKE_USER_RECV_PACKET_FLAG(User_OnQuestRequest, 0x57);
+MAKE_USER_RECV_PACKET_FLAG(User_OnSendGroupMessage, 0x5C);
+MAKE_USER_RECV_PACKET_FLAG(User_OnSendWhisperMessage, 0x5D);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPartyRequest, 0x60);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPartyRequestRejected, 0x61);
 MAKE_USER_RECV_PACKET_FLAG(User_OnGuildRequest, 0x62);

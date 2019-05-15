@@ -25,8 +25,9 @@ struct AttackInfo;
 struct ActItem;
 class SkillEntry;
 class Summoned;
-
 class Script;
+
+class MiniRoomBase;
 
 class User : public FieldObj
 {
@@ -207,9 +208,16 @@ private:
 	//World
 	std::set<int> m_snPartyInvitedCharacterID, m_snGuildInvitedCharacterID;
 
+	//Party
+	int m_nPartyID = -1;
+
 	//Guild
 	std::string m_sGuildName;
 	int m_nMarkBg = 0, m_nMarkBgColor = 0, m_nMark = 0, m_nMarkColor = 0;
+
+	//MiniRoom
+	MiniRoomBase* m_pMiniRoom = nullptr;
+	bool m_bHasOpenedEntrustedShop = false;
 
 	void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket);
 	AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
@@ -228,6 +236,7 @@ public:
 	//Basic Routine
 	int GetUserID() const;
 	int GetChannelID() const;
+	int GetAccountID() const;
 	const std::string& GetName() const;
 	std::recursive_mutex& GetLock();
 	void Update();
@@ -241,6 +250,7 @@ public:
 	void LeaveField();
 	void OnMigrateIn();
 	void OnMigrateOut();
+	bool CanAttachAdditionalProcess();
 
 	//TransferStatus
 	void SetTransferStatus(TransferStatus e);
@@ -332,13 +342,25 @@ public:
 	bool IsPartyInvitedCharacterID(int nCharacterID);
 	void RemovePartyInvitedCharacterID(int nCharacterID);
 	void ClearPartyInvitedCharacterID();
+	void SetPartyID(int nPartyID);
+	int GetPartyID() const;
 
 	//Guild
 	void AddGuildInvitedCharacterID(int nCharacterID);
 	const std::set<int>& GetGuildInvitedCharacterID() const;
 	void RemoveGuildInvitedCharacterID(int nCharacterID);
 	void ClearGuildInvitedCharacterID();
+	const std::string& GetGuildName() const;
 	void SetGuildName(const std::string& strName);
 	void SetGuildMark(int nMarkBg, int nMarkBgColor, int nMark, int nMarkColor);
+
+	//Group & Whisper
+	void OnSendGroupMessage(InPacket *iPacket);
+	void OnWhisper(InPacket *iPacket);
+
+	//MiniRoom
+	MiniRoomBase* GetMiniRoom();
+	void SetMiniRoom(MiniRoomBase* pMiniRoom);
+	bool HasOpenedEntrustedShop() const;
 };
 

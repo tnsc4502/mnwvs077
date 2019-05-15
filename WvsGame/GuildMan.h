@@ -26,6 +26,7 @@ public:
 		rq_Guild_SetNotice = 0x10,
 		rq_Guild_IncMaxMemberNum = 0x11,
 		rq_Guild_IncPoint = 0x12,
+		rq_Guild_LevelOrJobChanged = 0x13,
 	};
 
 	enum GuildResult
@@ -47,6 +48,7 @@ public:
 		res_Guild_Failed_InvitationRejected = 55,
 		res_Guild_IncMaxMemberNum = 58,
 		res_Guild_Failed_IncMaxMemberNumError = 59,
+		res_Guild_LevelOrJobChanged = 60,
 		res_Guild_Notify_LoginOrLogout = 61,
 		res_Guild_SetGradeName = 62,
 		res_Guild_SetMemberGrade = 64,
@@ -144,6 +146,8 @@ public:
 	void OnIncPointRequest(int nGuildID, int nInc);
 	void OnIncPoint(InPacket *iPacket);
 	void MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild);
+	void PostChangeLevelOrJob(User *pUser, int nVal, bool bLevelChanged);
+	void OnChangeLevelOrJob(InPacket *iPacket);
 
 	///==========================CENTER=================================
 #ifdef _WVSCENTER
@@ -158,6 +162,7 @@ public:
 	void SetMark(InPacket *iPacket, OutPacket *oPacket);
 	void IncMaxMemberNum(InPacket *iPacket, OutPacket *oPacket);
 	void IncPoint(InPacket *iPacket, OutPacket *oPacket);
+	void ChangeJobOrLevel(InPacket *iPacket, OutPacket *oPacket);
 	void NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn);
 #endif
 };

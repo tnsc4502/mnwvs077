@@ -339,6 +339,13 @@ long long int QWUser::SetJob(User * pUser, int nJob)
 	return BasicStat::BS_Job;
 }
 
+long long int QWUser::SetLevel(User * pUser, int nLevel)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	pUser->GetCharacterData()->mLevel->nLevel = nLevel;
+	return BasicStat::BS_Level;
+}
+
 long long int QWUser::SetSkin(User * pUser, int nSkin)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());

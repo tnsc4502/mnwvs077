@@ -17,6 +17,7 @@ public:
 
 	void RegisterChannel(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RegisterCashShop(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
+	void RestoreConnectedUser(int nChannelID, InPacket *iPacket);
 
 	LocalServerEntry* GetChannel(int nIdx);
 	int GetChannelCount();

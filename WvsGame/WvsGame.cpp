@@ -21,6 +21,16 @@ std::shared_ptr<Center>& WvsGame::GetCenter()
 	return m_pCenterInstance;
 }
 
+std::mutex & WvsGame::GetUserLock()
+{
+	return m_mUserLock;
+}
+
+const std::map<int, std::shared_ptr<User>>& WvsGame::GetConnectedUser()
+{
+	return m_mUserMap;
+}
+
 void WvsGame::ConnectToCenter(int nCenterIdx)
 {
 	m_pCenterInstance->SetSocketDisconnectedCallBack(std::bind(&Center::OnNotifyCenterDisconnected, m_pCenterInstance.get()));

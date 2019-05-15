@@ -67,6 +67,9 @@
     <Filter Include="WvsGame\InGame\World">
       <UniqueIdentifier>{f4d5fb20-75e5-49cb-853c-f4c6d03fbb6b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WvsGame\InGame\Field\MiniRoom">
+      <UniqueIdentifier>{9d93e7eb-fee7-4588-9ca2-0685396eabcb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -438,6 +441,12 @@
     <ClInclude Include="FriendMan.h">
       <Filter>WvsGame\InGame\World</Filter>
     </ClInclude>
+    <ClInclude Include="MiniRoomBase.h">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="TradeRoom.h">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -653,6 +662,12 @@
     </ClCompile>
     <ClCompile Include="FriendMan.cpp">
       <Filter>WvsGame\InGame\World</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniRoomBase.cpp">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="TradeRoom.cpp">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

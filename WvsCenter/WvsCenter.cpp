@@ -1,5 +1,7 @@
 #include "WvsCenter.h"
+#include "WvsWorld.h"
 
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -95,6 +97,7 @@ void WvsCenter::RegisterChannel(std::shared_ptr<SocketBase> &pServer, InPacket *
 		printf("%d ", (int)((char*)&ip)[i]);
 	printf("\n Port = %d\n", pEntry->GetExternalPort());
 	m_mChannel.insert({ nChannelID, pEntry });
+	RestoreConnectedUser(nChannelID, iPacket);
 }
 
 void WvsCenter::RegisterCashShop(std::shared_ptr<SocketBase>& pServer, InPacket * iPacket)
@@ -107,4 +110,24 @@ void WvsCenter::RegisterCashShop(std::shared_ptr<SocketBase>& pServer, InPacket 
 	printf("[WvsCenter][WvsCenter::RegisterCashShop]新的商城伺服器[WvsShop]註冊成功。\n");
 
 	SetShop(pEntry);
+	RestoreConnectedUser(WvsWorld::CHANNELID_SHOP, iPacket);
+}
+
+void WvsCenter::RestoreConnectedUser(int nChannelID, InPacket * iPacket)
+{
+	int nConnectedUserCount = iPacket->Decode4(), nUserID = 0;
+	for (int i = 0; i < nConnectedUserCount; ++i)
+	{
+		nUserID = iPacket->Decode4();
+		auto pwUser = AllocObj(WvsWorld::WorldUser);
+		pwUser->m_nCharacterID = nUserID;
+		pwUser->m_nAccountID = iPacket->Decode4();
+		pwUser->m_bLoggedIn = true;
+		pwUser->m_bMigrated = true;
+		pwUser->m_nChannelID = nChannelID;
+
+		WvsWorld::GetInstance()->SetUser(
+			nUserID, pwUser
+		);
+	}
 }

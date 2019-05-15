@@ -25,6 +25,8 @@ class WvsShop : public WvsBase
 public:
 	WvsShop();
 	~WvsShop();
+	std::mutex& GetUserLock();
+	const std::map<int, std::shared_ptr<User>>& GetConnectedUser();
 
 	std::shared_ptr<Center>& GetCenter();
 	void SetConfigLoader(ConfigLoader* pCfg);

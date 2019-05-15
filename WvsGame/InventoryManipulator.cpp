@@ -231,13 +231,9 @@ void InventoryManipulator::MakeInventoryOperation(OutPacket * oPacket, int bOnEx
 			//oPacket->Encode1(0);
 		}
 		else 
-		{
 			change.pItem->RawEncode(oPacket);
-			//oPacket->Encode1(0); // what's this?
-		}
 	}
-	//printf("Encoding Inventory Operation Done\n");
-	oPacket->Encode4(0); // what's this?
+	oPacket->Encode4(0);
 }
 
 void InventoryManipulator::MakeItemUpgradeEffect(OutPacket *oPacket, int nCharacterID, int nEItemID, int nUItemID, bool bSuccess, bool bCursed, bool bEnchant)

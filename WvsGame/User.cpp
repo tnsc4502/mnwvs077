@@ -17,6 +17,7 @@
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -78,8 +79,8 @@ User::~User()
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
-	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
 	oPacket.Encode4(GetUserID());
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);
 	if (m_nTransferStatus == TransferStatus::eOnTransferShop || m_nTransferStatus == TransferStatus::eOnTransferChannel) 
@@ -128,6 +129,11 @@ int User::GetUserID() const
 int User::GetChannelID() const
 {
 	return WvsBase::GetInstance<WvsGame>()->GetChannelID();
+}
+
+int User::GetAccountID() const
+{
+	return m_pCharacterData->nAccountID;
 }
 
 const std::string & User::GetName() const
@@ -427,6 +433,12 @@ void User::OnPacket(InPacket *iPacket)
 	case UserRecvPacketFlag::User_OnFriendRequest:
 		FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
 		break;
+	case UserRecvPacketFlag::User_OnSendGroupMessage:
+		OnSendGroupMessage(iPacket);
+		break;
+	case UserRecvPacketFlag::User_OnSendWhisperMessage:
+		OnWhisper(iPacket);
+		break;
 	default:
 		iPacket->RestorePacket();
 
@@ -714,6 +726,17 @@ void User::ValidateStat(bool bCalledByConstructor)
 
 void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 {
+	if (liFlag & BasicStat::BasicStatFlag::BS_Level)
+	{
+		GuildMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mLevel->nLevel, true);
+		PartyMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mLevel->nLevel, true);
+	}
+	if(liFlag & BasicStat::BasicStatFlag::BS_Job)
+	{
+		GuildMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mStat->nJob, false);
+		PartyMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mStat->nJob, false);
+	}
+
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnStatChanged);
 	oPacket.Encode1((char)bOnExclRequest);
@@ -918,6 +941,15 @@ void User::OnMigrateOut()
 {
 	//LeaveField();
 	m_pSocket->GetSocket().close();
+}
+
+bool User::CanAttachAdditionalProcess()
+{
+	return m_pSocket &&
+		m_nTransferStatus == TransferStatus::eOnTransferNone &&
+		m_pCharacterData->mStat->nHP &&
+		!m_pScript &&
+		!m_pTradingNpc;
 }
 
 void User::SetTransferStatus(TransferStatus e)
@@ -1616,6 +1648,16 @@ void User::ClearPartyInvitedCharacterID()
 	m_snPartyInvitedCharacterID.clear();
 }
 
+void User::SetPartyID(int nPartyID)
+{
+	m_nPartyID = nPartyID;
+}
+
+int User::GetPartyID() const
+{
+	return m_nPartyID;
+}
+
 void User::AddGuildInvitedCharacterID(int nCharacterID)
 {
 	m_snGuildInvitedCharacterID.insert(nCharacterID);
@@ -1636,6 +1678,11 @@ void User::ClearGuildInvitedCharacterID()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
 	m_snGuildInvitedCharacterID.clear();
+}
+
+const std::string& User::GetGuildName() const
+{
+	return m_sGuildName;
 }
 
 void User::SetGuildName(const std::string & strName)
@@ -1669,6 +1716,115 @@ void User::SetGuildMark(int nMarkBg, int nMarkBgColor, int nMark, int nMarkColor
 	GetField()->SplitSendPacket(
 		&oPacket, nullptr
 	);
+}
+
+void User::OnSendGroupMessage(InPacket * iPacket)
+{
+	int nType = (int)(unsigned char)iPacket->Decode1();
+
+	if (nType == 1 && GetPartyID() == -1)
+		return;
+	else if (nType == 2 && GetGuildName() == "")
+		return;
+	else if (nType > 2)
+		return;
+
+	int nReceiverNum = (int)iPacket->Decode1();
+
+	//Send from remote server.
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::GroupMessage);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1((char)nType);
+	oPacket.Encode1(nReceiverNum);
+	for (int i = 0; i < nReceiverNum; ++i)
+		oPacket.Encode4(iPacket->Decode4());
+
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnGroupMessage);
+	oPacket.Encode1(nType);
+	oPacket.EncodeStr(GetName());
+	oPacket.EncodeStr(iPacket->DecodeStr());
+
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+}
+
+void User::OnWhisper(InPacket * iPacket)
+{
+	int nType = iPacket->Decode1();
+	if (nType == WhisperResult::e_Whisper_Type_QueryLocation || 
+		nType == WhisperResult::e_Whisper_Type_SendMessage) //5 = Require location info. 6 = Whipser
+	{
+		std::string strWhisperName = iPacket->DecodeStr();
+		std::string strWhisperMsg = "";
+		if (nType == WhisperResult::e_Whisper_Type_SendMessage && ((strWhisperMsg = iPacket->DecodeStr()).size() > 90))
+			return;
+
+		auto pUser = User::FindUserByName(strWhisperName);
+		//User exists in local server.
+		if(pUser)
+		{
+			OutPacket oPacketReply;
+			oPacketReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+			if (nType == WhisperResult::e_Whisper_Type_QueryLocation)
+			{
+				//Reply to sender.
+				oPacketReply.Encode1(WhisperResult::e_Whisper_Res_QuerySuccess);
+				oPacketReply.EncodeStr(strWhisperName);
+				oPacketReply.Encode1(WhisperResult::e_Whisper_QR_FieldID);
+				oPacketReply.Encode4(pUser->GetField()->GetFieldID());
+				oPacketReply.Encode4(0);
+				oPacketReply.Encode4(0);
+				SendPacket(&oPacketReply);
+			}
+			else
+			{
+				//Reply to sender.
+				oPacketReply.Encode1(WhisperResult::e_Whisper_Res_Message_Ack);
+				oPacketReply.EncodeStr(strWhisperName);
+				oPacketReply.Encode1(1);
+				SendPacket(&oPacketReply);
+
+				//Send to the targeted user.
+				OutPacket oPacketSend;
+				oPacketSend.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+				oPacketSend.Encode1(WhisperResult::e_Whisper_Res_Message_Send);
+				oPacketSend.EncodeStr(GetName());
+				oPacketSend.Encode2(GetChannelID());
+				oPacketSend.EncodeStr(strWhisperMsg);
+				pUser->SendPacket(&oPacketSend);
+			}
+		}
+		//Search target from Center server.
+		else
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(GameSrvSendPacketFlag::WhisperMessage);
+			oPacket.Encode4(GetUserID());
+			oPacket.EncodeStr(GetName());
+			oPacket.Encode1(nType);
+			oPacket.EncodeStr(strWhisperName);
+
+			if (nType == WhisperResult::e_Whisper_Type_SendMessage) //Whisper
+				oPacket.EncodeStr(strWhisperMsg);
+
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		}
+	}
+}
+
+MiniRoomBase *User::GetMiniRoom()
+{
+	return m_pMiniRoom;
+}
+
+void User::SetMiniRoom(MiniRoomBase *pMiniRoom)
+{
+	m_pMiniRoom = pMiniRoom;
+}
+
+bool User::HasOpenedEntrustedShop() const
+{
+	return m_bHasOpenedEntrustedShop;
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)

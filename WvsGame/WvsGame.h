@@ -9,6 +9,7 @@
 #include <map>
 
 class User;
+class OutPacket;
 
 class WvsGame : public WvsBase
 {
@@ -31,17 +32,16 @@ public:
 	~WvsGame();
 
 	std::shared_ptr<Center>& GetCenter();
+	std::mutex& GetUserLock();
+	const std::map<int, std::shared_ptr<User>>& GetConnectedUser();
+	int GetChannelID() const;
 
 	void ConnectToCenter(int nCenterIdx);
-
-	void SetConfigLoader(ConfigLoader* pCfg);
 	void WvsGame::InitializeCenter();
+	void SetConfigLoader(ConfigLoader* pCfg);
 
 	void OnUserConnected(std::shared_ptr<User> &pUser);
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
-
-
-	int GetChannelID() const;
 
 	User* FindUser(int nUserID);
 	User* FindUserByName(const std::string& strName);

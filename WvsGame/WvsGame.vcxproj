@@ -212,6 +212,7 @@
     <ClInclude Include="MechanicSkills.h" />
     <ClInclude Include="MercedesSkills.h" />
     <ClInclude Include="MihileSkills.h" />
+    <ClInclude Include="MiniRoomBase.h" />
     <ClInclude Include="Mob.h" />
     <ClInclude Include="MobSummonItem.h" />
     <ClInclude Include="MobTemplate.h" />
@@ -269,6 +270,7 @@
     <ClInclude Include="TimerThread.h" />
     <ClInclude Include="TownPortal.h" />
     <ClInclude Include="TownPortalPool.h" />
+    <ClInclude Include="TradeRoom.h" />
     <ClInclude Include="UpgradeItem.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="USkill.h" />
@@ -303,6 +305,7 @@
     <ClCompile Include="ItemInfo.cpp" />
     <ClCompile Include="LifePool.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MiniRoomBase.cpp" />
     <ClCompile Include="Mob.cpp" />
     <ClCompile Include="MobSummonItem.cpp" />
     <ClCompile Include="MobTemplate.cpp" />
@@ -348,6 +351,7 @@
     <ClCompile Include="TimerThread.cpp" />
     <ClCompile Include="TownPortal.cpp" />
     <ClCompile Include="TownPortalPool.cpp" />
+    <ClCompile Include="TradeRoom.cpp" />
     <ClCompile Include="UpgradeItem.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="USkill.cpp" />

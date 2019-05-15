@@ -8,6 +8,7 @@
 
 class UserTransferStatus;
 class User;
+class OutPacket;
 
 class WvsWorld
 {
@@ -19,7 +20,8 @@ public:
 
 	struct WorldUser
 	{
-		bool m_bMigrating = false, 
+		bool m_bMigrating = false,
+			m_bTransfering = false,
 			m_bLoggedIn = false,
 			m_bMigrated = false,
 			m_bInShop = false;
@@ -29,6 +31,8 @@ public:
 			m_nChannelID = 0, 
 			m_nLocalSocketSN = 0,
 			m_nAccountID = 0;
+
+		void SendPacket(OutPacket *oPacket);
 	};
 
 private:
@@ -43,6 +47,7 @@ public:
 	WvsWorld();
 	~WvsWorld();
 
+	std::recursive_mutex& GetLock();
 	void SetConfigLoader(ConfigLoader* pCfg);
 	void InitializeWorld();
 	const WorldInfo& GetWorldInfo() const;
@@ -53,6 +58,8 @@ public:
 	void UserMigrateIn(int nCharacterID, int nChannelID);
 	void RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate);
 	void SetUser(int nUserID, WorldUser *pWorldUser);
+	void SetUserTransfering(int nUserID, bool bTransfering);
+	bool IsUserTransfering(int nUserID);
 	WorldUser* GetUser(int nUserID);
 };
 

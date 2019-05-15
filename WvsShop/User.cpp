@@ -98,6 +98,11 @@ int User::GetUserID() const
 	return m_pCharacterData->nCharacterID;
 }
 
+int User::GetAccountID() const
+{
+	return m_pCharacterData->nAccountID;
+}
+
 void User::SendPacket(OutPacket *oPacket)
 {
 	m_pSocket->SendPacket(oPacket);

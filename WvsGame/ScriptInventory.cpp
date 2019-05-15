@@ -64,16 +64,30 @@ int ScriptInventory::InventoryExchange(lua_State * L)
 	int nArg = lua_gettop(L);
 	std::vector<ExchangeElement> aExchange;
 	std::vector<InventoryManipulator::ChangeLog> aLogAdd, aLogRemove;
+	std::map<int, int> mItemCount;
+	auto iter = mItemCount.end();
+
 	for (int i = 3; i <= nArg - 1;)
 	{
 		nItemID = (int)lua_tointeger(L, i);
 		nCount = (int)lua_tointeger(L, i + 1);
+
+		//To prevent sending the change packet of previously added but eventaully deleted item.
+		//For example, exchange(0, 20000000, 1, 20000000, -1)
+		iter = mItemCount.find(nItemID);
+		if (iter == mItemCount.end())
+			iter = mItemCount.insert({ nItemID, 0 }).first;
+
+		iter->second += nCount;
+		i += 2;
+	}
+	for (auto& iter : mItemCount)
+	{
 		ExchangeElement e;
-		e.m_nItemID = nItemID;
-		e.m_nCount = nCount;
+		e.m_nItemID = iter.first;
+		e.m_nCount = iter.second;
 		e.m_pItem = nullptr;
 		aExchange.push_back(std::move(e));
-		i += 2;
 	}
 	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange, aLogAdd, aLogRemove);
 	/*

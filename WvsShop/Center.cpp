@@ -51,6 +51,16 @@ void Center::OnConnected()
 	//Encode Port
 	oPacket.Encode2(WvsBase::GetInstance<WvsShop>()->GetExternalPort());
 
+	//Encode Existing Users.
+	std::lock_guard<std::mutex> lock(WvsBase::GetInstance<WvsShop>()->GetUserLock());
+	auto& mConnectedUser = WvsBase::GetInstance<WvsShop>()->GetConnectedUser();
+	oPacket.Encode4((int)mConnectedUser.size());
+	for (auto& prUser : mConnectedUser) 
+	{
+		oPacket.Encode4(prUser.first);
+		oPacket.Encode4(prUser.second->GetAccountID());
+	}
+
 	SendPacket(&oPacket); 
 	OnWaitingPacket();
 }

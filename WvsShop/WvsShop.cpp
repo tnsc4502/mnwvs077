@@ -19,6 +19,16 @@ WvsShop::~WvsShop()
 {
 }
 
+std::mutex& WvsShop::GetUserLock()
+{
+	return m_mUserLock;
+}
+
+const std::map<int, std::shared_ptr<User>>& WvsShop::GetConnectedUser()
+{
+	return m_mUserMap;
+}
+
 std::shared_ptr<Center>& WvsShop::GetCenter()
 {
 	return m_pCenterInstance;

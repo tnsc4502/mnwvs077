@@ -1,10 +1,13 @@
 #include "WvsWorld.h"
+#include "WvsCenter.h"
 #include "UserTransferStatus.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsGame\FriendMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+
+#include "..\WvsLib\Net\OutPacket.h"
 
 WvsWorld::WvsWorld()
 {
@@ -13,6 +16,11 @@ WvsWorld::WvsWorld()
 
 WvsWorld::~WvsWorld()
 {
+}
+
+std::recursive_mutex & WvsWorld::GetLock()
+{
+	return m_mtxWorldLock;
 }
 
 void WvsWorld::SetConfigLoader(ConfigLoader * pCfg)
@@ -94,6 +102,24 @@ void WvsWorld::SetUser(int nUserID, WorldUser * pWorldUser)
 		FreeObj(pUser);
 }
 
+void WvsWorld::SetUserTransfering(int nUserID, bool bTransfering)
+{
+	auto pwUser = GetUser(nUserID);
+	if (pwUser)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+		pwUser->m_bTransfering = bTransfering;
+	}
+}
+
+bool WvsWorld::IsUserTransfering(int nUserID)
+{
+	auto pwUser = GetUser(nUserID);
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	return pwUser && pwUser->m_bTransfering;
+}
+
 WvsWorld::WorldUser * WvsWorld::GetUser(int nUserID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
@@ -107,8 +133,15 @@ const WorldInfo & WvsWorld::GetWorldInfo() const
 	return m_WorldInfo;
 }
 
-WvsWorld * WvsWorld::GetInstance()
+WvsWorld *WvsWorld::GetInstance()
 {
 	static WvsWorld* pInstance = new WvsWorld;
 	return pInstance;
+}
+
+void WvsWorld::WorldUser::SendPacket(OutPacket *oPacket)
+{
+	auto pSrv = WvsBase::GetInstance<WvsCenter>()->GetChannel(m_nChannelID);
+	if (pSrv)
+		pSrv->GetLocalSocket()->SendPacket(oPacket);
 }

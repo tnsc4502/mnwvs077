@@ -107,6 +107,9 @@ void PartyMan::OnPacket(InPacket *iPacket)
 		case PartyResult::res_Party_ChangeBoss:
 			OnChangePartyBossDone(iPacket);
 			break;
+		case PartyResult::res_Party_ChangeLevelOrJob:
+			OnChangeLevelOrJob(iPacket);
+			break;
 	}
 }
 
@@ -156,6 +159,7 @@ void PartyMan::OnCreateNewPartyDone(InPacket *iPacket)
 				oPacket.Encode4(999999999);
 				oPacket.Encode8(0);
 
+				pUser->SetPartyID(nPartyID);
 				pUser->SendPacket(&oPacket);
 			}
 		}
@@ -166,9 +170,12 @@ void PartyMan::OnLoadPartyDone(InPacket * iPacket)
 {
 	int nPartyID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
+	auto pUser = User::FindUser(nCharacterID);
+
+	if (pUser)
+		pUser->SetPartyID(nPartyID);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
-
 	if (nPartyID == -1)
 	{
 		//The party existed in local server had been removed in remote server. Sync.
@@ -179,7 +186,6 @@ void PartyMan::OnLoadPartyDone(InPacket * iPacket)
 	}
 
 	auto pParty = GetParty(nPartyID);
-	auto pUser = User::FindUser(nCharacterID);
 	auto iterUserInParty = m_mCharacterIDToPartyID.find(nCharacterID);
 	if (iterUserInParty != m_mCharacterIDToPartyID.end())
 	{
@@ -309,6 +315,7 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 	pParty->Encode(&oPacket);
 	Broadcast(&oPacket, pParty->party.anCharacterID, 0);
 
+	pUser->SetPartyID(nPartyID);
 	pUser->ClearPartyInvitedCharacterID();
 }
 
@@ -365,6 +372,11 @@ void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
 		{
 			oPacket.Encode4(nWithdrawTarget);
 			Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+
+			User *pUser = nullptr;
+			for (auto& nID : pParty->party.anCharacterID)
+				if ((pUser = User::FindUser(nID)))
+					pUser->SetPartyID(-1);
 			RemoveParty(pParty);
 		}
 		else
@@ -373,9 +385,12 @@ void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
 			oPacket.EncodeStr(iPacket->DecodeStr());
 			pParty->party.Initialize(nIdx);
 			pParty->Encode(&oPacket);
-			auto pKickedUser = User::FindUser(nWithdrawTarget);
 			Broadcast(&oPacket, pParty->party.anCharacterID, nWithdrawTarget);
 			m_mCharacterIDToPartyID.erase(nWithdrawTarget);
+
+			auto pKickedUser = User::FindUser(nWithdrawTarget);
+			if (pKickedUser)
+				pKickedUser->SetPartyID(-1);
 		}
 	}
 }
@@ -497,6 +512,51 @@ void PartyMan::OnRejectInvitation(User * pUser, InPacket * iPacket)
 		pUser->RemovePartyInvitedCharacterID(pInviter->GetUserID());
 }
 
+void PartyMan::PostChangeLevelOrJob(User * pUser, int nVal, bool bLevelChanged)
+{
+	if (pUser->GetPartyID() == -1)
+		return;
+
+	auto pParty = GetPartyByCharID(pUser->GetUserID());
+	if (pParty)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode1(PartyRequest::rq_Guild_LevelOrJobChanged);
+		oPacket.Encode4(pParty->nPartyID);
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode4(nVal);
+		oPacket.Encode1(bLevelChanged ? 1 : 0);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void PartyMan::OnChangeLevelOrJob(InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nPartyID = iPacket->Decode4();
+	auto pParty = GetParty(nPartyID);
+	if (pParty)
+	{
+		int nIdx = FindUser(nCharacterID, pParty);
+		if (nIdx >= 0)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+			pParty->party.anLevel[nIdx] = iPacket->Decode4();
+			pParty->party.anJob[nIdx] = iPacket->Decode4();
+
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+			oPacket.Encode1(PartyResult::res_Party_ChangeLevelOrJob);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode4(pParty->party.anLevel[nIdx]);
+			oPacket.Encode4(pParty->party.anJob[nIdx]);
+			Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+		}
+	}
+}
+
 void PartyMan::Broadcast(OutPacket *oPacket, int * anCharacterID, int nPlusOne)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
@@ -548,8 +608,10 @@ PartyMan::PartyData *PartyMan::GetPartyByCharID(int nUserID)
 
 PartyMan::PartyData *PartyMan::GetParty(int nPartyID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+	if (nPartyID == -1)
+		return nullptr;
 
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 	auto findIter = m_mParty.find(nPartyID);
 	if (findIter == m_mParty.end())
 		return nullptr;
@@ -787,6 +849,40 @@ void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 				}
 		}
 	}
+}
+
+void PartyMan::ChangeLevelOrJob(InPacket *iPacket, OutPacket *oPacket)
+{
+	int nPartyID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+	oPacket->Encode1(PartyResult::res_Party_ChangeLevelOrJob);
+	oPacket->Encode4(nCharacterID);
+
+	auto pParty = GetPartyByCharID(nCharacterID);
+	if (pParty && pParty->nPartyID == nPartyID)
+	{
+		int nIdx = FindUser(nCharacterID, pParty);
+		if (nIdx >= 0)
+		{
+			int nVal = iPacket->Decode4();
+
+			if (iPacket->Decode1())
+				pParty->party.anLevel[nIdx] = nVal;
+			else
+				pParty->party.anJob[nIdx] = nVal;
+
+			oPacket->Encode4(nPartyID);
+			oPacket->Encode4(pParty->party.anLevel[nIdx]);
+			oPacket->Encode4(pParty->party.anJob[nIdx]);
+			SendPacket(oPacket, pParty);
+			oPacket->Reset();
+		}
+		else
+			oPacket->Encode4(-1);
+	}
+	else
+		oPacket->Encode4(-1);
 }
 
 void PartyMan::SendPacket(OutPacket *oPacket, PartyData *pParty)

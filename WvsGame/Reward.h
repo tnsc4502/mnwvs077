@@ -11,7 +11,7 @@ struct RewardInfo
 		m_nMoney = 0,
 		m_nMax = 1,
 		m_nMin = 1,
-		m_nPeriod = 1,
+		m_nPeriod = 0,
 		m_nMaxCount = 1;
 
 	unsigned int m_unWeight = 0;

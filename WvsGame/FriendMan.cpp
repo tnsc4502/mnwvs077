@@ -305,7 +305,12 @@ void FriendMan::Notify(int nCharacterID, int nFriendID, int nChannelID, bool bSh
 		if (nIdx != -1)
 		{
 			std::lock_guard<std::recursive_mutex> lock(pEntry->mtxEntryLock);
-			pEntry->aFriend[nIdx]->nChannelID = nChannelID;
+
+			if (!bShop)
+				pEntry->aFriend[nIdx]->nChannelID = nChannelID;
+			else
+				nChannelID = pEntry->aFriend[nIdx]->nChannelID;
+
 			pEntry->aInShop[nIdx] = (bShop ? 1 : 0);
 		}
 
@@ -427,7 +432,7 @@ void FriendMan::LoadFriend(InPacket * iPacket, OutPacket * oPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	auto pEntry = GetFriendEntry(nCharacterID);
-	if (pEntry)
+	if (!pEntry)
 		pEntry = LoadFriendEntry(nCharacterID);
 	oPacket->Encode2(CenterSendPacketFlag::FriendResult);
 	oPacket->Encode1(FriendResult::res_Friend_Load);
@@ -521,7 +526,7 @@ FriendMan::FriendEntry* FriendMan::LoadFriendEntry(int nCharacterID)
 	for (int i = 0; i < nCount; ++i)
 	{
 		pFriend = pEntry->aFriend[i];
-		auto pEntry_Friend = GetFriendEntry(pFriend->nCharacterID);
+		auto pEntry_Friend = GetFriendEntry(pFriend->nFriendID);
 		if ((pwUser = WvsWorld::GetInstance()->GetUser(pFriend->nFriendID)) &&
 			pEntry_Friend &&
 			pEntry_Friend->FindIndex(nCharacterID) >= 0)

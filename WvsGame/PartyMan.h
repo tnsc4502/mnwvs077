@@ -23,6 +23,7 @@ public:
 		rq_Party_Invite = 4,
 		rq_Party_Withdraw_Kick = 5,
 		rq_Party_ChangeBoss = 6,
+		rq_Guild_LevelOrJobChanged = 7,
 	};
 
 	enum PartyResult
@@ -38,6 +39,7 @@ public:
 		res_Party_Failed_UnableToProcess = 18,
 		res_Party_ChangeBoss = 25,
 		res_Party_MigrateIn = 31,
+		res_Party_ChangeLevelOrJob = 32,
 	};
 
 	enum PartyRejectReason
@@ -92,11 +94,11 @@ private:
 
 	std::map<int, int> m_mCharacterIDToPartyID;
 	std::map<int, PartyData*> m_mParty;
-	static int FindUser(int nUserID, PartyData *pParty);
 	PartyMan();
 	~PartyMan();
 
 public:
+	static int FindUser(int nUserID, PartyData *pParty);
 	static PartyMan* GetInstance();
 	int GetPartyIDByCharID(int nUserID);
 	PartyData* GetPartyByCharID(int nUserID);
@@ -127,6 +129,8 @@ public:
 	void NotifyTransferField(int nCharacterID, int nFieldID);
 
 	void OnRejectInvitation(User *pUser, InPacket *iPacket);
+	void PostChangeLevelOrJob(User *pUser, int nVal, bool bLevelChanged);
+	void OnChangeLevelOrJob(InPacket *iPacket);
 #endif
 
 #ifdef _WVSCENTER
@@ -136,6 +140,7 @@ public:
 	void WithdrawParty(InPacket *iPacket, OutPacket *oPacket);
 	void ChangePartyBoss(InPacket *iPacket, OutPacket *oPacket);
 	void NotifyMigrateIn(int nCharacterID, int nChannelID);
+	void ChangeLevelOrJob(InPacket *iPacket, OutPacket *oPacket);
 	void SendPacket(OutPacket *oPacket, PartyData *pParty);
 #endif
 

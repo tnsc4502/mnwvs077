@@ -147,6 +147,9 @@ void GuildMan::OnPacket(InPacket * iPacket)
 		case GuildMan::GuildResult::res_Guild_IncPoint:
 			OnIncPoint(iPacket);
 			break;
+		case GuildMan::GuildResult::res_Guild_LevelOrJobChanged:
+			OnChangeLevelOrJob(iPacket);
+			break;
 	}
 }
 
@@ -841,6 +844,53 @@ void GuildMan::MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild)
 	oPacket->Encode1(1);
 	pGuild->Encode(oPacket);
 }
+
+void GuildMan::PostChangeLevelOrJob(User * pUser, int nVal, bool bLevelChanged)
+{
+	if (pUser->GetGuildName() == "")
+		return;
+
+	auto pGuild = GetGuildByCharID(pUser->GetUserID());
+	if (pGuild)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::GuildRequest);
+		oPacket.Encode1(GuildRequest::rq_Guild_LevelOrJobChanged);
+		oPacket.Encode4(pGuild->nGuildID);
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode4(nVal);
+		oPacket.Encode1(bLevelChanged ? 1 : 0);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void GuildMan::OnChangeLevelOrJob(InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nGuildID = iPacket->Decode4();
+
+	auto pGuild = GetGuild(nGuildID);
+	if (pGuild)
+	{
+		int nIdx = FindUser(nCharacterID, pGuild);
+		if (nIdx >= 0)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+			pGuild->aMemberData[nIdx].nLevel = iPacket->Decode4();
+			pGuild->aMemberData[nIdx].nJob = iPacket->Decode4();
+
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+			oPacket.Encode1(GuildResult::res_Guild_LevelOrJobChanged);
+			oPacket.Encode4(nGuildID);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode4(pGuild->aMemberData[nIdx].nLevel);
+			oPacket.Encode4(pGuild->aMemberData[nIdx].nJob);
+			Broadcast(&oPacket, pGuild->anCharacterID, 0);
+		}
+	}
+}
 #endif
 
 bool GuildMan::IsGuildMaster(int nGuildID, int nCharacterID)
@@ -1353,6 +1403,50 @@ void GuildMan::IncPoint(InPacket * iPacket, OutPacket * oPacket)
 		oPacket->Encode4(pGuild->nPoint);
 		SendToAll(pGuild, oPacket);
 		oPacket->Reset();
+	}
+	else
+		oPacket->Encode4(-1);
+}
+
+void GuildMan::ChangeJobOrLevel(InPacket * iPacket, OutPacket * oPacket)
+{
+	int nGuildID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	auto pGuild = GetGuildByCharID(nCharacterID);
+
+	oPacket->Encode2(CenterSendPacketFlag::GuildResult);
+	oPacket->Encode1(GuildResult::res_Guild_LevelOrJobChanged);
+	oPacket->Encode4(nCharacterID);
+
+	if (pGuild &&
+		pGuild->nGuildID == nGuildID)
+	{
+		int nIdx = FindUser(nCharacterID, pGuild);
+		if (nIdx >= 0)
+		{
+			int nVal = iPacket->Decode4();
+
+			std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+			if (iPacket->Decode1() == 1) //bLevelChanged
+				pGuild->aMemberData[nIdx].nLevel = nVal;
+			else
+				pGuild->aMemberData[nIdx].nJob = nVal;
+
+			oPacket->Encode4(nGuildID);
+			oPacket->Encode4(pGuild->aMemberData[nIdx].nLevel);
+			oPacket->Encode4(pGuild->aMemberData[nIdx].nJob);
+			SendToAll(pGuild, oPacket);
+			oPacket->Reset();
+
+			GuildDBAccessor::GetInstance()->UpdateGuildMember(
+				&(pGuild->aMemberData[nIdx]),
+				nCharacterID,
+				nGuildID,
+				WvsWorld::GetInstance()->GetWorldInfo().nWorldID
+			);
+		}
+		else
+			oPacket->Encode4(-1);
 	}
 	else
 		oPacket->Encode4(-1);

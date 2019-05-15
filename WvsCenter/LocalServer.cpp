@@ -8,6 +8,7 @@
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "WvsCenter.h"
@@ -33,7 +34,18 @@ LocalServer::~LocalServer()
 
 void LocalServer::OnClosed()
 {
+}
 
+void LocalServer::InsertConnectedUser(int nUserID)
+{
+	std::lock_guard<std::mutex> lock(m_mtxUserLock);
+	m_sUser.insert(nUserID);
+}
+
+void LocalServer::RemoveConnectedUser(int nUserID)
+{
+	std::lock_guard<std::mutex> lock(m_mtxUserLock);
+	m_sUser.erase(nUserID);
 }
 
 void LocalServer::OnPacket(InPacket *iPacket)
@@ -92,6 +104,12 @@ void LocalServer::OnPacket(InPacket *iPacket)
 			break;
 		case GameSrvSendPacketFlag::FriendRequest:
 			OnFriendRequest(iPacket);
+			break;
+		case GameSrvSendPacketFlag::GroupMessage:
+			OnGroupMessage(iPacket);
+			break;
+		case GameSrvSendPacketFlag::WhisperMessage:
+			OnWhisperMessage(iPacket);
 			break;
 	}
 }
@@ -249,29 +267,23 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode4();
-	/*auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
-	if (!pUser ||
-		pUser->m_bLoggedIn == false ||
-		pUser->m_bMigrating ||
-		pUser->m_bMigrated ||
-		pUser->m_nChannelID != nChannelID ||
-		pUser->m_bInShop)
+
+	InsertConnectedUser(nCharacterID);
+	if (!WvsWorld::GetInstance()->IsUserTransfering(nCharacterID))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Migration Status Suspected User ID = %d\n", nCharacterID);
-	}*/
+		auto pwUser = AllocObj(WvsWorld::WorldUser);
+		pwUser->m_nCharacterID = nCharacterID;
+		pwUser->m_bInShop = false;
+		pwUser->m_bMigrated = true;
+		pwUser->m_nChannelID = nChannelID;
+		pwUser->m_nLocalSocketSN = nClientSocketID;
 
-	m_sUser.insert(nCharacterID);
-	auto pwUser = AllocObj(WvsWorld::WorldUser);
-	pwUser->m_nCharacterID = nCharacterID;
-	pwUser->m_bInShop = false;
-	pwUser->m_bMigrated = true;
-	pwUser->m_nChannelID = nChannelID;
-	pwUser->m_nLocalSocketSN = nClientSocketID;
+		WvsWorld::GetInstance()->SetUser(
+			nCharacterID,
+			pwUser
+		);
+	}
 
-	WvsWorld::GetInstance()->SetUser(
-		nCharacterID,
-		pwUser
-	);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
@@ -294,8 +306,8 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 {
 	int nClientSocketID = iPacket->Decode4();
-	int nChannelID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
+	int nChannelID = iPacket->Decode4();
 
 	CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
 	char nGameEndType = iPacket->Decode1();
@@ -307,6 +319,7 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 		UserTransferStatus* pStatus = AllocObj( UserTransferStatus );
 		pStatus->Decode(iPacket);
 		WvsWorld::GetInstance()->SetUserTransferStatus(nCharacterID, pStatus);
+		WvsWorld::GetInstance()->SetUserTransfering(nCharacterID, true);
 	}
 	else if (nGameEndType == 0) //Migrate out from the game server.
 	{
@@ -314,6 +327,8 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 		WvsWorld::GetInstance()->RemoveUser(nCharacterID, nChannelID, nClientSocketID, false);
 	}
 	// nGameEndType = 2 : From shop to game server
+
+	RemoveConnectedUser(nCharacterID);
 }
 
 void LocalServer::OnRequestTransferChannel(InPacket * iPacket)
@@ -423,6 +438,9 @@ void LocalServer::OnPartyRequest(InPacket * iPacket)
 		case PartyMan::PartyRequest::rq_Party_ChangeBoss:
 			PartyMan::GetInstance()->ChangePartyBoss(iPacket, &oPacket);
 			break;
+		case PartyMan::PartyRequest::rq_Guild_LevelOrJobChanged:
+			PartyMan::GetInstance()->ChangeLevelOrJob(iPacket, &oPacket);
+			break;
 	}
 
 	if (oPacket.GetPacketSize() != 0)
@@ -466,7 +484,10 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 		case GuildMan::GuildRequest::rq_Guild_IncPoint:
 			GuildMan::GetInstance()->IncPoint(iPacket, &oPacket);
 			break;
-			
+		case GuildMan::GuildRequest::rq_Guild_LevelOrJobChanged:
+			GuildMan::GetInstance()->ChangeJobOrLevel(iPacket, &oPacket);
+			break;
+		
 	}
 
 	if (oPacket.GetPacketSize() != 0)
@@ -495,4 +516,129 @@ void LocalServer::OnFriendRequest(InPacket * iPacket)
 
 	if (oPacket.GetPacketSize() != 0)
 		SendPacket(&oPacket);
+}
+
+void LocalServer::OnGroupMessage(InPacket * iPacket)
+{
+	int nUserID = iPacket->Decode4();
+	int nType = iPacket->Decode1();
+
+	int nReceiverCount = iPacket->Decode1();
+	std::vector<int> aReceiverID;
+	for (int i = 0; i < nReceiverCount; ++i)
+		aReceiverID.push_back(iPacket->Decode4());
+
+	WvsWorld::WorldUser *pwUser = nullptr;
+	bool bSend = false;
+	for (auto& nID : aReceiverID)
+	{
+		bSend = false;
+		switch (nType)
+		{
+			case 0: //Friend Group Message
+			{
+				auto pEntry = FriendMan::GetInstance()->GetFriendEntry(nUserID);
+				auto pEntry_Friend = FriendMan::GetInstance()->GetFriendEntry(nID);
+				bSend = (pEntry &&
+					pEntry_Friend &&
+					pEntry->FindIndex(nID) >= 0 &&
+					pEntry_Friend->FindIndex(nUserID) >= 0);
+				break;
+			}
+			case 1: //Party Group Message
+			{
+				auto pParty = PartyMan::GetInstance()->GetPartyByCharID(nUserID);
+				bSend = (pParty && PartyMan::GetInstance()->FindUser(nID, pParty) >= 0);
+				break;
+			}
+			case 2: //Guild Group Message
+			{
+				auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(nUserID);
+				bSend = (pGuild && GuildMan::GetInstance()->FindUser(nID, pGuild) >= 0);
+				break;
+			}
+		}
+		if (bSend && (pwUser = WvsWorld::GetInstance()->GetUser(nID)))
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+			oPacket.Encode4(nID);
+			oPacket.EncodeBuffer(
+				iPacket->GetPacket() + iPacket->GetReadCount(),
+				iPacket->GetPacketSize() - iPacket->GetReadCount()
+			);
+
+			pwUser->SendPacket(&oPacket);
+		}
+	}
+}
+
+void LocalServer::OnWhisperMessage(InPacket * iPacket)
+{
+	int nUserID = iPacket->Decode4();
+	std::string strUserName = iPacket->DecodeStr();
+	int nType = iPacket->Decode1();
+	std::string strTargetName = iPacket->DecodeStr();
+
+	//Query the character id of the specified name.
+	int nTargetID = CharacterDBAccessor::GetInstance()->QueryCharacterIDByName(strTargetName);
+
+	//Check again the existence of sender.
+	std::lock_guard<std::recursive_mutex> lock(WvsWorld::GetInstance()->GetLock());
+	auto pwSender = WvsWorld::GetInstance()->GetUser(nUserID);
+	if (!pwSender)
+		return;
+
+	auto pwUser = (nTargetID == -1 ? nullptr : WvsWorld::GetInstance()->GetUser(nTargetID));
+	OutPacket oReply;
+	oReply.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+	if (!pwUser || pwUser->m_nChannelID == WvsWorld::CHANNELID_SHOP)
+	{
+		oReply.Encode4(nUserID);
+		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode1(!pwUser ? 
+			WhisperResult::e_Whisper_Res_Message_Ack:
+			WhisperResult::e_Whisper_Res_QuerySuccess);
+		oReply.EncodeStr(strTargetName);
+		oReply.Encode1(
+			!pwUser ? 
+			WhisperResult::e_Whisper_QR_NotMigratedIn: 
+			WhisperResult::e_Whisper_QR_InShop);
+
+		oReply.Encode4(-1);
+		pwSender->SendPacket(&oReply);
+		return;
+	}
+
+	if (nType == WhisperResult::e_Whisper_Type_QueryLocation) //Require location info.
+	{
+		oReply.Encode4(nUserID);
+		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode1(WhisperResult::e_Whisper_Res_QuerySuccess);
+		oReply.EncodeStr(strTargetName);
+		oReply.Encode1(WhisperResult::e_Whisper_QR_ChannelID);
+		oReply.Encode4(pwUser->m_nChannelID);
+		pwSender->SendPacket(&oReply);
+	}
+	else if (nType == WhisperResult::e_Whisper_Type_SendMessage) //Whisper msg.
+	{
+		//Reply
+		oReply.Encode4(nUserID);
+		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode1(WhisperResult::e_Whisper_Res_Message_Ack);
+		oReply.EncodeStr(strTargetName);
+		oReply.Encode1(1); //Success
+		pwSender->SendPacket(&oReply);
+
+		//Send to target
+		OutPacket oWhisper;
+		oWhisper.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+		oWhisper.Encode4(nTargetID);
+		oWhisper.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oWhisper.Encode1(WhisperResult::e_Whisper_Res_Message_Send);
+		oWhisper.EncodeStr(strUserName);
+		oWhisper.Encode2(pwUser->m_nChannelID); //Success
+		oWhisper.EncodeStr(iPacket->DecodeStr());
+		pwUser->SendPacket(&oWhisper);
+	}
 }

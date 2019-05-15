@@ -7,7 +7,11 @@ class LocalServer : public SocketBase
 {
 private:
 	std::set<int> m_sUser;
+	std::mutex m_mtxUserLock;
+
 	void OnClosed();
+	void InsertConnectedUser(int nUserID);
+	void RemoveConnectedUser(int nUserID);
 
 public:
 	LocalServer(asio::io_service& serverService);
@@ -34,5 +38,7 @@ public:
 	void OnPartyRequest(InPacket *iPacket);
 	void OnGuildRequest(InPacket *iPacket);
 	void OnFriendRequest(InPacket *iPacket);
+	void OnGroupMessage(InPacket *iPacket);
+	void OnWhisperMessage(InPacket *iPacket);
 };
 
