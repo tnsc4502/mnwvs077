@@ -270,7 +270,8 @@
     <ClInclude Include="TimerThread.h" />
     <ClInclude Include="TownPortal.h" />
     <ClInclude Include="TownPortalPool.h" />
-    <ClInclude Include="TradeRoom.h" />
+    <ClInclude Include="TradingRoom.h" />
+    <ClInclude Include="UMiniRoom.h" />
     <ClInclude Include="UpgradeItem.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="USkill.h" />
@@ -351,7 +352,8 @@
     <ClCompile Include="TimerThread.cpp" />
     <ClCompile Include="TownPortal.cpp" />
     <ClCompile Include="TownPortalPool.cpp" />
-    <ClCompile Include="TradeRoom.cpp" />
+    <ClCompile Include="TradingRoom.cpp" />
+    <ClCompile Include="UMiniRoom.cpp" />
     <ClCompile Include="UpgradeItem.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="USkill.cpp" />

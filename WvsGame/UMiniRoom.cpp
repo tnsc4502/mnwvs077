@@ -13,9 +13,10 @@ void UMiniRoom::OnMiniRoom(User *pUser, InPacket *iPacket)
 			case MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MRInviteResult:
 				break;
 			case MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MREnter:
+				OnMREnter(pUser, iPacket);
 				break;
 			default:
-				OnMRForward(pUser, iPacket);
+				OnMRForward(pUser, nType, iPacket);
 				break;
 		}
 	}
@@ -29,10 +30,21 @@ void UMiniRoom::OnMRCreate(User *pUser, InPacket *iPacket)
 	if (nMiniRoomType &&
 		pUser->GetField() &&
 		(nMiniRoomType != MiniRoomBase::MiniRoomType::e_MiniRoom_EntrustedShop ||
-			!pUser->HasOpenedEntrustedShop()))
-		MiniRoomBase::rq_MiniRoom_MRCreate(pUser, nMiniRoomType, iPacket, false, 0);
+			!pUser->HasOpenedEntrustedShop())) 
+	{
+		MiniRoomBase::Create(pUser, nMiniRoomType, iPacket, false, 0);
+	}
 }
 
-void UMiniRoom::OnMRForward(User *pUser, InPacket *iPacket)
+void UMiniRoom::OnMREnter(User *pUser, InPacket *iPacket)
 {
+	int nSN = iPacket->Decode4();
+	if (nSN)
+		MiniRoomBase::Enter(pUser, nSN, iPacket, false);
+}
+
+void UMiniRoom::OnMRForward(User *pUser, int nType, InPacket *iPacket)
+{
+	if (pUser->GetMiniRoom())
+		pUser->GetMiniRoom()->OnPacketBase(pUser, nType, iPacket);
 }

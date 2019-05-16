@@ -40,7 +40,8 @@ private:
 
 public:
 
-	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax;
+	bool bOnTrading = false;
+	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax, nMoneyTrading = 0;
 	std::string strName;
 
 	GW_Avatar *mAvatarData = nullptr;
@@ -104,5 +105,9 @@ public:
 	void SetQuest(int nKey, const std::string& sInfo);
 	void RemoveQuest(int nKey);
 
-	std::mutex& GetCharacterDatLock();
+	bool SetTrading(bool bTrade);
+	void ClearTradeInfo();
+	int GetTradingCount(int nTI, int nPOS);
+
+	std::mutex& GetCharacterDataLock();
 };

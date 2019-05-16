@@ -444,7 +444,10 @@
     <ClInclude Include="MiniRoomBase.h">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClInclude>
-    <ClInclude Include="TradeRoom.h">
+    <ClInclude Include="TradingRoom.h">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="UMiniRoom.h">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClInclude>
   </ItemGroup>
@@ -666,7 +669,10 @@
     <ClCompile Include="MiniRoomBase.cpp">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClCompile>
-    <ClCompile Include="TradeRoom.cpp">
+    <ClCompile Include="TradingRoom.cpp">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="UMiniRoom.cpp">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClCompile>
   </ItemGroup>

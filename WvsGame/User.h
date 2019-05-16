@@ -274,6 +274,7 @@ private:
 public:
 	GW_Avatar* GetAvatar();
 	void OnAvatarModified();
+	void EncodeAvatar(OutPacket *oPacket);
 	void EncodeCharacterData(OutPacket *oPacket);
 	void EncodeCoupleInfo(OutPacket *oPacket);
 	void EncodeFriendshipInfo(OutPacket *oPacket);

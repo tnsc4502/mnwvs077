@@ -5,6 +5,7 @@
 #include "DropPool.h"
 #include "ItemInfo.h"
 #include "SkillInfo.h"
+#include "QWUser.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\Database\GW_ItemSlotBase.h"
@@ -357,6 +358,105 @@ void QWUInventory::UpgradeEquip(User * pUser, int nUPOS, int nEPOS, int nWhiteSc
 			SendInventoryOperation(pUser, true, aChangeLog);
 		}
 	}
+}
+
+void QWUInventory::RestoreFromTemp(User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	auto pCharacterData = pUser->GetCharacterData();
+
+	if (pCharacterData->nMoneyTrading > 0)
+		pUser->SendCharacterStat(false, QWUser::IncMoney(pUser, 0, false));
+	
+	int nTradingNum = 0;
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+
+	for (int i = 1; i <= 5; ++i)
+	{
+		for (auto& nTempItem : pCharacterData->mItemTrading[i])
+		{
+			auto pItem = pCharacterData->GetItem(i, nTempItem.first);
+			if (pItem)
+			{
+				nTradingNum = nTempItem.second;
+				InventoryManipulator::InsertChangeLog(
+					aChangeLog,
+
+					(pItem->nType == GW_ItemSlotBase::EQUIP
+					|| ((GW_ItemSlotBundle*)pItem)->nNumber == nTradingNum) ?
+						InventoryManipulator::ChangeType::Change_AddToSlot :
+						InventoryManipulator::ChangeType::Change_QuantityChanged,
+
+					i,
+					nTempItem.first,
+					pItem,
+					0,
+					nTradingNum
+				);
+
+			}
+		}
+	}
+	SendInventoryOperation(pUser, false, aChangeLog);
+}
+
+void QWUInventory::RawMoveItemToTemp(User *pUser, GW_ItemSlotBase **pItemCopyed, int nTI, int nPOS, int nNumber, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	auto pCharacterData = pUser->GetCharacterData();
+	auto pItem = pCharacterData->GetItem(nTI, nPOS);
+	if (!pItem)
+		return;
+
+	/*if (ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID) ||
+		ItemInfo::GetInstance()->IsTradeBlockItem(pItem->nItemID) ||
+		pItem->liCashItemSN != 0)
+		return;*/
+
+	if (ItemInfo::IsTreatSingly(pItem->nItemID, 0))
+	{
+		if (nNumber != 1)
+			return;
+		pCharacterData->mItemTrading[nTI][nPOS] = nNumber;
+		InventoryManipulator::InsertChangeLog(
+			aChangeLog,
+			InventoryManipulator::Change_RemoveFromSlot,
+			nTI,
+			nPOS,
+			nullptr,
+			0,
+			1
+		);
+	}
+	else
+	{
+		int nTradingCount = pCharacterData->GetTradingCount(nTI, nPOS);
+		int nCount = ((GW_ItemSlotBundle*)pItem)->nNumber;
+		if (nNumber < 1 || nNumber >(nCount - nTradingCount))
+			return;
+		pCharacterData->mItemTrading[nTI][nPOS] = nNumber + nTradingCount;
+		InventoryManipulator::InsertChangeLog(
+			aChangeLog,
+			(nCount - nTradingCount == 0) ?
+			InventoryManipulator::Change_RemoveFromSlot :
+			InventoryManipulator::Change_QuantityChanged,
+			nTI,
+			nPOS,
+			nullptr,
+			0,
+			nCount - nTradingCount - nNumber
+		);
+	}
+
+	if (pItemCopyed)
+		*pItemCopyed = pItem->MakeClone();
+}
+
+void QWUInventory::MoveItemToTemp(User *pUser, GW_ItemSlotBase **pItemCopyed, int nTI, int nPOS, int nNumber)
+{
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	RawMoveItemToTemp(pUser, pItemCopyed, nTI, nPOS, nNumber, aChangeLog);
+	SendInventoryOperation(pUser, true, aChangeLog);
 }
 
 int QWUInventory::GetSlotCount(User * pUser, int nTI)

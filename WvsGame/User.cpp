@@ -56,6 +56,7 @@
 #include "PartyMan.h"
 #include "GuildMan.h"
 #include "FriendMan.h"
+#include "UMiniRoom.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -439,6 +440,9 @@ void User::OnPacket(InPacket *iPacket)
 	case UserRecvPacketFlag::User_OnSendWhisperMessage:
 		OnWhisper(iPacket);
 		break;
+	case 0x5F:
+		UMiniRoom::OnMiniRoom(this, iPacket);
+		break;
 	default:
 		iPacket->RestorePacket();
 
@@ -600,6 +604,7 @@ void User::SetMovePosition(int x, int y, char bMoveAction, short nFSN)
 
 void User::UpdateAvatar()
 {
+	std::lock_guard<std::mutex> lock(m_pCharacterData->GetCharacterDataLock());
 	m_pCharacterData->mAvatarData->nHair = m_pCharacterData->mStat->nHair;
 	m_pCharacterData->mAvatarData->nFace = m_pCharacterData->mStat->nFace;
 	m_pCharacterData->mAvatarData->nSkin = m_pCharacterData->mStat->nSkin;
@@ -666,6 +671,12 @@ void User::OnAvatarModified()
 	oPacket.Encode4(0);
 
 	m_pField->BroadcastPacket(&oPacket);
+}
+
+void User::EncodeAvatar(OutPacket *oPacket)
+{
+	UpdateAvatar();
+	m_pCharacterData->EncodeAvatarLook(oPacket);
 }
 
 void User::EncodeCharacterData(OutPacket * oPacket)

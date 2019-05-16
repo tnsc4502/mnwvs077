@@ -429,7 +429,28 @@ void GA_Character::RemoveQuest(int nKey)
 	mQuestRecord.erase(nKey);
 }
 
-std::mutex & GA_Character::GetCharacterDatLock()
+bool GA_Character::SetTrading(bool bTrade)
+{
+	if (bOnTrading == bTrade)
+		return false;
+	bOnTrading = bTrade;
+	ClearTradeInfo();
+}
+
+void GA_Character::ClearTradeInfo()
+{
+	nMoneyTrading = 0;
+	for (int i = 1; i <= 5; ++i)
+		mItemTrading[i].clear();
+}
+
+int GA_Character::GetTradingCount(int nTI, int nPOS)
+{
+	auto findIter = mItemTrading[nTI].find(nPOS);
+	return findIter == mItemTrading[nTI].end() ? 0 : findIter->second;
+}
+
+std::mutex & GA_Character::GetCharacterDataLock()
 {
 	return mCharacterLock;
 }

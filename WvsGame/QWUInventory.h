@@ -23,6 +23,9 @@ public:
 	static void SendInventoryOperation(User* pUser, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 	static void OnUpgradeItemRequest(User* pUser, InPacket *iPacket);
 	static void UpgradeEquip(User* pUser, int nUPOS, int nEPOS, int nWhiteScroll, bool bEnchantSkill, int tReqTime);
+	static void RestoreFromTemp(User* pUser);
+	static void RawMoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
+	static void MoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber);
 
 	static int GetSlotCount(User *pUser, int nTI);
 	static int GetHoldCount(User *pUser, int nTI);
