@@ -42,10 +42,11 @@ public:
 	static short GetJob(User* pUser);
 	static unsigned char GetLevel(User* pUser);
 
-	static long long int SetFace(User * pUser, int nFace);
-	static long long int SetHair(User * pUser, int nHair);
-	static long long int SetJob(User * pUser, int nJob);
-	static long long int SetLevel(User * pUser, int nLevel);
-	static long long int SetSkin(User * pUser, int nSkin);
+	static long long int SetFace(User *pUser, int nFace);
+	static long long int SetHair(User *pUser, int nHair);
+	static long long int SetJob(User *pUser, int nJob);
+	static long long int SetLevel(User *pUser, int nLevel);
+	static long long int SetSkin(User *pUser, int nSkin);
+	static long long int SetMoney(User *pUser, int nAmount);
 };
 

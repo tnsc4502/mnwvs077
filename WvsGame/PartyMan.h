@@ -107,7 +107,7 @@ public:
 	bool IsPartyBoss(int nPartyID, int nUserID);
 	bool IsPartyMember(int nPartyID, int nUserID);
 	void Broadcast(OutPacket *oPacket, int *anCharacterID, int nPlusOne);
-
+	void GetSnapshot(int nPartyID, int anCharacterID[MAX_PARTY_MEMBER_COUNT]);
 
 #ifdef _WVSGAME
 	void OnPartyRequest(User *pUser, InPacket *iPacket);
