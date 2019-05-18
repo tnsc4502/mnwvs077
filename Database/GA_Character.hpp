@@ -89,7 +89,7 @@ public:
 	GW_ItemSlotBase* GetItem(int nTI, int nPOS);
 	GW_ItemSlotBase* GetItemByID(int nItemID);
 	int FindEmptySlotPosition(int nTI);
-	void RemoveItem(int nTI, int nPOS);
+	void RemoveItem(int nTI, int nPOS, bool bRelease = true);
 	int FindCashItemSlotPosition(int nTI, long long int liSN);
 	int FindGeneralItemSlotPosition(int nTI, int nItemID, long long int dateExpire, long long int liSN);
 	int GetEmptySlotCount(int nTI);

@@ -450,6 +450,12 @@
     <ClInclude Include="UMiniRoom.h">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClInclude>
+    <ClInclude Include="EntrustedShop.h">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="PersonalShop.h">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -673,6 +679,12 @@
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClCompile>
     <ClCompile Include="UMiniRoom.cpp">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="EntrustedShop.cpp">
+      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="PersonalShop.cpp">
       <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
     </ClCompile>
   </ItemGroup>

@@ -8,7 +8,7 @@
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_Avatar.hpp"
 
-bool QWUser::TryProcessLevelUp(User * pUser, int nInc, int & refReachMaxLvl)
+bool QWUser::TryProcessLevelUp(User *pUser, int nInc, int & refReachMaxLvl)
 {
 	if (WvsGameConstants::m_nEXP[1] == 0)
 		WvsGameConstants::LoadEXP();
@@ -26,7 +26,7 @@ bool QWUser::TryProcessLevelUp(User * pUser, int nInc, int & refReachMaxLvl)
 	return false;
 }
 
-long long int QWUser::IncSTR(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncSTR(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto& refValue = pUser->GetCharacterData()->mStat->nStr;
@@ -36,7 +36,7 @@ long long int QWUser::IncSTR(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_STR;
 }
 
-long long int QWUser::IncDEX(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncDEX(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto& refValue = pUser->GetCharacterData()->mStat->nDex;
@@ -46,7 +46,7 @@ long long int QWUser::IncDEX(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_DEX;
 }
 
-long long int QWUser::IncLUK(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncLUK(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto& refValue = pUser->GetCharacterData()->mStat->nLuk;
@@ -56,7 +56,7 @@ long long int QWUser::IncLUK(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_LUK;
 }
 
-long long int QWUser::IncINT(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncINT(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto& refValue = pUser->GetCharacterData()->mStat->nInt;
@@ -66,7 +66,7 @@ long long int QWUser::IncINT(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_INT;
 }
 
-long long int QWUser::IncMP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	if (nInc < 0 && pUser->GetSecondaryStat()->nInfinity > 0)
@@ -84,7 +84,7 @@ long long int QWUser::IncMP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_MP;
 }
 
-long long int QWUser::IncHP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncHP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nHP = pUser->GetCharacterData()->mStat->nHP;
@@ -100,7 +100,7 @@ long long int QWUser::IncHP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_HP;
 }
 
-long long int QWUser::IncMMP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMMP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nMaxMP = pUser->GetCharacterData()->mStat->nMaxMP;
@@ -114,7 +114,7 @@ long long int QWUser::IncMMP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_MaxMP;
 }
 
-long long int QWUser::IncMHP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMHP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nMaxHP = pUser->GetCharacterData()->mStat->nMaxHP;
@@ -128,7 +128,7 @@ long long int QWUser::IncMHP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_MaxHP;
 }
 
-long long int QWUser::IncPOP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncPOP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nPOP = pUser->GetCharacterData()->mStat->nPOP;
@@ -144,7 +144,7 @@ long long int QWUser::IncPOP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_POP;
 }
 
-long long int QWUser::IncSP(User * pUser, int nJobLevel, int nInc, bool bOnlyFull)
+long long int QWUser::IncSP(User *pUser, int nJobLevel, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	if (nJobLevel < 0 || nJobLevel >= GW_CharacterStat::EXTEND_SP_SIZE)
@@ -160,14 +160,14 @@ long long int QWUser::IncSP(User * pUser, int nJobLevel, int nInc, bool bOnlyFul
 	return BasicStat::BS_SP;
 }
 
-long long int QWUser::IncMoney(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMoney(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mMoney->nMoney += nInc;
 	return BasicStat::BS_Meso;
 }
 
-long long int QWUser::IncAP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncAP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nAP = pUser->GetCharacterData()->mStat->nAP;
@@ -183,17 +183,17 @@ long long int QWUser::IncAP(User * pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_AP;
 }
 
-long long int QWUser::IncMaxHPVal(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMaxHPVal(User *pUser, int nInc, bool bOnlyFull)
 {
 	return false;
 }
 
-long long int QWUser::IncMaxMPVal(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMaxMPVal(User *pUser, int nInc, bool bOnlyFull)
 {
 	return false;
 }
 
-long long int QWUser::IncEXP(User * pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 {
 	long long int nRet= BasicStat::BS_EXP;
 	int nReachMaxLvl = 0;
@@ -215,108 +215,108 @@ long long int QWUser::IncEXP(User * pUser, int nInc, bool bOnlyFull)
 	return nRet;
 }
 
-long long int QWUser::GetSTR(User * pUser)
+long long int QWUser::GetSTR(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nSTR;
 }
 
-long long int QWUser::GetDEX(User * pUser)
+long long int QWUser::GetDEX(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nDEX;
 }
 
-long long int QWUser::GetLUK(User * pUser)
+long long int QWUser::GetLUK(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nLUK;
 }
 
-long long int QWUser::GetINT(User * pUser)
+long long int QWUser::GetINT(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nINT;
 }
 
-long long int QWUser::GetMP(User * pUser)
+long long int QWUser::GetMP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nMP;
 }
 
-long long int QWUser::GetHP(User * pUser)
+long long int QWUser::GetHP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nHP;
 }
 
-long long int QWUser::GetMMP(User * pUser)
+long long int QWUser::GetMMP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMMP;
 }
 
-long long int QWUser::GetMHP(User * pUser)
+long long int QWUser::GetMHP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMHP;
 }
 
-long long int QWUser::GetPOP(User * pUser)
+long long int QWUser::GetPOP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nFame;
 }
 
-long long int QWUser::GetSP(User * pUser, int nJobLevel)
+long long int QWUser::GetSP(User *pUser, int nJobLevel)
 {
 	return pUser->GetCharacterData()->mStat->aSP[nJobLevel];
 }
 
-long long int QWUser::GetMoney(User * pUser)
+long long int QWUser::GetMoney(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mMoney->nMoney;
 }
 
-long long int QWUser::GetAP(User * pUser)
+long long int QWUser::GetAP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nAP;
 }
 
-long long int QWUser::GetMaxHPVal(User * pUser)
+long long int QWUser::GetMaxHPVal(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMHP;
 }
 
-long long int QWUser::GetMaxMPVal(User * pUser)
+long long int QWUser::GetMaxMPVal(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMMP;
 }
 
-long long int QWUser::GetEXP(User * pUser)
+long long int QWUser::GetEXP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nExp;
 }
 
-short QWUser::GetJob(User * pUser)
+short QWUser::GetJob(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nJob;
 }
 
-unsigned char QWUser::GetLevel(User * pUser)
+unsigned char QWUser::GetLevel(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mLevel->nLevel;
 }
 
-long long int QWUser::SetFace(User * pUser, int nFace)
+long long int QWUser::SetFace(User *pUser, int nFace)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nFace = nFace;
@@ -324,7 +324,7 @@ long long int QWUser::SetFace(User * pUser, int nFace)
 	return BasicStat::BS_Face;
 }
 
-long long int QWUser::SetHair(User * pUser, int nHair)
+long long int QWUser::SetHair(User *pUser, int nHair)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nHair = nHair;
@@ -332,24 +332,31 @@ long long int QWUser::SetHair(User * pUser, int nHair)
 	return BasicStat::BS_Hair;
 }
 
-long long int QWUser::SetJob(User * pUser, int nJob)
+long long int QWUser::SetJob(User *pUser, int nJob)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nJob = nJob;
 	return BasicStat::BS_Job;
 }
 
-long long int QWUser::SetLevel(User * pUser, int nLevel)
+long long int QWUser::SetLevel(User *pUser, int nLevel)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mLevel->nLevel = nLevel;
 	return BasicStat::BS_Level;
 }
 
-long long int QWUser::SetSkin(User * pUser, int nSkin)
+long long int QWUser::SetSkin(User *pUser, int nSkin)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nSkin = nSkin;
 	pUser->GetCharacterData()->mAvatarData->nSkin = nSkin;
 	return BasicStat::BS_Skin;
+}
+
+long long int QWUser::SetMoney(User *pUser, int nAmount)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	pUser->GetCharacterData()->mMoney->nMoney = nAmount;
+	return BasicStat::BS_Meso;
 }

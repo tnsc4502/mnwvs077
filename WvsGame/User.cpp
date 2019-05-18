@@ -57,6 +57,8 @@
 #include "GuildMan.h"
 #include "FriendMan.h"
 #include "UMiniRoom.h"
+#include "BackupItem.h"
+#include "MiniRoomBase.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -77,6 +79,14 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 
 User::~User()
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+
+	auto bindT = std::bind(&User::Update, this);
+	m_pUpdateTimer->Abort();
+
+	if (m_pMiniRoom) 
+		m_pMiniRoom->OnPacketBase(this, MiniRoomBase::MiniRoomRequest::rq_MiniRoom_LeaveBase, nullptr);
+
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
@@ -93,8 +103,6 @@ User::~User()
 		oPacket.Encode1(0); //bGameEnd, Dont decode and save the secondarystat info.
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 
-	auto bindT = std::bind(&User::Update, this);
-	m_pUpdateTimer->Abort();
 	//m_pField->OnLeave(this);
 	RemoveSummoned(0, 0, -1);
 	LeaveField();
@@ -202,7 +210,8 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->Encode4(0);
 
 	//MiniRoom
-	oPacket->Encode1(0);
+	EncodeMiniRoomBalloon(oPacket, m_pMiniRoom == nullptr ? false : m_pMiniRoom->IsOpened());
+
 	//ChatBallon
 	oPacket->Encode1(0);
 
@@ -361,102 +370,110 @@ void User::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-	case UserRecvPacketFlag::User_OnStatChangeItemUseRequest:
-		OnStatChangeItemUseRequest(iPacket, false);
-		break;
-	case UserRecvPacketFlag::User_OnStatChangeItemCancelRequest:
-		OnStatChangeItemCancelRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserChat:
-		OnChat(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserTransferFieldRequest:
-		OnTransferFieldRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserTransferChannelRequest:
-		OnTransferChannelRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserMigrateToCashShopRequest:
-		OnMigrateToCashShopRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserMoveRequest:
-		m_pField->OnUserMove(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
-		QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserSkillUpRequest:
-		USkill::OnSkillUpRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserSkillUseRequest:
-		USkill::OnSkillUseRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserSkillCancelRequest:
-		USkill::OnSkillCancelRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
-	case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
-	case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
-	case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
-		OnAttack(nType, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnSelectNpc:
-		OnSelectNpc(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnScriptMessageAnswer:
-		OnScriptMessageAnswer(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnQuestRequest:
-		OnQuestRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnFuncKeyMappedModified:
-		OnFuncKeyMappedModified(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnShopRequest:
-		if (m_pTradingNpc)
-			m_pTradingNpc->OnShopRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnItemUpgradeRequest:
-		QWUInventory::OnUpgradeItemRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnActivatePetRequest:
-		OnActivatePetRequest(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnPartyRequest:
-		PartyMan::GetInstance()->OnPartyRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnPartyRequestRejected:
-		PartyMan::GetInstance()->OnPartyRequestRejected(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnGuildRequest:
-		GuildMan::GetInstance()->OnGuildRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnFriendRequest:
-		FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnSendGroupMessage:
-		OnSendGroupMessage(iPacket);
-		break;
-	case UserRecvPacketFlag::User_OnSendWhisperMessage:
-		OnWhisper(iPacket);
-		break;
-	case 0x5F:
-		UMiniRoom::OnMiniRoom(this, iPacket);
-		break;
-	default:
-		iPacket->RestorePacket();
+		case UserRecvPacketFlag::User_OnStatChangeItemUseRequest:
+			OnStatChangeItemUseRequest(iPacket, false);
+			break;
+		case UserRecvPacketFlag::User_OnStatChangeItemCancelRequest:
+			OnStatChangeItemCancelRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserChat:
+			OnChat(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserTransferFieldRequest:
+			OnTransferFieldRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserTransferChannelRequest:
+			OnTransferChannelRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserMigrateToCashShopRequest:
+			OnMigrateToCashShopRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserMoveRequest:
+			m_pField->OnUserMove(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
+			QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserSkillUpRequest:
+			USkill::OnSkillUpRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserSkillUseRequest:
+			USkill::OnSkillUseRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserSkillCancelRequest:
+			USkill::OnSkillCancelRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
+		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
+		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
+		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
+			OnAttack(nType, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnSelectNpc:
+			OnSelectNpc(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnScriptMessageAnswer:
+			OnScriptMessageAnswer(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnQuestRequest:
+			OnQuestRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnFuncKeyMappedModified:
+			OnFuncKeyMappedModified(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnShopRequest:
+			if (m_pTradingNpc)
+				m_pTradingNpc->OnShopRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnItemUpgradeRequest:
+			QWUInventory::OnUpgradeItemRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnActivatePetRequest:
+			OnActivatePetRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnPartyRequest:
+			PartyMan::GetInstance()->OnPartyRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnPartyRequestRejected:
+			PartyMan::GetInstance()->OnPartyRequestRejected(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnGuildRequest:
+			GuildMan::GetInstance()->OnGuildRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnFriendRequest:
+			FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnSendGroupMessage:
+			OnSendGroupMessage(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnSendWhisperMessage:
+			OnWhisper(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnMiniRoomRequest:
+			UMiniRoom::OnMiniRoom(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEntrustedShopCheckResult);
+			oPacket.Encode1(6);
+			SendPacket(&oPacket);
+			break;
+		}
+		default:
+			iPacket->RestorePacket();
 
-		//Pet Packet
-		if (nType >= UserRecvPacketFlag::User_OnPetMove
-			&& nType <= UserRecvPacketFlag::User_OnPetActionSpeak)
-			OnPetPacket(iPacket);
-		//Summoned Packet
-		else if (nType >= FlagMin(SummonedRecvPacketFlag)
-			&& nType <= FlagMax(SummonedRecvPacketFlag))
-			OnSummonedPacket(iPacket);
-		//Field Packet
-		else if (m_pField)
-			m_pField->OnPacket(this, iPacket);
+			//Pet Packet
+			if (nType >= UserRecvPacketFlag::User_OnPetMove
+				&& nType <= UserRecvPacketFlag::User_OnPetActionSpeak)
+				OnPetPacket(iPacket);
+			//Summoned Packet
+			else if (nType >= FlagMin(SummonedRecvPacketFlag)
+				&& nType <= FlagMax(SummonedRecvPacketFlag))
+				OnSummonedPacket(iPacket);
+			//Field Packet
+			else if (m_pField)
+				m_pField->OnPacket(this, iPacket);
 	}
 	ValidateStat();
 	SendCharacterStat(false, 0);
@@ -748,6 +765,9 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 		PartyMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mStat->nJob, false);
 	}
 
+	if (liFlag & BasicStat::BasicStatFlag::BS_HP)
+		PostHPToPartyMembers();
+
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnStatChanged);
 	oPacket.Encode1((char)bOnExclRequest);
@@ -792,7 +812,7 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 	if (liFlag & BasicStat::BasicStatFlag::BS_POP)
 		oPacket.Encode2(m_pCharacterData->mStat->nPOP);
 	if (liFlag & BasicStat::BasicStatFlag::BS_Meso)
-		oPacket.Encode4((int)m_pCharacterData->mMoney->nMoney);
+		oPacket.Encode4((int)m_pCharacterData->mMoney->nMoney - m_pCharacterData->nMoneyTrading);
 
 	if (liFlag & BasicStat::BasicStatFlag::BS_Pet)
 	{
@@ -923,7 +943,7 @@ void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
 		2, // = Consume
 		nTI,
 		1,
-		aChangeLog,
+		&aChangeLog,
 		nDecRet,
 		nullptr);
 	if(!bRemoveResult || nDecRet != 1)
@@ -1126,41 +1146,41 @@ void User::OnQuestRequest(InPacket * iPacket)
 		(int)(pNpc == nullptr));
 	switch (nAction)
 	{
-	case 0:
-		OnLostQuestItem(iPacket, nQuestID);
-		break;
-	case 1:
-		OnAcceptQuest(iPacket, nQuestID, nNpcID, pNpc);
-		break;
-	case 2:
-		OnCompleteQuest(iPacket, nQuestID, nNpcID, pNpc, QuestMan::GetInstance()->IsAutoCompleteQuest(nQuestID));
-		break;
-	case 3:
-		OnResignQuest(iPacket, nQuestID);
-		break;
-	case 4:
-	case 5:
-		{
-			auto pScript = ScriptMan::GetInstance()->GetScript(
-				"./DataSrv/Script/Quest/" + std::to_string(nQuestID) + ".lua",
-				nNpcID,
-				m_pField
-			);
-			if (pScript == nullptr)
+		case 0:
+			OnLostQuestItem(iPacket, nQuestID);
+			break;
+		case 1:
+			OnAcceptQuest(iPacket, nQuestID, nNpcID, pNpc);
+			break;
+		case 2:
+			OnCompleteQuest(iPacket, nQuestID, nNpcID, pNpc, QuestMan::GetInstance()->IsAutoCompleteQuest(nQuestID));
+			break;
+		case 3:
+			OnResignQuest(iPacket, nQuestID);
+			break;
+		case 4:
+		case 5:
 			{
-				SendChatMessage(0, "Quest : " + std::to_string(nQuestID) + " has no script.");
-				return;
-			}
-			pScript->SetUser(this);
-			SetScript(pScript);
-			pScript->PushInteger("questID", nQuestID);
+				auto pScript = ScriptMan::GetInstance()->GetScript(
+					"./DataSrv/Script/Quest/" + std::to_string(nQuestID) + ".lua",
+					nNpcID,
+					m_pField
+				);
+				if (pScript == nullptr)
+				{
+					SendChatMessage(0, "Quest : " + std::to_string(nQuestID) + " has no script.");
+					return;
+				}
+				pScript->SetUser(this);
+				SetScript(pScript);
+				pScript->PushInteger("questID", nQuestID);
 
-			if(nAction == 4)
-				pScript->Run("start");
-			else
-				pScript->Run("complete");
-		}
-		break;
+				if(nAction == 4)
+					pScript->Run("start");
+				else
+					pScript->Run("complete");
+			}
+			break;
 	}
 }
 
@@ -1214,6 +1234,7 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 		{
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
+			std::vector<BackupItem> aBackup;
 			ExchangeElement exchange;
 			exchange.m_nItemID = actItem->nItemID;
 			exchange.m_nCount = nCount;
@@ -1221,8 +1242,9 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 				this,
 				0,
 				aExchange,
-				aChangeLog,
-				aChangeLog
+				&aChangeLog,
+				&aChangeLog,
+				aBackup
 			);
 		}
 	}
@@ -1482,7 +1504,6 @@ void User::OnFuncKeyMappedModified(InPacket * iPacket)
 				ref.nType = iPacket->Decode1();
 				ref.nValue = iPacket->Decode4();
 				ref.bModified = true;
-				WvsLogger::LogFormat("Key = %d Type = %d Value = %d\n", nKey, ref.nType, ref.nValue);
 			}
 		}
 	}
@@ -1669,6 +1690,35 @@ int User::GetPartyID() const
 	return m_nPartyID;
 }
 
+void User::PostHPToPartyMembers()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+
+	if (GetPartyID() == -1)
+		return;
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnReceiveHP);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode4((int)QWUser::GetHP(this));
+	oPacket.Encode4((int)m_pCharacterData->mStat->nMaxHP);
+	oPacket.GetSharedPacket()->ToggleBroadcasting();
+
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(GetUserID());
+	User *pUser = nullptr;
+	if (pParty)
+	{
+		int anCharacterID[PartyMan::MAX_PARTY_MEMBER_COUNT]{ 0 };
+		PartyMan::GetInstance()->GetSnapshot(pParty->nPartyID, anCharacterID);
+
+		for (auto& nID : anCharacterID)
+		{
+			pUser = User::FindUser(nID);
+			if (pUser && pUser != this && pUser->GetField() == GetField()) 
+				pUser->SendPacket(&oPacket);
+		}
+	}
+}
+
 void User::AddGuildInvitedCharacterID(int nCharacterID)
 {
 	m_snGuildInvitedCharacterID.insert(nCharacterID);
@@ -1831,6 +1881,34 @@ MiniRoomBase *User::GetMiniRoom()
 void User::SetMiniRoom(MiniRoomBase *pMiniRoom)
 {
 	m_pMiniRoom = pMiniRoom;
+}
+
+void User::SetMiniRoomBalloon(bool bOpen)
+{
+	if (GetField() && m_pMiniRoom)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserCommon_OnMiniRoomBalloon);
+		oPacket.Encode4(GetUserID());
+		EncodeMiniRoomBalloon(&oPacket, bOpen);
+		GetField()->SplitSendPacket(&oPacket, nullptr);
+	}
+}
+
+void User::EncodeMiniRoomBalloon(OutPacket *oPacket, bool bOpen)
+{
+	oPacket->Encode1(bOpen ? m_pMiniRoom->GetType() : 0);
+	if (bOpen)
+	{
+		oPacket->Encode4(m_pMiniRoom->GetMiniRoomSN());
+		oPacket->EncodeStr(m_pMiniRoom->GetTitle());
+		oPacket->Encode1(m_pMiniRoom->IsPrivate());
+		oPacket->Encode1(m_pMiniRoom->GetMiniRoomSpec());
+		oPacket->Encode1(m_pMiniRoom->GetCurUsers());
+		oPacket->Encode1(m_pMiniRoom->GetMaxUsers());
+		oPacket->Encode1(m_pMiniRoom->IsGameOn());
+	}
 }
 
 bool User::HasOpenedEntrustedShop() const

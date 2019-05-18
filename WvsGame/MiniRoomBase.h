@@ -27,7 +27,8 @@ protected:
 		m_nMaxUsers = 0,
 		m_nCurUsers = 0,
 		m_nType = 0,
-		m_nRound = 0;
+		m_nRound = 0,
+		m_nMiniRoomSpec = 0;
 
 	bool m_bOpened = false,
 		m_bCloseRequest = false,
@@ -53,17 +54,10 @@ public:
 		rq_MiniRoom_InviteBase = 0x02,
 		rq_MiniRoom_MRInviteResult = 0x03,
 		rq_MiniRoom_MREnter = 0x04,
+		rq_MiniRoom_MRCreateResult = 0x05,
 		rq_MiniRoom_Chat = 0x06,
 		rq_MiniRoom_LeaveBase = 0x0A,
 		rq_MiniRoom_BalloonBase = 0x0B,
-	};
-
-	enum MiniRoomResult
-	{
-		res_MiniRoom_MRInviteSuccess = 0x02,
-		res_MiniRoom_MRInviteFailed = 0x03,
-		res_MiniRoom_MREnter = 0x04,
-		res_MiniRoom_MRCreateResult = 0x05,
 	};
 
 	enum MiniRoomCreateResult
@@ -78,21 +72,36 @@ public:
 		res_Invite_UnableToProcess = 0x02,
 	};
 
+	enum MiniRoomAdmissionResult
+	{
+		res_Admission_Success = 0x00,
+		res_Admission_InvalidUserStat = 0x04,
+		res_Admission_InvalidFieldID = 0x05,
+		res_Admission_InvalidPassword = 0x13,
+	};
+
 	MiniRoomBase(int nMaxUsers);
 	~MiniRoomBase();
+	int GetMiniRoomSN() const;
 	int GetType() const;
 	int GetMaxUsers() const;
 	int GetCurUsers() const;
 	int GetRound() const;
+	int GetMiniRoomSpec() const;
 	void Broadcast(OutPacket *oPacket, User *pExcept);
 	void SetTitle(const std::string& sTitle);
+	const std::string& GetTitle() const;
 	void SetPassword(const std::string& sPassword);
 	bool CheckPassword(const std::string& sPassword);
+	bool IsGameOn() const;
+	bool IsPrivate() const;
+	bool IsOpened() const;
 	virtual bool IsEmployer(User *pUser);
 	virtual bool IsEntrusted() const;
 	virtual int GetEmployeeTemplateID() const;
 	const std::string& GetEmployeeName() const;
 	void RemoveMiniRoom();
+	virtual int GetLeaveType() const;
 
 	virtual void OnPacket(User *pUser, int nType, InPacket *iPacket) = 0;
 	virtual void Encode(OutPacket *oPacket) = 0;
@@ -104,11 +113,14 @@ public:
 	unsigned char OnCreateBase(User *pUser, InPacket *iPacket, int nRound);
 	void OnInviteBase(User *pUser, InPacket *iPacket);
 	void OnLeaveBase(User *pUser, InPacket *iPacket);
+	void OnBalloonBase(User *pUser, InPacket *iPacket);
 	virtual void OnLeave(User *pUser, int nLeaveType);
 	void CloseRquest(User *pUser, int nLeaveType, int nLeaveType2);
 	void DoLeave(int nIdx, int nLeaveType, bool bBroadcast);
 	unsigned char OnEnterBase(User *pUser, InPacket *iPacket);
 	virtual int IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate);
+	void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
+	void ProcessLeaveRequest();
 
 	//Encode
 	void EncodeAvatar(int nIdx, OutPacket *oPacket);

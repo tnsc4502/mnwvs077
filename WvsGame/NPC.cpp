@@ -2,6 +2,7 @@
 #include "NpcTemplate.h"
 #include "User.h"
 #include "ExchangeElement.h"
+#include "BackupItem.h"
 #include "ItemInfo.h"
 #include "SkillInfo.h"
 #include "QWUInventory.h"
@@ -31,6 +32,7 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 			int nPrice = pItem->nPrice * (ItemInfo::IsRechargable(nItemID) ? 1 : nCount);
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
+			std::vector<BackupItem> aBackup;
 			nCount *= pItem->nQuantity;
 			if (pItem->nTokenPrice > 0)
 			{
@@ -48,8 +50,9 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 				pUser,
 				-nPrice,
 				aExchange,
-				aChangeLog,
-				aChangeLog
+				&aChangeLog,
+				&aChangeLog,
+				aBackup
 			);
 			switch (nResult)
 			{
@@ -110,6 +113,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 			auto pSoldItem = pItem->MakeClone();
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
+			std::vector<BackupItem> aBackup;
 
 			ExchangeElement shopItem;
 			shopItem.m_pItem = pItem;
@@ -120,8 +124,9 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 				pUser,
 				nPrice,
 				aExchange,
-				aChangeLog,
-				aChangeLog
+				&aChangeLog,
+				&aChangeLog,
+				aBackup
 			);
 			if (!nResult)
 				(m_pTemplate->GetUserSoldItems(pUser->GetUserID())->push_back(pSoldItem));

@@ -3,6 +3,7 @@
 #include "..\Database\GA_Character.hpp"
 #include "Script.h"
 #include "User.h"
+#include "BackupItem.h"
 
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
@@ -89,7 +90,9 @@ int ScriptInventory::InventoryExchange(lua_State * L)
 		e.m_pItem = nullptr;
 		aExchange.push_back(std::move(e));
 	}
-	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange, aLogAdd, aLogRemove);
+	std::vector<BackupItem> aBackup;
+	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange, &aLogAdd, &aLogRemove, aBackup);
+
 	/*
 	0 = Success
 	1 = Meso Insufficient

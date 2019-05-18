@@ -17,15 +17,16 @@ public:
 	static bool PickUpMoney(User* pUser, bool byPet, int nAmount);
 	static bool PickUpItem(User* pUser, bool byPet, GW_ItemSlotBase* pItem);
 	static bool RawRemoveItemByID(User* pUser, int nItemID, int nCount);
-	static bool RawRemoveItem(User* pUser, int nTI, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>& aChangeLog, int &nDecRet, GW_ItemSlotBase** ppItemRemoved);
+	static bool RawRemoveItem(User* pUser, int nTI, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>* aChangeLog, int &nDecRet, GW_ItemSlotBase** ppItemRemoved);
 	static bool RawAddItemByID(User* pUser, int nItemID, int nCount);
-	static int Exchange(User* pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>& aLogAdd, std::vector<InventoryManipulator::ChangeLog>& aLogRemove);
+	static int Exchange(User* pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>* aLogAdd, std::vector<InventoryManipulator::ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bSendOperation = true, bool bReleaseBackupItem = true);
 	static void SendInventoryOperation(User* pUser, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 	static void OnUpgradeItemRequest(User* pUser, InPacket *iPacket);
 	static void UpgradeEquip(User* pUser, int nUPOS, int nEPOS, int nWhiteScroll, bool bEnchantSkill, int tReqTime);
-	static void RestoreFromTemp(User* pUser);
+	static void RestoreFromTemp(User* pUser, std::map<int, int> mItemTrading[6]);
 	static void RawMoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 	static void MoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber);
+	static bool MoveMoneyToTemp(User *pUser, int nAmount);
 
 	static int GetSlotCount(User *pUser, int nTI);
 	static int GetHoldCount(User *pUser, int nTI);

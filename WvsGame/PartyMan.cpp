@@ -466,6 +466,7 @@ void PartyMan::OnUserMigration(InPacket * iPacket)
 		int nIdx = iPacket->Decode1();
 		int nChannel = iPacket->Decode4();
 		pParty->party.anChannelID[nIdx] = nChannel;
+
 		if (nChannel != WvsBase::GetInstance<WvsGame>()->GetChannelID())
 			pParty->party.anFieldID[nIdx] = 999999999;
 
@@ -501,6 +502,15 @@ void PartyMan::NotifyTransferField(int nCharacterID, int nFieldID)
 			oPacket.Encode4(pParty->nPartyID);
 			pParty->Encode(&oPacket);
 			Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+
+			//Notify Party Member HP
+			User *pUser = nullptr;
+			for (int i = 0; i < MAX_PARTY_MEMBER_COUNT; ++i)
+			{
+				pUser = User::FindUser(pParty->party.anCharacterID[i]);
+				if (pUser && pUser->GetField() && pUser->GetField()->GetFieldID() == nFieldID)
+					pUser->PostHPToPartyMembers();
+			}
 		}
 	}
 }
@@ -576,6 +586,14 @@ void PartyMan::Broadcast(OutPacket *oPacket, int * anCharacterID, int nPlusOne)
 			if (pUser)
 				pUser->SendPacket(oPacket);
 		}
+}
+
+void PartyMan::GetSnapshot(int nPartyID, int anCharacterID[MAX_PARTY_MEMBER_COUNT])
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+	auto pParty = GetParty(nPartyID);
+	if (pParty)
+		memcpy(anCharacterID, pParty->party.anCharacterID, sizeof(int) * MAX_PARTY_MEMBER_COUNT);
 }
 
 #endif

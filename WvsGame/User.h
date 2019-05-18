@@ -345,6 +345,7 @@ public:
 	void ClearPartyInvitedCharacterID();
 	void SetPartyID(int nPartyID);
 	int GetPartyID() const;
+	void PostHPToPartyMembers();
 
 	//Guild
 	void AddGuildInvitedCharacterID(int nCharacterID);
@@ -362,6 +363,8 @@ public:
 	//MiniRoom
 	MiniRoomBase* GetMiniRoom();
 	void SetMiniRoom(MiniRoomBase* pMiniRoom);
+	void SetMiniRoomBalloon(bool bOpen);
+	void EncodeMiniRoomBalloon(OutPacket *oPacket, bool bOpen);
 	bool HasOpenedEntrustedShop() const;
 };
 

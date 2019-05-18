@@ -55,7 +55,7 @@ bool InventoryManipulator::RawIncMoney(GA_Character * pCharacterData, int nMoney
 /*
 呼叫方上鎖
 */
-bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW_ItemSlotBase * pItem, std::vector<ChangeLog>& aChangeLog, int * nIncRet, bool bDeleteIfItemCombined, std::vector<BackupItem>* paBackupItem)
+bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, GW_ItemSlotBase *pItem, std::vector<ChangeLog>* aChangeLog, int * nIncRet, bool bDeleteIfItemCombined, std::vector<BackupItem>* paBackupItem)
 {
 	/*
 	此處檢查是不CashItem
@@ -72,7 +72,8 @@ bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW
 				pCharacterData->mItemRemovedRecord[nTI].erase(pItem->liItemSN);
 			itemSlot[nPOS] = pItem;
 			pItem->nPOS = nPOS;
-			InsertChangeLog(aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pItem, 0, 0);
+			if(aChangeLog)
+				InsertChangeLog(*aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pItem, 0, 0);
 			*nIncRet = 1;
 			return true;
 		}
@@ -122,10 +123,11 @@ bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW
 						auto pBackup = pItemInSlot->MakeClone();
 						pBackup->liCashItemSN = pItemInSlot->liCashItemSN;
 						pBackup->liItemSN = pItemInSlot->liItemSN;
-						(*paBackupItem).push_back({ nTI, nPOS,  pBackup });
+						(*paBackupItem).push_back({ nTI, nPOS,  pBackup, true });
 					}
 					pItemInSlot->nNumber += (nSlotInc - nOnTrading);
-					InsertChangeLog(aChangeLog, ChangeType::Change_QuantityChanged, nTI, nPOS, pItemInSlot, 0, pItemInSlot->nNumber);
+					if(aChangeLog)
+						InsertChangeLog(*aChangeLog, ChangeType::Change_QuantityChanged, nTI, nPOS, pItemInSlot, 0, pItemInSlot->nNumber);
 				}
 				else
 				{
@@ -140,7 +142,7 @@ bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW
 
 		//物品完全合併
 		if (nNumber == 0 && bDeleteIfItemCombined)
-			FreeObj((GW_ItemSlotBundle*)pItem);
+			pItem->Release();
 
 		//欄位無相同物品，找新的欄位插入
 		while (nNumber > 0)
@@ -166,11 +168,12 @@ bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW
 			if(pClone->liItemSN != -1)
 				pCharacterData->mItemRemovedRecord[nTI].erase(pClone->liItemSN);
 			if (paBackupItem)
-				(*paBackupItem).push_back({ nTI, nPOS, nullptr });
+				(*paBackupItem).push_back({ nTI, nPOS, nullptr, false });
 			itemSlot[nPOS] = pClone;
 			pClone->nPOS = nPOS;
 
-			InsertChangeLog(aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pClone, 0, 0);
+			if(aChangeLog)
+				InsertChangeLog(*aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pClone, 0, 0);
 			nNumber -= nSlotInc;
 			nTotalInc += nSlotInc;
 		}
@@ -182,7 +185,7 @@ bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, GW
 /*
 呼叫方上鎖
 */
-bool InventoryManipulator::RawAddItem(GA_Character * pCharacterData, int nTI, int nItemID, int nCount, std::vector<ChangeLog>& aChangeLog, int * nIncRet, std::vector<BackupItem>* paBackupItem)
+bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, int nItemID, int nCount, std::vector<ChangeLog>* aChangeLog, int * nIncRet, std::vector<BackupItem>* paBackupItem)
 {
 	/*
 	此處檢查是不CashItem
@@ -209,7 +212,7 @@ void InventoryManipulator::InsertChangeLog(std::vector<ChangeLog>& aChangeLog, i
 	aChangeLog.push_back(newLog);
 }
 
-void InventoryManipulator::MakeInventoryOperation(OutPacket * oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
+void InventoryManipulator::MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
 {
 	oPacket->Encode2((short)UserSendPacketFlag::UserLocal_OnInventoryOperation);
 	oPacket->Encode1(bOnExclResult);
@@ -252,28 +255,29 @@ void InventoryManipulator::MakeItemUpgradeEffect(OutPacket *oPacket, int nCharac
 /*
 呼叫方上鎖
 */
-bool InventoryManipulator::RawRemoveItem(GA_Character * pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>& aChangeLog, int * nDecRet, GW_ItemSlotBase ** ppItemRemoved, std::vector<BackupItem>* paBackupItem)
+bool InventoryManipulator::RawRemoveItem(GA_Character *pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int * nDecRet, GW_ItemSlotBase ** ppItemRemoved, std::vector<BackupItem>* aBackupItem)
 {
 	auto pItem = pCharacterData->GetItem(nTI, nPOS);
-	GW_ItemSlotBase* pClone = ppItemRemoved ? pItem->MakeClone() : nullptr;
+	GW_ItemSlotBase* pClone = nullptr;
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "Raw Remove Item pClone == null ? %d\n", (int)(pClone == nullptr));
 	bool bCountSufficient = true;
 	long long int liItemSN = -1, liCashItemSN = -1;
 	if (pItem != nullptr)
 	{
+		if (aBackupItem) 
+		{
+			auto pClone = pItem->MakeClone();
+			pClone->liItemSN = pItem->liItemSN;
+			pClone->liCashItemSN = pItem->liCashItemSN;
+			(*aBackupItem).push_back({ nTI, nPOS, pClone, true });
+		}
+
 		liItemSN = pItem->liItemSN;
 		liCashItemSN = pItem->liCashItemSN;
-		if (paBackupItem) 
-		{
-			auto pBackup = pItem->MakeClone();
-			pBackup->liCashItemSN = liCashItemSN;
-			pBackup->liItemSN = liItemSN;
-			(*paBackupItem).push_back({ nTI, nPOS, pBackup });
-		}
 		int nRemaining = 0;
 		//
 		if (ItemInfo::IsTreatSingly(pItem->nItemID, pItem->liExpireDate) && nTI == 1)
-			pCharacterData->RemoveItem(nTI, nPOS);
+			pCharacterData->RemoveItem(nTI, nPOS, ppItemRemoved == nullptr);
 		else if (nCount >= 1)
 		{
 			GW_ItemSlotBundle* pBundle = (GW_ItemSlotBundle*)pItem;
@@ -290,37 +294,36 @@ bool InventoryManipulator::RawRemoveItem(GA_Character * pCharacterData, int nTI,
 			pBundle->nNumber -= nCount;
 			nRemaining = pBundle->nNumber;
 			if (nRemaining <= 0)
-				pCharacterData->RemoveItem(nTI, nPOS);
+				pCharacterData->RemoveItem(nTI, nPOS, ppItemRemoved == nullptr);
 		}
 
 		//複製一個實體，如果是整個物品移出，SN也要一起改
 		if (ppItemRemoved) 
 		{
-			(*ppItemRemoved) = pClone;
-			if (nRemaining <= 0) 
-			{
-				(*ppItemRemoved)->liItemSN = liItemSN;
-				(*ppItemRemoved)->liCashItemSN = liCashItemSN;
-			}
+			if (nRemaining <= 0)
+				*ppItemRemoved = pItem;
+			else
+				*ppItemRemoved = pItem->MakeClone();
+			(*ppItemRemoved)->liItemSN = pItem->liItemSN;
+			(*ppItemRemoved)->liCashItemSN = pItem->liCashItemSN;
 		}
 
 		if (ppItemRemoved && nCount >= 1 && nTI != GW_ItemSlotBase::EQUIP) 
 			((GW_ItemSlotBundle*)*ppItemRemoved)->nNumber = nCount;
 
 		*nDecRet = nCount;
-		if (nRemaining > 0)
-			InsertChangeLog(aChangeLog, ChangeType::Change_QuantityChanged, nTI, nPOS, pItem, 0, nRemaining);
-		else
-			InsertChangeLog(aChangeLog, ChangeType::Change_RemoveFromSlot, nTI, nPOS, pItem, 0, *nDecRet);
+		if (nRemaining > 0 && aChangeLog)
+			InsertChangeLog(*aChangeLog, ChangeType::Change_QuantityChanged, nTI, nPOS, pItem, 0, nRemaining);
+		else if(aChangeLog)
+			InsertChangeLog(*aChangeLog, ChangeType::Change_RemoveFromSlot, nTI, nPOS, pItem, 0, *nDecRet);
 	}
 	else
 		return false;
 	return bCountSufficient;
 }
 
-int InventoryManipulator::RawExchange(GA_Character * pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>& aLogAdd, std::vector<ChangeLog>& aLogRemove)
+int InventoryManipulator::RawExchange(GA_Character *pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bReleaseBackupItem)
 {
-	std::vector<BackupItem> aBackupItem;
 	int nDel = 0, nAdd = 0;
 	for (auto& elem : aExchange)
 	{
@@ -339,7 +342,7 @@ int InventoryManipulator::RawExchange(GA_Character * pCharacterData, int nMoney,
 						nCount,
 						aLogRemove,
 						&nRemovedAtCurrentSlot, 
-						nullptr, 
+						nullptr,
 						&aBackupItem);
 				}
 				else
@@ -354,53 +357,84 @@ int InventoryManipulator::RawExchange(GA_Character * pCharacterData, int nMoney,
 						nCount, 
 						aLogRemove, 
 						&nRemovedAtCurrentSlot, 
-						nullptr, 
+						nullptr,
 						&aBackupItem);
 				}
 				nCount -= nRemovedAtCurrentSlot;
 			}
 			if(nCount != 0)
 			{
-				RestoreBackupItem(pCharacterData, &aBackupItem);
+				RestoreBackupItem(pCharacterData, aBackupItem);
 				return Exchange_InsufficientItemCount;
 			}
 		}
 		else
 		{
 			if ((elem.m_pItem != nullptr && !RawAddItem(pCharacterData, elem.m_pItem->nType, elem.m_pItem, aLogAdd, &nAdd, true, &aBackupItem))
-				|| (!RawAddItem(pCharacterData, elem.m_nItemID / 1000000, elem.m_nItemID, elem.m_nCount, aLogAdd, &nAdd, &aBackupItem)))
+				|| (elem.m_pItem == nullptr && !RawAddItem(pCharacterData, elem.m_nItemID / 1000000, elem.m_nItemID, elem.m_nCount, aLogAdd, &nAdd, &aBackupItem)))
 			{
-				RestoreBackupItem(pCharacterData, &aBackupItem);
+				RestoreBackupItem(pCharacterData, aBackupItem);
 				return Exchange_InsufficientSlotCount;
 			}
+			elem.m_nCount = 0;
 		}
 	}
 	if (!RawIncMoney(pCharacterData, nMoney))
 	{
-		RestoreBackupItem(pCharacterData, &aBackupItem);
+		RestoreBackupItem(pCharacterData, aBackupItem);
 		return Exchange_InsufficientMeso;
 	}
 
-	for (auto& pBackup : aBackupItem)
-		if(pBackup.m_pItem)
-			pBackup.m_pItem->Release();
+	if (bReleaseBackupItem)
+		ReleaseBackupItem(aBackupItem);
 
 	return Exchange_Success;
 }
 
-void InventoryManipulator::RestoreBackupItem(GA_Character * pCharacterData, std::vector<BackupItem>* paBackupItem)
+void InventoryManipulator::RestoreBackupItem(GA_Character * pCharacterData, std::vector<BackupItem>& aBackupItem)
 {
-	for (auto& pItemBackup : (*paBackupItem))
+	for(int i = 0; i < aBackupItem.size(); )
 	{
-		auto pItem = pCharacterData->GetItem(pItemBackup.m_nTI, pItemBackup.m_nPOS);
-		if (pItemBackup.m_pItem == nullptr)
-			pCharacterData->mItemSlot[pItemBackup.m_nTI].erase(pItemBackup.m_nPOS);
+		auto& refItemBackup = (aBackupItem)[i];
+		auto pItem = pCharacterData->GetItem(refItemBackup.m_nTI, refItemBackup.m_nPOS);
+		if (refItemBackup.m_pItem == nullptr)
+			pCharacterData->mItemSlot[refItemBackup.m_nTI].erase(refItemBackup.m_nPOS);
 		else 
 		{
-			pCharacterData->SetItem(pItemBackup.m_nTI, pItemBackup.m_nPOS, pItemBackup.m_pItem);
-			pCharacterData->mItemRemovedRecord[pItemBackup.m_nTI].erase(pItemBackup.m_pItem->liItemSN);
+			pCharacterData->SetItem(refItemBackup.m_nTI, refItemBackup.m_nPOS, refItemBackup.m_pItem);
+			pCharacterData->mItemRemovedRecord[refItemBackup.m_nTI].erase(refItemBackup.m_pItem->liItemSN);
+			aBackupItem.erase(aBackupItem.begin() + i);
+			continue;
 		}
 		if (pItem != nullptr)
 			pItem->Release();
+		++i;
 	}
+}
+
+void InventoryManipulator::ReleaseBackupItem(std::vector<BackupItem>& aBackupItem)
+{
+	for (auto &bkItem : aBackupItem)
+		if (bkItem.m_pItem)
+			bkItem.m_pItem->Release();
+}
+
+void InventoryManipulator::RestoreTradingInventory(GA_Character *pCharacterData, std::map<int, int> mBackupItemTrading[6], std::vector<InventoryManipulator::ChangeLog> &aChangeLog)
+{
+	for (int nTI = 1; nTI <= 5; ++nTI)
+		for (auto& prItem : mBackupItemTrading[nTI])
+		{
+			auto pItem = pCharacterData->GetItem(nTI, prItem.first);
+			if (pItem)
+				InventoryManipulator::InsertChangeLog(
+					aChangeLog,
+					InventoryManipulator::ChangeType::Change_AddToSlot,
+					nTI,
+					prItem.first,
+					pItem,
+					0,
+					pItem->nType == GW_ItemSlotBase::EQUIP ?
+					1 : ((GW_ItemSlotBundle*)pItem)->nNumber
+				);
+		}
 }

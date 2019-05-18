@@ -242,7 +242,7 @@ void GA_Character::SaveInventoryRemovedRecord()
 			else
 			{
 				bundleRemovedInstance.liItemSN = liSN * -1;
-				equipRemovedInstance.nType = (GW_ItemSlotBase::GW_ItemSlotType)(GW_ItemSlotBase::GW_ItemSlotType::EQUIP + (i));
+				bundleRemovedInstance.nType = (GW_ItemSlotBase::GW_ItemSlotType)(i);
 				bundleRemovedInstance.Save(nCharacterID);
 			}
 	}
@@ -296,7 +296,7 @@ GW_ItemSlotBase * GA_Character::GetItemByID(int nItemID)
 	return nullptr;
 }
 
-void GA_Character::RemoveItem(int nTI, int nPOS)
+void GA_Character::RemoveItem(int nTI, int nPOS, bool bRelease)
 {
 	if (nTI <= 0 || nTI > 5)
 		return;
@@ -308,6 +308,9 @@ void GA_Character::RemoveItem(int nTI, int nPOS)
 		mItemSlot[nTI].erase(pItem->nPOS);
 		if (pItem->liItemSN != -1)
 			mItemRemovedRecord[nTI].insert(pItem->liItemSN);
+
+		if (!bRelease)
+			return;
 		if (pItem->nType == GW_ItemSlotBase::EQUIP)
 			FreeObj((GW_ItemSlotEquip*)(pItem));
 		else

@@ -196,6 +196,8 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 	return nHighestDamageUser;
 }
 
+#include "..\WvsLib\Logger\WvsLogger.h"
+
 void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem)
 {
 	auto& aReward = m_pMobTemplate->GetMobReward();
@@ -215,12 +217,11 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 		{
 			long long int liRnd = 
 				((unsigned int)Rand32::GetInstance()->Random()) % 1000000000;
-			if (liRnd < (long double)pInfo->m_unWeight * 1.5f)
+			if (liRnd < (long double)pInfo->m_unWeight)
 			{
 				++nDropCount;
 				prDropPos = { GetPosX(), GetPosY() };
 				int nXOffset = (int)(Rand32::GetInstance()->Random() % 60u) - 30;
-				//prDropPos.first = (prDropPos.first + nXOffset);
 				nDiff = pInfo->m_nMax - pInfo->m_nMin;
 				nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
 				pDrop = AllocObj(Reward);
@@ -230,7 +231,6 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 				pDrop->SetMoney(pInfo->m_nItemID == 0 ? nRange : 0);
 				if (pInfo->m_nItemID != 0)
 				{
-					std::cout << "pInfo->nItemID = " << pInfo->m_nItemID << std::endl;
 					auto pItem = ItemInfo::GetInstance()->GetItemSlot(pInfo->m_nItemID, ItemInfo::ItemVariationOption::ITEMVARIATION_NORMAL);
 					if (!pItem)
 					{
@@ -244,20 +244,6 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 				pDrop->SetType(1);
 				pDrop->SetPeriod(pInfo->m_nPeriod);
 				apDrop.push_back(pDrop);
-				/*GetField()->GetDropPool()->Create(
-					pDrop,
-					dwOwnerID,
-					dwOwnPartyID,
-					nOwnType,
-					dwOwnerID,
-					prDropPos.first,
-					prDropPos.second,
-					prDropPos.first + nXOffset,
-					prDropPos.second,
-					0,
-					1,
-					0,
-					0);*/
 			}
 		}
 		if (apDrop.size() == 0)
@@ -265,15 +251,15 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 
 		int nXOffset = ((int)apDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
 		nXOffset += prDropPos.first;
-		for (auto& pDrop : apDrop);
+		for (auto& pReward : apDrop)
 		{
 			GetField()->GetDropPool()->Create(
-				pDrop,
+				pReward,
 				dwOwnerID,
 				dwOwnPartyID,
 				nOwnType,
 				dwOwnerID,
-				prDropPos.first,
+				nXOffset,
 				prDropPos.second,
 				nXOffset,
 				0,

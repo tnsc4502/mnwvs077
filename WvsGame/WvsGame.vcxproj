@@ -185,6 +185,7 @@
     <ClInclude Include="DemonSlayerSkills.h" />
     <ClInclude Include="Drop.h" />
     <ClInclude Include="DropPool.h" />
+    <ClInclude Include="EntrustedShop.h" />
     <ClInclude Include="EquipItem.h" />
     <ClInclude Include="EvanSkills.h" />
     <ClInclude Include="ExchangeElement.h" />
@@ -223,6 +224,7 @@
     <ClInclude Include="NPC.h" />
     <ClInclude Include="NpcTemplate.h" />
     <ClInclude Include="PartyMan.h" />
+    <ClInclude Include="PersonalShop.h" />
     <ClInclude Include="Pet.h" />
     <ClInclude Include="PetFoodItem.h" />
     <ClInclude Include="PhantomSkills.h" />
@@ -294,6 +296,7 @@
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Drop.cpp" />
     <ClCompile Include="DropPool.cpp" />
+    <ClCompile Include="EntrustedShop.cpp" />
     <ClCompile Include="EquipItem.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="FieldMan.cpp" />
@@ -314,6 +317,7 @@
     <ClCompile Include="NPC.cpp" />
     <ClCompile Include="NpcTemplate.cpp" />
     <ClCompile Include="PartyMan.cpp" />
+    <ClCompile Include="PersonalShop.cpp" />
     <ClCompile Include="Pet.cpp" />
     <ClCompile Include="PetFoodItem.cpp" />
     <ClCompile Include="PortableChairItem.cpp" />

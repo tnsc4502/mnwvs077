@@ -257,7 +257,6 @@ void Field::OnEnter(User *pUser)
 	if (m_pParentFieldSet != nullptr)
 		m_pParentFieldSet->OnUserEnterField(pUser);
 
-	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
 
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeEnterFieldPacket(&oPacketForBroadcasting);
@@ -271,6 +270,7 @@ void Field::OnEnter(User *pUser)
 			pUser->SendPacket(&oPacketToTarget);
 		}
 	}
+	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
 }
 
 void Field::OnLeave(User * pUser)
