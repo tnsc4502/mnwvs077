@@ -347,12 +347,22 @@ AttackInfo * User::TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket 
 	if (WvsGameConstants::IsKeyDownSkill(nSkillID))
 		pInfo->m_tKeyDown = iPacket->Decode4();
 
-	iPacket->Decode1();
+	pInfo->m_nOption = iPacket->Decode1();
 	pInfo->m_nDisplay = iPacket->Decode1();
 	pInfo->m_nAttackActionType = iPacket->Decode1();
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 	pInfo->m_nSlot = iPacket->Decode2();
+	int nDecCount = 0;
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	if (!QWUInventory::RawWasteItem(this, pInfo->m_nSlot, 1, aChangeLog)
+		&& !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, 1, &aChangeLog, nDecCount, nullptr))
+	{
+		SendNoticeMessage("Invalid Attack.");
+	}
+	else
+		QWUInventory::SendInventoryOperation(this, false, aChangeLog);
+
 	pInfo->m_nCsStar = iPacket->Decode2();
 	pInfo->m_nShootRange = iPacket->Decode1();
 
@@ -923,6 +933,41 @@ void User::ResetTemporaryStat(int tCur, int nReasonID)
 	}
 }
 
+void User::SendUseSkillEffect(int nSkillID, int nSLV)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(Effect::eEffect_OnUseSkill);
+	oPacket.Encode4(nSkillID);
+	oPacket.Encode1((char)nSLV);
+
+	if (nSkillID == 1320006)
+		oPacket.Encode1(1);
+	else if (nSkillID == 1121001 || nSkillID == 1221001 || nSkillID == 1321001)
+		oPacket.Encode1(1);
+
+	GetField()->SplitSendPacket(&oPacket, this);
+}
+
+void User::SendLevelUpEffect()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(Effect::eEffect_LevelUp);
+	GetField()->SplitSendPacket(&oPacket, this);
+}
+
+void User::SendChangeJobEffect()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(Effect::eEffect_ChangeJobEffect);
+	GetField()->SplitSendPacket(&oPacket, this);
+}
+
 void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
 {
 	int tTick = iPacket->Decode4();
@@ -1062,7 +1107,6 @@ void User::OnSelectNpc(InPacket * iPacket)
 	{
 		OutPacket oPacket;
 		oPacket.Encode2((int)NPCPacketFlags::NPC_OnNpcShopItemList);
-		oPacket.Encode1(0);
 		pTemplate->EncodeShop(this, &oPacket);
 		m_pTradingNpc = pNpc;
 		SendPacket(&oPacket);
@@ -1191,7 +1235,6 @@ void User::OnAcceptQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[OnAcceptQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n",
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
-		SendQuestResult(7, 0, 0);
 		return;
 	}
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
@@ -1205,7 +1248,6 @@ void User::OnCompleteQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, N
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[OnCompleteQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n",
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
-		SendQuestResult(7, 0, 0);
 		return;
 	}
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
@@ -1271,6 +1313,7 @@ void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
 	QWUser::IncMoney(this, pCompleteAct->nMoney, false);
 
 	QWUQuestRecord::SetComplete(this, nQuestID);
+	SendQuestEndEffect();
 }
 
 void User::TryExchange(const std::vector<ActItem*>& aActItem)
@@ -1461,6 +1504,20 @@ void User::SendQuestResult(int nResult, int nQuestID, int dwTemplateID)
 	SendPacket(&oPacket);
 }
 
+void User::SendQuestEndEffect()
+{
+	OutPacket oPacketLocal;
+	oPacketLocal.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketLocal.Encode1(Effect::eEffect_QuestCompleteEffect);
+	SendPacket(&oPacketLocal);
+
+	OutPacket oPacketRemote;
+	oPacketRemote.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketRemote.Encode4(GetUserID());
+	oPacketRemote.Encode1(Effect::eEffect_QuestCompleteEffect);
+	GetField()->SplitSendPacket(&oPacketRemote, this);
+}
+
 void User::SendChatMessage(int nType, const std::string & sMsg)
 {
 	OutPacket oPacket;
@@ -1472,13 +1529,9 @@ void User::SendChatMessage(int nType, const std::string & sMsg)
 	SendPacket(&oPacket);
 }
 
-void User::SendNoticeMessage(int nType, const std::string & sMsg)
+void User::SendNoticeMessage(const std::string & sMsg)
 {
-	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnBroadcastMsg);
-	oPacket.EncodeStr(sMsg);
-	oPacket.Encode1((unsigned char)nType);
-	SendPacket(&oPacket);
+	SendChatMessage(1, sMsg);
 }
 
 void User::SendFuncKeyMapped()
@@ -1963,6 +2016,7 @@ void User::OnMigrateIn()
 	m_pUpdateTimer = pUpdateTimer;
 	pUpdateTimer->Start();
 	SetTransferStatus(TransferStatus::eOnTransferNone);
+	QWUQuestRecord::ValidMobCountRecord(this);
 
 	for (auto& pCashItem : m_pCharacterData->mItemSlot[GW_ItemSlotBase::CASH])
 	{

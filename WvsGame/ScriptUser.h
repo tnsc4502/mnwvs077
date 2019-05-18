@@ -49,5 +49,6 @@ public:
 	static int TargetGetEXP(lua_State* L);
 	static int TargetGetMoney(lua_State* L);
 	static int TargetIsWearing(lua_State* L);
+	static int TargetQuestEndEffect(lua_State* L);
 };
 

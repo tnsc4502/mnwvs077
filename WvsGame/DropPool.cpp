@@ -29,7 +29,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 {
 	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
 	auto pFoothold = m_pField->GetSpace2D()->GetFootholdUnderneath(x2, y1 - 100, &y2);
-	if (!pFoothold || m_pField->GetSpace2D()->IsPointInMBR(x2, y2, true))
+	if (!m_pField->GetSpace2D()->IsPointInMBR(x2, y2, true))
 	{
 		pFoothold = m_pField->GetSpace2D()->GetFootholdClosest(m_pField, x2, y1, &x2, &y2, x1);
 	}

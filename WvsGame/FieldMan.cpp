@@ -67,7 +67,7 @@ void FieldMan::FieldFactory(int nFieldID)
 		return;
 
 	auto& infoData = mapWz["info"];
-	Field* newField = AllocObj(Field);
+	Field* newField = AllocObjCtor(Field)(nFieldID);
 	newField->SetFieldID(nFieldID);
 
 	newField->SetCould(((int)infoData["cloud"] != 0));

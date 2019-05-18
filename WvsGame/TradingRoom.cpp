@@ -66,7 +66,7 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 		GW_ItemSlotBase* pItemCopyed = nullptr;
 		QWUInventory::MoveItemToTemp(pUser, &pItemCopyed, nTI, nPOS, nNumber);
 
-		for (int i = 0; i < 2; ++i)
+		for (int i = 0; i < m_nMaxUsers; ++i)
 		{
 			OutPacket oPacket;
 			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
@@ -77,7 +77,7 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 
 			m_apUser[i]->SendPacket(&oPacket);
 		}
-		FreeObj(pItemCopyed);
+		pItemCopyed->Release();
 	}
 }
 
@@ -116,7 +116,7 @@ void TradingRoom::OnTrade(User *pUser, InPacket *iPacket)
 
 	std::lock_guard<std::recursive_mutex> lock0(m_apUser[0]->GetLock());
 	std::lock_guard<std::recursive_mutex> lock1(m_apUser[1]->GetLock());
-	if (m_nCurUsers && !m_abLock[nIdx])
+	if (m_nCurUsers == m_nMaxUsers && !m_abLock[nIdx])
 	{
 		m_abLock[nIdx] = true;
 

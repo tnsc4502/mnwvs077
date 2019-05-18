@@ -24,18 +24,19 @@
 #include <mutex>
 #include <functional>
 
-Field::Field()
+Field::Field(int nFieldID)
 	: m_pLifePool(AllocObj(LifePool)),
 	  m_pPortalMap(AllocObj(PortalMap)),
 	  m_pTownPortalPool(AllocObj(TownPortalPool)),
 	  m_pReactorPool(AllocObj(ReactorPool)),
 	  m_pSpace2D(AllocObj(WvsPhysicalSpace2D))
 {
+	m_nFieldID = nFieldID;
 	m_pDropPool = AllocObjCtor(DropPool)(this);
 	m_pSummonedPool = AllocObjCtor(SummonedPool)(this);
 	//m_asyncUpdateTimer = AsyncScheduler::CreateTask(std::bind(&Field::UpdateTrigger, this), 5000, true);
 	//this->m_asyncUpdateTimer = (void*)timer;
-	InitLifePool();
+	//InitLifePool();
 }
 
 Field::~Field()
@@ -132,14 +133,14 @@ int Field::GetForcedReturn() const
 	return m_nForcedReturn;
 }
 
-void Field::SetMobRate(int mobRate)
+void Field::SetMobRate(double dMobRate)
 {
-	m_nMobRate = mobRate;
+	m_dMobRate = dMobRate;
 }
 
-int Field::GetMobRate() const
+double Field::GetMobRate() const
 {
-	return m_nMobRate;
+	return m_dMobRate;
 }
 
 void Field::SetFieldType(int fieldType)

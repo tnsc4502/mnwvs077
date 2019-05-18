@@ -11,6 +11,8 @@ public:
 	static void Remove(User *pUser, int nKey, bool bComplete);
 	static std::string Get(User *pUser, int nKey);
 	static void Set(User *pUser, int nKey, const std::string & sInfo);
+	static void SetMobRecord(User *pUser, int nKey, int nMobTempleteID);
+	static void ValidMobCountRecord(User *pUser);
 	static void SetComplete(User *pUser, int nKey);
 };
 

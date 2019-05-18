@@ -47,6 +47,7 @@ public:
 	//給定nItemID, nCount加入玩家背包
 	static bool RawAddItem(GA_Character* pCharacterData, int nTI, int nItemID, int nCount, std::vector<ChangeLog>* aChangeLog, int *nIncRet, std::vector<BackupItem>* paBackupItem = nullptr);
 	static bool RawRemoveItem(GA_Character* pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int *nDecRet, GW_ItemSlotBase **ppItemRemoved, std::vector<BackupItem>* aBackupItem = nullptr);
+	static bool RawWasteItem(GA_Character* pCharacterData, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog);
 	static int RawExchange(GA_Character* pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bReleaseBackupItem = true);
 
 	//在Exchange失敗的時候進行恢復

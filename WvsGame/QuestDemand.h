@@ -16,7 +16,7 @@ struct QuestDemand
 	//key = nMobID  Value = nCount
 	std::map<int, int> m_mDemandMob;
 
-	std::vector<int> m_aDemandPet, m_aDemandJob, m_aFieldEnter;
+	std::vector<int> m_aDemandPet, m_aDemandJob, m_aFieldEnter, m_aDemandMob;
 
 	int nPartyQuest_S = 0,
 		nDayByDay = 0,

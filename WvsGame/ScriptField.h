@@ -18,5 +18,6 @@ public:
 	static int FieldGetID(lua_State* L);
 	static int FieldSummonMob(lua_State* L);
 	static int FieldSummonNpc(lua_State* L);
+	static int FieldBroadcastPacket(lua_State* L);
 };
 

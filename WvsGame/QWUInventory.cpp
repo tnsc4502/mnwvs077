@@ -456,7 +456,58 @@ bool QWUInventory::MoveMoneyToTemp(User * pUser, int nAmount)
 	return true;
 }
 
-int QWUInventory::GetSlotCount(User * pUser, int nTI)
+bool QWUInventory::WasteItem(User *pUser, int nItemID, int nCount, bool bProtected)
+{
+	if (!ItemInfo::GetInstance()->IsRechargable(nItemID))
+		return false;
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	std::vector<BackupItem> aBackup;
+
+	auto pCharacterData = pUser->GetCharacterData();
+	int nDecCount = 0;
+	GW_ItemSlotBundle* pItem = nullptr, *pClone;
+	for (auto& prItem : pCharacterData->mItemSlot[GW_ItemSlotBase::CONSUME])
+	{
+		pItem = (GW_ItemSlotBundle*)prItem.second;
+		if (pItem && pItem->nItemID == nItemID && (!pItem->IsProtectedItem() || bProtected))
+		{
+			//Make BackupItem.
+			pClone = (GW_ItemSlotBundle*)pItem->MakeClone();
+			pClone->liItemSN = pItem->liItemSN;
+			pClone->liCashItemSN = pItem->liCashItemSN;
+			aBackup.push_back({ GW_ItemSlotBase::CONSUME, pItem->nPOS, pClone, true });
+
+			nDecCount = pItem->nNumber;
+			if (nDecCount > nCount)
+				nDecCount = nCount;
+			InventoryManipulator::RawWasteItem(pCharacterData, pItem->nPOS, nDecCount, &aChangeLog);
+			if ((nCount -= nDecCount) == 0)
+				break;
+		}
+	}
+
+	if (nCount > 0)
+	{
+		InventoryManipulator::RestoreBackupItem(pCharacterData, aBackup);
+		return false;
+	}
+	else 
+	{
+		InventoryManipulator::ReleaseBackupItem(aBackup);
+		SendInventoryOperation(pUser, false, aChangeLog);
+	}
+	return true;
+}
+
+bool QWUInventory::RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
+{
+	if (QWUser::GetHP(pUser))
+		return InventoryManipulator::RawWasteItem(pUser->GetCharacterData(), nPOS, nCount, &aChangeLog);
+	return false;
+}
+
+int QWUInventory::GetSlotCount(User *pUser, int nTI)
 {
 	if (nTI < GW_ItemSlotBase::EQUIP || nTI > GW_ItemSlotBase::CASH)
 		return 0;

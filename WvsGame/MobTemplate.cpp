@@ -1,6 +1,9 @@
 #include "MobTemplate.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "Reward.h"
+#include "User.h"
+#include "QuestMan.h"
+#include "QWUQuestRecord.h"
 
 std::map<int, MobTemplate*>* MobTemplate::m_MobTemplates = new std::map<int, MobTemplate*>();
 
@@ -71,6 +74,7 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_strElemAttr = info["elemAttr"];
 	pTemplate->m_strMobType = info["mobType"];
 	pTemplate->m_bIsExplosiveDrop = ((int)info["explosiveReward"] == 1);
+	pTemplate->m_nTemplateID = dwTemplateID;
 
 	bool bFly = (info["fly"] == info.end());
 	bool bMove = (info["move"] == info.end());
@@ -87,4 +91,11 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 		pTemplate->m_unTotalRewardProb += pInfo->m_unWeight;
 
 	(*m_MobTemplates)[dwTemplateID] = pTemplate;
+}
+
+void MobTemplate::SetMobCountQuestInfo(User * pUser) const
+{
+	auto& aQuestKey = QuestMan::GetInstance()->GetQuestByMob(m_nTemplateID);
+	for (auto& nKey : aQuestKey)
+		QWUQuestRecord::SetMobRecord(pUser, nKey, m_nTemplateID);
 }

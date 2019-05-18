@@ -3,6 +3,7 @@
 #include "..\Database\GW_MobReward.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "Reward.h"
+#include "QWUQuestRecord.h"
 #include "DropPool.h"
 #include "User.h"
 #include "ItemInfo.h"
@@ -196,105 +197,78 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 	return nHighestDamageUser;
 }
 
-#include "..\WvsLib\Logger\WvsLogger.h"
-
 void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem)
 {
 	auto& aReward = m_pMobTemplate->GetMobReward();
-
 	int nDiff, nRange;
-	bool bMoneyDropped = false;
-	std::pair<int, int> prDropPos;
 
-	//const auto& aReward = m_pMobTemplate->GetMobReward()->GetRewardList();
 	Reward* pDrop = nullptr;
-	//if (pReward) 
+	std::vector<Reward*> apDrop;
+	User* pOwner = User::FindUser(dwOwnerID);
+
+	for (const auto& pInfo : aReward)
 	{
-		std::vector<Reward*> apDrop;
-
-		int nDropCount = 0;
-		for (const auto& pInfo : aReward)
+		long long int liRnd =
+			((unsigned int)Rand32::GetInstance()->Random()) % 1000000000;
+		if (liRnd < (long double)pInfo->m_unWeight)
 		{
-			long long int liRnd = 
-				((unsigned int)Rand32::GetInstance()->Random()) % 1000000000;
-			if (liRnd < (long double)pInfo->m_unWeight)
+			//Check Quest Record. Drop those only in need.
+			if (pOwner && 
+				ItemInfo::GetInstance()->IsQuestItem(pInfo->m_nItemID) &&
+				QWUQuestRecord::GetState(pOwner, pInfo->m_usQRKey) != 1)
+				continue;
+
+			//Decide the drop amount.
+			nDiff = pInfo->m_nMax - pInfo->m_nMin;
+			nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
+			pDrop = AllocObj(Reward);
+
+			//Drop money.
+			if (pInfo->m_nItemID == 0) 
 			{
-				++nDropCount;
-				prDropPos = { GetPosX(), GetPosY() };
-				int nXOffset = (int)(Rand32::GetInstance()->Random() % 60u) - 30;
-				nDiff = pInfo->m_nMax - pInfo->m_nMin;
-				nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
-				pDrop = AllocObj(Reward);
-				if (pInfo->m_nItemID == 0)
-					nRange = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
-			
-				pDrop->SetMoney(pInfo->m_nItemID == 0 ? nRange : 0);
-				if (pInfo->m_nItemID != 0)
-				{
-					auto pItem = ItemInfo::GetInstance()->GetItemSlot(pInfo->m_nItemID, ItemInfo::ItemVariationOption::ITEMVARIATION_NORMAL);
-					if (!pItem)
-					{
-						FreeObj(pDrop);
-						continue;
-					}
-					pDrop->SetItem(pItem);
-					if (pInfo->m_nItemID / 1000000 != 1)
-						((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
-				}
-				pDrop->SetType(1);
-				pDrop->SetPeriod(pInfo->m_nPeriod);
-				apDrop.push_back(pDrop);
+				nRange = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
+				pDrop->SetMoney(nRange);
 			}
-		}
-		if (apDrop.size() == 0)
-			return;
-
-		int nXOffset = ((int)apDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
-		nXOffset += prDropPos.first;
-		for (auto& pReward : apDrop)
-		{
-			GetField()->GetDropPool()->Create(
-				pReward,
-				dwOwnerID,
-				dwOwnPartyID,
-				nOwnType,
-				dwOwnerID,
-				nXOffset,
-				prDropPos.second,
-				nXOffset,
-				0,
-				0,
-				0,
-				0,
-				0);
-			nXOffset += GetMobTemplate()->m_bIsExplosiveDrop ? 40 : 20;
+			else
+			{
+				auto pItem = ItemInfo::GetInstance()->GetItemSlot(pInfo->m_nItemID, ItemInfo::ItemVariationOption::ITEMVARIATION_NORMAL);
+				if (!pItem)
+				{
+					FreeObj(pDrop);
+					continue;
+				}
+				pDrop->SetItem(pItem);
+				if (pInfo->m_nItemID / 1000000 != GW_ItemSlotBase::EQUIP)
+					((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
+			}
+			pDrop->SetType(1);
+			pDrop->SetPeriod(pInfo->m_nPeriod);
+			apDrop.push_back(pDrop);
 		}
 	}
+	if (apDrop.size() == 0)
+		return;
 
-	/*if (!bMoneyDropped && ((unsigned int)(Rand32::GetInstance()->Random())) % 100 > 60)
+	int nXOffset = ((int)apDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
+	nXOffset += GetPosX();
+	for (auto& pReward : apDrop)
 	{
-		prDropPos = GetDropPos();
-		int nRange = (int)ceil((double)GetMobTemplate()->m_nLevel / 2.0) + ((unsigned int)(Rand32::GetInstance()->Random())) % (GetMobTemplate()->m_nLevel * 2);
-		//printf("Drop Meso : Monster Level : %d Rnd : %d\n", (int)ceil((double)GetMobTemplate()->m_nLevel / 2.0), ((unsigned int)(Rand32::GetInstance()->Random())) % (GetMobTemplate()->m_nLevel * 2));
-		pDrop = AllocObj(Reward);
-		pDrop->SetItem(nullptr);
-		pDrop->SetMoney(nRange);
-		pDrop->SetType(0);
 		GetField()->GetDropPool()->Create(
-			pDrop,
+			pReward,
 			dwOwnerID,
 			dwOwnPartyID,
 			nOwnType,
-			GetTemplateID(),
-			prDropPos.first,
-			prDropPos.second,
-			prDropPos.first,
-			prDropPos.second,
+			dwOwnerID,
+			nXOffset,
+			GetPosY(),
+			nXOffset,
 			0,
-			1,
+			0,
+			0,
 			0,
 			0);
-	}*/
+		nXOffset += GetMobTemplate()->m_bIsExplosiveDrop ? 40 : 20;
+	}
 }
 
 void Mob::SetHP(long long int liHP)

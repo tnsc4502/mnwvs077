@@ -322,6 +322,21 @@ bool InventoryManipulator::RawRemoveItem(GA_Character *pCharacterData, int nTI, 
 	return bCountSufficient;
 }
 
+bool InventoryManipulator::RawWasteItem(GA_Character * pCharacterData, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog)
+{
+	GW_ItemSlotBundle* pItem = (GW_ItemSlotBundle*)pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	if (!pItem || pItem->nNumber < nCount)
+		return false;
+	if (!ItemInfo::GetInstance()->IsRechargable(pItem->nItemID))
+		return false;
+	pItem->nNumber -= nCount;
+	if (aChangeLog)
+		InventoryManipulator::InsertChangeLog(
+			*aChangeLog, ChangeType::Change_QuantityChanged, GW_ItemSlotBase::CONSUME, nPOS, nullptr, 0, pItem->nNumber
+		);
+	return true;
+}
+
 int InventoryManipulator::RawExchange(GA_Character *pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bReleaseBackupItem)
 {
 	int nDel = 0, nAdd = 0;

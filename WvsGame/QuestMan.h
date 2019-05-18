@@ -14,6 +14,7 @@ class QuestMan
 	std::map<int, QuestDemand*> m_mStartDemand, m_mCompleteDemand;
 	std::set<int> m_mAutoStartQuest, m_mAutoCompleteQuest;
 	std::map<int, int> m_mItemQuest;
+	std::map<int, std::vector<int>> m_mMobQuest;
 
 	QuestMan();
 	~QuestMan();
@@ -34,5 +35,6 @@ public:
 	QuestDemand* GetStartDemand(int nQuestID);
 	QuestDemand* GetCompleteDemand(int nQuestID);
 	int GetQuestByItem(int nItemID);
+	const std::vector<int>& GetQuestByMob(int nMobID);
 };
 

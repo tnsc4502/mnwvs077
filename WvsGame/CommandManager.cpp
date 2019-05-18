@@ -54,7 +54,7 @@ int CmdFuncItem(User *pUser, PARAM_TYPE aInput)
 		{
 			if (pNewItem->nType != GW_ItemSlotBase::GW_ItemSlotType::EQUIP
 				&& pNewItem->nType != GW_ItemSlotBase::GW_ItemSlotType::CASH)
-				((GW_ItemSlotBundle*)pNewItem)->nNumber = GetInt(aInput, 1, 1);
+				((GW_ItemSlotBundle*)pNewItem)->nNumber = GetInt(aInput, 2, 1);
 
 			//pNewItem->liExpireDate = GameDateTime::GetDateExpireFromPeriod(1);
 			Reward reward;

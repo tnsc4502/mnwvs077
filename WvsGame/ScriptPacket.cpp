@@ -16,6 +16,11 @@ ScriptPacket::~ScriptPacket()
 		FreeObj(m_pOutPacket);
 }
 
+OutPacket *ScriptPacket::GetPacket() const
+{
+	return m_pOutPacket;
+}
+
 ScriptPacket* ScriptPacket::PacketNew(lua_State * L)
 {
 	ScriptPacket *p = AllocObj(ScriptPacket);

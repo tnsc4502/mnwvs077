@@ -12,7 +12,7 @@ class Rand32
 
 public:
 	static Rand32* GetInstance();
-	unsigned int Random();
-	unsigned int Random(unsigned int nMin, unsigned int nMax);
+	unsigned long long int Random();
+	unsigned long long int Random(unsigned int nMin, unsigned int nMax);
 	std::vector<int> GetRandomUniqueArray(int nStart, int nRange, int nCount);
 };

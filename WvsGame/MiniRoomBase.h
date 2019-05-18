@@ -110,6 +110,7 @@ public:
 	User* FindUser(User *pUser);
 	int FindUserSlot(User *pUser);
 	void OnPacketBase(User *pUser, int nType, InPacket *iPacket);
+	void OnChat(User *pUser, InPacket *iPacket, int nMessageCode);
 	unsigned char OnCreateBase(User *pUser, InPacket *iPacket, int nRound);
 	void OnInviteBase(User *pUser, InPacket *iPacket);
 	void OnLeaveBase(User *pUser, InPacket *iPacket);

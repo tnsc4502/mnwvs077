@@ -12,8 +12,6 @@ class NpcTemplate
 {
 	int m_nTemplateID = 0;
 	static std::map<int, NpcTemplate*> m_mNpcTemplates;
-	static std::map<int, std::vector<GW_ItemSlotBase*>> m_mUserSoldItem;
-
 	std::vector<GW_Shop::ShopItem*>* m_aShopItem = nullptr;
 
 public:
@@ -29,8 +27,5 @@ public:
 	std::vector<GW_Shop::ShopItem*>* GetShopItem();
 	void EncodeShop(User *pUser, OutPacket *oPacket);
 	static void EncodeShopItem(User *pUser, GW_Shop::ShopItem* pItem, OutPacket *oPacket);
-
-	static std::vector<GW_ItemSlotBase*>* GetUserSoldItems(int nUserID);
-	static void ClearUserSoldItems(int nUserID);
 };
 

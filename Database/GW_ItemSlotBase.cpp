@@ -75,6 +75,11 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::IncItemSN(GW_ItemSlotType ty
 		return ++atCashAtomicCounter;
 }
 
+bool GW_ItemSlotBase::IsProtectedItem() const
+{
+	return nAttribute & 1;
+}
+
 /*
 Encode Item Type, Where Equip = 1, Stackable = 2, Pet = 3
 */

@@ -1,4 +1,5 @@
 #include "ScriptField.h"
+#include "ScriptPacket.h"
 #include "Script.h"
 #include "Field.h"
 #include "FieldMan.h"
@@ -46,6 +47,7 @@ void ScriptField::Register(lua_State * L)
 		{ "getID", FieldGetID },
 		{ "summonMob", FieldSummonMob },
 		{ "summonNpc", FieldSummonNpc },
+		{ "broadcast", FieldBroadcastPacket },
 		{ NULL, NULL }
 	};
 
@@ -97,5 +99,13 @@ int ScriptField::FieldSummonMob(lua_State * L)
 int ScriptField::FieldSummonNpc(lua_State * L)
 {
 	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	return 1;
+}
+
+int ScriptField::FieldBroadcastPacket(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	ScriptPacket* packet = luaW_check<ScriptPacket>(L, 2);
+	self->m_pField->BroadcastPacket(packet->GetPacket());
 	return 1;
 }

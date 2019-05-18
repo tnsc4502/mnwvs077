@@ -2,20 +2,18 @@
 #include <random>
 #include <ctime>
 
-class pcg
+class WvsPCG
 {
 public:
 	using result_type = uint32_t;
 	static constexpr result_type(min)() { return 0; }
 	static constexpr result_type(max)() { return UINT32_MAX; }
-	friend bool operator==(pcg const &, pcg const &);
-	friend bool operator!=(pcg const &, pcg const &);
 
-	pcg()
+	WvsPCG()
 		: m_state(0x853c49e6748fea9bULL)
 		, m_inc(0xda3e39cb94b95bdbULL)
 	{}
-	explicit pcg(std::random_device &rd)
+	explicit WvsPCG(std::random_device &rd)
 	{
 		seed(rd);
 	}
@@ -56,10 +54,10 @@ Rand32::Rand32()
 {
 	srand((unsigned int)time(nullptr));
 	//unsigned long long int v2 = rand();
-	double v2 = ((double)rand() / (double)RAND_MAX);
+	/*double v2 = ((double)rand() / (double)RAND_MAX);
 	Seed((unsigned int)(1170746341 * v2 - 755606699), 
 		(unsigned int)(1170746341 * v2 - 755606699), 
-		(unsigned int)(1170746341 * v2 - 755606699));
+		(unsigned int)(1170746341 * v2 - 755606699));*/
 }
 
 void Rand32::Seed(unsigned int s1, unsigned int s2, unsigned int s3)
@@ -79,38 +77,19 @@ Rand32 * Rand32::GetInstance()
 	return pInstance;
 }
 
-unsigned int Rand32::Random()
+unsigned long long int Rand32::Random()
 {
 	std::lock_guard<std::mutex> lock(m_lock);
 	static std::random_device rd;
-	static pcg rand(rd);
-	static std::uniform_int_distribution<> u(0, 895);
-	/*unsigned int v3; // eax@1
-	unsigned int v4; // ecx@1
-	unsigned int v5; // edx@1
-	unsigned int v6; // ebx@1
-	unsigned int v7; // edi@1
-	unsigned int v8; // ebx@1
-	unsigned int v9; // eax@1
-	auto v1 = this;
-	v3 = v1->m_s1;
-	v4 = v1->m_s2;
-	v5 = v1->m_s3;
-	v6 = v1->m_s1;
-	v1->m_past_s1 = v1->m_s1;
-	v7 = ((v3 & 0xFFFFFFFE) << 12) ^ ((v6 & 0x7FFC0 ^ (v3 >> 13)) >> 6);
-	v1->m_past_s2 = v4;
-	v8 = 16 * (v4 & 0xFFFFFFF8) ^ (((v4 >> 2) ^ v4 & 0x3F800000) >> 23);
-	v1->m_past_s3 = v5;
-	v9 = ((v5 & 0xFFFFFFF0) << 17) ^ (((v5 >> 3) ^ v5 & 0x1FFFFF00) >> 8);
-	v1->m_s3 = v9;
-	v1->m_s1 = v7;
-	v1->m_s2 = v8;
-	return  v7 ^ v8 ^ v9;*/
-	return (u(rand) * u(rand) * u(rand));
+	static WvsPCG rand(rd);
+	static std::uniform_int_distribution<> u(0, 2006674111); //Fine-tuned number
+	static std::uniform_int_distribution<> u2(0, 1721); //Fine-tuned number
+
+	//Fine-tuned combination, more uniform than u^u^u
+	return (u(rand) ^ u(rand) ^ u(rand)) *(u2(rand));
 }
 
-unsigned int Rand32::Random(unsigned int nMin, unsigned int nMax)
+unsigned long long int Rand32::Random(unsigned int nMin, unsigned int nMax)
 {
 	unsigned int nRndRange = (nMax - nMin);
 	if (nRndRange == 0)
@@ -128,7 +107,7 @@ std::vector<int> Rand32::GetRandomUniqueArray(int nStart, int nRange, int nCount
 	int nRnd = 0;
 	for (int i = 0; i < nCount; ++i)
 	{
-		nRnd = Random() % aSample.size();
+		nRnd = (int)(Random() % aSample.size());
 		aRet[i] = aSample[nRnd];
 		aSample.erase(aSample.begin() + nRnd);
 	}

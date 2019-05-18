@@ -42,7 +42,8 @@ class Field
 		m_nJukeBoxItemID; //Juke Box?
 
 	double m_dIncRate_EXP = 1.0, 
-		   m_dIncRate_Drop = 1.0; //¥[­¿?
+		   m_dIncRate_Drop = 1.0,
+			m_dMobRate = 1.0; //¥[­¿?
 
 	bool m_bCloud, 
 		 m_bTown, 
@@ -51,7 +52,6 @@ class Field
 
 	int m_nReturnMap,
 		m_nForcedReturn,
-		m_nMobRate,
 		m_nFieldType,
 		m_nFieldLimit,
 		m_nCreateMobInterval,
@@ -66,7 +66,7 @@ class Field
 	}
 
 public:
-	Field();
+	Field(int nFieldID);
 	~Field();
 
 	void BroadcastPacket(OutPacket* oPacket);
@@ -92,8 +92,8 @@ public:
 	void SetForcedReturn(int forcedReturn);
 	int GetForcedReturn() const;
 
-	void SetMobRate(int mobRate);
-	int GetMobRate() const;
+	void SetMobRate(double dMobRate);
+	double GetMobRate() const;
 
 	void SetFieldType(int fieldType);
 	int GetFieldType() const;

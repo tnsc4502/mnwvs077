@@ -50,7 +50,7 @@ std::vector<FieldPoint> WvsPhysicalSpace2D::GetFootholdRandom(int nCount, FieldR
 	{
 		while (aRet.size() != nCount)
 		{
-			nRndX = rcDst.left + (Rand32::GetInstance()->Random() % nXRange) + nXRange * anShuffle[nIdx++];
+			nRndX = rcDst.left + (int)(Rand32::GetInstance()->Random() % nXRange) + nXRange * anShuffle[nIdx++];
 			auto lPosition = GetFootholdRange(
 				nRndX,
 				rcDst.top,
@@ -58,7 +58,7 @@ std::vector<FieldPoint> WvsPhysicalSpace2D::GetFootholdRandom(int nCount, FieldR
 			);
 			if (lPosition.size() > 0)
 			{
-				int nRnd = Rand32::GetInstance()->Random() % lPosition.size();
+				int nRnd = (int)(Rand32::GetInstance()->Random() % lPosition.size());
 				FieldPoint pt;
 				pt.x = nRndX;
 				pt.y = (int)lPosition[nRnd];
@@ -92,11 +92,23 @@ std::vector<long long int> WvsPhysicalSpace2D::GetFootholdRange(int x, int y1, i
 	return lPosition;
 }
 
+#include "..\WvsLib\Logger\WvsLogger.h"
+
 StaticFoothold * WvsPhysicalSpace2D::GetFootholdClosest(Field * pField, int x, int y, int * pcx, int * pcy, int ptHitx)
 {
 	StaticFoothold *pRet = nullptr;
 
 	int nXOffset = 0, nYOffset = 0, nDist = 0, nMin = 0x7fffffff;
+
+	pRet = GetFootholdUnderneath(x, y - 90, pcy);
+	if (x <= m_rcMBR.left + 10)
+		x = m_rcMBR.left + 10;
+	else if (x >= m_rcMBR.right - 10)
+		x = m_rcMBR.right - 10;
+	*pcx = x;
+	if (pRet)
+		return pRet;
+
 	for (int i = 0; i < m_lFoothold.size(); ++i)
 	{
 		auto pFh = m_lFoothold[i];
@@ -134,7 +146,7 @@ StaticFoothold * WvsPhysicalSpace2D::GetFootholdClosest(Field * pField, int x, i
 				{
 					int nX1 = pFh->m_ptPos1.x;
 					int nX2 = pFh->m_ptPos2.x;
-					if (x > nX1 && (x >= nX2 || x - (nX1 + nX2) / 2 >= 0))
+					if (x > nX1 && (x >= nX2 || ((x - (nX1 + nX2) / 2) >= 0)))
 						nX1 = nX2;
 					int nY = pFh->m_ptPos1.y + (pFh->m_ptPos2.y - pFh->m_ptPos1.y) * (nX1 - pFh->m_ptPos1.x) / (nX2 - pFh->m_ptPos1.x);
 					int nLeft = m_rcMBR.left + 10;
@@ -151,42 +163,33 @@ StaticFoothold * WvsPhysicalSpace2D::GetFootholdClosest(Field * pField, int x, i
 	}
 	if (!pRet)
 	{
-		pRet = GetFootholdUnderneath(x, y - 100, pcy);
-		if (x <= m_rcMBR.left + 10)
-			x = m_rcMBR.left + 10;
-		else if (x >= m_rcMBR.right - 10)
-			x = m_rcMBR.right - 10;
-		*pcx = x;
-		if (!pRet)
+		for (auto& p : m_lFoothold)
 		{
-			for (auto& p : m_lFoothold)
+			int nX1 = p->m_ptPos1.x, nX2 = p->m_ptPos2.x, nY1 = p->m_ptPos1.y, nY2 = p->m_ptPos2.y;
+			if (nX1 < nX2 && nY2 >= y - 100 && nX2 < 100)
 			{
-				int nX1 = p->m_ptPos1.x, nX2 = p->m_ptPos2.x, nY1 = p->m_ptPos1.y, nY2 = p->m_ptPos2.y;
-				if (nX1 < nX2)
+				int nX = 0;
+				nDist = (int)(std::pow(((nX1 + nX2) / 2) - x, 2) + std::pow((((nY1 + nY2) - HIWORD(nY1 + nY2)) / 2) - y, 2));
+				if (nDist < nMin)
 				{
-					int nX = 0;
-					nDist = (int)(std::pow(((nX1 + nX2) / 2) - x, 2) + std::pow(((nY1 + nY2) / 2) - y, 2));
-					if (nDist < nMin)
+					if (x > nX1)
 					{
-						if (x > nX1)
-						{
-							if (x < nX2)
-								nX = (x - (nX1 + nX2) / 2) < 0 ? nX1 : nX2;
-							else
-								nX = nX2;
-						}
+						if (x < nX2)
+							nX = (x - (nX1 + nX2) / 2) < 0 ? nX1 : nX2;
 						else
-							nX = nX1;
-						auto nD = (p->m_ptPos1.y) + (nX - nX1) * (p->m_ptPos2.y - p->m_ptPos1.y) / (nX2 - nX1);
-						int nLeft = m_rcMBR.left + 10;
-						if (nX <= nLeft || (nLeft = m_rcMBR.right - 10, nX >= nLeft))
-							nX = nLeft;
-
-						*pcx = nX;
-						*pcy = nD;
-						nMin = nDist;
-						pRet = p;
+							nX = nX2;
 					}
+					else
+						nX = nX1;
+					auto nD = (p->m_ptPos1.y) + (nX - nX1) * (p->m_ptPos2.y - p->m_ptPos1.y) / (nX2 - nX1);
+					int nLeft = m_rcMBR.left + 15;
+					if (nX <= nLeft || (nLeft = m_rcMBR.right - 15, nX >= nLeft))
+						nX = nLeft;
+
+					*pcx = nX;
+					*pcy = nD;
+					nMin = nDist;
+					pRet = p;
 				}
 			}
 		}
@@ -208,7 +211,7 @@ StaticFoothold * WvsPhysicalSpace2D::GetFootholdUnderneath(int x, int y, int * p
 		nX2 = pRes->m_ptPos2.x;
 		if (nX1 < nX2 && nX1 <= x && nX2 >= x)
 		{
-			nOffset = (pRes->m_ptPos1.y) + (x - nX1) * ((pRes->m_ptPos2.y - pRes->m_ptPos1.y) / (nX2 - nX1));
+			nOffset = (pRes->m_ptPos1.y) + ((x - nX1) * (pRes->m_ptPos2.y - pRes->m_ptPos1.y)) / (nX2 - nX1);
 			if (nOffset >= y && nOffset < nMin)
 			{
 				nMin = nOffset;

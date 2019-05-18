@@ -29,6 +29,7 @@ public:
 	{
 		rq_PShop_PutItem = 18,
 		rq_PShop_BuyItem = 19,
+		rq_PShop_MoveItemToInventory = 23,
 	};
 
 	PersonalShop();
@@ -36,6 +37,7 @@ public:
 
 	void OnPutItem(User *pUser, InPacket *iPacket);
 	void OnBuyItem(User *pUser, InPacket *iPacket);
+	void OnMoveItemToInventory(User *pUser, InPacket *iPacket);
 	virtual void DoTransaction(User *pUser, int nSlot, Item* psItem, int nNumber);
 
 	virtual void OnPacket(User *pUser, int nType, InPacket *iPacket);

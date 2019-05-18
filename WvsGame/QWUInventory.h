@@ -27,6 +27,8 @@ public:
 	static void RawMoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 	static void MoveItemToTemp(User* pUser, GW_ItemSlotBase** pItemCopyed, int nTI, int nPOS, int nNumber);
 	static bool MoveMoneyToTemp(User *pUser, int nAmount);
+	static bool WasteItem(User *pUser, int nItemID, int nCount, bool bProtected);
+	static bool RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 
 	static int GetSlotCount(User *pUser, int nTI);
 	static int GetHoldCount(User *pUser, int nTI);

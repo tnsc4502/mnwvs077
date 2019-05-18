@@ -851,9 +851,9 @@ int ItemInfo::GetVariation(int v, ItemVariationOption enOption)
 				v9 = 5;
 			v10 = 1 << (v9 + 2);
 			if (v10)
-				v11 = Rand32::GetInstance()->Random() % v10;
+				v11 = (unsigned int)(Rand32::GetInstance()->Random() % v10);
 			else
-				v11 = Rand32::GetInstance()->Random();
+				v11 = (unsigned int)(Rand32::GetInstance()->Random());
 			v12 = v11;
 			v13 = v11 >> 1;
 			v14 = ((v13 >> 3) & 1)
@@ -896,9 +896,9 @@ int ItemInfo::GetVariation(int v, ItemVariationOption enOption)
 		v4 = 1 << (v3 + 2);
 		enOptiona = v3 + 2;
 		if (v4)
-			v5 = Rand32::GetInstance()->Random() % v4;
+			v5 = (int)(Rand32::GetInstance()->Random() % v4);
 		else
-			v5 = Rand32::GetInstance()->Random();
+			v5 = (int)(Rand32::GetInstance()->Random());
 		v6 = enOptiona;
 		v7 = -2;
 		if ((signed int)enOptiona > 0)

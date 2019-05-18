@@ -288,7 +288,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 5101006:
 		case 5201003:
 			//WvsLogger::LogFormat("Weapon Charge, NX = %d\n", pSkillLVLData->m_nX);
-			REGISTER_TS(Booster, nSLV);
+			REGISTER_TS(Booster, pSkillLVLData->m_nX);
 			break;
 			//case 5121009:
 			//	statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SPEED_INFUSION, ret.x));
@@ -522,6 +522,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 	}
 	else
 	{
+		pUser->SendUseSkillEffect(nSkillID, nSLV);
 		pUser->SendTemporaryStatReset(tsFlag);
 		pUser->SendTemporaryStatSet(tsFlag, tDelay);
 	}

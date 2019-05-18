@@ -189,6 +189,7 @@ void MiniRoomBase::OnPacketBase(User *pUser, int nType, InPacket *iPacket)
 			OnInviteBase(pUser, iPacket);
 			break;
 		case MiniRoomRequest::rq_MiniRoom_Chat:
+			OnChat(pUser, iPacket, -1);
 			break;
 		case MiniRoomRequest::rq_MiniRoom_LeaveBase:
 			OnLeaveBase(pUser, iPacket);
@@ -201,6 +202,29 @@ void MiniRoomBase::OnPacketBase(User *pUser, int nType, InPacket *iPacket)
 			break;
 	}
 	ProcessLeaveRequest();
+}
+
+void MiniRoomBase::OnChat(User *pUser, InPacket *iPacket, int nMessageCode)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	int nIdx = FindUserSlot(pUser);
+	if (m_nCurUsers && nIdx >= 0)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_Chat);
+		if (nMessageCode < 0)
+		{
+			oPacket.Encode1(8); //nMessageType
+			oPacket.Encode1(nIdx);
+			oPacket.EncodeStr(pUser->GetName() + " : " + iPacket->DecodeStr());
+		}
+		else
+		{
+
+		}
+		Broadcast(&oPacket, nullptr);
+	}
 }
 
 unsigned char MiniRoomBase::OnCreateBase(User *pUser, InPacket *iPacket, int nRound)

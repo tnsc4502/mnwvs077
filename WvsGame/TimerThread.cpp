@@ -41,7 +41,7 @@ void TimerThread::RegisterTimerPool(int nTimerCount, int nTick)
 
 void TimerThread::RegisterField(Field * pField)
 {
-	int nIdx = Rand32::GetInstance()->Random() % m_aTimerPool.size();
+	int nIdx = (int) (Rand32::GetInstance()->Random() % m_aTimerPool.size());
 	m_aTimerPool[nIdx]->RegisterFieldImpl(pField);
 }
 

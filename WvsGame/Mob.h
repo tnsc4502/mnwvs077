@@ -39,7 +39,6 @@ public:
 	void OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem);
 	int DistributeExp(int& refOwnType, int& refOwnParyID, int& refLastDamageCharacterID);
 	void GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem);
-
 	void SetHP(long long int liHP);
 	void SetMP(long long int liMP);
 	long long int GetHP() const;

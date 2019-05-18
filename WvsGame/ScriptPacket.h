@@ -11,6 +11,8 @@ public:
 	ScriptPacket();
 	~ScriptPacket();
 
+	OutPacket *GetPacket() const;
+
 	static ScriptPacket* PacketNew(lua_State* L);
 	static void DestroyPacket(lua_State* L, ScriptPacket *p);
 	static int PacketClear(lua_State* L);

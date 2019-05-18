@@ -50,13 +50,12 @@ public:
 	GW_ItemSlotBase();
 	~GW_ItemSlotBase();
 
+	bool IsProtectedItem() const;
 	virtual void Encode(OutPacket *oPacket, bool bForInternal) const = 0;
 	virtual void RawEncode(OutPacket *oPacket) const = 0;
-
 	void DecodeInventoryPosition(InPacket *iPacket);
 	virtual void Decode(InPacket *iPacket, bool bForInternal) = 0;
 	virtual void RawDecode(InPacket *iPacket) = 0;
-
 	void EncodeInventoryPosition(OutPacket *oPacket) const;
 	void EncodeTradingPosition(OutPacket *oPacket) const;
 

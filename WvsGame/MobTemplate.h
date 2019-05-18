@@ -4,16 +4,14 @@
 #include "..\WvsLib\Wz\WzResMan.hpp"
 
 struct RewardInfo;
+class User;
 
 class MobTemplate
 {
 	static std::map<int, MobTemplate*>* m_MobTemplates;
 	static WZ::Node* m_MobWzProperty;
 
-
 public:
-	//GW_MobReward* m_pReward;
-
 	const std::vector<RewardInfo*> *m_paMobReward;
 	unsigned int m_unTotalRewardProb = 0;
 
@@ -24,6 +22,7 @@ public:
 	//cloneNewOne為true，代表不使用共用屬性 (用於複寫特定怪物屬性)
 	static MobTemplate* GetMobTemplate(int dwTemplateID, bool bCloneNewOne = false);
 	static void RegisterMob(int dwTemplateID);
+	void SetMobCountQuestInfo(User *pUser) const;
 	
 	/*
 	直接作為public attribute
@@ -31,6 +30,7 @@ public:
 	long long int m_lnMaxHP, m_lnMaxMP;
 
 	int 
+		m_nTemplateID,
 		m_nLevel, 
 		m_nSpeed, 
 		m_nPAD, 

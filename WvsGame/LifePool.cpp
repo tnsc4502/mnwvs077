@@ -49,7 +49,7 @@ void LifePool::Init(Field* pField, int nFieldID)
 	else if (nGenSize >= MAX_MOB_GEN)
 		nGenSize = MAX_MOB_GEN;
 	m_nMobCapacityMin = nGenSize;
-	m_nMobCapacityMax = nGenSize * 2 * pField->GetMobRate();
+	m_nMobCapacityMax = (int)std::ceil((double)nGenSize * 2.0 * pField->GetMobRate());
 
 	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]
 		["Map" + std::to_string(nFieldID / 100000000)]
@@ -388,6 +388,7 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 					pUser->GetSecondaryStat()->nMesoUp,
 					pUser->GetSecondaryStat()->nMesoUpByItem
 				);
+				pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
 				RemoveMob(pMob);
 				break;
 			}

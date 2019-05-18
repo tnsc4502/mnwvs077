@@ -168,8 +168,12 @@ void QuestMan::RegisterDemand(void * pProp)
 			pDemand->m_aDemandPet.push_back((int)petDemand);
 
 		auto& mobNode = demandNode["mob"];
-		for (auto& mobDemand : mobNode)
+		for (auto& mobDemand : mobNode) 
+		{
+			m_mMobQuest[(int)mobDemand["id"]].push_back(nQuestID);
+			pDemand->m_aDemandMob.push_back((int)mobDemand["id"]);
 			pDemand->m_mDemandMob[mobDemand["id"]] = mobDemand["count"];
+		}
 
 		auto& skillNode = demandNode["skill"];
 		for (auto& skillDemand : skillNode)
@@ -356,5 +360,14 @@ int QuestMan::GetQuestByItem(int nItemID)
 	if (findIter == m_mItemQuest.end())
 		return 0;
 
+	return findIter->second;
+}
+
+const std::vector<int>& QuestMan::GetQuestByMob(int nMobID)
+{
+	static std::vector<int> aEmpty;
+	auto findIter = m_mMobQuest.find(nMobID);
+	if (findIter == m_mMobQuest.end())
+		return aEmpty;
 	return findIter->second;
 }

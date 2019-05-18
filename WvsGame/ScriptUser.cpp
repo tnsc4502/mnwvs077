@@ -46,6 +46,7 @@ void ScriptUser::Register(lua_State * L)
 		{ "chatMsg", TargetChatMessage },
 		{ "inventory", TargetInventory }, 
 		{ "questRecord", TargetQuestRecord },
+		{ "questEndEffect", TargetQuestEndEffect },
 		{ "field", TargetField },
 		{ "transferField", TargetRegisterTransferField },
 		{ "incHP", TargetIncHP },
@@ -102,9 +103,9 @@ int ScriptUser::TargetChatMessage(lua_State * L)
 int ScriptUser::TargetNoticeMessage(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
-	int nType = (int)luaL_checkinteger(L, 2);
-	const char* sMsg = luaL_checkstring(L, 3);
-	self->m_pUser->SendNoticeMessage(nType, sMsg);
+	//int nType = (int)luaL_checkinteger(L, 2);
+	const char* sMsg = luaL_checkstring(L, 2);
+	self->m_pUser->SendNoticeMessage(sMsg);
 	lua_pushinteger(L, 1);
 	return 1;
 }
@@ -432,5 +433,12 @@ int ScriptUser::TargetIsWearing(lua_State * L)
 	int nItemID = (int)luaL_checkinteger(L, 2);
 
 	lua_pushinteger(L, self->m_pUser->GetCharacterData()->IsWearing(nItemID));
+	return 1;
+}
+
+int ScriptUser::TargetQuestEndEffect(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	self->GetUser()->SendQuestEndEffect();
 	return 1;
 }

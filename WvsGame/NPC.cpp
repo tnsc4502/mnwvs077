@@ -19,8 +19,8 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 	int nPOS = iPacket->Decode2();
 	int nItemID = iPacket->Decode4();
 	int nCount = iPacket->Decode2();
-	iPacket->Decode4();
-	int nUnitPrice = iPacket->Decode4();
+	//iPacket->Decode4();
+	//int nUnitPrice = iPacket->Decode4();
 
 	auto& aItemList = *(m_pTemplate->GetShopItem());
 	if (nPOS >= 0 && nPOS < aItemList.size())
@@ -56,18 +56,18 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 			);
 			switch (nResult)
 			{
-			case InventoryManipulator::Exchange_InsufficientMeso:
-				pUser->SendNoticeMessage(0, "楓幣不足。");
-				break;
-			case InventoryManipulator::Exchange_InsufficientSlotCount:
-				pUser->SendNoticeMessage(0, "道具欄位不足。");
-				break;
-			case InventoryManipulator::Exchange_InsufficientItemCount:
-				pUser->SendNoticeMessage(0, "需求道具數量不足。");
-				break;
+				case InventoryManipulator::Exchange_InsufficientMeso:
+					pUser->SendNoticeMessage("楓幣不足。");
+					break;
+				case InventoryManipulator::Exchange_InsufficientSlotCount:
+					pUser->SendNoticeMessage("道具欄位不足。");
+					break;
+				case InventoryManipulator::Exchange_InsufficientItemCount:
+					pUser->SendNoticeMessage("需求道具數量不足。");
+					break;
 			}
 			OutPacket oPacket;
-			MakeShopResult(pUser, pItem, &oPacket, 0, -1);
+			MakeShopResult(pUser, pItem, &oPacket, 8, 0);
 			pUser->SendPacket(&oPacket);
 		}
 	}
@@ -88,7 +88,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 		);
 		if (pItem == nullptr)
 		{
-			pUser->SendNoticeMessage(0, "物品不存在。");
+			pUser->SendNoticeMessage("物品不存在。");
 			return;
 		}
 		if (nTI == 1) 
@@ -124,12 +124,10 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 				pUser,
 				nPrice,
 				aExchange,
-				&aChangeLog,
+				nullptr,
 				&aChangeLog,
 				aBackup
 			);
-			if (!nResult)
-				(m_pTemplate->GetUserSoldItems(pUser->GetUserID())->push_back(pSoldItem));
 			OutPacket oPacket;
 			MakeShopResult(pUser, pItem, &oPacket, 0, -1);
 			pUser->SendPacket(&oPacket);
