@@ -204,58 +204,21 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem)
 {
 	auto& aReward = m_pMobTemplate->GetMobReward();
-	int nDiff, nRange;
 
 	Reward* pDrop = nullptr;
 	std::vector<Reward*> apDrop;
 	User* pOwner = User::FindUser(dwOwnerID);
 
-	for (const auto& pInfo : aReward)
-	{
-		long long int liRnd =
-			((unsigned int)Rand32::GetInstance()->Random()) % 1000000000;
-		if (liRnd < (long double)pInfo->m_unWeight)
-		{
-			//Check Quest Record. Drop those only in need.
-			if (pOwner && 
-				ItemInfo::GetInstance()->IsQuestItem(pInfo->m_nItemID) &&
-				QWUQuestRecord::GetState(pOwner, pInfo->m_usQRKey) != 1)
-				continue;
+	auto aRewardDrop = Reward::Create(
+		&aReward, false, 1.0, 1.0, 1.0, 1.0, nullptr
+	);
 
-			//Decide the drop amount.
-			nDiff = pInfo->m_nMax - pInfo->m_nMin;
-			nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
-			pDrop = AllocObj(Reward);
-
-			//Drop money.
-			if (pInfo->m_nItemID == 0) 
-			{
-				nRange = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
-				pDrop->SetMoney(nRange);
-			}
-			else
-			{
-				auto pItem = ItemInfo::GetInstance()->GetItemSlot(pInfo->m_nItemID, ItemInfo::ItemVariationOption::ITEMVARIATION_NORMAL);
-				if (!pItem)
-				{
-					FreeObj(pDrop);
-					continue;
-				}
-				pDrop->SetItem(pItem);
-				if (pInfo->m_nItemID / 1000000 != GW_ItemSlotBase::EQUIP)
-					((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
-			}
-			pDrop->SetType(1);
-			pDrop->SetPeriod(pInfo->m_nPeriod);
-			apDrop.push_back(pDrop);
-		}
-	}
-	if (apDrop.size() == 0)
+	if (aRewardDrop.size() == 0)
 		return;
 
-	int nXOffset = ((int)apDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
+	int nXOffset = ((int)aRewardDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
 	nXOffset += GetPosX();
-	for (auto& pReward : apDrop)
+	for (auto& pReward : aRewardDrop)
 	{
 		GetField()->GetDropPool()->Create(
 			pReward,
@@ -263,7 +226,7 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 			dwOwnPartyID,
 			nOwnType,
 			dwOwnerID,
-			nXOffset,
+			GetPosX(),
 			GetPosY(),
 			nXOffset,
 			0,

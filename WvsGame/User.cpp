@@ -132,9 +132,14 @@ User::~User()
 	GuildMan::GetInstance()->OnLeave(this);
 	FriendMan::GetInstance()->OnLeave(this);
 
-	try {
-		if (GetScript())
-			GetScript()->Abort();
+	try 
+	{
+		if (GetScript()) 
+		{
+			auto pScript = GetScript();
+			pScript->Abort();
+			FreeObj(pScript);
+		}
 	}
 	catch (...) {}
 
@@ -1142,7 +1147,7 @@ void User::OnSelectNpc(InPacket * iPacket)
 	if (pTemplate && pTemplate->HasShop())
 	{
 		OutPacket oPacket;
-		oPacket.Encode2((int)NPCPacketFlags::NPC_OnNpcShopItemList);
+		oPacket.Encode2((int)NPCSendPacketFlags::NPC_OnNpcShopItemList);
 		pTemplate->EncodeShop(this, &oPacket);
 		m_pTradingNpc = pNpc;
 		SendPacket(&oPacket);

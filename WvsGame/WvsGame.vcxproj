@@ -243,6 +243,7 @@
     <ClInclude Include="QWUser.h" />
     <ClInclude Include="QWUSkillRecord.h" />
     <ClInclude Include="Reactor.h" />
+    <ClInclude Include="ReactorEventManager.h" />
     <ClInclude Include="ReactorPool.h" />
     <ClInclude Include="ReactorTemplate.h" />
     <ClInclude Include="ResistanceSkills.h" />
@@ -332,6 +333,7 @@
     <ClCompile Include="QWUser.cpp" />
     <ClCompile Include="QWUSkillRecord.cpp" />
     <ClCompile Include="Reactor.cpp" />
+    <ClCompile Include="ReactorEventManager.cpp" />
     <ClCompile Include="ReactorPool.cpp" />
     <ClCompile Include="ReactorTemplate.cpp" />
     <ClCompile Include="Reward.cpp" />

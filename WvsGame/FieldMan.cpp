@@ -108,11 +108,11 @@ void FieldMan::LoadFieldSet()
 		pFieldSet->Init(std::string{ wStr.begin(), wStr.end() });
 		m_mFieldSet[pFieldSet->GetFieldSetName()] = pFieldSet;
 
-		std::cout << file << std::endl; 
+		/*std::cout << file << std::endl; 
 		std::ifstream t(file.path());
 		std::string str((std::istreambuf_iterator<char>(t)),
 			std::istreambuf_iterator<char>());
-		std::cout << str << std::endl;
+		std::cout << str << std::endl;*/
 	}
 }
 

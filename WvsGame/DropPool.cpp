@@ -34,7 +34,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 		pFoothold = m_pField->GetSpace2D()->GetFootholdClosest(m_pField, x2, y1, &x2, &y2, x1);
 	}
 	Drop *pDrop = AllocObj(Drop);
-	pDrop->Init(++m_nDropIdCounter, reward, dwOwnerID, dwOwnPartyID, nOwnType, dwSourceID, x1, y1, x1, y2, bByPet);
+	pDrop->Init(++m_nDropIdCounter, reward, dwOwnerID, dwOwnPartyID, nOwnType, dwSourceID, x1, y1, x2, y2, bByPet);
 	auto pItem = pDrop->GetItem();
 	if (pItem != nullptr && reward->GetType() == 1 && reward->GetPeriod() != 0)
 		pItem->liExpireDate = GameDateTime::GetDateExpireFromPeriod(reward->GetPeriod());

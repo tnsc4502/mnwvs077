@@ -24,7 +24,7 @@ FieldSet::~FieldSet()
 	if (m_pScript) 
 	{
 		m_pScript->Abort();
-		delete m_pScript;
+		//FreeObj(m_pScript);
 	}
 }
 

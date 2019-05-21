@@ -1,6 +1,7 @@
 #pragma once
 #include "FieldObj.h"
 #include <string>
+#include <map>
 
 class Npc;
 class Field;
@@ -24,18 +25,15 @@ class Reactor : public FieldObj
 		m_tStateStart = 0,
 		m_nLastHitCharacterID;
 
-	bool m_bFlip = false;
-
+	bool m_bFlip = false, m_bRemove = false, m_bDestroyAfterEvent = false;
 	Npc* m_pNpc;
 	Field* m_pField;
 	ReactorTemplate* m_pTemplate;
-
 	std::string m_sReactorName;
-
 	void *m_pReactorGen = nullptr;
+	std::map<int, void*> m_mEvent;
 
 	static int GetHitTypePriorityLevel(int nOption, int nType);
-
 public:
 	Reactor(ReactorTemplate* pTemplate, Field* pField);
 	~Reactor();
@@ -47,6 +45,10 @@ public:
 	void OnHit(User *pUser, InPacket *iPacket);
 	void SetState(int nEventIdx, int tActionDelay);
 	void MakeStateChangePacket(OutPacket* oPacket, int tActionDelay, int nProperEventIdx);
+	void FindAvailableAction();
+	void DoAction(void* pInfo, int tDelay, int nDropIdx);
 	void SetRemoved();
+	void CancelAllEvent();
+	void OnTime(int nEventSN);
 };
 

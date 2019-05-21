@@ -163,6 +163,8 @@ void Script::Abort()
 	if (L) 
 		lua_close(L);
 	m_bDone = true;
+	if (!m_pUniqueScriptNpc)
+		FreeObj(this);
 }
 
 bool Script::IsDone()

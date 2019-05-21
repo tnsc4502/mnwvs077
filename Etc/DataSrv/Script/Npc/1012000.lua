@@ -1,16 +1,32 @@
 
-require "./DataSrv/Script/Npc/sysDef"
---self.say(inventory.exchange(100, 1432011, 1))
---for i = 1,15 
---do
---    target.noticeMsg(i, "hi (i = " .. i)
---end
---inventory->exchange(100, 1432011, 1)
-self->sayNext("hi 5" ..(5-4))
+require "./DataSrv/Script/sysDef"
+
+--inventory->exchange(100, 1462009, -1, 1462008, 1, 1462008, 1)
+
+
+--self->endx()
+self->say("heii"..self->field()->getID())
+self->endx()
+self->askAvatar("選擇一個您喜歡的髮型a : ", 4031249, {30030
+,30020
+,30000
+,30480
+,30310
+,30330
+,30060
+,30150
+,30410
+,30210
+,30140
+,30120
+,30200})
+self->sayNext("hi 2001 :(" ..target->getPosX() .."," ..target->getPosY() ..")" )
+--target->transferField(102000000, "")
+--[[self->sayNext("hi 2001 :" )
+
 if(not target) then
     self->say("invalid user")
 end
-pt = packet.new()
 pt->encode2(0x2EF)
 pt->encodeStr("hi")
 pt->encode1(4)
@@ -20,7 +36,7 @@ pt->clear()
 pt->encode2(0x2F0)
 pt->encode2(4)
 pt->encodeStr("hi")
-pt->send(target)
+pt->send(target)--]]
 --[[if 5 > 4 then
 self->sayNext("hi 1" ..0x2F0)
 self->sayNext("hi 2" ..(5-4))

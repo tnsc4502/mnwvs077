@@ -129,14 +129,8 @@ int CmdFuncTransfer(User *pUser, PARAM_TYPE aInput)
 int CmdFuncMob(User *pUser, PARAM_TYPE aInput)
 {
 	int nTemplateID = GetInt(aInput, 1, 100100);
-
-	Mob mob;
-	mob.SetPosX(pUser->GetPosX());
-	mob.SetPosY(pUser->GetPosY());
-	mob.SetTemplateID(nTemplateID);
-	mob.SetMobTemplate(MobTemplate::GetMobTemplate(mob.GetTemplateID()));
 	pUser->GetField()->GetLifePool()->CreateMob(
-		mob,
+		nTemplateID,
 		pUser->GetPosX(),
 		pUser->GetPosY(),
 		pUser->GetFh(),

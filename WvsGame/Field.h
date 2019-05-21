@@ -29,7 +29,7 @@ class Field
 		e_FieldEffect_Sound = 0x04
 	};
 
-	std::recursive_mutex m_mtxFieldUserMutex, m_mtxFieldLock;
+	std::recursive_mutex m_mtxFieldLock;
 	std::map<int, User*> m_mUser; //m_lUser in WvsGame.idb
 	std::map<std::string, FieldRect> m_mAreaRect;
 	int m_nFieldID = 0;
@@ -135,6 +135,7 @@ public:
 	SummonedPool* GetSummonedPool();
 	std::recursive_mutex& GetFieldLock();
 	WvsPhysicalSpace2D* GetSpace2D();
+	const std::map<int, User*>& GetUsers();
 
 	void TransferAll(int nFieldID, const std::string& sPortal);
 	void LoadAreaRect(void *pData);

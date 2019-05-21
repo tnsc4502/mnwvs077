@@ -160,44 +160,50 @@ void ItemInfo::IterateBundleItem()
 				if (pNewBundle->nSellPrice == 0)
 					pNewBundle->nSellPrice = m_mItemSellPriceByLv[pNewBundle->nLevel];
 
+				auto& mcType = infoImg["mcType"];
+				if (mcType != infoImg.end())
+					pNewBundle->nMCType = mcType;
+				else
+					pNewBundle->nMCType = -1;
+
 				pNewBundle->nPAD = infoImg["incPAD"]; //­¸Ãð
 				m_mBundleItem[nItemID] = pNewBundle;
 				int nItemCategory = nItemID / 10000;
 				void* pProp = (void*)&item;
 				switch (nItemCategory)
 				{
-				case 200:
-				case 201:
-				case 202:
-				case 205:
-				case 221:
-					RegisterStateChangeItem(nItemID, pProp);
-					break;
-				case 204:
-					RegisterUpgradeItem(nItemID, pProp);
-					break;
-				case 203:
-					RegisterPortalScrollItem(nItemID, pProp);
-					break;
-				case 210:
-					RegisterMobSummonItem(nItemID, pProp);
-					break;
-				case 212:
-					RegisterPetFoodItem(nItemID, pProp);
-					break;
-				case 226:
-					RegisterTamingMobFoodItem(nItemID, pProp);
-					break;
-				case 227:
-					RegisterBridleItem(nItemID, pProp);
-					break;
-				case 228:
-				case 229:
-					RegisterSkillLearnItem(nItemID, pProp);
-					break;
-				case 301:
-					RegisterPortableChairItem(nItemID, pProp);
-					break;
+					case 200:
+					case 201:
+					case 202:
+					case 205:
+					case 221:
+						RegisterStateChangeItem(nItemID, pProp);
+						break;
+					case 204:
+						RegisterUpgradeItem(nItemID, pProp);
+						break;
+					case 203:
+						RegisterPortalScrollItem(nItemID, pProp);
+						break;
+					case 210:
+						RegisterMobSummonItem(nItemID, pProp);
+						break;
+					case 212:
+						RegisterPetFoodItem(nItemID, pProp);
+						break;
+					case 226:
+						RegisterTamingMobFoodItem(nItemID, pProp);
+						break;
+					case 227:
+						RegisterBridleItem(nItemID, pProp);
+						break;
+					case 228:
+					case 229:
+						RegisterSkillLearnItem(nItemID, pProp);
+						break;
+					case 301:
+						RegisterPortableChairItem(nItemID, pProp);
+						break;
 				}
 			}
 		}

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include <list>
 #include <string>
 #include <atomic>
 #include <mutex>
@@ -9,6 +10,7 @@ class Field;
 class Reactor;
 class User;
 class InPacket;
+class Npc;
 
 class ReactorPool
 {
@@ -34,6 +36,7 @@ private:
 	std::vector<ReactorGen> m_aReactorGen;
 	std::map<int, Reactor*> m_mReactor;
 	std::map<std::string, int> m_mReactorName;
+	std::list<Npc*> m_lNpc;
 
 	int m_tLastCreateReactorTime,
 		m_nReactorTotalHit;
@@ -49,7 +52,11 @@ public:
 	void OnEnter(User *pUser);
 	void OnPacket(User *pUser, int nType, InPacket *iPacket);
 	void OnHit(User *pUser, InPacket *iPacket);
-	void RemoveReactor(Reactor *pReactor);
+	void RemoveAllReactor();
+	void RemoveReactor(Reactor *pReactor, bool bForce = false);
+	void RegisterNpc(Npc* pNpc);
+	void RemoveNpc();
 	void Update(int tCur);
+	void Reset(bool bShuffle);
 };
 

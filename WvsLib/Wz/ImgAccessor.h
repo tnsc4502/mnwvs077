@@ -16,6 +16,6 @@ namespace WZ
 		Node begin();
 		Node end();
 		Node& operator++();
-		Node& operator[](const std::string& sName);
+		Node operator[](const std::string& sName);
 	};
 }

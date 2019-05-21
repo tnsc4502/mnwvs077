@@ -362,7 +362,7 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 	Script *self = (Script*)L->selfPtr;
 	auto pInfo = (Script::NPCConverstaionInfo*)pInfo_;
 	OutPacket oPacket;
-	oPacket.Encode2((short)NPCPacketFlags::NPC_ScriptMessage);
+	oPacket.Encode2((short)NPCSendPacketFlags::NPC_ScriptMessage);
 	oPacket.Encode1(pInfo->m_nSpeakerTypeID);
 	oPacket.Encode4(pInfo->m_nSpeakerTemplateID);
 	oPacket.Encode1(pInfo->m_nMsgType);

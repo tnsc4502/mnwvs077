@@ -40,7 +40,7 @@ class LifePool
 	std::map<int, Mob*> m_mMob;
 
 	//在這個地圖中真正產生出的Npc, key是Object ID
-	std::map<int, Npc*> m_aNpcGen;
+	std::map<int, Npc*> m_mNpc;
 
 	/* 地圖中有關玩家控制權的紀錄，使用std::map 不須像正服創建 Max Heap 與 Min Heap
 	   Key是 控制數量 Value : Controller是代表控制者的實體指標
@@ -74,27 +74,15 @@ public:
 
 	void SetMaxMobCapacity(int max);
 	int GetMaxMobCapacity() const;
-
-	//從Wz中讀取此地圖中Npc資訊，存到m_lNpc中
 	void LoadNpcData(WZ::Node& dataNode);
-
-	//從Wz中讀取此地圖中Mob資訊，存到m_lMob中
 	void LoadMobData(WZ::Node& dataNode);
-
-	/*
-	產生出Npc實體
-	*/
-	void CreateNpc(const Npc&);
-
-	/*
-	若地圖中的怪物數量不足則隨機挑選lMob並CreateMob
-	*/
+	Npc* CreateNpc(int nTemplateID, int nX, int nY, int nFh);
+	Npc* CreateNpc(const Npc&);
 	void TryCreateMob(bool bReset);
 
-	/*
-	將指定的Mob召喚出並加入aMobGen
-	*/
+	void CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
 	void CreateMob(const Mob&, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
+	void RemoveNpc(Npc *pNpc);
 	void RemoveMob(Mob* pMob);
 	void RemoveAllMob(bool bExceptMobDamagedByMob);
 	void Reset();
@@ -102,43 +90,19 @@ public:
 	void Init(Field* pField, int nFieldID);
 	void OnEnter(User* pUser);
 
-	/*
-	有玩家進入地圖，插入Controller並重新分配怪物控制權[RedistributeLife]
-	*/
 	void InsertController(User* pUser);
-
-	/*
-	玩家離開地圖，將該玩家控制的怪物分配給minCtrl或nullCtrl
-	*/
 	void RemoveController(User* pUser);
-
-	/*
-	Controller異動時，從新插入hCtrl中
-	*/
 	void UpdateCtrlHeap(Controller* pController);
-
-	/*
-	還沒寫, 作用不明
-	*/
 	bool GiveUpMobController(Controller* pController);
 
-	/*
-	重新分配地圖中的怪物控制權
-	先將nullCtrl的怪物分配給minCtrl 接著平衡maxCtrl與minCtrl的控制數量
-	*/
 	void RedistributeLife();
-
 	void Update();
-
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
-
 	std::mutex& GetLock();
-
 	Npc* GetNpc(int nFieldObjID);
 	Mob* GetMob(int nFieldObjID);
-
 	void UpdateMobSplit(User* pUser);
 };
 

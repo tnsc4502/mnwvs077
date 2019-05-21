@@ -3,6 +3,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 
@@ -30,7 +31,7 @@ LifePool::~LifePool()
 {
 	for (auto& p : m_mMob)
 		FreeObj( p.second );
-	for (auto& p : m_aNpcGen)
+	for (auto& p : m_mNpc)
 		FreeObj( p.second );
 	for (auto& p : m_hCtrl)
 		FreeObj( p.second );
@@ -75,7 +76,8 @@ void LifePool::Init(Field* pField, int nFieldID)
 
 void LifePool::SetFieldObjAttribute(FieldObj* pFieldObj, WZ::Node& dataNode)
 {
-	try {
+	try 
+	{
 		pFieldObj->SetPosX(dataNode["x"]);
 		pFieldObj->SetPosY(dataNode["y"]);
 		pFieldObj->SetF(dataNode["f"]);
@@ -86,7 +88,8 @@ void LifePool::SetFieldObjAttribute(FieldObj* pFieldObj, WZ::Node& dataNode)
 		pFieldObj->SetRx1(dataNode["rx1"]);
 		pFieldObj->SetTemplateID(atoi(((std::string)dataNode["id"]).c_str()));
 	}
-	catch (std::exception& e) {
+	catch (std::exception& e) 
+	{
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "讀取地圖物件發生錯誤，訊息:%s\n", e.what());
 	}
 }
@@ -122,14 +125,25 @@ void LifePool::LoadMobData(WZ::Node& dataNode)
 	m_aMobGen.push_back(pMobGen);
 }
 
-void LifePool::CreateNpc(const Npc& npc)
+Npc* LifePool::CreateNpc(int nTemplateID, int nX, int nY, int nFh)
+{
+	Npc npc;
+	npc.SetPosX(nX);
+	npc.SetPosY(nY);
+	npc.SetFh(nFh);
+	npc.SetTemplate(NpcTemplate::GetInstance()->GetNpcTemplate(npc.GetTemplateID()));
+	return CreateNpc(npc);
+}
+
+Npc* LifePool::CreateNpc(const Npc& npc)
 {
 	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
 	Npc* newNpc = AllocObj(Npc);
 	*newNpc = npc; //Should notice pointer data assignment
 	newNpc->SetFieldObjectID(atomicObjectCounter++);
 	newNpc->SetField(m_pField);
-	m_aNpcGen.insert({ newNpc->GetFieldObjectID(), newNpc });
+	m_mNpc.insert({ newNpc->GetFieldObjectID(), newNpc });
+	return newNpc;
 }
 
 void LifePool::TryCreateMob(bool bReset)
@@ -165,6 +179,17 @@ void LifePool::TryCreateMob(bool bReset)
 			}
 		}
 	}
+}
+
+void LifePool::CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller * pOwner)
+{
+	Mob mob;
+	mob.SetPosX(nX);
+	mob.SetPosY(nY);
+	mob.SetTemplateID(nTemplateID);
+	mob.SetMobTemplate(MobTemplate::GetMobTemplate(mob.GetTemplateID()));
+
+	CreateMob(mob, nX, nY, nFh, bNoDropPriority, nType, dwOption, bLeft, nMobType, pOwner);
 }
 
 void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner)
@@ -212,7 +237,17 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 	}
 }
 
-void LifePool::RemoveMob(Mob * pMob)
+void LifePool::RemoveNpc(Npc* pNpc)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(NPCSendPacketFlags::NPC_OnMakeLeaveFieldPacket);
+	oPacket.Encode4(pNpc->GetFieldObjectID());
+	m_pField->BroadcastPacket(&oPacket);
+	m_mNpc.erase(pNpc->GetFieldObjectID());
+	FreeObj(pNpc);
+}
+
+void LifePool::RemoveMob(Mob* pMob)
 {
 	if (pMob == nullptr)
 		return;
@@ -262,7 +297,7 @@ void LifePool::OnEnter(User *pUser)
 	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
 	InsertController(pUser);
 
-	for (auto& npc : m_aNpcGen)
+	for (auto& npc : m_mNpc)
 	{
 		OutPacket oPacket;
 		npc.second->MakeEnterFieldPacket(&oPacket);
@@ -414,7 +449,7 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 	{
 		OnMobPacket(pUser, nType, iPacket);
 	}
-	else if (nType == 0x95)
+	else if (nType == NPCRecvPacketFlags::NPC_OnMoveRequest)
 		OnNpcPacket(pUser, nType, iPacket);
 }
 
@@ -497,8 +532,8 @@ std::mutex & LifePool::GetLock()
 
 Npc * LifePool::GetNpc(int nFieldObjID)
 {
-	auto findIter = m_aNpcGen.find(nFieldObjID);
-	if (findIter != m_aNpcGen.end())
+	auto findIter = m_mNpc.find(nFieldObjID);
+	if (findIter != m_mNpc.end())
 		return findIter->second;
 	return nullptr;
 }
@@ -537,10 +572,10 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 void LifePool::OnNpcPacket(User * pUser, int nType, InPacket * iPacket)
 {
 	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
-	if (nType == 0x95)
+	if (nType == NPCRecvPacketFlags::NPC_OnMoveRequest)
 	{
-		auto iterNpc = this->m_aNpcGen.find(iPacket->Decode4());
-		if (iterNpc != m_aNpcGen.end())
+		auto iterNpc = this->m_mNpc.find(iPacket->Decode4());
+		if (iterNpc != m_mNpc.end())
 		{
 			iterNpc->second->OnUpdateLimitedInfo(pUser, iPacket);
 		}

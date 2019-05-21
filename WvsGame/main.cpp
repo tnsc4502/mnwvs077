@@ -38,13 +38,13 @@ int main(int argc, char **argv)
 {
 	SetConsoleTitle(L"MapleStory Server [WvsGame][TWMS][077]");
 	TimerThread::RegisterTimerPool(50, 1000);
-	ReactorTemplate::Load();
 	QuestMan::GetInstance()->LoadAct();
 	QuestMan::GetInstance()->LoadDemand();
 	ItemInfo::GetInstance()->Initialize();
 	Reward::LoadReward();
 	//GW_MobReward::GetInstance()->Load();
 	GW_Shop::GetInstance()->Load();
+	ReactorTemplate::Load();
 	NpcTemplate::GetInstance()->Load();
 	try {
 		SkillInfo::GetInstance()->IterateSkillInfo();

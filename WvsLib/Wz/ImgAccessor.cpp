@@ -41,7 +41,7 @@ WZ::Node & WZ::ImgAccessor::operator++()
 	return pNode->operator++();
 }
 
-WZ::Node & ImgAccessor::operator[](const std::string & sName)
+WZ::Node ImgAccessor::operator[](const std::string & sName)
 {
 	return pNode->operator[](sName.c_str());
 }

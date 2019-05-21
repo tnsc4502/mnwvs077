@@ -1,10 +1,10 @@
 #pragma once
 #include <vector>
 #include <map>
-#include "Reward.h"
 #include "FieldPoint.h"
 #include "..\WvsLib\Common\CommonDef.h"
 
+struct RewardInfo;
 class ReactorTemplate
 {
 	ALLOW_PRIVATE_ALLOC
@@ -32,9 +32,13 @@ class ReactorTemplate
 
 	struct ActionInfo
 	{
+		std::string sAction, sArgs, sMessage;
+		int nState = 0, nType = 0;
+		std::vector<int> anArgs;
+		std::vector<std::string> asArgs;
 	};
 
-	std::vector<RewardInfo> m_aRewardInfo;
+	const std::vector<RewardInfo*>* m_aRewardInfo;
 	std::vector<StateInfo> m_aStateInfo;
 	std::vector<ActionInfo> m_aActionInfo;
 
@@ -45,8 +49,9 @@ class ReactorTemplate
 	static std::map<int, ReactorTemplate*> m_mReactorTemplate;
 public:
 
-	static void RegisterReactor(int nTemplateID, void *pImg);
-	static void LoadEvent(StateInfo* pInfo, void * pImg);
+	static void RegisterReactor(int nTemplateID, void *pImg, void *pRoot);
+	static void LoadEvent(StateInfo* pInfo, void *pImg);
+	static void LoadAction(ReactorTemplate* pTemplate, const std::string& sAction);
 	static void Load();
 	static ReactorTemplate* GetReactorTemplate(int nTemplateID);
 

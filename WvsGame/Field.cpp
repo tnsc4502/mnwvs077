@@ -57,7 +57,7 @@ Field::~Field()
 
 void Field::BroadcastPacket(OutPacket * oPacket)
 {
-	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 
 	if (m_mUser.size() == 0)
@@ -235,7 +235,7 @@ FieldSet * Field::GetFieldSet()
 
 void Field::InitLifePool()
 {
-	std::lock_guard<std::recursive_mutex> lifePoolGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> lifePoolGuard(m_mtxFieldLock);
 	m_pLifePool->Init(this, m_nFieldID);
 }
 
@@ -251,13 +251,13 @@ DropPool * Field::GetDropPool()
 
 void Field::OnEnter(User *pUser)
 {
-	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	//if (!m_asyncUpdateTimer->IsStarted())
 	//	m_asyncUpdateTimer->Start();
 	m_mUser.insert({ pUser->GetUserID(), pUser });
 	m_pLifePool->OnEnter(pUser);
 	m_pDropPool->OnEnter(pUser);
-	//m_pReactorPool->OnEnter(pUser);
+	m_pReactorPool->OnEnter(pUser);
 	if (m_pParentFieldSet != nullptr)
 		m_pParentFieldSet->OnUserEnterField(pUser, this);
 
@@ -279,7 +279,7 @@ void Field::OnEnter(User *pUser)
 
 void Field::OnLeave(User *pUser)
 {
-	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	m_mUser.erase(pUser->GetUserID());
 	m_pLifePool->RemoveController(pUser);
 	//if (m_mUser.size() == 0 && m_asyncUpdateTimer->IsStarted())
@@ -293,7 +293,7 @@ void Field::OnLeave(User *pUser)
 //發送oPacket給該地圖的其他User，其中pExcept是例外對象
 void Field::SplitSendPacket(OutPacket *oPacket, User *pExcept)
 {
-	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	oPacket->GetSharedPacket()->ToggleBroadcasting();
 
 	for (auto& user : m_mUser)
@@ -359,9 +359,14 @@ WvsPhysicalSpace2D * Field::GetSpace2D()
 	return m_pSpace2D;
 }
 
+const std::map<int, User*>& Field::GetUsers()
+{
+	return m_mUser;
+}
+
 void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 {
-	//std::lock_guard<std::mutex> userGuard(m_mtxFieldUserMutex);
+	//std::lock_guard<std::mutex> userGuard(m_mtxFieldLock);
 	//bool bIsAzawanMoving = iPacket->Decode1() > 0;
 	/*
 	  v122 = CMobTemplate::_ZtlSecureGet_dwTemplateID(v121) / 0x2710 == 250
@@ -528,7 +533,7 @@ void Field::EnablePortal(const std::string& sPortal, bool bEnable)
 
 void Field::TransferAll(int nFieldID, const std::string& sPortal)
 {
-	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	for (auto& prUser : m_mUser)
 		if (prUser.second)
 			prUser.second->TryTransferField(nFieldID, sPortal);
@@ -538,6 +543,7 @@ void Field::Reset(bool bShuffleReactor)
 {
 	m_pDropPool->TryExpire(true);
 	m_pLifePool->Reset();
+	m_pReactorPool->Reset(true);
 	m_pPortalMap->ResetPortal();
 }
 

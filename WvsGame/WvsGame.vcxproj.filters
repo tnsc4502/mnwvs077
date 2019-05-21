@@ -459,6 +459,7 @@
     <ClInclude Include="MobStat.h">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClInclude>
+    <ClInclude Include="ReactorEventManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -693,5 +694,6 @@
     <ClCompile Include="MobStat.cpp">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClCompile>
+    <ClCompile Include="ReactorEventManager.cpp" />
   </ItemGroup>
 </Project>

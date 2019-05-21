@@ -8,6 +8,7 @@ struct GW_ItemSlotBase;
 struct RewardInfo
 {
 	int m_nItemID = 0,
+		m_nType = 0,
 		m_nMoney = 0,
 		m_nMax = 1,
 		m_nMin = 1,
@@ -31,6 +32,8 @@ private:
 
 	std::shared_ptr<RewardInfo> m_pInfo;
 	static std::map<int, std::vector<RewardInfo*>> stMobRewardInfo;
+	static std::map<int, std::vector<RewardInfo*>> stReactorRewardInfo;
+	static double ms_fIncDropRate;
 
 public:
 	Reward();
@@ -51,5 +54,7 @@ public:
 
 	static void LoadReward();
 	static const std::vector<RewardInfo*>* GetMobReward(int nTemplateID);
+	static const std::vector<RewardInfo*>* GetReactorReward(int nTemplateID);
+	static std::vector<Reward*> Create(const std::vector<RewardInfo*> *aRewardInfo, bool bPremiumMap, double dRegionalIncRate, double dShowdown, double dOwnerDropRate, double dOwnerDropRate_Ticket, double *pRewardRate);
 };
 

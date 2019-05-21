@@ -3,6 +3,7 @@
 #include "User.h"
 #include "ReactorTemplate.h"
 #include "Reactor.h"
+#include "LifePool.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -135,18 +136,72 @@ void ReactorPool::OnHit(User * pUser, InPacket * iPacket)
 	pFindIter->second->OnHit(pUser, iPacket);
 }
 
-void ReactorPool::RemoveReactor(Reactor * pReactor)
+void ReactorPool::RemoveAllReactor()
 {
+	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	for (auto prReactor : m_mReactor)
+		RemoveReactor(prReactor.second, true);
+}
+
+void ReactorPool::RemoveReactor(Reactor * pReactor, bool bForce)
+{
+	if (bForce) 
+	{
+		pReactor->m_bDestroyAfterEvent = false; 
+		pReactor->CancelAllEvent();
+	}
+
 	pReactor->SetRemoved();
 	OutPacket oPacket;
 	pReactor->MakeLeaveFieldPacket(&oPacket);
 	m_pField->BroadcastPacket(&oPacket);
 	m_mReactorName.erase(((ReactorGen*)pReactor->m_pReactorGen)->sName);
 	m_mReactor.erase(pReactor->m_nFieldObjectID);
-	FreeObj( pReactor );
+	if(!pReactor->m_bDestroyAfterEvent)
+		FreeObj( pReactor );
+}
+
+void ReactorPool::RegisterNpc(Npc * pNpc)
+{
+	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	m_lNpc.push_back(pNpc);
+}
+
+void ReactorPool::RemoveNpc()
+{
+	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	for (auto& pNpc : m_lNpc)
+		m_pField->GetLifePool()->RemoveNpc(pNpc);
 }
 
 void ReactorPool::Update(int tCur)
 {
 	TryCreateReactor(false);
+}
+
+void ReactorPool::Reset(bool bShuffle)
+{
+	RemoveNpc();
+	RemoveAllReactor();
+	TryCreateReactor(true);
+
+	if (bShuffle)
+	{
+		int nRnd = 0, nIter = 0, nX = 0, nY = 0;
+		for (auto& prReactor1 : m_mReactor)
+		{
+			nRnd = (int)(Rand32::GetInstance()->Random() % m_mReactor.size());
+			for (auto& prReactor2 : m_mReactor)
+				if (nIter++ == nRnd)
+				{
+					nX = prReactor1.second->GetPosX();
+					nY = prReactor1.second->GetPosX();
+					prReactor1.second->SetPosX(prReactor2.second->GetPosX());
+					prReactor1.second->SetPosY(prReactor2.second->GetPosY());
+					prReactor2.second->SetPosX(nX);
+					prReactor2.second->SetPosY(nY);
+					break;
+				}
+		}
+	}
 }

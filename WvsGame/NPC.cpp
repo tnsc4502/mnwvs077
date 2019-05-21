@@ -142,7 +142,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 void Npc::MakeShopResult(User *pUser, void* pItem_, OutPacket * oPacket, int nAction, int nIdx)
 {
 	GW_Shop::ShopItem* pItem = (GW_Shop::ShopItem*)pItem_;
-	oPacket->Encode2((short)NPCPacketFlags::NPC_OnNpcShopRequest);
+	oPacket->Encode2((short)NPCSendPacketFlags::NPC_OnNpcShopRequest);
 	oPacket->Encode1(nAction);
 	if (nAction == 8)
 	{
@@ -215,7 +215,7 @@ void Npc::OnUpdateLimitedInfo(User * pUser, InPacket * iPacket)
 {
 	int nRemained = iPacket->RemainedCount();
 	OutPacket oPacket;
-	oPacket.Encode2(NPCPacketFlags::NPC_OnMove);
+	oPacket.Encode2(NPCSendPacketFlags::NPC_OnMove);
 	oPacket.Encode4(GetFieldObjectID());
 	if (nRemained == 2)
 	{
@@ -229,7 +229,7 @@ void Npc::OnUpdateLimitedInfo(User * pUser, InPacket * iPacket)
 void Npc::SendChangeControllerPacket(User * pUser)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)NPCPacketFlags::NPC_OnNpcChangeController);
+	oPacket.Encode2((short)NPCSendPacketFlags::NPC_OnNpcChangeController);
 	oPacket.Encode1(1);
 	oPacket.Encode4(GetFieldObjectID());
 	oPacket.Encode4(GetTemplateID());
@@ -239,7 +239,7 @@ void Npc::SendChangeControllerPacket(User * pUser)
 
 void Npc::MakeEnterFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2((short)NPCPacketFlags::NPC_OnMakeEnterFieldPacket); //CNpcPool::OnUserEnterField
+	oPacket->Encode2((short)NPCSendPacketFlags::NPC_OnMakeEnterFieldPacket); //CNpcPool::OnUserEnterField
 	oPacket->Encode4(GetFieldObjectID());
 	oPacket->Encode4(GetTemplateID());
 	EncodeInitData(oPacket);
