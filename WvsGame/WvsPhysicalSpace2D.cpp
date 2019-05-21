@@ -101,10 +101,10 @@ StaticFoothold * WvsPhysicalSpace2D::GetFootholdClosest(Field * pField, int x, i
 	int nXOffset = 0, nYOffset = 0, nDist = 0, nMin = 0x7fffffff;
 
 	pRet = GetFootholdUnderneath(x, y - 90, pcy);
-	if (x <= m_rcMBR.left + 10)
-		x = m_rcMBR.left + 10;
-	else if (x >= m_rcMBR.right - 10)
-		x = m_rcMBR.right - 10;
+	if (x <= m_rcMBR.left + 5)
+		x = m_rcMBR.left + 5;
+	else if (x >= m_rcMBR.right - 5)
+		x = m_rcMBR.right - 5;
 	*pcx = x;
 	if (pRet)
 		return pRet;

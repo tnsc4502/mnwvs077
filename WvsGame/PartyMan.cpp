@@ -4,6 +4,7 @@
 #include "WvsGame.h"
 #include "QWUser.h"
 #include "Field.h"
+#include "FieldSet.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
@@ -317,6 +318,8 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 
 	pUser->SetPartyID(nPartyID);
 	pUser->ClearPartyInvitedCharacterID();
+
+	NotifyTransferField(pUser->GetUserID(), pUser->GetField()->GetFieldID());
 }
 
 void PartyMan::OnWithdrawPartyRequest(int nType, User *pUser, InPacket *iPacket)
@@ -389,8 +392,13 @@ void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
 			m_mCharacterIDToPartyID.erase(nWithdrawTarget);
 
 			auto pKickedUser = User::FindUser(nWithdrawTarget);
-			if (pKickedUser)
+			if (pKickedUser) 
+			{
 				pKickedUser->SetPartyID(-1);
+				if (pKickedUser->GetFieldSet() &&
+					pKickedUser->GetFieldSet()->IsPartyFieldSet())
+					pKickedUser->GetFieldSet()->EndFieldSet();
+			}
 		}
 	}
 }

@@ -3,6 +3,7 @@
 #include <mutex>
 #include <functional>
 #include "FieldPoint.h"
+#include "FieldRect.h"
 
 class LifePool;
 class Mob;
@@ -21,8 +22,16 @@ class SummonedPool;
 
 class Field
 {
+	enum FieldEffect
+	{
+		e_FieldEffect_Object = 0x02,
+		e_FieldEffect_Screen = 0x03,
+		e_FieldEffect_Sound = 0x04
+	};
+
 	std::recursive_mutex m_mtxFieldUserMutex, m_mtxFieldLock;
 	std::map<int, User*> m_mUser; //m_lUser in WvsGame.idb
+	std::map<std::string, FieldRect> m_mAreaRect;
 	int m_nFieldID = 0;
 	LifePool *m_pLifePool;
 	PortalMap *m_pPortalMap;
@@ -69,50 +78,34 @@ public:
 	Field(int nFieldID);
 	~Field();
 
-	void BroadcastPacket(OutPacket* oPacket);
-
 	void SetCould(bool cloud);
 	bool IsCloud() const;
-
 	void SetTown(bool town);
 	bool IsTown() const;
-
 	void SetSwim(bool swim);
 	bool IsSwim() const;
-
 	void SetFly(bool fly);
 	bool IsFly() const;
-
 	void SetFieldID(int nFieldID);
 	int GetFieldID() const;
-
 	void SetReturnMap(int returnMap);
 	int GetReturnMap() const;
-
 	void SetForcedReturn(int forcedReturn);
 	int GetForcedReturn() const;
-
 	void SetMobRate(double dMobRate);
 	double GetMobRate() const;
-
 	void SetFieldType(int fieldType);
 	int GetFieldType() const;
-
 	void SetFieldLimit(int fieldLimit);
 	int GetFieldLimit() const;
-
 	void SetCreateMobInterval(int interval);
 	int GetCreateMobInterval() const;
-
 	void SetFiexdMobCapacity(int capacity);
 	int GetFixedMobCapacity() const;
-
 	void SetFirstUserEnter(const std::string& script);
 	const std::string& GetFirstUserEnter() const;
-
 	void SetUserEnter(const std::string& script);
 	const std::string& GetUserEnter() const;
-
 	void SetMapSize(int x, int y);
 	const FieldPoint& GetMapSize() const;
 	void SetLeftTop(int x, int y);
@@ -122,7 +115,6 @@ public:
 	FieldSet *GetFieldSet();
 
 	void InitLifePool();
-
 	LifePool *GetLifePool();
 	DropPool *GetDropPool();
 
@@ -131,9 +123,9 @@ public:
 
 	//發送oPacket給該地圖的其他User，其中pExcept是例外對象
 	void SplitSendPacket(OutPacket* oPacket, User* pExcept);
+	void BroadcastPacket(OutPacket* oPacket);
 
 	void OnMobMove(User* pCtrl, Mob* pMob, InPacket* iPacket);
-	//不同Field 自行處理
 	virtual void OnPacket(User* pUser, InPacket* iPacket);
 	void OnUserMove(User* pUser, InPacket *iPacket);
 
@@ -141,11 +133,20 @@ public:
 	TownPortalPool* GetTownPortalPool();
 	ReactorPool* GetReactorPool();
 	SummonedPool* GetSummonedPool();
-
 	std::recursive_mutex& GetFieldLock();
-
 	WvsPhysicalSpace2D* GetSpace2D();
 
+	void TransferAll(int nFieldID, const std::string& sPortal);
+	void LoadAreaRect(void *pData);
+	int CountFemaleInArea(const std::string& sArea);
+	int CountMaleInArea(const std::string& sArea);
+	int CountUserInArea(const std::string& sArea);
+	void EffectScreen(const std::string& sEffect);
+	void EffectSound(const std::string& sEffect);
+	void EffectObject(const std::string& sEffect);
+	void EnablePortal(const std::string& sPortal, bool bEnable);
+
+	void Reset(bool bShuffleReactor);
 	void Update();
 };
 

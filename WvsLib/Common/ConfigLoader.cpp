@@ -11,8 +11,20 @@ void ConfigLoader::ParseConfig(const std::string & cfgFileName)
 	}
 	std::string line;
 	int delimiterPos = 0, leftPos = 0, rightPos = 0;
+	bool bComment = false; //skip comment
 	while (std::getline(cfgFile, line))
 	{
+		bComment = false;
+		for (int i = 0; i < line.size(); ++i) 
+		{
+			if (line[i] == ' ')
+				continue;
+			if (line[i] == '#')
+				bComment = true;
+			break;
+		}
+		if (bComment)
+			continue;
 		delimiterPos = (int)line.find(cfgDelimiter, 0);
 		if (delimiterPos < 0 || delimiterPos > line.size())
 		{

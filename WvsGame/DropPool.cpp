@@ -71,6 +71,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 		pDrop->MakeEnterFieldPacket(&oPacket2, 0, tDelay);
 		m_pField->BroadcastPacket(&oPacket2);
 	}
+	pDrop->m_tCreateTime = GameDateTime::GetTime();
 	m_mDrop[pDrop->m_dwDropID] = pDrop;
 }
 
@@ -134,5 +135,31 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 			FreeObj(pDrop);
 			m_mDrop.erase(nObjectID);
 		}
+	}
+}
+
+void DropPool::TryExpire(bool bRemoveAll)
+{
+	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);
+	int tCur = GameDateTime::GetTime();
+	if (bRemoveAll || tCur - m_tLastExpire >= 10000)
+	{
+		std::vector<int> aRemove;
+		for (auto& prDrop : m_mDrop)
+		{
+			if (!prDrop.second->m_bEverlasting && 
+				(bRemoveAll || (tCur - prDrop.second->m_tCreateTime >= 180000)))
+			{
+				OutPacket oPacket;
+				prDrop.second->MakeLeaveFieldPacket(&oPacket, 0, 0);
+				m_pField->SplitSendPacket(&oPacket, nullptr);
+				if (prDrop.second->GetItem() != nullptr)
+					prDrop.second->GetItem()->Release();
+				FreeObj(prDrop.second);
+				aRemove.push_back(prDrop.first);
+			}
+		}
+		for (auto& nRemoveID : aRemove)
+			m_mDrop.erase(nRemoveID);
 	}
 }

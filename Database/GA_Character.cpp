@@ -369,7 +369,8 @@ int GA_Character::GetItemCount(int nTI, int nItemID)
 	auto& itemSlot = mItemSlot[nTI];
 	for (auto& slot : itemSlot)
 		if (slot.second != nullptr && slot.second->nItemID == nItemID)
-			++nCount;
+			nCount += (slot.second->nType == GW_ItemSlotBase::EQUIP ? 1 :
+			((GW_ItemSlotBundle*)slot.second)->nNumber);
 	return nCount;
 }
 

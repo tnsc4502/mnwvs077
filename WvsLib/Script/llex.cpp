@@ -440,6 +440,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '-': {  /* '-' or '--' (comment) */
         next(ls);
+		if (ls->current == '>') { next(ls);  return ':'; }
         if (ls->current != '-') return '-';
         /* else is a comment */
         next(ls);

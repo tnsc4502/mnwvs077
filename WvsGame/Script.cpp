@@ -8,6 +8,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 Script * Script::GetSelf(lua_State * L)
@@ -28,6 +29,7 @@ void Script::Register(lua_State * L)
 	};
 
 	luaL_Reg SysTable[] = {
+		{ "random", ScriptSysRandom },
 		{ NULL, NULL }
 	};
 
@@ -127,6 +129,15 @@ void Script::SetLastConversationInfo(const NPCConverstaionInfo & refInfo)
 Script::NPCConverstaionInfo & Script::GetLastConversationInfo()
 {
 	return m_sLastConversationInfo;
+}
+
+int Script::ScriptSysRandom(lua_State * L)
+{
+	auto liRand = Rand32::GetInstance()->Random();
+	auto liMin = luaL_checkinteger(L, 1);
+	auto liMax = luaL_checkinteger(L, 2);
+	lua_pushinteger(L, (liMin + (liRand % (liMax - liMin))));
+	return 1;
 }
 
 void Script::Run()

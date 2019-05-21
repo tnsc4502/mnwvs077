@@ -54,11 +54,9 @@ private:
 
 	int m_nTemplateID;
 	std::string m_fileName;
-
 	User *m_pUser;
 	Field *m_pField;
 	bool m_bDone = false;
-
 	void(*m_pOnPacketInvoker)(InPacket*, Script*, lua_State*);
 
 public:
@@ -88,9 +86,11 @@ public:
 	void PushString(const std::string& strVarName, const std::string& sVarValue);
 
 	NPCConversationState& GetConverstaionState();
-
 	void SetLastConversationInfo(const NPCConverstaionInfo& refInfo);
 	NPCConverstaionInfo& GetLastConversationInfo();
+
+	//System script funcs
+	static int ScriptSysRandom(lua_State* L);
 	
 	template<typename T>
 	void RetrieveArray(std::vector<T>& out, int nLuaObjIndex);

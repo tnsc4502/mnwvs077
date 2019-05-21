@@ -50,5 +50,7 @@ public:
 	static int TargetGetMoney(lua_State* L);
 	static int TargetIsWearing(lua_State* L);
 	static int TargetQuestEndEffect(lua_State* L);
+	static int TargetIsPartyBoss(lua_State* L);
+	static int TargetGetName(lua_State* L);
 };
 

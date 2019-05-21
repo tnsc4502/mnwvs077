@@ -29,6 +29,7 @@
 #include "PortalMap.h"
 #include "WvsGame.h"
 #include "Field.h"
+#include "FieldSet.h"
 #include "QWUser.h"
 #include "QWUInventory.h"
 #include "InventoryManipulator.h"
@@ -75,6 +76,24 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	//Internal Stats Are Encoded Outside PostCharacterDataRequest
 	m_pSecondaryStat->DecodeInternal(this, iPacket);
 	UpdateAvatar();
+
+	m_pField = (FieldMan::GetInstance()->GetField(m_pCharacterData->nFieldID));
+	if (m_pField && m_pField->GetForcedReturn() != 999999999) 
+	{
+		auto pField = FieldMan::GetInstance()->GetField(m_pField->GetForcedReturn());
+		if (pField)
+		{
+			auto pPortal = m_pField->GetPortalMap()->GetRandStartPoint();
+			m_pCharacterData->nFieldID = pField->GetFieldID();
+			m_pField = pField;
+			if (pPortal)
+			{
+				SetPosX(pPortal->GetX());
+				SetPosY(pPortal->GetY());
+			}
+		}
+	}
+		
 }
 
 User::~User()
@@ -86,6 +105,9 @@ User::~User()
 
 	if (m_pMiniRoom) 
 		m_pMiniRoom->OnPacketBase(this, MiniRoomBase::MiniRoomRequest::rq_MiniRoom_LeaveBase, nullptr);
+
+	if (GetFieldSet())
+		GetFieldSet()->OnLeaveFieldSet(GetUserID());
 
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateOut);
@@ -163,6 +185,13 @@ GA_Character * User::GetCharacterData()
 Field * User::GetField()
 {
 	return m_pField;
+}
+
+FieldSet *User::GetFieldSet()
+{
+	if (GetField())
+		return GetField()->GetFieldSet();
+	return nullptr;
 }
 
 void User::MakeEnterFieldPacket(OutPacket *oPacket)
@@ -524,8 +553,15 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 	);
 	if (pTargetField != nullptr)
 	{
-		Portal* pTargetPortal = pPortal == nullptr ? nullptr : pTargetField->GetPortalMap()->FindPortal(pPortal->GetTargetPortalName());
+		Portal* pTargetPortal = pPortal == nullptr ?
+			pTargetField->GetPortalMap()->GetRandStartPoint() :
+			pTargetField->GetPortalMap()->FindPortal(pPortal->GetTargetPortalName());
+
 		LeaveField();
+
+		if (GetFieldSet() && GetFieldSet() != pTargetField->GetFieldSet())
+			GetFieldSet()->OnLeaveFieldSet(GetUserID());
+
 		m_pField = pTargetField;
 		PostTransferField(m_pField->GetFieldID(), pTargetPortal, false);
 		m_pField->OnEnter(this);
@@ -1238,7 +1274,7 @@ void User::OnAcceptQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc
 		return;
 	}
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
-	TryQuestStartAct(nQuestID, pNpc);
+	TryQuestStartAct(nQuestID, dwTemplateID, pNpc);
 }
 
 void User::OnCompleteQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc * pNpc, bool bIsAutoComplete)
@@ -1292,13 +1328,21 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 	}
 }
 
-void User::TryQuestStartAct(int nQuestID, Npc * pNpc)
+void User::TryQuestStartAct(int nQuestID, int nNpcID, Npc * pNpc)
 {
 	auto pStartAct = QuestMan::GetInstance()->GetStartAct(nQuestID);
 	if (!pStartAct)
 		return;
 	TryExchange(pStartAct->aActItem);
 	QWUQuestRecord::Set(this, nQuestID, pStartAct->sInfo);
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnQuestResult);
+	oPacket.Encode1(8);
+	oPacket.Encode2(nQuestID);
+	oPacket.Encode4(nNpcID);
+	oPacket.Encode4(0);
+	SendPacket(&oPacket);
 }
 
 void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
@@ -2008,8 +2052,6 @@ void User::OnMigrateIn()
 {
 	SendCharacterStat(false, 0);
 	SendFuncKeyMapped();
-
-	m_pField = (FieldMan::GetInstance()->GetField(m_pCharacterData->nFieldID));
 	m_pField->OnEnter(this);
 	auto bindT = std::bind(&User::Update, this);
 	auto pUpdateTimer = AsyncScheduler::CreateTask(bindT, 2000, true);

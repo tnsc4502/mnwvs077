@@ -896,18 +896,22 @@ static void suffixedexp (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   int line = ls->linenumber;
   primaryexp(ls, v);
+  bool bMemberFunc = false;
   for (;;) {
     switch (ls->t.token) {
-		case '-':
-			luaX_next(ls);
-			break;
-		case '>':
-			expdesc key;
-			luaX_next(ls);
-			checkname(ls, &key);
-			luaK_self(fs, v, &key);
-			funcargs(ls, v, line);
-			break;
+		/*case '-':
+			if (zgetc(ls->z) == '>')
+			{
+				bMemberFunc = true;
+				luaX_next(ls);
+				expdesc key;
+				luaX_next(ls);
+				checkname(ls, &key);
+				luaK_self(fs, v, &key);
+				funcargs(ls, v, line);
+				bMemberFunc = false;
+				break;
+			}*/
       case '.': {  /* fieldsel */
         fieldsel(ls, v);
         break;

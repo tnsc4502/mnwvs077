@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 	SetConsoleTitle(L"MapleStory Server [WvsGame][TWMS][077]");
 	TimerThread::RegisterTimerPool(50, 1000);
 	ReactorTemplate::Load();
-	FieldMan::GetInstance()->LoadFieldSet();
 	QuestMan::GetInstance()->LoadAct();
 	QuestMan::GetInstance()->LoadDemand();
 	ItemInfo::GetInstance()->Initialize();
@@ -53,6 +52,7 @@ int main(int argc, char **argv)
 	catch (...) {}
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
+	FieldMan::GetInstance()->LoadFieldSet();
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else

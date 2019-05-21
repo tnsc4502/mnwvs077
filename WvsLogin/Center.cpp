@@ -119,7 +119,8 @@ void Center::OnCharacterListResponse(InPacket *iPacket)
 	oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
 
 	oPacket.Encode2(0x03);
-	oPacket.Encode8(8); //char slots
+	oPacket.Encode4(6); //char slots
+	oPacket.Encode4(8); //char slots
 	oPacket.Encode4(8); //char slots
 	oPacket.Encode8(0);
 	pSocket->SendPacket(&oPacket);

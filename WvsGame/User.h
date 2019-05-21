@@ -9,6 +9,7 @@
 class ClientSocket;
 class OutPacket;
 class Field;
+class FieldSet;
 class Portal;
 class InPacket;
 class Npc;
@@ -168,6 +169,7 @@ public:
 
 	GA_Character* GetCharacterData();
 	Field* GetField();
+	FieldSet* GetFieldSet();
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
 	void SendPacket(OutPacket *oPacket);
@@ -236,7 +238,7 @@ public:
 	void OnCompleteQuest(InPacket *iPacket, int nQuestID, int dwTemplateID, Npc *pNpc, bool bIsAutoComplete);
 	void OnResignQuest(InPacket *iPacket, int nQuestID);
 	void OnLostQuestItem(InPacket *iPacket, int nQuestID);
-	void TryQuestStartAct(int nQuestID, Npc *pNpc);
+	void TryQuestStartAct(int nQuestID, int nNpcID, Npc *pNpc);
 	void TryQuestCompleteAct(int nQuestID, Npc *pNpc);
 	void TryExchange(const std::vector<ActItem*>& aActItem);
 	bool AllowToGetQuestItem(const ActItem* pActionItem);

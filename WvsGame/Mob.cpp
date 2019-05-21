@@ -9,6 +9,7 @@
 #include "ItemInfo.h"
 #include "QWUser.h"
 #include "Field.h"
+#include "MobStat.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
@@ -17,10 +18,13 @@
 
 Mob::Mob()
 {
+	m_pStat = nullptr;
 }
 
 Mob::~Mob()
 {
+	if (m_pStat)
+		FreeObj(m_pStat);
 }
 
 void Mob::MakeEnterFieldPacket(OutPacket *oPacket)
@@ -279,6 +283,26 @@ void Mob::SetHP(long long int liHP)
 void Mob::SetMP(long long int liMP)
 {
 	m_liMP = liMP;
+}
+
+void Mob::SetMobStat(MobStat * pStat)
+{
+	m_pStat = pStat;
+}
+
+MobStat* Mob::GetMobStat()
+{
+	return m_pStat;
+}
+
+void* Mob::GetMobGen() const
+{
+	return m_pMobGen;
+}
+
+void Mob::SetMobGen(void * pGen)
+{
+	m_pMobGen = pGen;
 }
 
 long long int Mob::GetHP() const

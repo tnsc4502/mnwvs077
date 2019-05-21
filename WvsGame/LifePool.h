@@ -16,17 +16,25 @@ class Drop;
 
 class LifePool
 {
-	const static int MAX_WINDOW_VIEW_X = 1280, MAX_WINDOW_VIEW_Y = 1024, MAX_MOB_GEN = 40;
+	const static int MAX_WINDOW_VIEW_X = 1280, 
+		MAX_WINDOW_VIEW_Y = 1024, 
+		MAX_MOB_GEN = 40,
+		REGEN_PERIOD = 2500; //If the monster is killed, how long it should be re-generated
+
+	struct MobGen
+	{
+		Mob mob;
+		int nRegenAfter = 0, nRegenInterval = 0, nMobCount = 0;
+	};
 
 	std::mutex m_lifePoolMutex;
-
 	std::atomic<int> atomicObjectCounter = 0x1000;
 
 	//在這個地圖中所有可能的NPC物件
 	std::vector<Npc> m_lNpc;
 
 	//在這個地圖中所有可能的怪物物件
-	std::vector<Mob> m_aMobGen;
+	std::vector<MobGen*> m_aMobGen;
 
 	//在這個地圖中真正產生出的怪物, key是Object ID
 	std::map<int, Mob*> m_mMob;
@@ -81,13 +89,15 @@ public:
 	/*
 	若地圖中的怪物數量不足則隨機挑選lMob並CreateMob
 	*/
-	void TryCreateMob(bool reset);
+	void TryCreateMob(bool bReset);
 
 	/*
 	將指定的Mob召喚出並加入aMobGen
 	*/
-	void CreateMob(const Mob&, int x, int y, int fh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
+	void CreateMob(const Mob&, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
 	void RemoveMob(Mob* pMob);
+	void RemoveAllMob(bool bExceptMobDamagedByMob);
+	void Reset();
 
 	void Init(Field* pField, int nFieldID);
 	void OnEnter(User* pUser);

@@ -4,6 +4,7 @@
 #include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\NpcPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -17,6 +18,8 @@
 #include "DropPool.h"
 #include "FieldSet.h"
 #include "User.h"
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
 #include "PartyMan.h"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "WvsPhysicalSpace2D.h"
@@ -256,7 +259,7 @@ void Field::OnEnter(User *pUser)
 	m_pDropPool->OnEnter(pUser);
 	//m_pReactorPool->OnEnter(pUser);
 	if (m_pParentFieldSet != nullptr)
-		m_pParentFieldSet->OnUserEnterField(pUser);
+		m_pParentFieldSet->OnUserEnterField(pUser, this);
 
 
 	OutPacket oPacketForBroadcasting;
@@ -274,13 +277,13 @@ void Field::OnEnter(User *pUser)
 	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
 }
 
-void Field::OnLeave(User * pUser)
+void Field::OnLeave(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
 	m_mUser.erase(pUser->GetUserID());
 	m_pLifePool->RemoveController(pUser);
 	//if (m_mUser.size() == 0 && m_asyncUpdateTimer->IsStarted())
-	//	m_asyncUpdateTimer->Pause();
+	//	m_asyncUpdateTimer->Pause();;
 
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeLeaveFieldPacket(&oPacketForBroadcasting);
@@ -428,9 +431,120 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	SplitSendPacket(&movePacket, pCtrl);
 }
 
+void Field::LoadAreaRect(void *pData)
+{
+	auto& areaData = *((WZ::Node*)pData);
+	FieldRect rect;
+	for (auto& area : areaData)
+	{
+		rect.left = area["x1"];
+		rect.top = area["y1"];
+		rect.right = area["x2"];
+		rect.bottom = area["y2"];
+		m_mAreaRect[area.Name()] = rect;
+	}
+}
+
+int Field::CountFemaleInArea(const std::string & sArea)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	auto findIter = m_mAreaRect.find(sArea);
+	if (findIter == m_mAreaRect.end())
+		return 0;
+	int nRet = 0;
+	for (auto pUser : m_mUser)
+	{
+		if (!pUser.second->GetCharacterData()->mStat->nGender)
+			continue;
+		if (findIter->second.PtInRect({ pUser.second->GetPosX(), pUser.second->GetPosY() }))
+			++nRet;
+	}
+	return nRet;
+}
+
+int Field::CountMaleInArea(const std::string & sArea)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	auto findIter = m_mAreaRect.find(sArea);
+	if (findIter == m_mAreaRect.end())
+		return 0;
+	int nRet = 0;
+	for (auto pUser : m_mUser)
+	{
+		if (pUser.second->GetCharacterData()->mStat->nGender)
+			continue;
+		if (findIter->second.PtInRect({ pUser.second->GetPosX(), pUser.second->GetPosY() }))
+			++nRet;
+	}
+	return nRet;
+}
+
+int Field::CountUserInArea(const std::string & sArea)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	auto findIter = m_mAreaRect.find(sArea);
+	if (findIter == m_mAreaRect.end())
+		return 0;
+	int nRet = 0;
+	for (auto pUser : m_mUser)
+	{
+		if (findIter->second.PtInRect({ pUser.second->GetPosX(), pUser.second->GetPosY() }))
+			++nRet;
+	}
+	return nRet;
+}
+
+void Field::EffectScreen(const std::string& sEffect)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode1(FieldEffect::e_FieldEffect_Screen);
+	oPacket.EncodeStr(sEffect);
+	BroadcastPacket(&oPacket);
+}
+
+void Field::EffectSound(const std::string& sEffect)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode1(FieldEffect::e_FieldEffect_Sound);
+	oPacket.EncodeStr(sEffect);
+	BroadcastPacket(&oPacket);
+}
+
+void Field::EffectObject(const std::string& sEffect)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode1(FieldEffect::e_FieldEffect_Object);
+	oPacket.EncodeStr(sEffect);
+	BroadcastPacket(&oPacket);
+}
+
+void Field::EnablePortal(const std::string& sPortal, bool bEnable)
+{
+	m_pPortalMap->EnablePortal(sPortal, bEnable);
+}
+
+void Field::TransferAll(int nFieldID, const std::string& sPortal)
+{
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldUserMutex);
+	for (auto& prUser : m_mUser)
+		if (prUser.second)
+			prUser.second->TryTransferField(nFieldID, sPortal);
+}
+
+void Field::Reset(bool bShuffleReactor)
+{
+	m_pDropPool->TryExpire(true);
+	m_pLifePool->Reset();
+	m_pPortalMap->ResetPortal();
+}
+
 void Field::Update()
 {
 	int tCur = GameDateTime::GetTime();
 	m_pLifePool->Update();
-	m_pReactorPool->Update(tCur);
+	m_pReactorPool->Update(tCur); 
+	m_pDropPool->TryExpire(false);
 }

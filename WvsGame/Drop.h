@@ -14,14 +14,15 @@ class Drop : public FieldObj
 private:
 	FieldPoint m_pt1, m_pt2;
 
-	int m_nMoney = 0, 
+	int m_nMoney = 0,
 		m_dwDropID = 0,
 		m_dwOwnerID = 0,
 		m_dwOwnPartyID = 0,
 		m_nOwnType = 0,
 		m_dwSourceID = 0,
 		m_nShowMax = 0,
-		m_nPeriod = 0;
+		m_nPeriod = 0,
+		m_tCreateTime = 0;
 
 	bool m_bByPet = false, 
 		m_bIsMoney = false,

@@ -19,5 +19,12 @@ public:
 	static int FieldSummonMob(lua_State* L);
 	static int FieldSummonNpc(lua_State* L);
 	static int FieldBroadcastPacket(lua_State* L);
+	static int FieldCountUserInArea(lua_State* L);
+	static int FieldReset(lua_State* L);
+	static int FieldEffectScreen(lua_State* L);
+	static int FieldEffectSound(lua_State* L);
+	static int FieldEffectObject(lua_State* L);
+	static int FieldTransferAll(lua_State* L);
+	static int FieldEnablePortal(lua_State* L);
 };
 

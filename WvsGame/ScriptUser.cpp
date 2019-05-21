@@ -5,6 +5,7 @@
 #include "Script.h"
 #include "User.h"
 #include "QWUser.h"
+#include "PartyMan.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GW_CharacterStat.h"
@@ -76,6 +77,8 @@ void ScriptUser::Register(lua_State * L)
 		{ "isWearing", TargetIsWearing },
 		{ "getPosX", TargetGetPosX },
 		{ "getPosY", TargetGetPosY },
+		{ "isPartyBoss", TargetIsPartyBoss },
+		{ "getName", TargetGetName },
 		{ NULL, NULL }
 	};
 
@@ -440,5 +443,23 @@ int ScriptUser::TargetQuestEndEffect(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 	self->GetUser()->SendQuestEndEffect();
+	return 1;
+}
+
+int ScriptUser::TargetIsPartyBoss(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(self->m_pUser->GetUserID());
+	if(!pParty)
+		lua_pushinteger(L, 0);
+	else
+		lua_pushinteger(L, self->m_pUser->GetUserID() == pParty->party.nPartyBossCharacterID ? 1 : 0);
+	return 1;
+}
+
+int ScriptUser::TargetGetName(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushstring(L, self->m_pUser->GetName().c_str());
 	return 1;
 }

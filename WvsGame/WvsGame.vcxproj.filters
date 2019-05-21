@@ -58,17 +58,17 @@
     <Filter Include="WvsGame\InGame\Field\Life\Summoned">
       <UniqueIdentifier>{f846c40a-e877-4e54-8adf-5e15ceadbee5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WvsGame\InGame\Field\Life\Pet">
-      <UniqueIdentifier>{ef05dad3-300e-4748-9e33-833af294c5ee}</UniqueIdentifier>
-    </Filter>
     <Filter Include="WvsGame\InGame\Skill\SkillConstants">
       <UniqueIdentifier>{b40abfab-e241-46ca-bbae-08b5a3708a73}</UniqueIdentifier>
     </Filter>
     <Filter Include="WvsGame\InGame\World">
       <UniqueIdentifier>{f4d5fb20-75e5-49cb-853c-f4c6d03fbb6b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WvsGame\InGame\Field\MiniRoom">
+    <Filter Include="WvsGame\InGame\MiniRoom">
       <UniqueIdentifier>{9d93e7eb-fee7-4588-9ca2-0685396eabcb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WvsGame\InGame\User\Pet">
+      <UniqueIdentifier>{ef05dad3-300e-4748-9e33-833af294c5ee}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -307,7 +307,7 @@
       <Filter>WvsGame\InGame\Script</Filter>
     </ClInclude>
     <ClInclude Include="Pet.h">
-      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+      <Filter>WvsGame\InGame\User\Pet</Filter>
     </ClInclude>
     <ClInclude Include="Summoned.h">
       <Filter>WvsGame\InGame\Field\Life\Summoned</Filter>
@@ -442,19 +442,22 @@
       <Filter>WvsGame\InGame\World</Filter>
     </ClInclude>
     <ClInclude Include="MiniRoomBase.h">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClInclude>
     <ClInclude Include="TradingRoom.h">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClInclude>
     <ClInclude Include="UMiniRoom.h">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClInclude>
     <ClInclude Include="EntrustedShop.h">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClInclude>
     <ClInclude Include="PersonalShop.h">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="MobStat.h">
+      <Filter>WvsGame\InGame\Stat</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -652,7 +655,7 @@
       <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
     <ClCompile Include="Pet.cpp">
-      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+      <Filter>WvsGame\InGame\User\Pet</Filter>
     </ClCompile>
     <ClCompile Include="Summoned.cpp">
       <Filter>WvsGame\InGame\Field\Life\Summoned</Filter>
@@ -673,19 +676,22 @@
       <Filter>WvsGame\InGame\World</Filter>
     </ClCompile>
     <ClCompile Include="MiniRoomBase.cpp">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClCompile>
     <ClCompile Include="TradingRoom.cpp">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClCompile>
     <ClCompile Include="UMiniRoom.cpp">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClCompile>
     <ClCompile Include="EntrustedShop.cpp">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
     </ClCompile>
     <ClCompile Include="PersonalShop.cpp">
-      <Filter>WvsGame\InGame\Field\MiniRoom</Filter>
+      <Filter>WvsGame\InGame\MiniRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="MobStat.cpp">
+      <Filter>WvsGame\InGame\Stat</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

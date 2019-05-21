@@ -215,16 +215,14 @@ void Npc::OnUpdateLimitedInfo(User * pUser, InPacket * iPacket)
 {
 	int nRemained = iPacket->RemainedCount();
 	OutPacket oPacket;
-	oPacket.Encode2(0x417);
-	//printf("[LifePool::OnNpcPacket][OnUpdateLimitedInfo]Remained = %d\n", nRemained);
-	if (nRemained == 6)
+	oPacket.Encode2(NPCPacketFlags::NPC_OnMove);
+	oPacket.Encode4(GetFieldObjectID());
+	if (nRemained == 2)
 	{
-		oPacket.Encode4(GetFieldObjectID());
 		oPacket.Encode2(iPacket->Decode2());
-		oPacket.Encode4(iPacket->Decode4());
 	}
 	else
-		return;
+		oPacket.EncodeBuffer(iPacket->GetPacket() + iPacket->GetReadCount(), nRemained - 5);
 	pUser->SendPacket(&oPacket);
 }
 

@@ -36,19 +36,20 @@ MAKE_FLAG_COLLECTION_BODY(MobRecvPacketFlag)
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnMove, 0x8C); //Mob::GenerateMovePath
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnApplyControl, 0x8D); //Mob::ApplyControl
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnDropPickUpRequest, 0x8E); //Mob::SendDropPickUpReques
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnDamagedByMob, 0xCD); //Mob::SetDamagedByMob
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnUpdateTimeBomb, 0x373); //Mob::UpdateTimeBomb
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnCollisionEscort, 0x374); //Mob::SendCollisionEscort
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnRequestEscortPath, 0x375); //Mob::SendRequestEscortPath
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnEscortStopEndRequest, 0x376); //Mob::SendEscortStopEndRequest
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnAttack_Area, 0x377); //Mob::DoAttack_Area
-MAKE_MOB_RECV_PACKET_FLAG(Mob_OnExplosionStart, 0x378); //Mob::SendExplosionStart
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnDamagedByMob, 0x8F); //Mob::SetDamagedByMob
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnUpdateTimeBomb, 0x90); //Mob::UpdateTimeBomb
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnCollisionEscort, 0x91); //Mob::SendCollisionEscort
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnRequestEscortPath, 0x92); //Mob::SendRequestEscortPath
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnEscortStopEndRequest, 0x93); //Mob::SendEscortStopEndRequest
+MAKE_MOB_RECV_PACKET_FLAG(Mob_OnAttack_Area, 0x94); //Mob::DoAttack_Area
+/*MAKE_MOB_RECV_PACKET_FLAG(Mob_OnExplosionStart, 0x378); //Mob::SendExplosionStart
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnInitMobUpDownState, 0x379); //Mob::InitMobUpDownState
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnUpdateFixedMoveDir, 0x37A); //Mob::UpdateFixedMoveDir
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnUpdatePassiveSkill, 0x37B); //Mob::UpdatePassiveSkill
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnRequsetAfterDead, 0x37C); //Mob::SendRequsetAfterDead
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnDamageShareInfoUpdate, 0x37D); //Mob::DamageShareInfoUpdate
 MAKE_MOB_RECV_PACKET_FLAG(Mob_OnCreateAffectedArea, 0x37E); //Mob::CreateAffectedArea
+*/
 
 //µ²§ôOpcode Flagµù¥U
 FLAG_COLLECTION_BODY_END

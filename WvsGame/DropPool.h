@@ -24,6 +24,7 @@ public:
 	void OnEnter(User* pUser);
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnPickUpRequest(User* pUser, InPacket *iPacket);
+	void TryExpire(bool bRemoveAll);
 	DropPool(Field* pField);
 	~DropPool();
 };

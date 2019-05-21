@@ -48,6 +48,13 @@ void ScriptField::Register(lua_State * L)
 		{ "summonMob", FieldSummonMob },
 		{ "summonNpc", FieldSummonNpc },
 		{ "broadcast", FieldBroadcastPacket },
+		{ "countUserInArea", FieldCountUserInArea },
+		{ "reset", FieldReset },
+		{ "effectSound", FieldEffectSound },
+		{ "effectScreen", FieldEffectScreen },
+		{ "effectObject", FieldEffectObject },
+		{ "transferAll", FieldTransferAll },
+		{ "enablePortal", FieldEnablePortal },
 		{ NULL, NULL }
 	};
 
@@ -107,5 +114,62 @@ int ScriptField::FieldBroadcastPacket(lua_State * L)
 	ScriptField* self = luaW_check<ScriptField>(L, 1);
 	ScriptPacket* packet = luaW_check<ScriptPacket>(L, 2);
 	self->m_pField->BroadcastPacket(packet->GetPacket());
+	return 1;
+}
+
+int ScriptField::FieldCountUserInArea(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char *sArea = luaL_checkstring(L, 2);
+	lua_pushinteger(L, self->m_pField->CountUserInArea(sArea));
+	return 1;
+}
+
+int ScriptField::FieldReset(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	self->m_pField->Reset(true);
+	return 1;
+}
+
+int ScriptField::FieldEffectScreen(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char *sEffect = luaL_checkstring(L, 2);
+	self->m_pField->EffectScreen(sEffect);
+	return 1;
+}
+
+int ScriptField::FieldEffectSound(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char *sEffect = luaL_checkstring(L, 2);
+	self->m_pField->EffectSound(sEffect);
+	return 1;
+}
+
+int ScriptField::FieldEffectObject(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char *sEffect = luaL_checkstring(L, 2);
+	self->m_pField->EffectObject(sEffect);
+	return 1;
+}
+
+int ScriptField::FieldTransferAll(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	int nFieldID = (int)luaL_checkinteger(L, 2);
+	const char* sPortal = luaL_checkstring(L, 3);
+	self->m_pField->TransferAll(nFieldID, sPortal);
+	return 1;
+}
+
+int ScriptField::FieldEnablePortal(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char* sPortal = luaL_checkstring(L, 2);
+	int bEnable = (int)luaL_checkinteger(L, 3);
+	self->m_pField->EnablePortal(sPortal, bEnable == 1);
 	return 1;
 }

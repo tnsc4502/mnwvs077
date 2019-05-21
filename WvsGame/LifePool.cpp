@@ -1,6 +1,8 @@
 #include "LifePool.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Random\Rand32.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 
@@ -9,6 +11,7 @@
 #include "User.h"
 #include "MobTemplate.h"
 #include "Field.h"
+#include "MobStat.h"
 #include "Controller.h"
 #include "SkillEntry.h"
 #include "Drop.h"
@@ -16,15 +19,12 @@
 #include "SecondaryStat.h"
 #include "NpcTemplate.h"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
-
 #include <cmath>
-
 
 LifePool::LifePool()
 	: m_pCtrlNull(AllocObjCtor(Controller)(nullptr))
 {
 }
-
 
 LifePool::~LifePool()
 {
@@ -111,11 +111,15 @@ void LifePool::LoadNpcData(WZ::Node& dataNode)
 
 void LifePool::LoadMobData(WZ::Node& dataNode)
 {
-	Mob mob;
-	SetFieldObjAttribute(&mob, dataNode);
-	mob.SetMobTemplate(MobTemplate::GetMobTemplate(mob.GetTemplateID()));
-	//MobTemplate::GetMobTemplate(mob.GetTemplateID());
-	m_aMobGen.push_back(mob);
+	MobGen* pMobGen = AllocObj(MobGen);
+	SetFieldObjAttribute(&(pMobGen->mob), dataNode);
+
+	pMobGen->mob.SetMobTemplate(MobTemplate::GetMobTemplate(pMobGen->mob.GetTemplateID()));
+	pMobGen->nRegenInterval = (int)dataNode["mobTime"];
+	pMobGen->nRegenAfter = (pMobGen->nRegenInterval == -1 ? 0 : 
+		GameDateTime::GetTime() + (pMobGen->nRegenInterval * 1000));
+	pMobGen->mob.SetMobGen(pMobGen);
+	m_aMobGen.push_back(pMobGen);
 }
 
 void LifePool::CreateNpc(const Npc& npc)
@@ -128,21 +132,42 @@ void LifePool::CreateNpc(const Npc& npc)
 	m_aNpcGen.insert({ newNpc->GetFieldObjectID(), newNpc });
 }
 
-void LifePool::TryCreateMob(bool reset)
+void LifePool::TryCreateMob(bool bReset)
 {
 	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
-	/*
-	if reset, kill all monsters and respawns
-	*/
-	if(m_aMobGen.size() > 0)
-		for (int i = 0; i < m_nMobCapacityMax - ((int)m_mMob.size()); ++i) 
+	int tCur = GameDateTime::GetTime();
+
+	if (m_aMobGen.size() > 0)
+	{
+		std::vector<MobGen*> apGen;
+		for (auto pGen : m_aMobGen)
 		{
-			auto& mob = m_aMobGen[rand() % m_aMobGen.size()];
-			CreateMob(mob, mob.GetPosX(), mob.GetPosY(), mob.GetFh(), 0, -2, 0, 0, 0, nullptr);
+			if (bReset)
+				pGen->nRegenAfter = 1000;
+			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur - pGen->nRegenAfter >= 0)))
+				apGen.push_back(pGen);
 		}
+
+		for (int i = 0; i < m_nMobCapacityMax - ((int)m_mMob.size()); ++i)
+		{
+			//Force generate mobGens in apGen, if there is any empty space, then randomly choose one to create.
+			auto pMobGen = apGen.size() > 0 ? apGen.back() : 
+				m_aMobGen[(int)((unsigned int)Rand32::GetInstance()->Random() % m_aMobGen.size())];
+
+			if (apGen.size())
+				apGen.pop_back();
+
+			if (pMobGen->nRegenInterval == 0 ||
+				(pMobGen->nRegenAfter && tCur >= pMobGen->nRegenAfter))
+			{
+				auto& mob = pMobGen->mob;
+				CreateMob(mob, mob.GetPosX(), mob.GetPosY(), mob.GetFh(), 0, -2, 0, 0, 0, nullptr);
+			}
+		}
+	}
 }
 
-void LifePool::CreateMob(const Mob& mob, int x, int y, int fh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner)
+void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner)
 {
 	Controller* pController = pOwner;
 	if (m_hCtrl.size() > 0)
@@ -157,14 +182,20 @@ void LifePool::CreateMob(const Mob& mob, int x, int y, int fh, int bNoDropPriori
 	{
 		Mob* newMob = AllocObj( Mob );
 		*newMob = mob;
+		newMob->SetMobStat(AllocObj(MobStat));
 		newMob->SetField(m_pField);
 		newMob->SetFieldObjectID(atomicObjectCounter++);
+		newMob->SetMobGen(mob.GetMobGen());
+		if (mob.GetMobGen()) 
+		{
+			++((MobGen*)mob.GetMobGen())->nMobCount;
+			((MobGen*)mob.GetMobGen())->nRegenAfter = 0;
+		}
 
-		int moveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-
+		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
 		newMob->SetHP(newMob->GetMobTemplate()->m_lnMaxHP);
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
-		newMob->SetMovePosition(x, y, bLeft & 1 | 2 * (moveAbility == 3 ? 6 : (moveAbility == 0 ? 1 : 0) + 1), fh);
+		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //й╟кл = 5 ?
 
 		OutPacket createMobPacket;
@@ -193,11 +224,37 @@ void LifePool::RemoveMob(Mob * pMob)
 	}
 	else
 		m_pCtrlNull->RemoveCtrlMob(pMob);
+	auto pGen = (MobGen*)pMob->GetMobGen();
+	if (pGen && pGen->nRegenInterval)
+	{
+		--pGen->nMobCount;
+		pGen->nRegenAfter = pGen->nRegenInterval == 0 ? REGEN_PERIOD :
+			(pGen->nRegenInterval * 300) * (int)(1 + Rand32::GetInstance()->Random() % 16);
+
+		if (pGen->nRegenInterval == -1)
+			pGen->nRegenAfter = 0;
+	}
 	OutPacket oPacket;
 	pMob->MakeLeaveFieldPacket(&oPacket);
 	m_pField->SplitSendPacket(&oPacket, nullptr);
 	m_mMob.erase(pMob->GetFieldObjectID());
 	FreeObj( pMob );
+}
+
+void LifePool::RemoveAllMob(bool bExceptMobDamagedByMob)
+{
+	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	while (m_mMob.size() > 0)
+		if (bExceptMobDamagedByMob && m_mMob.begin()->second->GetMobTemplate()->m_bIsDamagedByMob)
+			continue;
+		else
+			RemoveMob(m_mMob.begin()->second);
+}
+
+void LifePool::Reset()
+{
+	RemoveAllMob(false);
+	TryCreateMob(true);
 }
 
 void LifePool::OnEnter(User *pUser)
@@ -209,8 +266,8 @@ void LifePool::OnEnter(User *pUser)
 	{
 		OutPacket oPacket;
 		npc.second->MakeEnterFieldPacket(&oPacket);
-		npc.second->SendChangeControllerPacket(pUser);
 		pUser->SendPacket(&oPacket);
+		npc.second->SendChangeControllerPacket(pUser);
 	}
 	//WvsLogger::LogFormat("LifePool::OnEnter : Total Mob = %d\n", m_aMobGen.size());
 	for (auto& mob : m_mMob)
@@ -357,7 +414,7 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 	{
 		OnMobPacket(pUser, nType, iPacket);
 	}
-	else if (nType == 0x384)
+	else if (nType == 0x95)
 		OnNpcPacket(pUser, nType, iPacket);
 }
 
@@ -480,7 +537,7 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 void LifePool::OnNpcPacket(User * pUser, int nType, InPacket * iPacket)
 {
 	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
-	if (nType == 0x384)
+	if (nType == 0x95)
 	{
 		auto iterNpc = this->m_aNpcGen.find(iPacket->Decode4());
 		if (iterNpc != m_aNpcGen.end())

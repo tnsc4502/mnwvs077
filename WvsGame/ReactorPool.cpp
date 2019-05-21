@@ -55,7 +55,7 @@ void ReactorPool::TryCreateReactor(bool bReset)
 	{
 		if (!bReset && gen.tRegenInterval <= 0)
 			continue;
-		if (gen.nReactorCount || tCur - gen.tRegenAfter < 0)
+		if (!bReset && (gen.nReactorCount || tCur - gen.tRegenAfter < 0))
 			continue;
 		aGen.push_back(&gen);
 	}

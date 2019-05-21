@@ -215,6 +215,7 @@
     <ClInclude Include="MihileSkills.h" />
     <ClInclude Include="MiniRoomBase.h" />
     <ClInclude Include="Mob.h" />
+    <ClInclude Include="MobStat.h" />
     <ClInclude Include="MobSummonItem.h" />
     <ClInclude Include="MobTemplate.h" />
     <ClInclude Include="MovePath.h" />
@@ -311,6 +312,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MiniRoomBase.cpp" />
     <ClCompile Include="Mob.cpp" />
+    <ClCompile Include="MobStat.cpp" />
     <ClCompile Include="MobSummonItem.cpp" />
     <ClCompile Include="MobTemplate.cpp" />
     <ClCompile Include="MovePath.cpp" />

@@ -39,26 +39,26 @@ void FieldMan::RegisterField(int nFieldID)
 	FieldFactory(nFieldID);
 }
 
-void FieldMan::FieldFactory(int nFieldID) 
+void FieldMan::FieldFactory(int nFieldID)
 {
 	/*if (mField[nFieldID]->GetFieldID() != 0)
 		return;*/
-	/*
-	在這裡檢查此Field的型態，舊版的在這裡根據FieldType建立不同的地圖實體
-	Field
-	Field_Tutorial
-	Field_ShowaBath
-	Field_WeddingPhoto
-	Field_SnowBall
-	Field_Tournament
-	Field_Coconut
-	Field_OXQuiz
-	Field_PersonalTimeLimit
-	Field_GuildBoss
-	Field_MonsterCarnival
-	Field_Wedding
-	...
-	*/
+		/*
+		在這裡檢查此Field的型態，舊版的在這裡根據FieldType建立不同的地圖實體
+		Field
+		Field_Tutorial
+		Field_ShowaBath
+		Field_WeddingPhoto
+		Field_SnowBall
+		Field_Tournament
+		Field_Coconut
+		Field_OXQuiz
+		Field_PersonalTimeLimit
+		Field_GuildBoss
+		Field_MonsterCarnival
+		Field_Wedding
+		...
+		*/
 	std::string fieldStr = std::to_string(nFieldID);
 	while (fieldStr.size() < 9)
 		fieldStr = "0" + fieldStr;
@@ -67,6 +67,7 @@ void FieldMan::FieldFactory(int nFieldID)
 		return;
 
 	auto& infoData = mapWz["info"];
+	auto& areaData = mapWz["area"];
 	Field* newField = AllocObjCtor(Field)(nFieldID);
 	newField->SetFieldID(nFieldID);
 
@@ -83,6 +84,9 @@ void FieldMan::FieldFactory(int nFieldID)
 	newField->SetFiexdMobCapacity(infoData["fixedMobCapacity"]);
 	newField->SetFirstUserEnter(infoData["onFirstUerEnter"]);
 	newField->SetUserEnter(infoData["onUserEnter"]);
+
+	if (areaData != mapWz.end())
+		newField->LoadAreaRect(&areaData);
 
 	newField->GetPortalMap()->RestorePortal(newField, &(mapWz["portal"]));
 	newField->GetReactorPool()->Init(newField, &(mapWz["reactor"]));
