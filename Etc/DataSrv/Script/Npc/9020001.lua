@@ -321,9 +321,8 @@ function party1_reward()
     end
     return
 end
-quest->setVar("stage", "clear")
-if(quest->getVar("stage") == "clear") then party1_reward() return end
 
+if(quest->getVar("stage") == "clear") then party1_reward() return end
 if(target->isPartyBoss() == 1) then
     if(fieldID == 103000800) then
         party1_stage1()

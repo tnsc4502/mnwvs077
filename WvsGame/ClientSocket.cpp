@@ -6,6 +6,7 @@
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "WvsGame.h"
 #include "User.h"
 
@@ -37,6 +38,7 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 		{
 			iPacket->RestorePacket();
 			if (nType != UserRecvPacketFlag::User_OnFuncKeyMappedModified
+				&& nType != NPCRecvPacketFlags::NPC_OnMoveRequest
 				&& nType != MobRecvPacketFlag::Mob_OnMove) {
 				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]«Ê¥]±µ¦¬¡G");
 				iPacket->Print();

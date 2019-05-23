@@ -25,11 +25,13 @@ void NpcTemplate::Load()
 	}
 }
 
-void NpcTemplate::RegisterNpc(int nNpcID, void * pProp)
+void NpcTemplate::RegisterNpc(int nNpcID, void *pProp)
 {
+	auto data = *((WZ::Node*)pProp);
 	NpcTemplate *pTemplate = AllocObj(NpcTemplate);
 	pTemplate->m_nTemplateID = nNpcID;
 	pTemplate->m_aShopItem = GW_Shop::GetInstance()->GetShopItemList(nNpcID);
+	pTemplate->m_nTrunkPut = data["info"]["trunkPut"];
 	m_mNpcTemplates[nNpcID] = pTemplate;
 }
 
@@ -44,6 +46,11 @@ NpcTemplate* NpcTemplate::GetNpcTemplate(int dwTemplateID)
 bool NpcTemplate::HasShop() const
 {
 	return m_aShopItem != nullptr;
+}
+
+int NpcTemplate::GetTrunkCost() const
+{
+	return m_nTrunkPut;
 }
 
 NpcTemplate * NpcTemplate::GetInstance()

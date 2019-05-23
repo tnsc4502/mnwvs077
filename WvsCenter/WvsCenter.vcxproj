@@ -156,6 +156,7 @@
     <ClCompile Include="..\WvsGame\GuildMan.cpp" />
     <ClCompile Include="..\WvsGame\ItemInfo.cpp" />
     <ClCompile Include="..\WvsGame\PartyMan.cpp" />
+    <ClCompile Include="..\WvsGame\Trunk.cpp" />
     <ClCompile Include="LocalServerEntry.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UserTransferStatus.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="..\WvsGame\GuildMan.h" />
     <ClInclude Include="..\WvsGame\ItemInfo.h" />
     <ClInclude Include="..\WvsGame\PartyMan.h" />
+    <ClInclude Include="..\WvsGame\Trunk.h" />
     <ClInclude Include="LocalServerEntry.h" />
     <ClInclude Include="UserTransferStatus.h" />
     <ClInclude Include="WvsCenter.h" />

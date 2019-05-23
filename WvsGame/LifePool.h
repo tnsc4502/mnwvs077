@@ -7,6 +7,7 @@
 #include <mutex>
 
 struct AttackInfo;
+struct MobSummonItem;
 class User;
 class Field;
 class Controller;
@@ -94,6 +95,7 @@ public:
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
 	bool GiveUpMobController(Controller* pController);
+	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
 
 	void RedistributeLife();
 	void Update();

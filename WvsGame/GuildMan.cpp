@@ -19,7 +19,7 @@
 GuildMan::GuildMan()
 {
 #ifdef _WVSCENTER
-	m_atiGuildIDCounter = GuildDBAccessor::GetInstance()->GetGuildIDCounter();
+	m_atiGuildIDCounter = GuildDBAccessor::GetGuildIDCounter();
 #endif
 }
 
@@ -995,11 +995,11 @@ void GuildMan::LoadGuild(InPacket *iPacket, OutPacket * oPacket)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
 
 	//Existed
-	if (!pGuild && (pGuild = GetGuild(GuildDBAccessor::GetInstance()->LoadGuildID(nCharacterID))))
+	if (!pGuild && (pGuild = GetGuild(GuildDBAccessor::LoadGuildID(nCharacterID))))
 		m_mCharIDToGuildID[nCharacterID] = pGuild->nGuildID;
 
 	//Load
-	else if(!pGuild && (pGuild = (GuildData*)GuildDBAccessor::GetInstance()->LoadGuildByCharID(nCharacterID)), pGuild != nullptr)
+	else if(!pGuild && (pGuild = (GuildData*)GuildDBAccessor::LoadGuildByCharID(nCharacterID)), pGuild != nullptr)
 	{
 		m_mGuild[pGuild->nGuildID] = pGuild;
 		m_mNameToGuild[pGuild->sGuildName] = pGuild;
@@ -1078,7 +1078,7 @@ void GuildMan::CreateNewGuild(InPacket *iPacket, OutPacket *oPacket)
 
 		oPacket->Encode1(0);
 		pGuild->Encode(oPacket);
-		GuildDBAccessor::GetInstance()->CreateNewGuild(
+		GuildDBAccessor::CreateNewGuild(
 			pGuild,
 			WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 	}
@@ -1124,7 +1124,7 @@ void GuildMan::JoinGuild(InPacket * iPacket, OutPacket * oPacket)
 			oPacket->Encode4(pGuild->nGuildID);
 			memberData.Encode(oPacket);
 
-			GuildDBAccessor::GetInstance()->JoinGuild(
+			GuildDBAccessor::JoinGuild(
 				&memberData,
 				nCharacterID,
 				nGuildID,
@@ -1162,7 +1162,7 @@ void GuildMan::WithdrawGuild(InPacket * iPacket, OutPacket * oPacket)
 		int nMasterGrade = GetMemberGrade(nGuildID, nMasterID);
 		if (nMasterIdx >= 0 &&
 			nTargetIdx >= 0 &&
-			GuildDBAccessor::GetInstance()->LoadGuildID(nTargetID) == nGuildID && //Check Again
+			GuildDBAccessor::LoadGuildID(nTargetID) == nGuildID && //Check Again
 			WvsWorld::GetInstance()->GetUser(nMasterID) &&
 		 //Withdraw by self
 			(!bKicked || (nMasterGrade <= 2 && (GetMemberGrade(nGuildID, nTargetID) > nMasterGrade))))
@@ -1177,7 +1177,7 @@ void GuildMan::WithdrawGuild(InPacket * iPacket, OutPacket * oPacket)
 			{
 				for (auto& nID : pGuild->anCharacterID)
 				{
-					GuildDBAccessor::GetInstance()->WithdrawGuild(
+					GuildDBAccessor::WithdrawGuild(
 						nID,
 						nGuildID,
 						WvsWorld::GetInstance()->GetWorldInfo().nWorldID
@@ -1187,7 +1187,7 @@ void GuildMan::WithdrawGuild(InPacket * iPacket, OutPacket * oPacket)
 					RemoveUser(pGuild, nID);
 
 				m_mGuild.erase(nGuildID);
-				GuildDBAccessor::GetInstance()->RemoveGuild(
+				GuildDBAccessor::RemoveGuild(
 					nGuildID, 
 					WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 				);
@@ -1196,7 +1196,7 @@ void GuildMan::WithdrawGuild(InPacket * iPacket, OutPacket * oPacket)
 			else
 			{
 				RemoveUser(pGuild, nTargetID);
-				GuildDBAccessor::GetInstance()->WithdrawGuild(
+				GuildDBAccessor::WithdrawGuild(
 					nTargetID,
 					nGuildID,
 					WvsWorld::GetInstance()->GetWorldInfo().nWorldID
@@ -1228,7 +1228,7 @@ void GuildMan::SetNotice(InPacket * iPacket, OutPacket * oPacket)
 
 		pGuild->sNotice = strCheck;
 		oPacket->EncodeStr(strCheck);
-		GuildDBAccessor::GetInstance()->UpdateGuild(
+		GuildDBAccessor::UpdateGuild(
 			pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 		);
 		SendToAll(pGuild, oPacket);
@@ -1262,7 +1262,7 @@ void GuildMan::SetGradeName(InPacket * iPacket, OutPacket * oPacket)
 			oPacket->EncodeStr(strCheck);
 		}
 
-		GuildDBAccessor::GetInstance()->UpdateGuild(
+		GuildDBAccessor::UpdateGuild(
 			pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 		);
 		SendToAll(pGuild, oPacket);
@@ -1301,7 +1301,7 @@ void GuildMan::SetMemberGrade(InPacket * iPacket, OutPacket * oPacket)
 		int nIdx = FindUser(nTargetID, pGuild);
 		pGuild->aMemberData[nIdx].nGrade = nGrade;
 
-		GuildDBAccessor::GetInstance()->UpdateGuildMember(
+		GuildDBAccessor::UpdateGuildMember(
 			&(pGuild->aMemberData[nIdx]),
 			nTargetID,
 			nGuildID,
@@ -1339,7 +1339,7 @@ void GuildMan::SetMark(InPacket * iPacket, OutPacket * oPacket)
 		oPacket->Encode2(pGuild->nMark);
 		oPacket->Encode1(pGuild->nMarkColor);
 
-		GuildDBAccessor::GetInstance()->UpdateGuild(
+		GuildDBAccessor::UpdateGuild(
 			pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 		);
 		SendToAll(pGuild, oPacket);
@@ -1366,7 +1366,7 @@ void GuildMan::IncMaxMemberNum(InPacket * iPacket, OutPacket * oPacket)
 		{
 			pGuild->nMaxMemberNum += nToInc;
 
-			GuildDBAccessor::GetInstance()->UpdateGuild(
+			GuildDBAccessor::UpdateGuild(
 				pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 			);
 
@@ -1395,7 +1395,7 @@ void GuildMan::IncPoint(InPacket * iPacket, OutPacket * oPacket)
 		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
 		pGuild->nPoint += nToInc;
 
-		GuildDBAccessor::GetInstance()->UpdateGuild(
+		GuildDBAccessor::UpdateGuild(
 			pGuild, WvsWorld::GetInstance()->GetWorldInfo().nWorldID
 		);
 
@@ -1438,7 +1438,7 @@ void GuildMan::ChangeJobOrLevel(InPacket * iPacket, OutPacket * oPacket)
 			SendToAll(pGuild, oPacket);
 			oPacket->Reset();
 
-			GuildDBAccessor::GetInstance()->UpdateGuildMember(
+			GuildDBAccessor::UpdateGuildMember(
 				&(pGuild->aMemberData[nIdx]),
 				nCharacterID,
 				nGuildID,
@@ -1458,8 +1458,8 @@ void GuildMan::NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn)
 	int nGuildID = -1;
 
 	//Guild not exists or not yet been loaded.
-	if (!pGuild && !(pGuild = GetGuild(GuildDBAccessor::GetInstance()->LoadGuildID(nCharacterID))))
-		pGuild = (GuildData*)GuildDBAccessor::GetInstance()->LoadGuildByCharID(nCharacterID);
+	if (!pGuild && !(pGuild = GetGuild(GuildDBAccessor::LoadGuildID(nCharacterID))))
+		pGuild = (GuildData*)GuildDBAccessor::LoadGuildByCharID(nCharacterID);
 
 	//If the guild exists and is loaded, then notify all members.
 	if (pGuild)

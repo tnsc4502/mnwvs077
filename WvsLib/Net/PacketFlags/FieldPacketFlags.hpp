@@ -29,6 +29,7 @@ namespace WhisperResult
 }
 
 #define MAKE_FIELD_SEND_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static FieldSendPacketFlag flagName {value, #flagName}; } const static int flagName = value
+#define MAKE_FIELD_RECV_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static FieldRecvPacketFlag flagName {value, #flagName}; } const static int flagName = value
 
 MAKE_FLAG_COLLECTION_BODY(FieldSendPacketFlag)
 //以下開始註冊封包Opcode Flag
@@ -52,8 +53,16 @@ MAKE_FIELD_SEND_PACKET_FLAG(Field_OnSetQuestTime, 96);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_OnSetObjectState, 97);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_OnDestroyClock, 98);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_OnFootHoldInfo, 100);
-
+MAKE_FIELD_SEND_PACKET_FLAG(Field_TrunkRequest, 222);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_MiniRoomRequest, 227);
+
+//結束Opcode Flag註冊
+FLAG_COLLECTION_BODY_END
+
+MAKE_FLAG_COLLECTION_BODY(FieldRecvPacketFlag)
+//以下開始註冊封包Opcode Flag
+MAKE_FIELD_RECV_PACKET_FLAG(Field_OnContiMoveStateRequest, 171);
+
 //結束Opcode Flag註冊
 FLAG_COLLECTION_BODY_END
 

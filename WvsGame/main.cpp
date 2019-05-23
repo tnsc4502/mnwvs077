@@ -15,6 +15,7 @@
 #include "TimerThread.h"
 #include "NpcTemplate.h"
 #include "ReactorTemplate.h"
+#include "ContinentMan.h"
 #include "Reward.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -53,6 +54,7 @@ int main(int argc, char **argv)
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
 	FieldMan::GetInstance()->LoadFieldSet();
+	ContinentMan::GetInstance()->Init();
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else

@@ -159,6 +159,7 @@
     <ClInclude Include="GW_QuestRecord.h" />
     <ClInclude Include="GW_Shop.h" />
     <ClInclude Include="GW_SkillRecord.h" />
+    <ClInclude Include="TrunkDBAccessor.h" />
     <ClInclude Include="WvsUnified.h" />
   </ItemGroup>
   <ItemGroup>
@@ -183,6 +184,7 @@
     <ClCompile Include="GW_QuestRecord.cpp" />
     <ClCompile Include="GW_Shop.cpp" />
     <ClCompile Include="GW_SkillRecord.cpp" />
+    <ClCompile Include="TrunkDBAccessor.cpp" />
     <ClCompile Include="WvsUnified.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

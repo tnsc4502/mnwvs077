@@ -57,5 +57,6 @@ public:
 
 	StateInfo* GetStateInfo(int nState);
 	EventInfo* GetEventInfo(int nState, int nEventIdx);
+	bool RemoveInFieldSet() const;
 };
 

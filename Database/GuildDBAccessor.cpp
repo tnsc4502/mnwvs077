@@ -6,20 +6,6 @@
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsGame\GuildMan.h"
 
-GuildDBAccessor::GuildDBAccessor()
-{
-}
-
-GuildDBAccessor::~GuildDBAccessor()
-{
-}
-
-GuildDBAccessor * GuildDBAccessor::GetInstance()
-{
-	static GuildDBAccessor* sPtrAccessor = new GuildDBAccessor();
-	return sPtrAccessor;
-}
-
 int GuildDBAccessor::GetGuildIDCounter()
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);

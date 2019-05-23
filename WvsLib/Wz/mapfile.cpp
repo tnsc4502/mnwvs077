@@ -37,7 +37,9 @@ void MapFile::Open(string filename) {
                               NULL, NULL);
     if (mFile == INVALID_HANDLE_VALUE) throw("Failed to open file");
     HANDLE map = CreateFileMappingA(mFile, NULL, PAGE_READONLY, 0, 0, NULL);
-    if (!map) throw("Failed to create file mapping");
+	if (!map) {
+		MessageBoxA(nullptr, "Failed to create file mapping", "MapFile.cpp", 0);  throw("Failed to create file mapping");
+	};
     base = reinterpret_cast<char *>(MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0));
     if (!base) throw("Failed to map view of file");
     off = base;

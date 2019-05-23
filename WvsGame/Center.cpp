@@ -2,6 +2,8 @@
 #include <functional>
 #include <thread>
 
+#include "..\Database\GW_ItemSlotBase.h"
+
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
@@ -93,6 +95,11 @@ void Center::OnPacket(InPacket *iPacket)
 				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Warning]The Center Server Didn't Accept This Socket. Program Will Terminated.\n");
 				exit(0);
 			}
+
+			//Channel 0 is reserved for Center
+			GW_ItemSlotBase::ms_nChannelID = WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1;
+			for (int i = 1; i <= 5; ++i)
+				GW_ItemSlotBase::SetInitSN(i, iPacket->Decode8());
 			WvsLogger::LogRaw("Center Server Authenciated Ok. The Connection Between Local Server Has Builded.\n");
 			break;
 		}
@@ -114,6 +121,9 @@ void Center::OnPacket(InPacket *iPacket)
 			break;
 		case CenterSendPacketFlag::RemoteBroadcasting:
 			OnRemoteBroadcasting(iPacket);
+			break;
+		case CenterSendPacketFlag::TrunkResult:
+			OnTrunkResult(iPacket);
 			break;
 	}
 }
@@ -198,5 +208,12 @@ void Center::OnRemoteBroadcasting(InPacket *iPacket)
 		if (pUser)
 			pUser->SendPacket(&oPacket);
 	}
+}
+
+void Center::OnTrunkResult(InPacket *iPacket)
+{
+	auto pUser = User::FindUser(iPacket->Decode4());
+	if (pUser)
+		pUser->OnTrunkResult(iPacket);
 }
 

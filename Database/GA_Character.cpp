@@ -237,13 +237,13 @@ void GA_Character::SaveInventoryRemovedRecord()
 			{
 				equipRemovedInstance.liItemSN = liSN * -1;
 				equipRemovedInstance.nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
-				equipRemovedInstance.Save(nCharacterID);
+				equipRemovedInstance.Save(nCharacterID, true);
 			}
 			else
 			{
 				bundleRemovedInstance.liItemSN = liSN * -1;
 				bundleRemovedInstance.nType = (GW_ItemSlotBase::GW_ItemSlotType)(i);
-				bundleRemovedInstance.Save(nCharacterID);
+				bundleRemovedInstance.Save(nCharacterID, true);
 			}
 	}
 }

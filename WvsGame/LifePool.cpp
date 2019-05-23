@@ -6,7 +6,7 @@
 #include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-
+#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 
 #include "User.h"
@@ -19,7 +19,9 @@
 #include "AttackInfo.h"
 #include "SecondaryStat.h"
 #include "NpcTemplate.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
+#include "MobSummonItem.h"
+#include "StaticFoothold.h"
+#include "WvsPhysicalSpace2D.h"
 #include <cmath>
 
 LifePool::LifePool()
@@ -377,6 +379,22 @@ void LifePool::UpdateCtrlHeap(Controller * pController)
 bool LifePool::GiveUpMobController(Controller * pController)
 {
 	return false;
+}
+
+bool LifePool::OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem *pInfo, bool bNoDropPriority)
+{
+	int pcy = nY;
+	auto p = m_pField->GetSpace2D()->GetFootholdUnderneath(nX, nY, &pcy);
+	if (!p)
+		return false;
+
+	std::vector<int> aSummon;
+	for (auto& pr : pInfo->lMob)
+		if ((int)Rand32::GetInstance()->Random() % 100 < pr.second)
+			aSummon.push_back(pr.first);
+	for (auto nID : aSummon)
+		CreateMob(nID, nX, pcy, p->GetSN(), bNoDropPriority, pInfo->nType, 0, 0, 0, nullptr);
+	return true;
 }
 
 void LifePool::RedistributeLife()

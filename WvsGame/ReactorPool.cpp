@@ -121,12 +121,10 @@ void ReactorPool::OnPacket(User *pUser, int nType, InPacket * iPacket)
 			break;
 		case ReactorRecvPacketFlag::Reactor_OnClickReactor:
 			break;
-		case ReactorRecvPacketFlag::Reactor_OnKey:
-			break;
 	}
 }
 
-void ReactorPool::OnHit(User * pUser, InPacket * iPacket)
+void ReactorPool::OnHit(User *pUser, InPacket *iPacket)
 {
 	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
 	int nID = iPacket->Decode4();
@@ -134,6 +132,31 @@ void ReactorPool::OnHit(User * pUser, InPacket * iPacket)
 	if (pFindIter == m_mReactor.end())
 		return;
 	pFindIter->second->OnHit(pUser, iPacket);
+}
+
+void ReactorPool::SetState(const std::string &sName, int nState)
+{
+	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	auto findNameIter = m_mReactorName.find(sName);
+	if (findNameIter == m_mReactorName.end())
+		return;
+	auto findIter = m_mReactor.find(findNameIter->second);
+	if (findIter == m_mReactor.end())
+		return;
+	auto pReactor = findIter->second;
+	pReactor->m_nState = nState;
+	pReactor->FindAvailableAction();
+	auto pInfo = pReactor->m_pTemplate->GetStateInfo(nState);
+
+	if (((!pInfo || pInfo->m_aEventInfo.size() == 0) && !m_pField->GetFieldSet())
+		|| !pReactor->m_pTemplate->RemoveInFieldSet())
+		RemoveReactor(pReactor);
+	else
+	{
+		OutPacket oPacket;
+		pReactor->MakeStateChangePacket(&oPacket, 0, -1);
+		m_pField->BroadcastPacket(&oPacket);
+	}
 }
 
 void ReactorPool::RemoveAllReactor()

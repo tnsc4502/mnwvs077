@@ -90,6 +90,8 @@ struct GW_ItemSlotEquip :
 		nStatR = 0,
 		nCuttable = 0;
 
+	std::string sTitle;
+
 	ItemOption* m_pItemOption = nullptr;
 
 public:
@@ -97,7 +99,7 @@ public:
 	~GW_ItemSlotEquip();
 
 	void Load(ATOMIC_COUNT_TYPE SN);
-	void Save(int nCharacterID);
+	void Save(int nCharacterID, bool bRemoveRecord = false);
 
 	void Encode(OutPacket *oPacket, bool bForInternal) const;
 	void RawEncode(OutPacket *oPacket) const;

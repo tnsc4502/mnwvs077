@@ -60,6 +60,7 @@
 #include "UMiniRoom.h"
 #include "BackupItem.h"
 #include "MiniRoomBase.h"
+#include "Trunk.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -96,6 +97,12 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 		
 }
 
+void User::FlushCharacterData(OutPacket * oPacket)
+{
+	m_pCharacterData->EncodeCharacterData(oPacket, true);
+	m_pFuncKeyMapped->Encode(oPacket, true);
+}
+
 User::~User()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
@@ -114,8 +121,7 @@ User::~User()
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
-	m_pCharacterData->EncodeCharacterData(&oPacket, true);
-	m_pFuncKeyMapped->Encode(&oPacket, true);
+	FlushCharacterData(&oPacket);
 	if (m_nTransferStatus == TransferStatus::eOnTransferShop || m_nTransferStatus == TransferStatus::eOnTransferChannel) 
 	{
 		oPacket.Encode1(1); //bGameEnd
@@ -142,6 +148,9 @@ User::~User()
 		}
 	}
 	catch (...) {}
+
+	if (m_pTrunk)
+		FreeObj(m_pTrunk);
 
 	FreeObj(m_pCharacterData);
 	FreeObj(m_pBasicStat);
@@ -438,6 +447,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
 			QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnUserAbilityUpRequest:
+			OnAbilityUpRequest(iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnUserSkillUpRequest:
 			USkill::OnSkillUpRequest(this, iPacket);
 			break;
@@ -495,6 +507,13 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketFlag::User_OnMiniRoomRequest:
 			UMiniRoom::OnMiniRoom(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnTrunkRequest:
+			if (m_pTrunk)
+				m_pTrunk->OnPacket(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnMobSummonItemUseRequest:
+			OnMobSummonItemUseRequest(iPacket);
 			break;
 		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
 		{
@@ -867,9 +886,11 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 
 	if (liFlag & BasicStat::BasicStatFlag::BS_Pet)
 	{
-		oPacket.Encode8(0);
-		oPacket.Encode8(0);
-		oPacket.Encode8(0);
+		for (int i = 0; i < GetMaxPetIndex(); ++i)
+			if (m_apPet[i])
+				oPacket.Encode8(m_apPet[i]->m_pPetSlot->liCashItemSN);
+			else
+				oPacket.Encode8(0);
 	}
 	oPacket.Encode1(0);
 	oPacket.Encode1(0);
@@ -974,6 +995,100 @@ void User::ResetTemporaryStat(int tCur, int nReasonID)
 	}
 }
 
+void User::OnAbilityUpRequest(InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	if (QWUser::GetAP(this) <= 0) 
+	{
+		this->m_pSocket->GetSocket().close();
+		return;
+	}
+	int tRequestTime = iPacket->Decode4();
+	int nOption = iPacket->Decode4();
+	long long int liFlag = 0;
+	if (nOption == 0x100)
+		liFlag |= QWUser::IncSTR(this, 1, true);
+	else if (nOption == 0x200)
+		liFlag |= QWUser::IncDEX(this, 1, true);
+	else if (nOption == 0x400)
+		liFlag |= QWUser::IncINT(this, 1, true);
+	else if (nOption == 0x800)
+		liFlag |= QWUser::IncLUK(this, 1, true);
+	else
+		liFlag |= IncMaxHPAndMP(nOption, false);
+	
+	if (liFlag)
+		liFlag |= QWUser::IncAP(this, -1, true);
+
+	SendCharacterStat(true, liFlag);
+}
+
+long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
+{
+	static auto pSkillHPBoost = SkillInfo::GetInstance()->GetSkillByID(1000001);
+	static auto pSkillMPBoost = SkillInfo::GetInstance()->GetSkillByID(2000001);
+	bool bIncHP = (nFlag & 0x2000) != 0;
+	bool bIncMP = (nFlag & 0x8000) != 0;
+	int nJobType = QWUser::GetJob(this) / 100;
+	int nHPInc = 0, nMPInc = 0, nBaseInc = 0, nSkillLevel = 0;
+	long long int liRet = 0;
+
+	static int anIncTable[] = {
+		0x0C, 0x10, 0x00, 0x0A, 0x0C, 0x14, 0x08, 0x0C, 0x00, 0x06, 0x08, 0x0F, 
+		0x18, 0x1C, 0x00, 0x04, 0x06, 0x02, 0x14, 0x18, 0x00, 0x02, 0x04, 0x0F, 
+		0x0A, 0x0E,	0x00, 0x16, 0x18, 0x14, 0x06, 0x0A, 0x00, 0x12, 0x14, 0x0F, 
+		0x14, 0x18,	0x00, 0x0E, 0x10, 0x14, 0x10, 0x14, 0x00, 0x0A, 0x0C, 0x0F, 
+		0x14, 0x18,	0x00, 0x0E, 0x10, 0x14, 0x10, 0x14, 0x00, 0x0A, 0x0C, 0x0F, 
+		0x14, 0x18,	0x00, 0x0E, 0x10, 0x14, 0x10, 0x14, 0x00, 0x0A, 0x0C, 0x0F
+	};
+
+	if (nJobType < 0 || nJobType > 5)
+		return 0;
+
+	auto nIdx = 3 * ((bLevelUp == 0) + 2 * nJobType);
+	if (bIncHP)
+	{
+		nBaseInc = anIncTable[2 * nIdx];
+		nHPInc = nBaseInc + (rand() % (std::max(1, anIncTable[2 * nIdx + 1] - nBaseInc + 1)));
+	}
+
+	if (bIncMP)
+	{
+		nBaseInc = anIncTable[2 * nIdx + 3];
+		nMPInc = nBaseInc + (rand() % (std::max(1, anIncTable[2 * nIdx + 4] - nBaseInc + 1)));
+	}
+
+	if (bIncHP)
+	{
+		auto pRecord = m_pCharacterData->GetSkill(1000001);
+		if (pRecord && pRecord->nSLV > 0 && pSkillHPBoost)
+		{
+			nSkillLevel = std::min(pRecord->nSLV, pSkillHPBoost->GetMaxLevel());
+			if (bLevelUp)
+				nHPInc += pSkillHPBoost->GetLevelData(nSkillLevel)->m_nY;
+			else
+				nHPInc += pSkillHPBoost->GetLevelData(nSkillLevel)->m_nX;
+		}
+		liRet |= QWUser::IncMaxHPVal(this, nHPInc, true);
+	}
+
+	if (bIncMP)
+	{
+		auto pRecord = m_pCharacterData->GetSkill(2000001);
+		if (pRecord && pRecord->nSLV > 0 && pSkillMPBoost)
+		{
+			nSkillLevel = std::min(pRecord->nSLV, pSkillMPBoost->GetMaxLevel());
+			if (bLevelUp)
+				nHPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nY;
+			else
+				nHPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nX;
+		}
+		liRet |= QWUser::IncMaxMPVal(this, nMPInc, true);
+	}
+
+	return liRet;
+}
+
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
@@ -1052,6 +1167,37 @@ void User::OnStatChangeItemCancelRequest(InPacket * iPacket)
 		auto tsFlag = pItemInfo->Apply(this, 0, false, true);
 		SendTemporaryStatReset(tsFlag);
 	}
+}
+
+void User::OnMobSummonItemUseRequest(InPacket * iPacket)
+{
+	if (!GetField() || GetField()->GetFieldLimit() & 0x04)
+	{
+	FAILED:
+		SendCharacterStat(true, 0);
+		return;
+	}
+	std::lock_guard<std::recursive_mutex> lock(GetField()->GetFieldLock());
+	int tRequestTime = iPacket->Decode4();
+	int nTI = GW_ItemSlotBase::CONSUME;
+	int nPOS = iPacket->Decode2();
+	int nItemID = iPacket->Decode4();
+	auto pItem = m_pCharacterData->GetItem(nTI, nPOS);
+	auto pMobSummonItem = ItemInfo::GetInstance()->GetMobSummonItem(nItemID);
+
+	if (!pItem || !pMobSummonItem || pItem->nItemID != nItemID)
+		goto FAILED;
+
+	if (GetField()->GetLifePool()->OnMobSummonItemUseRequest(GetPosX(), GetPosY(), pMobSummonItem, false))
+	{
+		std::vector<InventoryManipulator::ChangeLog> aLog;
+		int nDecRet = 0;
+		if (!QWUInventory::RawRemoveItem(this, nTI, nPOS, 1, &aLog, nDecRet, nullptr) || nDecRet != 1)
+			goto FAILED;
+		QWUInventory::SendInventoryOperation(this, true, aLog);
+	}
+	else
+		goto FAILED;
 }
 
 void User::OnMigrateOut()
@@ -1144,6 +1290,17 @@ void User::OnSelectNpc(InPacket * iPacket)
 	int nLifeNpcID = iPacket->Decode4();
 	auto pNpc = m_pField->GetLifePool()->GetNpc(nLifeNpcID);
 	auto pTemplate = NpcTemplate::GetInstance()->GetNpcTemplate(pNpc->GetTemplateID());
+	if (pTemplate && pTemplate->GetTrunkCost())
+	{
+		m_nTrunkTemplateID = pNpc->GetTemplateID();
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode1(Trunk::TrunkRequest::rq_Trunk_Load);
+		oPacket.Encode4(GetAccountID());
+		oPacket.Encode4(GetUserID());
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		return;
+	}
 	if (pTemplate && pTemplate->HasShop())
 	{
 		OutPacket oPacket;
@@ -1666,6 +1823,8 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 			m_apPet[nAvailableIdx]->SetIndex(nAvailableIdx);
 			m_apPet[nAvailableIdx]->Init(this);
 			m_apPet[nAvailableIdx]->OnEnterField(m_pField);
+
+			SendCharacterStat(false, BasicStat::BS_Pet);
 		}
 		else
 			pPetSlot->nActiveState = 0;
@@ -2018,6 +2177,41 @@ bool User::HasOpenedEntrustedShop() const
 	return m_bHasOpenedEntrustedShop;
 }
 
+void User::OnTrunkResult(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	int nResult = iPacket->Decode1();
+	if (nResult != Trunk::TrunkRequest::rq_Trunk_Load && !m_pTrunk)
+		return;
+
+	switch (nResult)
+	{
+		case Trunk::TrunkResult::res_Trunk_Load:
+		{
+			m_pTrunk = AllocObj(Trunk);
+			m_pTrunk->Decode(iPacket);
+			m_pTrunk->m_nTrunkTemplateID = m_nTrunkTemplateID;
+			m_pTrunk->m_nTrunkCost = NpcTemplate::GetInstance()->GetNpcTemplate(m_nTrunkTemplateID)->GetTrunkCost();
+			m_nTrunkTemplateID = 0;
+			m_pTrunk->OnLoadDone(this, iPacket);
+			break;
+		}
+		case Trunk::TrunkResult::res_Trunk_MoveSlotToTrunk:
+			m_pTrunk->OnMoveSlotToTrunkDone(this, iPacket);
+			break;
+		case Trunk::TrunkResult::res_Trunk_MoveTrunkToSlot:
+			m_pTrunk->OnMoveTrunkToSlotDone(this, iPacket);
+			break;
+	}
+}
+
+void User::SetTrunk(Trunk *pTrunk)
+{
+	if (m_pTrunk)
+		FreeObj(m_pTrunk);
+	m_pTrunk = pTrunk;
+}
+
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
 {
 	OutPacket oPacket;
@@ -2034,7 +2228,7 @@ void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStr
 			oPacket.EncodeStr(sStringRecord);
 			break;
 		case 2:
-			oPacket.Encode8(GameDateTime::GetTime());
+			oPacket.Encode8(GameDateTime::GetCurrentDate());
 			break;
 	}
 	SendPacket(&oPacket);

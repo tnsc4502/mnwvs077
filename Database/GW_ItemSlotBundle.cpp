@@ -50,7 +50,7 @@ void GW_ItemSlotBundle::Load(ATOMIC_COUNT_TYPE SN)
 		bIsCash = true;
 }
 
-void GW_ItemSlotBundle::Save(int nCharacterID)
+void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 {
 
 	std::string strTableName = "",
@@ -75,7 +75,7 @@ void GW_ItemSlotBundle::Save(int nCharacterID)
 			queryStatement.execute();
 			return;
 		}*/
-		if (liItemSN < -1 /*nStatus == GW_ItemSlotStatus::DROPPED*/) //DROPPED or DELETED
+		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
 			liItemSN *= -1;
 			queryStatement << "UPDATE " << strTableName
@@ -84,9 +84,13 @@ void GW_ItemSlotBundle::Save(int nCharacterID)
 			queryStatement.execute();
 			return;
 		}
-		if ((nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN) == -1)
+		else
+		/*if ((nType == GW_ItemSlotType::CASH && liCashItemSN == -1) ||
+			(nType != GW_ItemSlotType::CASH && liItemSN < 0))*/
 		{
-			liItemSN = IncItemSN(nType);
+			//liItemSN = IncItemSN(nType);
+			if (liItemSN <= 0)
+				liItemSN = IncItemSN(nType);
 			if (nType == GW_ItemSlotType::CASH && liCashItemSN == -1)
 				liCashItemSN = liItemSN;
 			queryStatement << "INSERT INTO " << strTableName << " (" + sSNColumnName + ", ItemID, CharacterID, ExpireDate, Attribute, POS, Number) VALUES("
@@ -97,8 +101,16 @@ void GW_ItemSlotBundle::Save(int nCharacterID)
 				<< nAttribute << ", "
 				<< nPOS << ", "
 				<< nNumber << ")";
+			queryStatement << " ON DUPLICATE KEY UPDATE "
+				<< "ItemID = '" << nItemID << "', "
+				<< "CharacterID = '" << nCharacterID << "', "
+				<< "ExpireDate = '" << liExpireDate << "', "
+				<< "Attribute = '" << nAttribute << "', "
+				<< "POS ='" << nPOS << "', "
+				<< "Number = '" << nNumber << "'";
+				//<< "' WHERE " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
 		}
-		else
+		/*else
 		{
 			queryStatement << "UPDATE " << strTableName << " Set "
 				<< "ItemID = '" << nItemID << "', "
@@ -108,7 +120,7 @@ void GW_ItemSlotBundle::Save(int nCharacterID)
 				<< "POS ='" << nPOS << "', "
 				<< "Number = '" << nNumber
 				<< "' WHERE " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
-		}
+		}*/
 		queryStatement.execute();
 	}
 	catch (Poco::Data::MySQL::StatementException &) 

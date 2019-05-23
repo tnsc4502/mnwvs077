@@ -10,7 +10,7 @@ struct GW_ItemSlotPet;
 
 struct GW_ItemSlotBase
 {
-	typedef long long int ATOMIC_COUNT_TYPE;
+	typedef unsigned long long int ATOMIC_COUNT_TYPE;
 	static const int LOCK_POS = 32767;
 
 	enum GW_ItemSlotType
@@ -30,7 +30,13 @@ struct GW_ItemSlotBase
 	};
 
 	static ATOMIC_COUNT_TYPE InitItemSN(GW_ItemSlotType type);
+	static ATOMIC_COUNT_TYPE GetInitItemSN(GW_ItemSlotType type, int nChannelID);
 	static ATOMIC_COUNT_TYPE IncItemSN(GW_ItemSlotType type);
+
+	static std::atomic<ATOMIC_COUNT_TYPE> ms_liSN[6];
+	static int ms_nChannelID;
+	static void SetInitSN(int nTI, ATOMIC_COUNT_TYPE liSN);
+	static ATOMIC_COUNT_TYPE GetNextSN(int nTI);
 
 	GW_ItemSlotType nType;
 	short nPOS = 0;
@@ -62,7 +68,7 @@ public:
 	virtual GW_ItemSlotBase* MakeClone() = 0;
 
 	virtual void Load(ATOMIC_COUNT_TYPE SN) = 0;
-	virtual void Save(int nCharacterID) = 0;
+	virtual void Save(int nCharacterID, bool bRemoveRecord = false) = 0;
 
 	static GW_ItemSlotBase* CreateItem(int nIntanceType);
 	virtual void Release() = 0;

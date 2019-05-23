@@ -9,6 +9,9 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
+#include "..\WvsLib\Task\AsyncScheduler.h"
 #include "Mob.h"
 #include "MovePath.h"
 #include "PortalMap.h"
@@ -18,11 +21,9 @@
 #include "DropPool.h"
 #include "FieldSet.h"
 #include "User.h"
-#include "..\Database\GA_Character.hpp"
-#include "..\Database\GW_CharacterStat.h"
 #include "PartyMan.h"
-#include "..\WvsLib\Task\AsyncScheduler.h"
 #include "WvsPhysicalSpace2D.h"
+#include "ContinentMan.h"
 
 #include <mutex>
 #include <functional>
@@ -310,6 +311,8 @@ void Field::OnPacket(User* pUser, InPacket *iPacket)
 		m_pLifePool->OnPacket(pUser, nType, iPacket);
 	else if (nType == UserRecvPacketFlag::User_OnUserPickupRequest)
 		m_pDropPool->OnPacket(pUser, nType, iPacket);
+	else if (nType == FieldRecvPacketFlag::Field_OnContiMoveStateRequest)
+		OnContiMoveState(pUser, iPacket);
 	else if (nType >= FlagMin(ReactorRecvPacketFlag) && nType <= FlagMax(ReactorRecvPacketFlag))
 		m_pReactorPool->OnPacket(pUser, nType, iPacket);
 }
@@ -531,12 +534,24 @@ void Field::EnablePortal(const std::string& sPortal, bool bEnable)
 	m_pPortalMap->EnablePortal(sPortal, bEnable);
 }
 
+void Field::OnContiMoveState(User * pUser, InPacket * iPacket)
+{
+	int nFieldID = iPacket->Decode4();
+	int nEventDoing = ContinentMan::GetInstance()->GetInfo(nFieldID, 0);
+	int nState = ContinentMan::GetInstance()->GetInfo(nFieldID, 1);
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnContiState);
+	oPacket.Encode1(nState);
+	oPacket.Encode1((char)nEventDoing);
+	pUser->SendPacket(&oPacket);
+}
+
 void Field::TransferAll(int nFieldID, const std::string& sPortal)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
-	for (auto& prUser : m_mUser)
-		if (prUser.second)
-			prUser.second->TryTransferField(nFieldID, sPortal);
+	auto iter = m_mUser.begin();
+	while (iter != m_mUser.end())
+		(iter++)->second->TryTransferField(nFieldID, sPortal);
 }
 
 void Field::Reset(bool bShuffleReactor)

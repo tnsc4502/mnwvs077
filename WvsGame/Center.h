@@ -22,6 +22,7 @@ public:
 	void OnCenterMigrateInResult(InPacket *iPacket);
 	void OnTransferChannelResult(InPacket *iPacket);
 	void OnRemoteBroadcasting(InPacket *iPacket);
+	void OnTrunkResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

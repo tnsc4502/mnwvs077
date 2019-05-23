@@ -1,5 +1,6 @@
 
 #include "..\Database\CharacterDBAccessor.h"
+#include "..\Database\GW_ItemSlotBase.h"
 #include "LocalServer.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -18,6 +19,7 @@
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsGame\FriendMan.h"
+#include "..\WvsGame\Trunk.h"
 
 LocalServer::LocalServer(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -111,6 +113,12 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case GameSrvSendPacketFlag::WhisperMessage:
 			OnWhisperMessage(iPacket);
 			break;
+		case GameSrvSendPacketFlag::TrunkRequest:
+			OnTrunkRequest(iPacket);
+			break;
+		case GameSrvSendPacketFlag::FlushCharacterData:
+			CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
+			break;
 	}
 }
 
@@ -120,16 +128,23 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 	SetServerType(serverType);
 	const char* pInstanceName = (serverType == ServerConstants::SRV_LOGIN ? "WvsLogin" : (serverType == ServerConstants::SRV_GAME ? "WvsGame" : "WvsShop"));
 	WvsLogger::LogFormat("[WvsCenter][LocalServer::OnRegisterCenterRequest]收到新的[%s][%d]連線請求。\n", pInstanceName, serverType);
+	int nChannel = WvsWorld::CHANNELID_SHOP;
 
 	if (serverType == ServerConstants::SRV_GAME)
 	{
-		WvsBase::GetInstance<WvsCenter>()->RegisterChannel(shared_from_this(), iPacket);
+		nChannel = iPacket->Decode1();
+		WvsBase::GetInstance<WvsCenter>()->RegisterChannel(nChannel, shared_from_this(), iPacket);
 		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
 	}
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::RegisterCenterAck);
 	oPacket.Encode1(1); //Success;
+
+	if(serverType == ServerConstants::SRV_GAME)
+		for (int i = 1; i <= 5; ++i)
+			oPacket.Encode8(GW_ItemSlotBase::GetInitItemSN((GW_ItemSlotBase::GW_ItemSlotType)i, nChannel + 1)); //Channel 0 is reserved for Center
+
 	if (serverType == ServerConstants::SRV_LOGIN)
 	{
 		auto pWorld = WvsWorld::GetInstance();
@@ -641,4 +656,38 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 		oWhisper.EncodeStr(iPacket->DecodeStr());
 		pwUser->SendPacket(&oWhisper);
 	}
+}
+
+void LocalServer::OnTrunkRequest(InPacket * iPacket)
+{
+	int nRequest = iPacket->Decode1();
+	int nAccountID = iPacket->Decode4();
+	auto pTrunk = Trunk::Load(nAccountID);
+	switch (nRequest)
+	{
+		case Trunk::TrunkRequest::rq_Trunk_Load:
+		{
+			int nCharacterID = iPacket->Decode4();
+			OutPacket oPacket;
+			oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode1(Trunk::TrunkResult::res_Trunk_Load);
+			pTrunk->Encode(0xFFFFFFFF, &oPacket);
+			auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+			if (pwUser)
+				pwUser->SendPacket(&oPacket);
+			break;
+		}
+		case Trunk::TrunkRequest::rq_Trunk_MoveSlotToTrunk:
+		{
+			pTrunk->MoveSlotToTrunk(nAccountID, iPacket);
+			break;
+		}
+		case Trunk::TrunkRequest::rq_Trunk_MoveTrunkToSlot:
+		{
+			pTrunk->MoveTrunkToSlot(nAccountID, iPacket);
+			break;
+		}
+	}
+	FreeObj(pTrunk);
 }

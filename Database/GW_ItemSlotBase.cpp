@@ -5,11 +5,13 @@
 #include "GW_ItemSlotPet.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
+std::atomic<GW_ItemSlotBase::ATOMIC_COUNT_TYPE> GW_ItemSlotBase::ms_liSN[6];
+int GW_ItemSlotBase::ms_nChannelID;
+
 GW_ItemSlotBase::GW_ItemSlotBase()
 {
 	liItemSN = -1;
 }
-
 
 GW_ItemSlotBase::~GW_ItemSlotBase()
 {
@@ -46,13 +48,57 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::InitItemSN(GW_ItemSlotType t
 	}
 	else
 	{
-		queryStatement << "SELECT MAX(ItemSN) From " << strTableName;
+		queryStatement << "SELECT MAX(ItemSN) From " << strTableName << " WHERE ItemSN < " << (41 << 1); //0~2^40 is reserved for Center.
 		queryStatement.execute();
 		Poco::Data::RecordSet recordSet(queryStatement);
 		if (recordSet.rowCount() == 0 || recordSet["MAX(ItemSN)"].isEmpty())
 			return 2;
 		result = (ATOMIC_COUNT_TYPE)recordSet["MAX(ItemSN)"];
 	}
+	return result > 1 ? result : 2;
+}
+
+GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetInitItemSN(GW_ItemSlotType type, int nChannelID)
+{
+	unsigned long long int liLBound = 0, liHBound = 0;
+	((unsigned char*)&liLBound)[6] = nChannelID;
+	((unsigned char*)&liHBound)[6] = nChannelID + 1;
+
+	std::string strTableName = "";
+	if (type == GW_ItemSlotType::EQUIP)
+		strTableName = "ItemSlot_EQP";
+	else if (type == GW_ItemSlotType::CONSUME)
+		strTableName = "ItemSlot_CON";
+	else if (type == GW_ItemSlotType::INSTALL)
+		strTableName = "ItemSlot_INS";
+	else if (type == GW_ItemSlotType::ETC)
+		strTableName = "ItemSlot_ETC";
+	else if (type == GW_ItemSlotType::CASH)
+		strTableName = "ItemSlot_CASH";
+
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	ATOMIC_COUNT_TYPE result = 0;
+
+	if (type == GW_ItemSlotType::CASH)
+	{
+		queryStatement << "SELECT MAX(CashItemSN) FROM ItemSlot_Cash UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Pet UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Eqp";
+		queryStatement.execute();
+		Poco::Data::RecordSet recordSet(queryStatement);
+		for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+			if (!recordSet["MAX(CashItemSN)"].isEmpty())
+				result = std::max(result, (ATOMIC_COUNT_TYPE)recordSet["MAX(CashItemSN)"]);
+	}
+	else
+	{
+		queryStatement << "SELECT MAX(ItemSN) From " << strTableName << " WHERE ItemSN >= " << liLBound << " AND ItemSN < " << liHBound;
+		queryStatement.execute();
+		Poco::Data::RecordSet recordSet(queryStatement);
+		if (recordSet.rowCount() == 0 || recordSet["MAX(ItemSN)"].isEmpty())
+			return 2;
+		result = (ATOMIC_COUNT_TYPE)recordSet["MAX(ItemSN)"];
+	}
+	((unsigned char*)&result)[6] = 0;
+
 	return result > 1 ? result : 2;
 }
 
@@ -73,6 +119,18 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::IncItemSN(GW_ItemSlotType ty
 		return ++atEtcAtomicCounter;
 	else if (type == GW_ItemSlotType::CASH)
 		return ++atCashAtomicCounter;
+}
+
+void GW_ItemSlotBase::SetInitSN(int nTI, ATOMIC_COUNT_TYPE liSN)
+{
+	ms_liSN[nTI] = liSN;
+}
+
+GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetNextSN(int nTI)
+{
+	ATOMIC_COUNT_TYPE ret = ++ms_liSN[nTI];
+	((unsigned char*)&ret)[6] = ms_nChannelID;
+	return ret;
 }
 
 bool GW_ItemSlotBase::IsProtectedItem() const

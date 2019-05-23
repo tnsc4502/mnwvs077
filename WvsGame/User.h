@@ -27,6 +27,7 @@ struct ActItem;
 class SkillEntry;
 class Summoned;
 class Script;
+class Trunk;
 
 class MiniRoomBase;
 
@@ -123,6 +124,8 @@ private:
 	AsyncScheduler *m_pUpdateTimer;
 	Script* m_pScript = nullptr;
 	Npc *m_pTradingNpc = nullptr;
+	int m_nTrunkTemplateID = 0;
+	Trunk *m_pTrunk = nullptr;
 
 	//Pet
 	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
@@ -157,6 +160,7 @@ public:
 	static User* FindUserByName(const std::string& strName);
 
 	User(ClientSocket *pSocket, InPacket *iPacket);
+	void FlushCharacterData(OutPacket *oPacket);
 	~User();
 
 	//Basic Routine
@@ -215,9 +219,13 @@ public:
 	void SendTemporaryStatReset(TemporaryStat::TS_Flag& flag);
 	void SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay);
 	void ResetTemporaryStat(int tCur, int nReasonID);
+	void OnAbilityUpRequest(InPacket *iPacket);
+	long long int IncMaxHPAndMP(int nFlag, bool bLevelUp);
 
+	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
 	void OnStatChangeItemCancelRequest(InPacket *iPacket);
+	void OnMobSummonItemUseRequest(InPacket *iPacket);
 
 	//Message
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);
@@ -298,5 +306,9 @@ public:
 	void SetMiniRoomBalloon(bool bOpen);
 	void EncodeMiniRoomBalloon(OutPacket *oPacket, bool bOpen);
 	bool HasOpenedEntrustedShop() const;
+
+	//Trunk
+	void OnTrunkResult(InPacket *iPacket);
+	void SetTrunk(Trunk *pTrunk);
 };
 

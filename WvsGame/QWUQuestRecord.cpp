@@ -100,14 +100,12 @@ void QWUQuestRecord::SetMobRecord(User *pUser, int nKey, int nMobTempleteID)
 	}
 }
 
-#include "..\WvsLib\Logger\WvsLogger.h"
 void QWUQuestRecord::ValidMobCountRecord(User * pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	for (auto& prRecord : pUser->GetCharacterData()->mQuestRecord)
 	{
 		auto& aDemandMob = QuestMan::GetInstance()->GetCompleteDemand(prRecord.first)->m_aDemandMob;
-		WvsLogger::LogFormat("QRID = %d, MobDemand size = %d\n", prRecord.first, aDemandMob.size());
 		if (aDemandMob.size() > 0)
 		{
 			if (prRecord.second->sStringRecord.size() != aDemandMob.size() * 3)

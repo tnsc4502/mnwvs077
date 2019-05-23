@@ -326,8 +326,8 @@ void ItemInfo::RegisterMobSummonItem(int nItemID, void * pProp)
 	pNewMobSummonItem->nItemID = nItemID;
 	pNewMobSummonItem->nType = infoImg["type"];
 	auto& mobImg = (*((WZ::Node*)pProp))["mob"];
-	for (auto& mob : mobImg)
-		pNewMobSummonItem->lMob.insert({ (int)(mob["id"]), (int)(mob["prob"]) });
+	for (auto& mob : mobImg) 
+		pNewMobSummonItem->lMob.push_back({ atoi(((std::string)mob["id"]).c_str()), (int)(mob["prob"]) });
 	m_mMobSummonItem[nItemID] = pNewMobSummonItem;
 }
 

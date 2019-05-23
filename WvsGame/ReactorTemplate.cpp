@@ -34,7 +34,6 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 	//Load basic info.
 	pTemplate->m_nReqHitCount = ref["info"]["hitCount"];
 	pTemplate->m_tHitDelay = ref["info"]["delay"];
-	pTemplate->m_bRemoveInFieldSet = ((int)ref["info"]["removeInFieldSet"] == 1 ? true : false);
 
 	//Load link template
 	auto& linkNode = ref["info"]["link"];
@@ -48,6 +47,7 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 			*pTemplate = *itLinkTemplate->second;
 		}
 	}
+	pTemplate->m_bRemoveInFieldSet = ((int)ref["info"]["removeInFieldSet"] == 1 ? true : false);
 
 	//Load action info.
 	auto& actionNode = ref["action"];
@@ -170,4 +170,9 @@ ReactorTemplate::EventInfo * ReactorTemplate::GetEventInfo(int nState, int nEven
 	if (pInfo == nullptr || (nEventIdx < 0) || (nEventIdx >= pInfo->m_aEventInfo.size()))
 		return nullptr;
 	return &(pInfo->m_aEventInfo[nEventIdx]);
+}
+
+bool ReactorTemplate::RemoveInFieldSet() const
+{
+	return m_bRemoveInFieldSet;
 }

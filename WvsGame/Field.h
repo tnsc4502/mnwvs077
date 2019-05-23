@@ -146,6 +146,7 @@ public:
 	void EffectSound(const std::string& sEffect);
 	void EffectObject(const std::string& sEffect);
 	void EnablePortal(const std::string& sPortal, bool bEnable);
+	void OnContiMoveState(User *pUser, InPacket *iPacket);
 
 	void Reset(bool bShuffleReactor);
 	void Update();

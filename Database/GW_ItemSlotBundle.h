@@ -11,7 +11,7 @@ public:
 	~GW_ItemSlotBundle();
 
 	void Load(ATOMIC_COUNT_TYPE SN);
-	void Save(int nCharacterID);
+	void Save(int nCharacterID, bool bRemoveRecord = false);
 
 	void Encode(OutPacket *oPacket, bool bForInternal) const;
 	void RawEncode(OutPacket *oPacket) const;

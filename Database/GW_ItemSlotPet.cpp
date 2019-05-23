@@ -43,7 +43,7 @@ void GW_ItemSlotPet::Load(ATOMIC_COUNT_TYPE SN)
 	nType = GW_ItemSlotType::CASH;
 }
 
-void GW_ItemSlotPet::Save(int nCharacterID)
+void GW_ItemSlotPet::Save(int nCharacterID, bool bRemoveRecord)
 {
 	if (nType != GW_ItemSlotType::CASH)
 		throw std::runtime_error("Invalid Equip Type.");
@@ -51,7 +51,7 @@ void GW_ItemSlotPet::Save(int nCharacterID)
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	try 
 	{
-		if (liItemSN < -1) //DROPPED or DELETED
+		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
 			liItemSN *= -1;
 			queryStatement << "UPDATE ItemSlot_Pet "
@@ -60,9 +60,10 @@ void GW_ItemSlotPet::Save(int nCharacterID)
 			queryStatement.execute();
 			return;
 		}
-		if (liCashItemSN == -1)
+		else
 		{
-			liCashItemSN = IncItemSN(GW_ItemSlotBase::CASH);
+			if(liCashItemSN <= 0)
+				liCashItemSN = IncItemSN(GW_ItemSlotBase::CASH);
 			queryStatement << "INSERT INTO ItemSlot_Pet (CashItemSN, ItemID, CharacterID, ExpireDate, Attribute, PetAttribute, POS, Level, Repleteness, Tameness, PetSkill, PetName, RemainLife, ActiveState, AutoBuffSkill, PetHue, GiantRate) VALUES("
 				<< liCashItemSN << ", "
 				<< nItemID << ", "
@@ -81,8 +82,28 @@ void GW_ItemSlotPet::Save(int nCharacterID)
 				<< nAutoBuffSkill << ", "
 				<< nPetHue << ", "
 				<< nGiantRate << ")";
+
+			queryStatement << " ON DUPLICATE KEY UPDATE "
+				<< "ItemID = " << nItemID << ", "
+				<< "CharacterID = " << nCharacterID << ", "
+				<< "ExpireDate = '" << liExpireDate << "', "
+				//<< "Attribute = " << nAttribute << ", "
+				<< "POS = " << nPOS << ", "
+				//<< "Attribute = " << nAttribute << ", "
+				//<< "PetAttribute = " << nPetAttribute << ", "
+				<< "Level = " << (int)nLevel << ", "
+				<< "Repleteness = " << (int)nRepleteness << ", "
+				<< "Tameness = " << (int)nTameness << ", "
+				//<< "PetSkill = " << (int)usPetSkill << ", "
+				//<< "PetName = '" << strPetName << "', "
+				<< "RemainLife = " << (int)nRemainLife << " "
+				//<< "ActiveState = " << (int)nActiveState << ", "
+				//<< "AutoBuffSkill = " << (int)nAutoBuffSkill << ", "
+				//<< "PetHue = " << (int)nPetHue << ", "
+				//<< "GiantRate = " << (int)nGiantRate << 
+				;
 		}
-		else
+		/*else
 		{
 			queryStatement << "UPDATE ItemSlot_Pet Set "
 				<< "ItemID = " << nItemID << ", "
@@ -103,7 +124,7 @@ void GW_ItemSlotPet::Save(int nCharacterID)
 				//<< "PetHue = " << (int)nPetHue << ", "
 				//<< "GiantRate = " << (int)nGiantRate << 
 				" WHERE CashItemSN = " << liCashItemSN;
-		}
+		}*/
 		//std::cout << "Qeury : " << queryStatement.toString() << std::endl;
 		queryStatement.execute();
 	}

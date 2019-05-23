@@ -72,6 +72,11 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, GW_
 				pCharacterData->mItemRemovedRecord[nTI].erase(pItem->liItemSN);
 			itemSlot[nPOS] = pItem;
 			pItem->nPOS = nPOS;
+			if (pItem->liItemSN <= 0)
+				pItem->liItemSN = GW_ItemSlotBase::GetNextSN(nTI);
+
+			if (paBackupItem)
+				(*paBackupItem).push_back({ nTI, nPOS, nullptr, false });
 			if(aChangeLog)
 				InsertChangeLog(*aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pItem, 0, 0);
 			*nIncRet = 1;
@@ -171,6 +176,8 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, GW_
 				(*paBackupItem).push_back({ nTI, nPOS, nullptr, false });
 			itemSlot[nPOS] = pClone;
 			pClone->nPOS = nPOS;
+			if (pClone->liItemSN <= 0)
+				pClone->liItemSN = GW_ItemSlotBase::GetNextSN(nTI);
 
 			if(aChangeLog)
 				InsertChangeLog(*aChangeLog, ChangeType::Change_AddToSlot, nTI, nPOS, pClone, 0, 0);

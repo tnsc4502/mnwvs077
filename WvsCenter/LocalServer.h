@@ -40,5 +40,6 @@ public:
 	void OnFriendRequest(InPacket *iPacket);
 	void OnGroupMessage(InPacket *iPacket);
 	void OnWhisperMessage(InPacket *iPacket);
+	void OnTrunkRequest(InPacket *iPacket);
 };
 

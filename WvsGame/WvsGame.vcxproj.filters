@@ -67,9 +67,6 @@
     <Filter Include="WvsGame\InGame\MiniRoom">
       <UniqueIdentifier>{9d93e7eb-fee7-4588-9ca2-0685396eabcb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WvsGame\InGame\User\Pet">
-      <UniqueIdentifier>{ef05dad3-300e-4748-9e33-833af294c5ee}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -306,9 +303,6 @@
     <ClInclude Include="ScriptUser.h">
       <Filter>WvsGame\InGame\Script</Filter>
     </ClInclude>
-    <ClInclude Include="Pet.h">
-      <Filter>WvsGame\InGame\User\Pet</Filter>
-    </ClInclude>
     <ClInclude Include="Summoned.h">
       <Filter>WvsGame\InGame\Field\Life\Summoned</Filter>
     </ClInclude>
@@ -459,7 +453,18 @@
     <ClInclude Include="MobStat.h">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClInclude>
-    <ClInclude Include="ReactorEventManager.h" />
+    <ClInclude Include="Pet.h">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClInclude>
+    <ClInclude Include="Trunk.h">
+      <Filter>WvsGame\InGame\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ReactorEventManager.h">
+      <Filter>WvsGame\InGame\Field\Reactor</Filter>
+    </ClInclude>
+    <ClInclude Include="ContinentMan.h">
+      <Filter>WvsGame\InGame\Field</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -655,9 +660,6 @@
     <ClCompile Include="ScriptUser.cpp">
       <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
-    <ClCompile Include="Pet.cpp">
-      <Filter>WvsGame\InGame\User\Pet</Filter>
-    </ClCompile>
     <ClCompile Include="Summoned.cpp">
       <Filter>WvsGame\InGame\Field\Life\Summoned</Filter>
     </ClCompile>
@@ -694,6 +696,17 @@
     <ClCompile Include="MobStat.cpp">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClCompile>
-    <ClCompile Include="ReactorEventManager.cpp" />
+    <ClCompile Include="Pet.cpp">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClCompile>
+    <ClCompile Include="Trunk.cpp">
+      <Filter>WvsGame\InGame\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ReactorEventManager.cpp">
+      <Filter>WvsGame\InGame\Field\Reactor</Filter>
+    </ClCompile>
+    <ClCompile Include="ContinentMan.cpp">
+      <Filter>WvsGame\InGame\Field</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

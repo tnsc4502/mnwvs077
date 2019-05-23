@@ -19,9 +19,11 @@ void GW_Shop::Load()
 	queryStatement << "SELECT * FROM Shop Order by NpcID, SN";
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
+	ShopItem *pItem = nullptr;
+
 	for (auto& result : recordSet)
 	{
-		ShopItem *pItem = AllocObj(ShopItem);
+		pItem = AllocObj(ShopItem);
 		int nNpcID = (int)result["NpcID"];
 		pItem->nNpcID = nNpcID;
 		pItem->nItemID = (int)result["ItemID"];
@@ -41,6 +43,21 @@ void GW_Shop::Load()
 			|| ItemInfo::GetInstance()->GetEquipItem(pItem->nItemID) != nullptr)
 			m_mNpcShop[nNpcID].push_back(pItem);
 	}
+
+	std::vector<ShopItem*> aRecharge;
+	for (int i = 2070000; i <= 2070015; ++i)
+	{
+		if (!ItemInfo::GetInstance()->GetBundleItem(i))
+			continue;
+		pItem = AllocObj(ShopItem);
+		pItem->nItemID = i;
+		pItem->nPrice = 0;
+		aRecharge.push_back(pItem);
+	}
+
+	for (auto& prShop : m_mNpcShop)
+		for (auto pRecharage : aRecharge)
+			prShop.second.push_back(pRecharage);
 }
 
 GW_Shop * GW_Shop::GetInstance()

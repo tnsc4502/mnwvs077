@@ -150,9 +150,10 @@ void FieldSet::OnLeaveFieldSet(int nCharacterID)
 void FieldSet::TransferAll(int nFieldID, const std::string& sPortal)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
-	for (auto& prUser : m_mUser)
-		if (prUser.second)
-			prUser.second->TryTransferField(nFieldID, sPortal);
+	auto iter = m_mUser.begin();
+	while(iter != m_mUser.end())
+		if (iter->second)
+			(iter++)->second->TryTransferField(nFieldID, sPortal);
 }
 
 int FieldSet::TryEnter(const std::vector<User*>& lpUser, int nFieldIdx, int nEnterChar)

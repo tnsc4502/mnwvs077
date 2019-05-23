@@ -15,7 +15,7 @@ public:
 	WvsCenter();
 	~WvsCenter();
 
-	void RegisterChannel(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
+	void RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RegisterCashShop(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RestoreConnectedUser(int nChannelID, InPacket *iPacket);
 

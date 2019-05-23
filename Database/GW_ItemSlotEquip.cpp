@@ -53,6 +53,7 @@ void GW_ItemSlotEquip::Load(ATOMIC_COUNT_TYPE SN)
 	liExpireDate = recordSet["ExpireDate"];
 	nAttribute = recordSet["Attribute"];
 	nPOS = recordSet["POS"];
+	sTitle = recordSet["Title"].toString();
 	nRUC = (unsigned char)(unsigned short)recordSet["RUC"];
 	nCUC = (unsigned char)(unsigned short)recordSet["CUC"];
 	nCuttable = recordSet["Cuttable"];
@@ -76,14 +77,14 @@ void GW_ItemSlotEquip::Load(ATOMIC_COUNT_TYPE SN)
 	bIsCash = (liCashItemSN != -1);
 }
 
-void GW_ItemSlotEquip::Save(int nCharacterID)
+void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 {
 	if (nType != GW_ItemSlotType::EQUIP)
 		throw std::runtime_error("Invalid Equip Type.");
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	try 
 	{
-		if (liItemSN < -1 /*nStatus == GW_ItemSlotStatus::DROPPED*/) //DROPPED or DELETED
+		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
 			liItemSN *= -1;
 			queryStatement << "UPDATE ItemSlot_EQP Set CharacterID = -1 Where CharacterID = " << nCharacterID << " and ItemSN = " << liItemSN;
@@ -92,9 +93,10 @@ void GW_ItemSlotEquip::Save(int nCharacterID)
 			queryStatement.execute();
 			return;
 		}
-		if (liItemSN == -1)
+		else
 		{
-			liItemSN = IncItemSN(GW_ItemSlotType::EQUIP);
+			if(liItemSN <= 0)
+				liItemSN = IncItemSN(GW_ItemSlotType::EQUIP);
 			if (bIsCash && liCashItemSN == -1)
 				liCashItemSN = IncItemSN(GW_ItemSlotType::CASH);
 			queryStatement << "INSERT INTO ItemSlot_EQP (ItemSN, CashItemSN, ItemID, CharacterID, ExpireDate, Attribute, POS, RUC, CUC, Cuttable, I_STR, I_DEX, I_INT, I_LUK, I_MaxHP, I_MaxMP, I_PAD, I_MAD, I_PDD, I_MDD, I_ACC, I_EVA, I_Speed, I_Craft, I_Jump) VALUES("
@@ -123,37 +125,66 @@ void GW_ItemSlotEquip::Save(int nCharacterID)
 				<< nSpeed << ", "
 				<< nCraft << ", "
 				<< nJump << ")";
+
+			queryStatement << " ON DUPLICATE KEY UPDATE "
+				<< "CashItemSN = " << liCashItemSN << ", "
+				<< "ItemID = " << nItemID << ", "
+				<< "CharacterID = " << nCharacterID << ", "
+				<< "ExpireDate = '" << liExpireDate << "', "
+				<< "Attribute = " << nAttribute << ", "
+				<< "POS = " << nPOS << ", "
+				<< "Title = '" << sTitle << "', "
+				<< "RUC = '" << (unsigned short)nRUC << "', "
+				<< "CUC = '" << (unsigned short)nCUC << "', "
+				<< "Cuttable = '" << (unsigned short)nCuttable << "', "
+				<< "I_STR = " << nSTR << ", "
+				<< "I_DEX = " << nDEX << ", "
+				<< "I_INT = " << nINT << ", "
+				<< "I_LUK = " << nLUK << ", "
+				<< "I_MaxHP = " << nMaxHP << ", "
+				<< "I_MaxMP = " << nMaxMP << ", "
+				<< "I_PAD = " << nPAD << ", "
+				<< "I_MAD = " << nMAD << ", "
+				<< "I_PDD = " << nPDD << ", "
+				<< "I_MDD = " << nMDD << ", "
+				<< "I_ACC = " << nACC << ", "
+				<< "I_EVA = " << nEVA << ", "
+				<< "I_Speed = " << nSpeed << ", "
+				<< "I_Craft = " << nCraft << ", "
+				<< "I_Jump = '" << nJump << "'";
 			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Insert SQL = %s\n", queryStatement.toString().c_str());
+
 		}
-		else
+		/*else
 		{
 			queryStatement << "UPDATE ItemSlot_EQP Set "
-				<< "CashItemSN = '" << liCashItemSN << "', "
-				<< "ItemID = '" << nItemID << "', "
-				<< "CharacterID = '" << nCharacterID << "', "
+				<< "CashItemSN = " << liCashItemSN << ", "
+				<< "ItemID = " << nItemID << ", "
+				<< "CharacterID = " << nCharacterID << ", "
 				<< "ExpireDate = '" << liExpireDate << "', "
-				<< "Attribute = '" << nAttribute << "', "
-				<< "POS ='" << nPOS << "', "
-				<< "RUC ='" << (unsigned short)nRUC << "', "
-				<< "CUC ='" << (unsigned short)nCUC << "', "
+				<< "Attribute = " << nAttribute << ", "
+				<< "POS = " << nPOS << ", "
+				<< "Title = '" << sTitle << "', "
+				<< "RUC = '" << (unsigned short)nRUC << "', "
+				<< "CUC = '" << (unsigned short)nCUC << "', "
 				<< "Cuttable = '" << (unsigned short)nCuttable << "', "
-				<< "I_STR = '" << nSTR << "', "
-				<< "I_DEX = '" << nDEX << "', "
-				<< "I_INT = '" << nINT << "', "
-				<< "I_LUK = '" << nLUK << "', "
-				<< "I_MaxHP = '" << nMaxHP << "', "
-				<< "I_MaxMP = '" << nMaxMP << "', "
-				<< "I_PAD = '" << nPAD << "', "
-				<< "I_MAD = '" << nMAD << "', "
-				<< "I_PDD = '" << nPDD << "', "
-				<< "I_MDD = '" << nMDD << "', "
-				<< "I_ACC = '" << nACC << "', "
-				<< "I_EVA = '" << nEVA << "', "
-				<< "I_Speed = '" << nSpeed << "', "
-				<< "I_Craft = '" << nCraft << "', "
+				<< "I_STR = " << nSTR << ", "
+				<< "I_DEX = " << nDEX << ", "
+				<< "I_INT = " << nINT << ", "
+				<< "I_LUK = " << nLUK << ", "
+				<< "I_MaxHP = " << nMaxHP << ", "
+				<< "I_MaxMP = " << nMaxMP << ", "
+				<< "I_PAD = " << nPAD << ", "
+				<< "I_MAD = " << nMAD << ", "
+				<< "I_PDD = " << nPDD << ", "
+				<< "I_MDD = " << nMDD << ", "
+				<< "I_ACC = " << nACC << ", "
+				<< "I_EVA = " << nEVA << ", "
+				<< "I_Speed = " << nSpeed << ", "
+				<< "I_Craft = " << nCraft << ", "
 				<< "I_Jump = '" << nJump << "' WHERE ItemSN = " << liItemSN;
 			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Update SQL = %s\n", queryStatement.toString().c_str());
-		}
+		}*/
 		queryStatement.execute();
 	}
 	catch (Poco::Data::MySQL::StatementException &) {
@@ -214,7 +245,7 @@ Encode Equip Advanced Information, Including Potential, Sockets, And Etc.
 */
 void GW_ItemSlotEquip::EncodeEquipAdvanced(OutPacket *oPacket) const
 {
-	oPacket->EncodeStr("Owner");
+	oPacket->EncodeStr(sTitle);
 	oPacket->Encode2(nAttribute);
 
 	if (liCashItemSN == -1)
@@ -260,7 +291,7 @@ void GW_ItemSlotEquip::DecodeEquipBase(InPacket *iPacket)
 
 void GW_ItemSlotEquip::DecodeEquipAdvanced(InPacket *iPacket)
 {
-	std::string strTitle = iPacket->DecodeStr();
+	sTitle = iPacket->DecodeStr();
 	nAttribute = iPacket->Decode2();
 
 	if (liCashItemSN == -1)

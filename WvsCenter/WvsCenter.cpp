@@ -83,9 +83,8 @@ void WvsCenter::SetShop(LocalServerEntry * pEntry)
 	m_pShopEntry = pEntry;
 }
 
-void WvsCenter::RegisterChannel(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket)
+void WvsCenter::RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pServer, InPacket *iPacket)
 {
-	int nChannelID = iPacket->Decode1();
 	LocalServerEntry *pEntry = AllocObj( LocalServerEntry );
 
 	pEntry->SetLocalSocket(pServer);

@@ -185,12 +185,34 @@ long long int QWUser::IncAP(User *pUser, int nInc, bool bOnlyFull)
 
 long long int QWUser::IncMaxHPVal(User *pUser, int nInc, bool bOnlyFull)
 {
-	return false;
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nMaxHP = pUser->GetCharacterData()->mStat->nMaxHP;
+	nMaxHP += nInc;
+	if (bOnlyFull && (nMaxHP > 30000 || nMaxHP < 0))
+		return 0;
+	if (nMaxHP > 30000)
+		nMaxHP = 30000;
+	if (nMaxHP < 0)
+		nMaxHP = 0;
+	pUser->GetCharacterData()->mStat->nMaxHP = nMaxHP;
+
+	return BasicStat::BS_MaxHP;
 }
 
 long long int QWUser::IncMaxMPVal(User *pUser, int nInc, bool bOnlyFull)
 {
-	return false;
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nMaxMP = pUser->GetCharacterData()->mStat->nMaxMP;
+	nMaxMP += nInc;
+	if (bOnlyFull && (nMaxMP > 30000 || nMaxMP < 0))
+		return 0;
+	if (nMaxMP > 30000)
+		nMaxMP = 30000;
+	if (nMaxMP < 0)
+		nMaxMP = 0;
+	pUser->GetCharacterData()->mStat->nMaxMP = nMaxMP;
+
+	return BasicStat::BS_MaxMP;
 }
 
 long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)

@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <map>
+#include <vector>
 
 struct MobSummonItem
 {
@@ -9,6 +9,6 @@ struct MobSummonItem
 		nType;
 
 	// pair < MobID, Prob >
-	std::map<int, int> lMob;
+	std::vector<std::pair<int, int>> lMob;
 };
 

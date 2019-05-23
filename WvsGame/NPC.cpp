@@ -27,7 +27,7 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 	{
 		auto pItem = aItemList[nPOS];
 
-		if (nCount > 0 && pItem)
+		if (nCount > 0 && pItem && pItem->nPrice)
 		{
 			int nPrice = pItem->nPrice * (ItemInfo::IsRechargable(nItemID) ? 1 : nCount);
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
