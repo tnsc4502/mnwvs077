@@ -593,7 +593,7 @@ void USkill::ResetTemporaryByTime(User * pUser, const std::vector<int>& aResetRe
 		}
 		else if (SkillInfo::GetInstance()->GetMobSkill(nReason & 0xFF))
 		{
-			//The nSVL isn't matter
+			//The nSVL doesn't matter
 			auto pLevel = SkillInfo::GetInstance()->GetMobSkill(nReason & 0xFF)->GetLevelData(1);
 			pUser->OnStatChangeByMobSkill(nReason & 0xFF, 1, pLevel, 0, 0, true);
 		}

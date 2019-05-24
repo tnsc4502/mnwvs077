@@ -657,6 +657,8 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 
 		while (--nPartyMemberCount >= 0)
 		{
+			if (anLevel[nPartyBonusCount] < nMinLevel)
+				continue;
 			pUser = apUser[nPartyMemberCount];
 			dIncEXP = anLevel[nPartyMemberCount] * dEXPMain / nLevelSum;
 			std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
