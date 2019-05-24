@@ -149,7 +149,7 @@ long long int QWUser::IncSP(User *pUser, int nJobLevel, int nInc, bool bOnlyFull
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	if (nJobLevel < 0 || nJobLevel >= GW_CharacterStat::EXTEND_SP_SIZE)
 		return 0;
-	auto& ref = pUser->GetCharacterData()->mStat->aSP[nJobLevel];
+	auto& ref = pUser->GetCharacterData()->mStat->aSP[0];
 	if (bOnlyFull && (ref + nInc < 0 || ref + nInc > 255))
 		return 0;
 	ref += nInc;

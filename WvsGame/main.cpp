@@ -48,6 +48,7 @@ int main(int argc, char **argv)
 	ReactorTemplate::Load();
 	NpcTemplate::GetInstance()->Load();
 	try {
+		SkillInfo::GetInstance()->LoadMobSkill();
 		SkillInfo::GetInstance()->IterateSkillInfo();
 	}
 	catch (...) {}

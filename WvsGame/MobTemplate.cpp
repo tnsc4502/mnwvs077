@@ -76,6 +76,10 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_bIsExplosiveDrop = ((int)info["explosiveReward"] == 1);
 	pTemplate->m_nTemplateID = dwTemplateID;
 
+	auto& skillNode = info["skill"];
+	for (auto& skill : skillNode)
+		pTemplate->m_aMobSkill.push_back({ skill["skill"], skill["level"] });
+
 	bool bFly = (info["fly"] == info.end());
 	bool bMove = (info["move"] == info.end());
 	bool bJump = (info["jump"] == info.end());

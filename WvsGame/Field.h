@@ -110,6 +110,7 @@ public:
 	const FieldPoint& GetMapSize() const;
 	void SetLeftTop(int x, int y);
 	const FieldPoint& GetLeftTop() const;
+	double GetIncEXPRate() const;
 
 	void SetFieldSet(FieldSet *pFieldSet);
 	FieldSet *GetFieldSet();

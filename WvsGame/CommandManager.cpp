@@ -237,6 +237,7 @@ CommandManager::CommandManager()
 		[](User*pUser, PARAM_TYPE aInput)->int
 	{
 		auto liFlag = QWUser::SetLevel(pUser, GetInt(aInput, 1));
+		liFlag |= QWUser::IncEXP(pUser, (int)QWUser::GetEXP(pUser), true);
 		pUser->SendCharacterStat(false, liFlag);
 		return 1;
 	});

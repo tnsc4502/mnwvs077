@@ -8,6 +8,7 @@
 #include "User.h"
 #include "Field.h"
 #include "LifePool.h"
+#include "MobSkillEntry.h"
 
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotEquip.h"
@@ -24,7 +25,7 @@ if(flag & GET_TS_FLAG(name))\
 
 #define CHECK_TS_REMOTE_R(name, size)\
 if(flag & GET_TS_FLAG(name))\
-	oPacket->Encode##size(n##name)
+	oPacket->Encode##size(r##name)
 
 #define CHECK_TS_NORMAL(name) \
 if (flag & GET_TS_FLAG(name)) { \
@@ -280,6 +281,7 @@ void SecondaryStat::DecodeInternal(User* pUser, InPacket * iPacket)
 
 	//Decode Temporary Internal
 	int nCount = iPacket->Decode4(), nSkillID, tDurationRemained, nSLV;
+	const void *pSkill = nullptr;
 	for (int i = 0; i < nCount; ++i)
 	{
 		nSkillID = iPacket->Decode4();
@@ -292,12 +294,23 @@ void SecondaryStat::DecodeInternal(User* pUser, InPacket * iPacket)
 			if (pItem)
 				pItem->Apply(pUser, 0, false, false, true, tDurationRemained);
 		}
-		else
+		else if (pSkill = SkillInfo::GetInstance()->GetSkillByID(nSkillID), pSkill)
 			USkill::OnSkillUseRequest(
 				pUser,
 				nullptr,
-				SkillInfo::GetInstance()->GetSkillByID(nSkillID),
+				(SkillEntry*)pSkill,
 				nSLV,
+				false,
+				true,
+				tDurationRemained
+			);
+		else if (pSkill = SkillInfo::GetInstance()->GetMobSkill(nSkillID & 0xFF), pSkill)
+			pUser->OnStatChangeByMobSkill(
+				nSkillID & 0xFF,
+				(nSkillID & 0xFF0000) >> 16,
+				((MobSkillEntry*)pSkill)->GetLevelData((nSkillID & 0xFF0000) >> 16),
+				0,
+				0,
 				false,
 				true,
 				tDurationRemained

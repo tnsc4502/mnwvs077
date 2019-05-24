@@ -6,6 +6,8 @@
 #include "ItemInfo.h"
 #include "SkillEntry.h"
 #include "SkillLevelData.h"
+#include "MobSkillEntry.h"
+#include "MobSkillLevelData.h"
 #include "SkillInfo.h"
 #include "AdminSkills.h"
 #include "BeginnersSkills.h"
@@ -45,15 +47,28 @@ const std::map<int, std::map<int, SkillEntry*>*>& SkillInfo::GetSkills() const
 
 const std::map<int, SkillEntry*>* SkillInfo::GetSkillsByRootID(int nRootID) const
 {
-	return m_mSkillByRootID.at(nRootID);
+	auto findIter = m_mSkillByRootID.find(nRootID);
+	if (findIter == m_mSkillByRootID.end())
+		return nullptr;
+
+	return findIter->second;
 }
 
 const SkillEntry * SkillInfo::GetSkillByID(int nSkillID) const
 {
 	int nJobID = nSkillID / 10000;
 	auto rootData = GetSkillsByRootID(nJobID);
+	if (!rootData)
+		return nullptr;
+
 	auto findResult = rootData->find(nSkillID);
 	return (findResult != rootData->end() ? findResult->second : nullptr);
+}
+
+MobSkillEntry* SkillInfo::GetMobSkill(int nMobSkillID) const
+{
+	auto findResult = m_mMobSKill.find(nMobSkillID);
+	return (findResult != m_mMobSKill.end() ? findResult->second : nullptr);
 }
 
 SkillInfo * SkillInfo::GetInstance()
@@ -85,6 +100,61 @@ int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterDat
 	return 0;
 }
 
+void SkillInfo::LoadMobSkill()
+{
+	auto& mobSkillNode = stWzResMan->GetWz(Wz::Skill)["MobSkill"];
+	MobSkillEntry* pEntry = nullptr;
+	for (auto& mobSkill : mobSkillNode)
+	{
+		pEntry = AllocObj(MobSkillEntry);
+		LoadMobSkillLeveData(pEntry, &(mobSkill["level"]));
+		m_mMobSKill[atoi(mobSkill.Name().c_str())] = pEntry;
+	}
+}
+
+void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
+{
+	auto& skillLevelImg = *((WZ::Node*)pData);
+	pEntry->m_apLevelData.push_back(nullptr); //for level 0
+	MobSkillLevelData *pLevel = nullptr;
+	auto empty = WZ::Node();
+
+	for (auto& level : skillLevelImg)
+	{
+		pLevel = AllocObj(MobSkillLevelData);
+		for (int i = 0; ; ++i)
+		{
+			auto& mobIDNode = level[std::to_string(i)];
+			if (mobIDNode == empty || mobIDNode.Name() == "")
+				break;
+			pLevel->anTemplateID.push_back((int)mobIDNode);
+		}
+		pLevel->nX = level["x"];
+		pLevel->nLimit = level["limit"];
+		pLevel->nSummonEffect = level["summonEffect"];
+		pLevel->nHP = level["hp"];
+		pLevel->nMPCon = level["mpCon"];
+		pLevel->tInterval = level["interval"];
+		pLevel->tTime = level["time"];
+		pLevel->nProp = level["prop"];
+		
+		auto&lt = level["lt"];
+		if (lt != empty && lt.Name() != "")
+		{
+			pLevel->rcAffectedArea.left = lt["x"];
+			pLevel->rcAffectedArea.top = lt["y"];
+		}
+		auto&rb = level["rb"];
+		if (rb != empty && rb.Name() != "")
+		{
+			pLevel->rcAffectedArea.right = rb["x"];
+			pLevel->rcAffectedArea.bottom = rb["y"];
+		}
+
+		pEntry->m_apLevelData.push_back(pLevel);
+	}
+}
+
 void SkillInfo::IterateSkillInfo()
 {
 	WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo]開始載入所有技能資訊 IterateSkillInfo Start.\n");
@@ -99,12 +169,15 @@ void SkillInfo::IterateSkillInfo()
 		aRoot.push_back(node);
 	}
 	m_nRootCount = (int)aRoot.size();
+	/*for (auto& node : aRoot)
+	{
+		auto& rootNode = node["skill"];
+		for (auto& n : rootNode) n.Name()[0]; //Expand all nodes before entering the thread.
+	}*/
 	for (auto& node : aRoot)
 	{
 		nRootID = atoi(node.Name().c_str());
-		//LoadSkillRoot(nRootID, (void*)(&node["skill"]));
 		auto& rootNode = node["skill"];
-		for (auto& n : rootNode) n.Name()[0]; //Expand all nodes before entering the thread.
 		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (void*)(&rootNode));
 		t.detach();
 	}

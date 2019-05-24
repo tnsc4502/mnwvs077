@@ -142,28 +142,13 @@ void Center::OnCenterMigrateInResult(InPacket *iPacket)
 {
 	unsigned int nClientSocketID = iPacket->Decode4();
 	auto pSocket = WvsBase::GetInstance<WvsGame>()->GetSocket(nClientSocketID);
-	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
-	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
-	oPacket.Encode1(1); //bCharacterData
-	oPacket.Encode1(1); //bCharacterData
-	oPacket.Encode2(0);
-
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
 
 	auto deleter = [](User* p) { FreeObj(p); };
 	std::shared_ptr <User> pUser{ 
 		AllocObjCtor(User)((ClientSocket*)pSocket, iPacket),
 		deleter
 	};
-	pUser->EncodeCharacterData(&oPacket);
-	oPacket.Encode8(GameDateTime::GetCurrentDate()); //TIME
-
-	pSocket->SendPacket(&oPacket);
 	WvsBase::GetInstance<WvsGame>()->OnUserConnected(pUser);
-	pUser->OnMigrateIn();
 }
 
 void Center::OnTransferChannelResult(InPacket * iPacket)

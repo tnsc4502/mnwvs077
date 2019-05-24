@@ -148,6 +148,12 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 	chrEntry.LoadAvatar(chrEntry.nCharacterID);
 	chrEntry.EncodeAvatar(&oPacket);
 
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "INSERT INTO Trunk VALUES (" << nAccountID << ", 4, 0) ";	
+	queryStatement << " ON DUPLICATE KEY UPDATE SlotCount = VALUES (SlotCount), "
+		<< "`Money`=VALUES(`Money`)";
+	queryStatement.execute();
+
 	pSrv->SendPacket(&oPacket);
 }
 

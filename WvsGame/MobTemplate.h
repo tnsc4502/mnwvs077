@@ -13,6 +13,8 @@ class MobTemplate
 
 public:
 	const std::vector<RewardInfo*> *m_paMobReward;
+	std::vector<std::pair<int, int>> m_aMobSkill;
+
 	unsigned int m_unTotalRewardProb = 0;
 
 	MobTemplate();

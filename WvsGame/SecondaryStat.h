@@ -67,6 +67,8 @@ public:
 	ADD_TEMPORARY(Blind);
 	ADD_TEMPORARY(Concentration);
 	ADD_TEMPORARY(BanMap);
+	int mBanMap = 0;
+
 	ADD_TEMPORARY(MaxLevelBuff);
 	ADD_TEMPORARY(MesoUpByItem);
 	ADD_TEMPORARY(Ghost);

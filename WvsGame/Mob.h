@@ -1,7 +1,9 @@
 #pragma once
 #include <map>
+#include <vector>
 #include "FieldObj.h"
 
+struct MobSkillLevelData;
 class MobTemplate;
 class Controller;
 class MobStat;
@@ -9,13 +11,41 @@ class User;
 
 class Mob : public FieldObj
 {
+public:
+	struct DamageLog
+	{
+		struct Info
+		{
+			int nCharacterID = 0,
+				nDamage = 0;
+		};
+
+
+		std::map<int, Info> mInfo;
+
+		int nFieldID = 0, nLastHitCharacter = 0; 
+		long long int liTotalDamage = 0, liInitHP = 0;
+	};
+
+	struct PartyDamage
+	{
+		int nDamage = 0,
+			nMaxDamage = 0,
+			nMaxDamageCharacter = 0,
+			nMaxDamageLevel = 0,
+			nMinLevel = 255,
+			nParty = -1;
+	};
+
 private:
 
 	MobStat* m_pStat;
 	MobTemplate* m_pMobTemplate;
-	std::map<int, long long int> m_mAttackRecord;
+	DamageLog m_damageLog;
+	//std::map<int, long long int> m_mAttackRecord;
 	Controller* m_pController; 
 	long long int m_liHP, m_liMP;
+	int tLastMoveTime = 0, tLastSkillUseTime = 0;
 	void* m_pMobGen = nullptr;
 
 public:
@@ -36,9 +66,20 @@ public:
 
 	//解析怪物移動時，Lucid有些怪物移動封包多兩個bytes
 	static bool IsLucidSpecialMob(int dwTemplateID);
+	bool OnMobMove(bool bNextAttackPossible, int nAction, int nData, unsigned char *nSkillCommand, unsigned char *nSLV, bool *bShootAttack);
+	bool DoSkill(int nSkillID, int nSLV, int nOption);
+	void DoSkill_AffectArea(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
+	void DoSkill_StateChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay, bool bResetBySkill = false);
+	void DoSkill_UserStatChange(int nArg, int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
+	void DoSkill_PartizanStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
+	void DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
+	void DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay);
+	void SendMobTemporaryStatSet(int nSet, int tDelay);
+	void SendMobTemporaryStatReset(int nSet);
 	void OnMobHit(User* pUser, long long int nDamage, int nAttackType);
 	void OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem);
 	int DistributeExp(int& refOwnType, int& refOwnParyID, int& refLastDamageCharacterID);
+	void GiveExp(const std::vector<PartyDamage>& aPartyDamage);
 	void GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem);
 	void SetHP(long long int liHP);
 	void SetMP(long long int liMP);
@@ -50,6 +91,7 @@ public:
 	long long int GetHP() const;
 	long long int GetMP() const;
 
-	std::pair<int, int> GetDropPos();
+	DamageLog& GetDamageLog();
+	void Update(int tCur);
 };
 

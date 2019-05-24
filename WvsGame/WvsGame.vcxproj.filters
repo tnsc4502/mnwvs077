@@ -465,6 +465,12 @@
     <ClInclude Include="ContinentMan.h">
       <Filter>WvsGame\InGame\Field</Filter>
     </ClInclude>
+    <ClInclude Include="MobSkillLevelData.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="MobSkillEntry.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -707,6 +713,12 @@
     </ClCompile>
     <ClCompile Include="ContinentMan.cpp">
       <Filter>WvsGame\InGame\Field</Filter>
+    </ClCompile>
+    <ClCompile Include="MobSkillEntry.cpp">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="MobSkillLevelData.cpp">
+      <Filter>WvsGame\InGame\Skill</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

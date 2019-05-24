@@ -6,7 +6,7 @@
 struct GA_Character;
 struct GW_SkillRecord;
 class SkillEntry;
-
+class MobSkillEntry;
 
 class SkillInfo
 {
@@ -15,6 +15,7 @@ class SkillInfo
 	std::atomic<int> m_nOnLoadingSkills;
 	std::mutex m_mtxSkillResLock;
 	std::map<int, std::map<int, SkillEntry*> *> m_mSkillByRootID;
+	std::map<int, MobSkillEntry*> m_mMobSKill;
 
 public:
 	SkillInfo();
@@ -23,10 +24,13 @@ public:
 	const std::map<int, std::map<int, SkillEntry*> *>& GetSkills() const;
 	const std::map<int, SkillEntry*> * GetSkillsByRootID(int nRootID) const;
 	const SkillEntry* GetSkillByID(int nSkillID) const;
+	MobSkillEntry* GetMobSkill(int nMobSkillID) const;
 
 	static SkillInfo* GetInstance();
 	static bool IsValidRootName(const std::string& sName);
 	int GetBundleItemMaxPerSlot(int nItemID, GA_Character* pCharacterData);
+	void LoadMobSkill();
+	void LoadMobSkillLeveData(MobSkillEntry* pEntry, void *pData);
 	void IterateSkillInfo();
 	void LoadSkillRoot(int nSkillRootID, void* pData);
 	SkillEntry* LoadSkill(int nSkillRootID, int nSkillID, void* pData);

@@ -134,7 +134,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_WVSGAME;NDEBUG;_CONSOLE;ASIO_STANDALONE;ASIO_MSVC=_MSC_VER;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -216,6 +216,8 @@
     <ClInclude Include="MihileSkills.h" />
     <ClInclude Include="MiniRoomBase.h" />
     <ClInclude Include="Mob.h" />
+    <ClInclude Include="MobSkillEntry.h" />
+    <ClInclude Include="MobSkillLevelData.h" />
     <ClInclude Include="MobStat.h" />
     <ClInclude Include="MobSummonItem.h" />
     <ClInclude Include="MobTemplate.h" />
@@ -316,6 +318,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MiniRoomBase.cpp" />
     <ClCompile Include="Mob.cpp" />
+    <ClCompile Include="MobSkillEntry.cpp" />
+    <ClCompile Include="MobSkillLevelData.cpp" />
     <ClCompile Include="MobStat.cpp" />
     <ClCompile Include="MobSummonItem.cpp" />
     <ClCompile Include="MobTemplate.cpp" />

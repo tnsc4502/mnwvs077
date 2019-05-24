@@ -2,12 +2,13 @@
 #include <map>
 #include "Npc.h"
 #include "Mob.h"
-#include "..\WvsLib\Wz\WzResMan.hpp"
 #include <atomic>
 #include <mutex>
+#include "..\WvsLib\Wz\WzResMan.hpp"
 
 struct AttackInfo;
 struct MobSummonItem;
+struct FieldRect;
 class User;
 class Field;
 class Controller;
@@ -28,7 +29,7 @@ class LifePool
 		int nRegenAfter = 0, nRegenInterval = 0, nMobCount = 0;
 	};
 
-	std::mutex m_lifePoolMutex;
+	std::recursive_mutex m_lifePoolMutex;
 	std::atomic<int> atomicObjectCounter = 0x1000;
 
 	//在這個地圖中所有可能的NPC物件
@@ -87,6 +88,7 @@ public:
 	void RemoveMob(Mob* pMob);
 	void RemoveAllMob(bool bExceptMobDamagedByMob);
 	void Reset();
+	int GetMobCount() const;
 
 	void Init(Field* pField, int nFieldID);
 	void OnEnter(User* pUser);
@@ -96,13 +98,14 @@ public:
 	void UpdateCtrlHeap(Controller* pController);
 	bool GiveUpMobController(Controller* pController);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
+	std::vector<Mob*> FindAffectedMobInRect(FieldRect& rc, Mob* pExcept);
 
 	void RedistributeLife();
 	void Update();
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
-	std::mutex& GetLock();
+	std::recursive_mutex& GetLock();
 	Npc* GetNpc(int nFieldObjID);
 	Mob* GetMob(int nFieldObjID);
 	void UpdateMobSplit(User* pUser);

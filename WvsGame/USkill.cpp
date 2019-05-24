@@ -9,6 +9,7 @@
 #include "TemporaryStat.h"
 #include "SecondaryStat.h"
 #include "SkillEntry.h"
+#include "MobSkillEntry.h"
 #include "SkillLevelData.h"
 #include "SkillInfo.h"
 #include "QWUSkillRecord.h"
@@ -589,6 +590,12 @@ void USkill::ResetTemporaryByTime(User * pUser, const std::vector<int>& aResetRe
 				false,
 				0
 			);
+		}
+		else if (SkillInfo::GetInstance()->GetMobSkill(nReason & 0xFF))
+		{
+			//The nSVL isn't matter
+			auto pLevel = SkillInfo::GetInstance()->GetMobSkill(nReason & 0xFF)->GetLevelData(1);
+			pUser->OnStatChangeByMobSkill(nReason & 0xFF, 1, pLevel, 0, 0, true);
 		}
 	}
 }

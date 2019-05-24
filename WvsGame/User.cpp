@@ -61,6 +61,7 @@
 #include "BackupItem.h"
 #include "MiniRoomBase.h"
 #include "Trunk.h"
+#include "MobSkillEntry.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -73,10 +74,6 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	m_pCharacterData->DecodeCharacterData(iPacket, true);
 	m_pFuncKeyMapped = AllocObjCtor(GW_FuncKeyMapped)(m_pCharacterData->nCharacterID);
 	m_pFuncKeyMapped->Decode(iPacket);
-
-	//Internal Stats Are Encoded Outside PostCharacterDataRequest
-	m_pSecondaryStat->DecodeInternal(this, iPacket);
-	UpdateAvatar();
 
 	m_pField = (FieldMan::GetInstance()->GetField(m_pCharacterData->nFieldID));
 	if (m_pField && m_pField->GetForcedReturn() != 999999999) 
@@ -94,7 +91,24 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 			}
 		}
 	}
-		
+
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
+	oPacket.Encode1(1); //bCharacterData
+	oPacket.Encode1(1); //bCharacterData
+	oPacket.Encode2(0);
+	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
+	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
+	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
+	EncodeCharacterData(&oPacket);
+	oPacket.Encode8(GameDateTime::GetCurrentDate()); //TIME
+	SendPacket(&oPacket);
+
+	//Internal Stats Are Encoded Outside PostCharacterDataRequest
+	m_pSecondaryStat->DecodeInternal(this, iPacket);
+	UpdateAvatar();
+	OnMigrateIn();
 }
 
 void User::FlushCharacterData(OutPacket * oPacket)
@@ -223,7 +237,7 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->Encode1(m_nMarkColor);
 
 	//SecondaryStat::EncodeForRemote
-	m_pSecondaryStat->EncodeForRemote(oPacket, TemporaryStat::TS_Flag::GetDefault());
+	m_pSecondaryStat->EncodeForRemote(oPacket, m_pSecondaryStat->m_tsFlagSet);
 
 	oPacket->Encode2((short)m_pCharacterData->mStat->nJob);
 	m_pCharacterData->EncodeAvatarLook(oPacket);
@@ -930,7 +944,8 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
 	oPacket.Encode4(GetUserID());
 	m_pSecondaryStat->EncodeForRemote(&oPacket, flag);
-	GetField()->SplitSendPacket(&oPacket, nullptr);
+	
+	GetField()->SplitSendPacket(&oPacket, this);
 }
 
 void User::OnAttack(int nType, InPacket * iPacket)
@@ -1089,6 +1104,100 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 	return liRet;
 }
 
+void User::OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay, int nTemplateID, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
+{
+
+#define SET_BY_MOB_X(name, value) \
+tsFlag |= GET_TS_FLAG(##name); \
+auto *pRef = &m_pSecondaryStat->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
+m_pSecondaryStat->n##name = bResetBySkill ? 0 : value;\
+m_pSecondaryStat->r##name = bResetBySkill ? 0 : nSkillID | (nSLV << 16);\
+m_pSecondaryStat->t##name = bResetBySkill ? 0 : nDuration;\
+m_pSecondaryStat->nLv##name =  bResetBySkill ? 0 : nSLV;\
+m_pSecondaryStat->m_tsFlagSet ^= TemporaryStat::TS_##name;\
+if(!bResetBySkill)\
+{\
+	m_pSecondaryStat->m_tsFlagSet |= TemporaryStat::TS_##name;\
+	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
+	pRef->second.push_back(&m_pSecondaryStat->n##name);\
+	pRef->second.push_back(&m_pSecondaryStat->r##name);\
+	pRef->second.push_back(&m_pSecondaryStat->t##name);\
+	pRef->second.push_back(&m_pSecondaryStat->nLv##name);\
+}\
+
+	if ((int)(Rand32::GetInstance()->Random() % 100) < (!pLevel->nProp ? 100 : pLevel->nProp))
+	{
+		if (pLevel->tTime <= 0)
+		{
+
+		}
+		else
+		{
+			TemporaryStat::TS_Flag tsFlag = TemporaryStat::TS_Flag::GetDefault();
+			int nDuration = tDelay + pLevel->tTime * 1000;
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Mob Skill ID %d, Duration : %d\n", nSkillID, nDuration);
+			switch (nSkillID)
+			{
+				case 120:
+					if (!m_pSecondaryStat->nHolyShield)
+					{
+						SET_BY_MOB_X(Seal, 1);
+					}
+					break;
+				case 121:
+					if (!m_pSecondaryStat->nHolyShield)
+					{
+						SET_BY_MOB_X(Darkness, 1);
+					}
+					break;
+				case 122:
+					if (!m_pSecondaryStat->nHolyShield)
+					{
+						SET_BY_MOB_X(Weakness, 1);
+					}
+					break;
+				case 123: {
+					SET_BY_MOB_X(Stun, 1);
+					break;
+				}
+				case 124: {
+					if (m_pSecondaryStat->nHolyShield)
+						break;
+					SET_BY_MOB_X(Curse, 1);
+					break;
+				}
+				case 125:
+					if (!m_pSecondaryStat->nHolyShield)
+					{
+						SET_BY_MOB_X(Poison, pLevel->nX);
+					}
+					break;
+				case 126:
+					if (!m_pSecondaryStat->nHolyShield)
+					{
+						SET_BY_MOB_X(Slow, pLevel->nX);
+					}
+					break;
+				case 128: 
+				{
+					SET_BY_MOB_X(Attract, pLevel->nX);
+					break;
+				}
+				case 129: 
+				{
+					SET_BY_MOB_X(BanMap, pLevel->nX);
+					m_pSecondaryStat->mBanMap = nTemplateID;
+				}
+					break;
+				default:
+					break;
+			}
+			SendTemporaryStatReset(tsFlag);
+			SendTemporaryStatSet(tsFlag, tDelay);
+		}
+	}
+}
+
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
@@ -1245,8 +1354,8 @@ void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID
 		oPacket.Encode1(bIsMoney == true ? 1 : 0);
 		if (bIsMoney)
 		{
-			oPacket.Encode1(0);
-			oPacket.Encode8(nCount);
+			//oPacket.Encode1(0);
+			oPacket.Encode4(nCount);
 			oPacket.Encode2(0);
 		}
 		else
@@ -2234,6 +2343,30 @@ void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStr
 	SendPacket(&oPacket);
 }
 
+void User::SendIncEXPMessage(bool bIsLastHit, int nIncEXP, bool bOnQuest, int nIncEXPBySMQ, int nEventPercentage, int nPartyBonusPercentage, int nPlayTimeHour, int nQuestBonusRate, int nQuestBonusRemainCount, int nPartyBonusEventRate, int nWeddingBonusEXP)
+{
+	OutPacket oPacket;
+	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode1((char)Message::eIncEXPMessage);
+	oPacket.Encode1(bIsLastHit ? 1 : 0);
+	oPacket.Encode4(nIncEXP);
+	oPacket.Encode1(bOnQuest ? 1 : 0);
+	oPacket.Encode4(nIncEXPBySMQ);
+	oPacket.Encode1(nEventPercentage);
+	oPacket.Encode1(nPartyBonusPercentage);
+	oPacket.Encode4(nWeddingBonusEXP);
+	if (nEventPercentage > 0)
+		oPacket.Encode1(nPlayTimeHour);
+	if (bOnQuest)
+	{
+		oPacket.Encode1(nQuestBonusRate);
+		if (nQuestBonusRate > 0)
+			oPacket.Encode1(nQuestBonusRemainCount);
+	}
+	oPacket.Encode1(nPartyBonusEventRate);
+	SendPacket(&oPacket);
+}
+
 void User::LeaveField()
 {
 	int nMaxPetIndex = GetMaxPetIndex();
@@ -2257,7 +2390,7 @@ void User::OnMigrateIn()
 	m_pUpdateTimer = pUpdateTimer;
 	pUpdateTimer->Start();
 	SetTransferStatus(TransferStatus::eOnTransferNone);
-	QWUQuestRecord::ValidMobCountRecord(this);
+	QWUQuestRecord::ValidateMobCountRecord(this);
 
 	for (auto& pCashItem : m_pCharacterData->mItemSlot[GW_ItemSlotBase::CASH])
 	{

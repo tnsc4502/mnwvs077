@@ -1,14 +1,22 @@
 #pragma once
+class OutPacket;
+
 class MobStat
 {
-#define ADD_MOB_STAT(name, flag) const int MS_##name = 1 << flag; int n##name = 0, r##name = 0, t##name = 0;
-	int nFlagSet = 0;
-
 public:
 	struct BurnedInfo
 	{
 		int nCharacterID = 0, nSkillID = 0, nDamage = 0;
 	};
+
+private:
+#define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name = 0, r##name = 0, t##name = 0;
+	friend class Mob;
+
+	int nFlagSet = 0;
+	BurnedInfo burnedInfo;
+
+public:
 
 	ADD_MOB_STAT(PAD, 0);
 	ADD_MOB_STAT(PDD, 1);
@@ -42,5 +50,8 @@ public:
 
 	MobStat();
 	~MobStat();
+
+	void EncodeTemporary(int nSet, OutPacket *oPacket, int tCur);
+	int ResetTemporary(int tCur);
 };
 

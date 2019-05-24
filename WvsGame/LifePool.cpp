@@ -22,6 +22,7 @@
 #include "MobSummonItem.h"
 #include "StaticFoothold.h"
 #include "WvsPhysicalSpace2D.h"
+#include "FieldRect.h"
 #include <cmath>
 
 LifePool::LifePool()
@@ -139,7 +140,7 @@ Npc* LifePool::CreateNpc(int nTemplateID, int nX, int nY, int nFh)
 
 Npc* LifePool::CreateNpc(const Npc& npc)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	Npc* newNpc = AllocObj(Npc);
 	*newNpc = npc; //Should notice pointer data assignment
 	newNpc->SetFieldObjectID(atomicObjectCounter++);
@@ -150,7 +151,7 @@ Npc* LifePool::CreateNpc(const Npc& npc)
 
 void LifePool::TryCreateMob(bool bReset)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	int tCur = GameDateTime::GetTime();
 
 	if (m_aMobGen.size() > 0)
@@ -224,6 +225,8 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //怪物 = 5 ?
+		newMob->GetDamageLog().nFieldID = m_pField->GetFieldID();
+		newMob->GetDamageLog().liInitHP = newMob->GetMobTemplate()->m_lnMaxHP;
 
 		OutPacket createMobPacket;
 		newMob->MakeEnterFieldPacket(&createMobPacket);
@@ -280,7 +283,7 @@ void LifePool::RemoveMob(Mob* pMob)
 
 void LifePool::RemoveAllMob(bool bExceptMobDamagedByMob)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	while (m_mMob.size() > 0)
 		if (bExceptMobDamagedByMob && m_mMob.begin()->second->GetMobTemplate()->m_bIsDamagedByMob)
 			continue;
@@ -294,9 +297,14 @@ void LifePool::Reset()
 	TryCreateMob(true);
 }
 
+int LifePool::GetMobCount() const
+{
+	return (int)m_mMob.size();
+}
+
 void LifePool::OnEnter(User *pUser)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	InsertController(pUser);
 
 	for (auto& npc : m_mNpc)
@@ -326,7 +334,7 @@ void LifePool::InsertController(User* pUser)
 
 void LifePool::RemoveController(User* pUser)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	if (m_mController.size() == 0)
 		return;
 
@@ -397,6 +405,17 @@ bool LifePool::OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem *pInfo, b
 	return true;
 }
 
+std::vector<Mob*> LifePool::FindAffectedMobInRect(FieldRect& rc, Mob * pExcept)
+{
+	std::vector<Mob*> aRet;
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	for (auto& prMob : m_mMob)
+		if (rc.PtInRect({ prMob.second->GetPosX(), prMob.second->GetPosY() }) &&
+			(prMob.second != pExcept))
+			aRet.push_back(prMob.second);
+	return aRet;
+}
+
 void LifePool::RedistributeLife()
 {
 	Controller* pCtrl = nullptr;
@@ -436,12 +455,12 @@ void LifePool::RedistributeLife()
 				nMaxMobCtrl = maxCtrl->GetMobCtrlCount();
 				nMinNpcCtrl = minCtrl->GetNpcCtrlCount();
 				nMinMobCtrl = minCtrl->GetMobCtrlCount();
-				WvsLogger::LogFormat("Min Ctrl User = %d(%d), Max Ctrl User = %d(%d)\n", minCtrl->GetUser()->GetUserID(), nMinMobCtrl, maxCtrl->GetUser()->GetUserID(), nMaxMobCtrl);
+				//WvsLogger::LogFormat("Min Ctrl User = %d(%d), Max Ctrl User = %d(%d)\n", minCtrl->GetUser()->GetUserID(), nMinMobCtrl, maxCtrl->GetUser()->GetUserID(), nMaxMobCtrl);
 				//已經足夠平衡不需要再重新配給
 				if ((nMaxNpcCtrl + nMaxMobCtrl - (nMaxMobCtrl != 0) <= (nMinNpcCtrl - (nMinMobCtrl != 0) + nMinMobCtrl + 1))
-					|| ((nMaxNpcCtrl + nMaxMobCtrl - (nMaxMobCtrl != 0)) <= 10))
+					|| ((nMaxNpcCtrl + nMaxMobCtrl - (nMaxMobCtrl != 0)) <= 20))
 					break;
-				WvsLogger::LogFormat("Unbalanced.\n", minCtrl->GetUser()->GetUserID(), nMinMobCtrl, maxCtrl->GetUser()->GetUserID(), nMaxMobCtrl);
+				//WvsLogger::LogFormat("Unbalanced.\n", minCtrl->GetUser()->GetUserID(), nMinMobCtrl, maxCtrl->GetUser()->GetUserID(), nMaxMobCtrl);
 				Mob* pMob = *(maxCtrl->GetMobCtrlList().rbegin());
 				maxCtrl->GetMobCtrlList().pop_back();
 				pMob->SendChangeControllerPacket(maxCtrl->GetUser(), 0);
@@ -458,7 +477,11 @@ void LifePool::RedistributeLife()
 
 void LifePool::Update()
 {
+	int tCur = GameDateTime::GetTime();
 	TryCreateMob(false);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	for (auto& prMob : m_mMob)
+		prMob.second->Update(tCur);
 }
 
 void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
@@ -473,7 +496,7 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 
 void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo * pInfo)
 {
-	std::lock_guard<std::mutex> mobLock(this->m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
 
 	OutPacket attackPacket;
 	EncodeAttackInfo(pUser, pInfo, &attackPacket);
@@ -543,7 +566,7 @@ void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oP
 		oPacket->Encode4(pInfo->m_tKeyDown);
 }
 
-std::mutex & LifePool::GetLock()
+std::recursive_mutex & LifePool::GetLock()
 {
 	return m_lifePoolMutex;
 }
@@ -571,7 +594,7 @@ void LifePool::UpdateMobSplit(User * pUser)
 void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 {
 	int dwMobID = iPacket->Decode4();
-	//std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 
 	auto mobIter = m_mMob.find(dwMobID);
 	if (mobIter != m_mMob.end()) {
@@ -589,7 +612,7 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 
 void LifePool::OnNpcPacket(User * pUser, int nType, InPacket * iPacket)
 {
-	std::lock_guard<std::mutex> lock(m_lifePoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	if (nType == NPCRecvPacketFlags::NPC_OnMoveRequest)
 	{
 		auto iterNpc = this->m_mNpc.find(iPacket->Decode4());

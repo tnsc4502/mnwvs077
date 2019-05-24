@@ -28,6 +28,7 @@ class SkillEntry;
 class Summoned;
 class Script;
 class Trunk;
+struct MobSkillLevelData;
 
 class MiniRoomBase;
 
@@ -49,15 +50,15 @@ public:
 	{
 		eDropPickUpMessage = 0x00,
 		eQuestRecordMessage = 0x01,
-		eQuestRecordMessageAddValidCheck = 0x02,
-		eCashItemExpireMessage = 0x03,
-		eIncEXPMessage = 0x04,
-		eIncSPMessage = 0x05,
-		eIncPOPMessage = 0x06,
-		eIncMoneyMessage = 0x07,
-		eIncGPMessage = 0x08,
-		eIncCommitmentMessage = 0x09,
-		eGiveBuffMessage = 0x0A,
+		//eQuestRecordMessageAddValidCheck = 0x02,
+		eCashItemExpireMessage = 0x02,
+		eIncEXPMessage = 0x03,
+		eIncSPMessage = 0x04,
+		eIncPOPMessage = 0x05,
+		eIncMoneyMessage = 0x06,
+		eIncGPMessage = 0x07,
+		eIncCommitmentMessage = 0x08,
+		eGiveBuffMessage = 0x09,
 		eGeneralItemExpireMessage = 0x0B,
 		eSystemMessage = 0x0C,
 		eQuestRecordExMessage = 0x0D,
@@ -221,6 +222,7 @@ public:
 	void ResetTemporaryStat(int tCur, int nReasonID);
 	void OnAbilityUpRequest(InPacket *iPacket);
 	long long int IncMaxHPAndMP(int nFlag, bool bLevelUp);
+	void OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData* pLevel, int tDelay, int nTemplateID, bool bResetBySkill = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
@@ -231,6 +233,7 @@ public:
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);
 	void SendDropPickUpFailPacket(bool bOnExcelRequest);
 	void SendQuestRecordMessage(int nKey, int nState, const std::string& sStringRecord);
+	void SendIncEXPMessage(bool bIsLastHit, int nIncEXP, bool bOnQuest, int nIncEXPBySMQ, int nEventPercentage, int nPartyBonusPercentage, int nPlayTimeHour, int nQuestBonusRate, int nQuestBonusRemainCount, int nPartyBonusEventRate, int nWeddingBonusEXP);
 
 	//Npc & Script
 	Script* GetScript();

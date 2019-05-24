@@ -224,6 +224,11 @@ const FieldPoint & Field::GetLeftTop() const
 	return m_ptLeftTop;
 }
 
+double Field::GetIncEXPRate() const
+{
+	return m_dIncRate_EXP;
+}
+
 void Field::SetFieldSet(FieldSet * pFieldSet)
 {
 	m_pParentFieldSet = pFieldSet;
@@ -381,13 +386,26 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	short nMobCtrlSN = iPacket->Decode2();
 
 	char flag = iPacket->Decode1();
-	char bNextAttackPossible = flag;
+	char bNextAttackPossible = (flag & 0x0F) != 0;
 	char pCenterSplit = iPacket->Decode1();
 
 	//ZtlSecureTear_bSN_CS
-	char nSkillCommand = (iPacket->Decode1() & 0xFF) > 0;
-	char nSLV = iPacket->Decode1();
+	unsigned char nSkillCommand = (iPacket->Decode1() & 0xFF);
+	unsigned char nSLV = iPacket->Decode1();
 	short nSkillEffect = iPacket->Decode2();
+	int nData = 0;
+	((char*)&nData)[0] = nSkillCommand;
+	((char*)&nData)[1] = nSLV;
+	((short*)&nData)[1] = nSkillEffect;
+	bool bShootAttack = false;
+
+	pMob->OnMobMove(
+		bNextAttackPossible == 1,
+		(pCenterSplit < 0 ? -1 : pCenterSplit >> 1),
+		nData,
+		&nSkillCommand,
+		&nSLV,
+		&bShootAttack);
 
 	iPacket->Decode1();
 	iPacket->Decode4();
@@ -418,7 +436,7 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	movePacket.Encode1(nSLV);
 	movePacket.Encode2(nSkillEffect);
 
-	std::lock_guard<std::mutex> lifeGuard(m_pLifePool->GetLock());
+	std::lock_guard<std::recursive_mutex> lifeGuard(m_pLifePool->GetLock());
 	//for (auto& elem : movePath.m_lElem)
 	auto& elem = *(movePath.m_lElem.rbegin());
 	{
