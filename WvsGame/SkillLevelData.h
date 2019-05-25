@@ -1,4 +1,5 @@
 #pragma once
+#include "FieldRect.h"
 
 struct SkillLevelData
 {
@@ -39,5 +40,7 @@ struct SkillLevelData
 		m_nMpR = 0,
 		m_nMastery = 0
 		;
+
+	FieldRect m_rc;
 };
 

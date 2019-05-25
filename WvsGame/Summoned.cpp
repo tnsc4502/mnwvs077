@@ -37,9 +37,8 @@ void Summoned::Init(User * pUser, int nSkillID, int nSLV)
 	m_nAssitType = GetAssitType();
 }
 
-void Summoned::OnPacket(InPacket * iPacket)
+void Summoned::OnPacket(InPacket * iPacket, int nType)
 {
-	int nType = iPacket->Decode2();
 	switch (nType)
 	{
 		case SummonedRecvPacketFlag::Summoned_OnMoveRequest:
@@ -53,18 +52,12 @@ void Summoned::OnPacket(InPacket * iPacket)
 			break;
 		case SummonedRecvPacketFlag::Summoned_OnRemoveRequest:
 			break;
-		case SummonedRecvPacketFlag::Summoned_OnAttackForPvPRequest:
-			break;
-		case SummonedRecvPacketFlag::Summoned_OnActionRequest:
-			break;
-		case SummonedRecvPacketFlag::Summoned_OnAssistAttackRequest:
-			break;
 	}
 }
 
 void Summoned::OnMove(InPacket * iPacket)
 {
-	iPacket->Offset(12);
+	//iPacket->Offset(12);
 	MovePath movePath;
 	movePath.Decode(iPacket);
 	ValidateMovePath(&movePath);
@@ -75,7 +68,7 @@ void Summoned::OnMove(InPacket * iPacket)
 	oPacket.Encode4(GetFieldObjectID());
 	movePath.Encode(&oPacket);
 
-	m_pField->BroadcastPacket(&oPacket);
+	m_pField->SplitSendPacket(&oPacket, m_pOwner);
 }
 
 void Summoned::MakeEnterFieldPacket(OutPacket * oPacket)
@@ -83,8 +76,8 @@ void Summoned::MakeEnterFieldPacket(OutPacket * oPacket)
 	oPacket->Encode2((short)SummonedSendPacketFlag::Summoned_OnCreated);
 	oPacket->Encode4(m_pOwner->GetUserID());
 	oPacket->Encode4(GetFieldObjectID());
-	oPacket->Encode4(36121002);
-	oPacket->Encode1(m_pOwner->GetCharacterData()->mLevel->nLevel);
+	oPacket->Encode4(m_nSkillID);
+	//oPacket->Encode1(m_pOwner->GetCharacterData()->mLevel->nLevel);
 	oPacket->Encode1((unsigned char)(m_nSLV - 1));
 	oPacket->Encode2(GetPosX());
 	oPacket->Encode2(GetPosY());
@@ -121,13 +114,21 @@ void Summoned::MakeLeaveFieldPacket(OutPacket * oPacket)
 
 int Summoned::GetMoveAbility()
 {
+	if (m_nSkillID == 1321007 || m_nSkillID == 2121005 || m_nSkillID == 2221005 || m_nSkillID == 2321003)
+		return 1;
+	else if (m_nSkillID == 3111002 || m_nSkillID == 3211002)
+		return 0;
 	return SUMMONED_MOV;
 }
 
 int Summoned::GetAssitType()
 {
+	if (m_nSkillID == 1321007)
+		return 2; 
+	else if (m_nSkillID == 3111002 || m_nSkillID == 3211002)
+		return 0;
 	return SUMMONED_ATT;
 }
 
-int Summoned::SUMMONED_MOV = 0;
+int Summoned::SUMMONED_MOV = 3;
 int Summoned::SUMMONED_ATT = 1; 

@@ -6,6 +6,7 @@
 #include "ItemInfo.h"
 #include "SkillInfo.h"
 #include "QWUInventory.h"
+#include "QWUser.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterMoney.h"
 #include "..\Database\GW_ItemSlotBundle.h"
@@ -66,6 +67,11 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 					pUser->SendNoticeMessage("需求道具數量不足。");
 					break;
 			}
+			if (nResult)
+			{
+				pUser->SendCharacterStat(true, 0);
+				return;
+			}
 			OutPacket oPacket;
 			MakeShopResult(pUser, pItem, &oPacket, 8, 0);
 			pUser->SendPacket(&oPacket);
@@ -89,6 +95,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 		if (pItem == nullptr)
 		{
 			pUser->SendNoticeMessage("物品不存在。");
+			pUser->SendCharacterStat(true, 0);
 			return;
 		}
 		if (nTI == 1) 
@@ -137,6 +144,52 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 
 void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 {
+	int nPOS = iPacket->Decode2();
+	auto pItem = (GW_ItemSlotBundle*)pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	if (!pItem || !ItemInfo::GetInstance()->IsRechargable(pItem->nItemID))
+	{
+		pUser->SendNoticeMessage("發生異常。");
+		pUser->SendCharacterStat(true, 0);
+		return;
+	}
+	auto nMaxPerSlot = SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(pItem->nItemID, pUser->GetCharacterData());
+	auto& apItemList = *(m_pTemplate->GetShopItem());
+	int nCount = nMaxPerSlot - pItem->nNumber;
+	if (nCount <= 0)
+	{
+		pUser->SendNoticeMessage("發生異常。");
+		pUser->SendCharacterStat(true, 0);
+		return;
+	}
+	double dUnitPrice = 0.0;
+	for(auto& pShopItem : apItemList)
+		if (pShopItem->nItemID == pItem->nItemID)
+		{
+			auto pBundleItem = ItemInfo::GetInstance()->GetBundleItem(pItem->nItemID);
+			dUnitPrice = pBundleItem->dSellUnitPrice;
+			break;
+		}
+	int nCost = (int)(dUnitPrice * nCount);
+	if (dUnitPrice && QWUser::GetMoney(pUser) >= nCost)
+	{
+		std::vector<BackupItem> aBackup;
+		std::vector<ExchangeElement> aExchange;
+		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+		if (!QWUInventory::Exchange(pUser, -nCost, aExchange, nullptr, nullptr, aBackup))
+		{
+			if (QWUInventory::RawRechargeItem(pUser, nPOS, &aChangeLog))
+			{
+				QWUInventory::SendInventoryOperation(pUser, true, aChangeLog);
+				pUser->SendNoticeMessage("儲值成功。");
+				pUser->SendCharacterStat(true, 0);
+				return;
+			}
+			QWUInventory::Exchange(pUser, nCost, aExchange, nullptr, nullptr, aBackup);
+		}
+	}
+	pUser->SendNoticeMessage("發生異常。");
+	pUser->SendCharacterStat(true, 0);
+	return;
 }
 
 void Npc::MakeShopResult(User *pUser, void* pItem_, OutPacket * oPacket, int nAction, int nIdx)

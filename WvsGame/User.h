@@ -196,6 +196,7 @@ public:
 	void EncodeChatMessage(OutPacket *oPacket, const std::string strMsg, bool bAdmin, bool bBallon);
 	void OnAttack(int nType, InPacket *iPacket);
 	void OnLevelUp();
+	void OnEmotion(InPacket *iPacket);
 	void PostTransferField(int dwFieldID, Portal* pPortal, int bForce);
 	void SetMovePosition(int x, int y, char bMoveAction, short nFSN);
 

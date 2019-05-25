@@ -19,6 +19,7 @@ class InPacket;
 class OutPacket;
 class WvsPhysicalSpace2D;
 class SummonedPool;
+class AffectedAreaPool;
 
 class Field
 {
@@ -42,6 +43,7 @@ class Field
 	FieldSet* m_pParentFieldSet = nullptr;
 	WvsPhysicalSpace2D* m_pSpace2D;
 	FieldPoint m_ptLeftTop, m_szMap;
+	AffectedAreaPool* m_pAffectedAreaPool;
 
 	std::string m_sStreetName, 
 				m_sMapName, 
@@ -136,6 +138,7 @@ public:
 	SummonedPool* GetSummonedPool();
 	std::recursive_mutex& GetFieldLock();
 	WvsPhysicalSpace2D* GetSpace2D();
+	AffectedAreaPool* GetAffectedAreaPool();
 	const std::map<int, User*>& GetUsers();
 
 	void TransferAll(int nFieldID, const std::string& sPortal);

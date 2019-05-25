@@ -68,7 +68,7 @@ void BasicStat::SetFrom(GA_Character * pChar, int nMaxHPIncRate, int nMaxMPIncRa
 	nWillEXP = pCS->nWillEXP;
 	nSenseEXP = pCS->nSenseEXP;
 	nCharmEXP = pCS->nCharmEXP;
-	SetPermanentSkillStat(pChar);
+	//SetPermanentSkillStat(pChar);
 	const GW_ItemSlotEquip* pEquip;
 	for (const auto& itemEquipped : pChar->mItemSlot[1])
 	{

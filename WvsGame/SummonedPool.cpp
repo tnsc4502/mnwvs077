@@ -24,6 +24,17 @@ std::mutex & SummonedPool::GetSummonedPoolLock()
 	return m_mtxSummonedLock;
 }
 
+void SummonedPool::OnEnter(User * pUser)
+{
+	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
+	for (auto& pSummoned : m_lSummoned)
+	{
+		OutPacket oPacket;
+		pSummoned->MakeEnterFieldPacket(&oPacket);
+		pUser->SendPacket(&oPacket);
+	}
+}
+
 Summoned * SummonedPool::GetSummoned(int nFieldObjID)
 {
 	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
@@ -82,7 +93,7 @@ void SummonedPool::RemoveSummoned(int nCharacterID, int nSkillID, int nLeaveType
 			m_lSummoned.erase(m_lSummoned.begin() + i);
 			OutPacket oPacket;
 			pSummoned->MakeLeaveFieldPacket(&oPacket);
-			m_pField->SplitSendPacket(&oPacket, pSummoned->m_pOwner);
+			m_pField->SplitSendPacket(&oPacket, nullptr);
 			if(nLeaveType != Summoned::eLeave_TransferField)
 				FreeObj(pSummoned);
 			return;

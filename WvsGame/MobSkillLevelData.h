@@ -10,9 +10,11 @@ struct MobSkillLevelData
 		tInterval = 0,
 		nProp = 0,
 		nX = 0,
-		nHP = 0,
+		nY = 0,
+		nHPBelow = 0,
 		nLimit = 0,
 		nSummonEffect = 0,
-		nMPCon = 0;
+		nMPCon = 0,
+		nCount = 0;
 };
 

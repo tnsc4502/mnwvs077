@@ -252,8 +252,8 @@ void InventoryManipulator::MakeItemUpgradeEffect(OutPacket *oPacket, int nCharac
 	oPacket->Encode4(nCharacterID);
 	oPacket->Encode1(bSuccess ? 1 : (bCursed ? 2 : 0));
 	oPacket->Encode1(bEnchant);
-	oPacket->Encode4(nUItemID);
-	oPacket->Encode4(nEItemID);
+	oPacket->Encode4(0);
+	oPacket->Encode4(0);
 	oPacket->Encode4(0);
 	oPacket->Encode1(0);
 	oPacket->Encode1(0);
@@ -341,6 +341,28 @@ bool InventoryManipulator::RawWasteItem(GA_Character * pCharacterData, int nPOS,
 		InventoryManipulator::InsertChangeLog(
 			*aChangeLog, ChangeType::Change_QuantityChanged, GW_ItemSlotBase::CONSUME, nPOS, nullptr, 0, pItem->nNumber
 		);
+	return true;
+}
+
+bool InventoryManipulator::RawRechargeItem(GA_Character * pCharacterData, int nPOS, std::vector<ChangeLog>* aChangeLog)
+{
+	GW_ItemSlotBundle* pItem = (GW_ItemSlotBundle*)pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	int nMaxPerSlot = 0;
+	if (!pItem ||
+		!ItemInfo::GetInstance()->IsRechargable(pItem->nItemID) ||
+		!(nMaxPerSlot = SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(pItem->nItemID, pCharacterData)) ||
+			pItem->nNumber > nMaxPerSlot)
+		return false;
+	pItem->nNumber = nMaxPerSlot;
+	if (aChangeLog)
+		InsertChangeLog(
+			*aChangeLog,
+			ChangeType::Change_QuantityChanged,
+			GW_ItemSlotBase::CONSUME,
+			nPOS,
+			nullptr,
+			0,
+			nMaxPerSlot);
 	return true;
 }
 

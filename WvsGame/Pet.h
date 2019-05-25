@@ -22,11 +22,12 @@ public:
 	unsigned char GetIndex() const;
 
 	void Init(User *pUser);
-	void OnPacket(InPacket *iPacket);
+	void OnPacket(InPacket *iPacket, int nType);
 	void OnEnterField(Field *pField);
 	void OnLeaveField();
 	void OnMove(InPacket *iPacket);
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
+	void EncodeInitData(OutPacket *oPacket);
 };
 

@@ -550,7 +550,7 @@ void MiniRoomBase::Enter(User *pUser, int nSN, InPacket *iPacket, bool bTourname
 	{
 		OutPacket oPacket;
 		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
-		oPacket.Encode1(5); //EnterFailed
+		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRCreateResult); //EnterFailed
 		oPacket.Encode1(0);
 		oPacket.Encode1(nFailedReason);
 		pUser->SendPacket(&oPacket);

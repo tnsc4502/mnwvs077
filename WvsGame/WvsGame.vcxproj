@@ -161,6 +161,8 @@
     <ClInclude Include="ActQuest.h" />
     <ClInclude Include="ActSkill.h" />
     <ClInclude Include="AdminSkills.h" />
+    <ClInclude Include="AffectedArea.h" />
+    <ClInclude Include="AffectedAreaPool.h" />
     <ClInclude Include="AngelicBusterSkills.h" />
     <ClInclude Include="AranSkills.h" />
     <ClInclude Include="AttackInfo.h" />
@@ -292,6 +294,8 @@
     <ClInclude Include="ZeroSkills.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AffectedArea.cpp" />
+    <ClCompile Include="AffectedAreaPool.cpp" />
     <ClCompile Include="AttackInfo.cpp" />
     <ClCompile Include="BasicStat.cpp" />
     <ClCompile Include="BridleItem.cpp" />

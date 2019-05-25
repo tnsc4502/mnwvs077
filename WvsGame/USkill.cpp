@@ -33,7 +33,7 @@ std::pair<long long int, std::vector<int>>* pRefIndie = nullptr;\
 auto pSS = pUser->GetSecondaryStat();\
 int nSkillID = pSkill->GetSkillID();\
 int tDelay = 0;\
-int nDuration = pSkillLVLData->m_nTime * 1000;\
+int nDuration = pSkillLVLData->m_nTime;\
 	if (nDuration == 0)\
 		nDuration = INT_MAX;
 

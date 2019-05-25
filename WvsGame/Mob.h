@@ -8,6 +8,7 @@ class MobTemplate;
 class Controller;
 class MobStat;
 class User;
+class AffectedArea;
 
 class Mob : public FieldObj
 {
@@ -42,10 +43,17 @@ private:
 	MobStat* m_pStat;
 	MobTemplate* m_pMobTemplate;
 	DamageLog m_damageLog;
-	//std::map<int, long long int> m_mAttackRecord;
 	Controller* m_pController; 
 	long long int m_liHP, m_liMP;
-	int tLastMoveTime = 0, tLastSkillUseTime = 0;
+
+	int m_tLastMove = 0, 
+		m_tLastSkillUse = 0,
+		m_tLastUpdatePoison = 0,
+		m_tLastUpdateVenom = 0,
+		m_tLastUpdateAmbush = 0,
+		m_nSkillCommand = 0;
+
+	bool m_bNextAttackPossible = false;
 	void* m_pMobGen = nullptr;
 
 public:
@@ -73,7 +81,9 @@ public:
 	void DoSkill_UserStatChange(int nArg, int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_PartizanStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
-	void DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay);
+	void DoSkill_Summon(const MobSkillLevelData *pLevel, int nContextIdx, int tDelay);
+	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, int tCur);
+	void OnMobInAffectedArea(AffectedArea *pArea, int tCur);
 	void SendMobTemporaryStatSet(int nSet, int tDelay);
 	void SendMobTemporaryStatReset(int nSet);
 	void OnMobHit(User* pUser, long long int nDamage, int nAttackType);
@@ -93,5 +103,8 @@ public:
 
 	DamageLog& GetDamageLog();
 	void Update(int tCur);
+	void UpdatePoison(int tCur);
+	void UpdateVenom(int tCur);
+	void UpdateAmbush(int tCur);
 };
 

@@ -67,6 +67,9 @@
     <Filter Include="WvsGame\InGame\MiniRoom">
       <UniqueIdentifier>{9d93e7eb-fee7-4588-9ca2-0685396eabcb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WvsGame\InGame\Field\AffectedArea">
+      <UniqueIdentifier>{5eb2d153-7417-40e2-a64f-3cb042b6bd9f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -471,6 +474,12 @@
     <ClInclude Include="MobSkillEntry.h">
       <Filter>WvsGame\InGame\Skill</Filter>
     </ClInclude>
+    <ClInclude Include="AffectedArea.h">
+      <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
+    </ClInclude>
+    <ClInclude Include="AffectedAreaPool.h">
+      <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -719,6 +728,12 @@
     </ClCompile>
     <ClCompile Include="MobSkillLevelData.cpp">
       <Filter>WvsGame\InGame\Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="AffectedArea.cpp">
+      <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
+    </ClCompile>
+    <ClCompile Include="AffectedAreaPool.cpp">
+      <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

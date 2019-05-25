@@ -102,6 +102,7 @@ int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterDat
 
 void SkillInfo::LoadMobSkill()
 {
+	std::set<std::string> sNode;
 	auto& mobSkillNode = stWzResMan->GetWz(Wz::Skill)["MobSkill"];
 	MobSkillEntry* pEntry = nullptr;
 	for (auto& mobSkill : mobSkillNode)
@@ -114,6 +115,8 @@ void SkillInfo::LoadMobSkill()
 
 void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 {
+#undef max
+
 	auto& skillLevelImg = *((WZ::Node*)pData);
 	pEntry->m_apLevelData.push_back(nullptr); //for level 0
 	MobSkillLevelData *pLevel = nullptr;
@@ -130,13 +133,15 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 			pLevel->anTemplateID.push_back((int)mobIDNode);
 		}
 		pLevel->nX = level["x"];
+		pLevel->nY = level["y"];
 		pLevel->nLimit = level["limit"];
 		pLevel->nSummonEffect = level["summonEffect"];
-		pLevel->nHP = level["hp"];
+		pLevel->nHPBelow = level["hp"];
 		pLevel->nMPCon = level["mpCon"];
-		pLevel->tInterval = level["interval"];
-		pLevel->tTime = level["time"];
+		pLevel->tInterval = ((int)level["interval"]) * 1000;
+		pLevel->tTime = ((int)level["time"]) * 1000;
 		pLevel->nProp = level["prop"];
+		pLevel->nCount = std::max(1, (int)level["count"]);
 		
 		auto&lt = level["lt"];
 		if (lt != empty && lt.Name() != "")
@@ -258,6 +263,7 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void * pData)
 {
 	auto& skillLevelImg = *((WZ::Node*)pData);
+	WZ::Node empty;
 	int nMaxLevel = pEntry->GetMaxLevel();
 	pEntry->AddLevelData(nullptr); //for lvl 0
 
@@ -293,6 +299,8 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		pLevelData->m_nRange = PARSE_SKILLDATA(range);
 		pLevelData->m_nSpeed = PARSE_SKILLDATA(speed);
 		pLevelData->m_nTime = PARSE_SKILLDATA(time);
+		pLevelData->m_nTime *= 1000;
+
 		pLevelData->m_nX = PARSE_SKILLDATA(x);
 		pLevelData->m_nY = PARSE_SKILLDATA(y);
 		pLevelData->m_nZ = PARSE_SKILLDATA(z);
@@ -302,7 +310,18 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		pLevelData->m_nLt = PARSE_SKILLDATA(lt);
 		pLevelData->m_nRb = PARSE_SKILLDATA(rb);
 		pLevelData->m_nFixDamage = PARSE_SKILLDATA(fixdamage);
-
+		auto&lt = skillCommonImg["lt"];
+		if (lt != empty && lt.Name() != "")
+		{
+			pLevelData->m_rc.left = lt["x"];
+			pLevelData->m_rc.top = lt["y"];
+		}
+		auto&rb = skillCommonImg["rb"];
+		if (rb != empty && rb.Name() != "")
+		{
+			pLevelData->m_rc.right = rb["x"];
+			pLevelData->m_rc.bottom = rb["y"];
+		}
 		pEntry->AddLevelData(pLevelData);
 	}
 	pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);

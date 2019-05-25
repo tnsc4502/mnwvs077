@@ -24,6 +24,8 @@
 #include "PartyMan.h"
 #include "WvsPhysicalSpace2D.h"
 #include "ContinentMan.h"
+#include "AffectedArea.h"
+#include "AffectedAreaPool.h"
 
 #include <mutex>
 #include <functional>
@@ -38,6 +40,7 @@ Field::Field(int nFieldID)
 	m_nFieldID = nFieldID;
 	m_pDropPool = AllocObjCtor(DropPool)(this);
 	m_pSummonedPool = AllocObjCtor(SummonedPool)(this);
+	m_pAffectedAreaPool = AllocObjCtor(AffectedAreaPool)(this);
 	//m_asyncUpdateTimer = AsyncScheduler::CreateTask(std::bind(&Field::UpdateTrigger, this), 5000, true);
 	//this->m_asyncUpdateTimer = (void*)timer;
 	//InitLifePool();
@@ -52,6 +55,7 @@ Field::~Field()
 	FreeObj(m_pSpace2D);
 	FreeObj(m_pReactorPool);
 	FreeObj(m_pTownPortalPool);
+	FreeObj(m_pAffectedAreaPool);
 	//m_asyncUpdateTimer->Abort();
 	//delete m_asyncUpdateTimer;
 }
@@ -281,6 +285,7 @@ void Field::OnEnter(User *pUser)
 		}
 	}
 	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
+	m_pSummonedPool->OnEnter(pUser);
 }
 
 void Field::OnLeave(User *pUser)
@@ -304,7 +309,7 @@ void Field::SplitSendPacket(OutPacket *oPacket, User *pExcept)
 
 	for (auto& user : m_mUser)
 	{
-		if ((pExcept == nullptr) || user.second->GetUserID() != pExcept->GetUserID())
+		if ((pExcept == nullptr) || user.second != pExcept)
 			user.second->SendPacket(oPacket);
 	}
 }
@@ -367,6 +372,11 @@ WvsPhysicalSpace2D * Field::GetSpace2D()
 	return m_pSpace2D;
 }
 
+AffectedAreaPool *Field::GetAffectedAreaPool()
+{
+	return m_pAffectedAreaPool;
+}
+
 const std::map<int, User*>& Field::GetUsers()
 {
 	return m_mUser;
@@ -374,14 +384,6 @@ const std::map<int, User*>& Field::GetUsers()
 
 void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 {
-	//std::lock_guard<std::mutex> userGuard(m_mtxFieldLock);
-	//bool bIsAzawanMoving = iPacket->Decode1() > 0;
-	/*
-	  v122 = CMobTemplate::_ZtlSecureGet_dwTemplateID(v121) / 0x2710 == 250
-      || CMobTemplate::_ZtlSecureGet_dwTemplateID(v121) / 0x2710 == 251;
-		 COutPacket::Encode1(&oPacket, v122);
-	*/
-
 	//_ZtlSecureTear_m_nMobCtrlSN
 	short nMobCtrlSN = iPacket->Decode2();
 
@@ -390,15 +392,12 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	char pCenterSplit = iPacket->Decode1();
 
 	//ZtlSecureTear_bSN_CS
-	unsigned char nSkillCommand = (iPacket->Decode1() & 0xFF);
-	unsigned char nSLV = iPacket->Decode1();
-	short nSkillEffect = iPacket->Decode2();
-	int nData = 0;
-	((char*)&nData)[0] = nSkillCommand;
-	((char*)&nData)[1] = nSLV;
-	((short*)&nData)[1] = nSkillEffect;
-	bool bShootAttack = false;
+	unsigned char nSkillCommand = 0;
+	unsigned char nSLV = 0;
+	short nSkillEffect = 0;
+	int nData = iPacket->Decode4();
 
+	bool bShootAttack = false;
 	pMob->OnMobMove(
 		bNextAttackPossible == 1,
 		(pCenterSplit < 0 ? -1 : pCenterSplit >> 1),
@@ -432,9 +431,10 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	movePacket.Encode1(pCenterSplit);
 
 	//dwData
-	movePacket.Encode1(nSkillCommand);
+	movePacket.Encode4(nData);
+	/*movePacket.Encode1(nSkillCommand);
 	movePacket.Encode1(nSLV);
-	movePacket.Encode2(nSkillEffect);
+	movePacket.Encode2(nSkillEffect);*/
 
 	std::lock_guard<std::recursive_mutex> lifeGuard(m_pLifePool->GetLock());
 	//for (auto& elem : movePath.m_lElem)
@@ -585,5 +585,6 @@ void Field::Update()
 	int tCur = GameDateTime::GetTime();
 	m_pLifePool->Update();
 	m_pReactorPool->Update(tCur); 
+	m_pAffectedAreaPool->Update(tCur);
 	m_pDropPool->TryExpire(false);
 }

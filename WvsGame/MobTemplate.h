@@ -12,7 +12,16 @@ class MobTemplate
 	static WZ::Node* m_MobWzProperty;
 
 public:
+	struct MobSkillContext
+	{
+		int nSkillID = 0, 
+			nSLV = 0, 
+			tLastSkillUse = 0, 
+			nSummoned = 0;
+	};
+
 	const std::vector<RewardInfo*> *m_paMobReward;
+	std::vector<MobSkillContext> m_aSkillContext;
 	std::vector<std::pair<int, int>> m_aMobSkill;
 
 	unsigned int m_unTotalRewardProb = 0;
@@ -24,6 +33,8 @@ public:
 	//cloneNewOne為true，代表不使用共用屬性 (用於複寫特定怪物屬性)
 	static MobTemplate* GetMobTemplate(int dwTemplateID, bool bCloneNewOne = false);
 	static void RegisterMob(int dwTemplateID);
+	void MakeSkillContext();
+	int GetSkillIndex(int nSkillID, int nSLV);
 	void SetMobCountQuestInfo(User *pUser) const;
 	
 	/*
@@ -46,6 +57,7 @@ public:
 		m_nPushed, 
 		m_nEXP, 
 		m_nCategory, 
+		m_nFixedDamage,
 		m_nSummonType, 
 		m_nMoveAbility;
 
@@ -54,7 +66,9 @@ public:
 		m_bIsChangeableMob, 
 		m_bIsDamagedByMob, 
 		m_bIsSmartPhase, 
+		m_bOnlyNormalAttack,
 		m_bIsExplosiveDrop,
+		m_bIsBoss = false,
 		m_bIsTargetFromSrv = true;
 
 	double m_dFs;

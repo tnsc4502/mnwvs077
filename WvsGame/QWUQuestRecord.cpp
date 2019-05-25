@@ -51,21 +51,20 @@ void QWUQuestRecord::Set(User *pUser, int nKey, const std::string &sInfo)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto pCharacter = pUser->GetCharacterData();
 	pCharacter->SetQuest(nKey, sInfo);
-	if (nKey == 1)
+
+	auto pDemand = QuestMan::GetInstance()->GetCompleteDemand(nKey);
+	if (pDemand && pDemand->m_mDemandMob.size() > 0)
 	{
-		auto pDemand = QuestMan::GetInstance()->GetCompleteDemand(nKey);
-		if (pDemand && pDemand->m_mDemandMob.size() > 0)
+		std::string sInfoSet = "";
+		auto pRecord = pCharacter->mQuestRecord[nKey];
+		for (auto& prMob : pDemand->m_mDemandMob)
 		{
-			std::string sInfoSet = "";
-			auto pRecord = pCharacter->mQuestRecord[nKey];
-			for (auto& prMob : pDemand->m_mDemandMob) 
-			{
-				pRecord->aMobRecord.push_back(0);
-				sInfoSet += "000";
-			}
-			pRecord->sStringRecord = sInfoSet;
+			pRecord->aMobRecord.push_back(0);
+			sInfoSet += "000";
 		}
+		pRecord->sStringRecord = sInfoSet;
 	}
+	
 	pUser->SendQuestRecordMessage(nKey, 1, sInfo);
 }
 

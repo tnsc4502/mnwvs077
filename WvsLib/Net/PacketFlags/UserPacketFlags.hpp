@@ -158,6 +158,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnConsumeCashItemUseRequest, 0x3E);
 MAKE_USER_RECV_PACKET_FLAG(User_OnBridleItemUseRequest, 0x41);
 MAKE_USER_RECV_PACKET_FLAG(User_OnSkillLearnItemUseRequest, 0x42);
 MAKE_USER_RECV_PACKET_FLAG(User_OnShopScannerItemUseRequest, 0x43);
+MAKE_USER_RECV_PACKET_FLAG(User_OnItemUpgradeRequest, 0x44);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserAbilityUpRequest, 0x45);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserSkillUpRequest, 0x47);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserSkillUseRequest, 0x48);
@@ -169,7 +170,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnCharacterInfoRequest, 0x4E);
 MAKE_USER_RECV_PACKET_FLAG(User_OnActivatePetRequest, 0x4F);
 MAKE_USER_RECV_PACKET_FLAG(User_OnMapTransferItemUseRequest, 0x50);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPortalScrollUseRequest, 0x51); 
-MAKE_USER_RECV_PACKET_FLAG(User_OnItemUpgradeRequest, 0x52);
+
 MAKE_USER_RECV_PACKET_FLAG(User_OnQuestRequest, 0x57);
 MAKE_USER_RECV_PACKET_FLAG(User_OnSendGroupMessage, 0x5C);
 MAKE_USER_RECV_PACKET_FLAG(User_OnSendWhisperMessage, 0x5D);

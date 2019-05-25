@@ -9,4 +9,13 @@ struct FieldRect
 	{
 		return (pt.x >= left && pt.x <= right) && (pt.y <= bottom && pt.y >= top);
 	}
+
+	FieldRect& OffsetRect(int x, int y)
+	{
+		left += x;
+		right += x;
+		bottom += y;
+		top += y;
+		return *this;
+	}
 };

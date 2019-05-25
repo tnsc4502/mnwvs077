@@ -228,6 +228,17 @@ bool QWUInventory::RawAddItemByID(User * pUser, int nItemID, int nCount)
 	return nTotalAdded == nCount;
 }
 
+bool QWUInventory::RawRechargeItem(User * pUser, int nPOS, std::vector<InventoryManipulator::ChangeLog>* aChangeLog)
+{
+	if (QWUser::GetHP(pUser))
+		return InventoryManipulator::RawRechargeItem(
+			pUser->GetCharacterData(),
+			nPOS,
+			aChangeLog
+		);
+	return false;
+}
+
 int QWUInventory::Exchange(User *pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>* aLogAdd, std::vector<InventoryManipulator::ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bSendOperation, bool bReleaseBackupItem)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());

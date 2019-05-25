@@ -1,9 +1,10 @@
 #include "MobTemplate.h"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "Reward.h"
 #include "User.h"
 #include "QuestMan.h"
 #include "QWUQuestRecord.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 std::map<int, MobTemplate*>* MobTemplate::m_MobTemplates = new std::map<int, MobTemplate*>();
 
@@ -73,12 +74,16 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_nCategory = info["category"];
 	pTemplate->m_strElemAttr = info["elemAttr"];
 	pTemplate->m_strMobType = info["mobType"];
+	pTemplate->m_nFixedDamage = info["fixedDamage"];
 	pTemplate->m_bIsExplosiveDrop = ((int)info["explosiveReward"] == 1);
+	pTemplate->m_bOnlyNormalAttack = ((int)info["onlyNormalAttack"] == 1);
+	pTemplate->m_bIsBoss = ((int)info["boss"] == 1);
 	pTemplate->m_nTemplateID = dwTemplateID;
 
 	auto& skillNode = info["skill"];
 	for (auto& skill : skillNode)
 		pTemplate->m_aMobSkill.push_back({ skill["skill"], skill["level"] });
+	pTemplate->MakeSkillContext();
 
 	bool bFly = (info["fly"] == info.end());
 	bool bMove = (info["move"] == info.end());
@@ -95,6 +100,29 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 		pTemplate->m_unTotalRewardProb += pInfo->m_unWeight;
 
 	(*m_MobTemplates)[dwTemplateID] = pTemplate;
+}
+
+void MobTemplate::MakeSkillContext()
+{
+	int nMobSkillCount = (int)m_aMobSkill.size();
+	m_aSkillContext.resize(nMobSkillCount);
+	for (int i = 0; i < nMobSkillCount; ++i)
+	{
+		m_aSkillContext[i].nSkillID = m_aMobSkill[i].first;
+		m_aSkillContext[i].nSLV = m_aMobSkill[i].second;
+		m_aSkillContext[i].tLastSkillUse = 1;
+		m_aSkillContext[i].nSummoned = 0;
+	}
+}
+
+int MobTemplate::GetSkillIndex(int nSkillID, int nSLV)
+{
+	int nCount = (int)m_aMobSkill.size();
+	for (int i = 0; i < nCount; ++i)
+		if (m_aMobSkill[i].first == nSkillID &&
+			m_aMobSkill[i].second == nSLV)
+			return i;
+	return -1;
 }
 
 void MobTemplate::SetMobCountQuestInfo(User * pUser) const

@@ -62,6 +62,7 @@
 #include "MiniRoomBase.h"
 #include "Trunk.h"
 #include "MobSkillEntry.h"
+#include "AffectedAreaPool.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
@@ -259,6 +260,9 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->Encode2(GetFh());
 
 	//PetInfo
+	for (int i = 0; i < GetMaxPetIndex(); ++i)
+		if (m_apPet[i])
+			m_apPet[i]->EncodeInitData(oPacket);
 	oPacket->Encode1(0);
 
 	//Mount::Info
@@ -479,6 +483,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
 			OnAttack(nType, iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnEmotion:
+			OnEmotion(iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnSelectNpc:
 			OnSelectNpc(iPacket);
 			break;
@@ -539,7 +546,6 @@ void User::OnPacket(InPacket *iPacket)
 		}
 		default:
 			iPacket->RestorePacket();
-
 			//Pet Packet
 			if (nType >= UserRecvPacketFlag::User_OnPetMove
 				&& nType <= UserRecvPacketFlag::User_OnPetActionSpeak)
@@ -927,6 +933,13 @@ void User::SendTemporaryStatReset(TemporaryStat::TS_Flag& flag)
 	oPacket.Encode1(0);
 	oPacket.Encode1(0);
 	SendPacket(&oPacket);
+
+	OutPacket oRemote;
+	oRemote.Encode2(UserSendPacketFlag::UserRemote_OnResetTemporaryStat);
+	oRemote.Encode4(GetUserID());
+	flag.Encode(&oRemote);
+	oRemote.Encode2(0);
+	GetField()->SplitSendPacket(&oRemote, nullptr);
 }
 
 void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
@@ -941,11 +954,11 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	SendPacket(&oPacket);
 
 	OutPacket oForRemote;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
-	oPacket.Encode4(GetUserID());
-	m_pSecondaryStat->EncodeForRemote(&oPacket, flag);
-	
-	GetField()->SplitSendPacket(&oPacket, this);
+	oForRemote.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
+	oForRemote.Encode4(GetUserID());
+	m_pSecondaryStat->EncodeForRemote(&oForRemote, flag);
+	oForRemote.Encode2(0);
+	GetField()->SplitSendPacket(&oForRemote, this);
 }
 
 void User::OnAttack(int nType, InPacket * iPacket)
@@ -969,16 +982,55 @@ void User::OnAttack(int nType, InPacket * iPacket)
 	}
 	if (pResult)
 	{
+		auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(pResult->m_nSkillID);
+		auto pLevel = !pSkillEntry ? nullptr : pSkillEntry->GetLevelData(pResult->m_nSLV);
+		int tCur = GameDateTime::GetTime();
+
 		m_pField->GetLifePool()->OnUserAttack(
 			this,
-			SkillInfo::GetInstance()->GetSkillByID(pResult->m_nSkillID),
+			pSkillEntry,
 			pResult
 		);
+
+		if (pLevel && pResult->m_nSkillID == 2111003)
+		{
+			FieldRect rect = pLevel->m_rc;
+			rect.OffsetRect(GetPosX(), GetPosY());
+			int tStart = tCur + 700;
+			//if (pResult->m_bAttackInfoFlag >> 4)
+			//	tStart = pResult->tDelay;
+			int tEnd = tCur + 700 + pLevel->m_nTime;
+			m_pField->GetAffectedAreaPool()->InsertAffectedArea(
+				false,
+				GetUserID(),
+				pResult->m_nSkillID,
+				pResult->m_nSLV,
+				tStart,
+				tEnd,
+				{ GetPosX(), GetPosY() },
+				rect,
+				false
+			);
+		}
 	}
 }
 
 void User::OnLevelUp()
 {
+}
+
+void User::OnEmotion(InPacket *iPacket)
+{
+	int nItemID = iPacket->Decode4();
+	if (nItemID < 8 || m_pCharacterData->GetItemByID(nItemID))
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEmotion);
+		oPacket.Encode4(GetUserID());
+		oPacket.Encode4(nItemID);
+
+		GetField()->SplitSendPacket(&oPacket, this);
+	}
 }
 
 SecondaryStat * User::GetSecondaryStat()
@@ -1134,7 +1186,7 @@ if(!bResetBySkill)\
 		else
 		{
 			TemporaryStat::TS_Flag tsFlag = TemporaryStat::TS_Flag::GetDefault();
-			int nDuration = tDelay + pLevel->tTime * 1000;
+			int nDuration = tDelay + pLevel->tTime;
 			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Mob Skill ID %d, Duration : %d\n", nSkillID, nDuration);
 			switch (nSkillID)
 			{
@@ -1193,7 +1245,8 @@ if(!bResetBySkill)\
 					break;
 			}
 			SendTemporaryStatReset(tsFlag);
-			SendTemporaryStatSet(tsFlag, tDelay);
+			if(!bResetBySkill)
+				SendTemporaryStatSet(tsFlag, tDelay);
 		}
 	}
 }
@@ -1587,6 +1640,7 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 			ExchangeElement exchange;
 			exchange.m_nItemID = actItem->nItemID;
 			exchange.m_nCount = nCount;
+			aExchange.push_back(exchange);
 			QWUInventory::Exchange(
 				this,
 				0,
@@ -1604,8 +1658,8 @@ void User::TryQuestStartAct(int nQuestID, int nNpcID, Npc * pNpc)
 	auto pStartAct = QuestMan::GetInstance()->GetStartAct(nQuestID);
 	if (!pStartAct)
 		return;
-	TryExchange(pStartAct->aActItem);
 	QWUQuestRecord::Set(this, nQuestID, pStartAct->sInfo);
+	TryExchange(pStartAct->aActItem);
 
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnQuestResult);
@@ -1891,12 +1945,22 @@ void User::OnFuncKeyMappedModified(InPacket * iPacket)
 
 void User::OnPetPacket(InPacket * iPacket)
 {
-	int nIndex = iPacket->Decode4();
-	if (nIndex < 0 || nIndex >= GetMaxPetIndex())
+	//int nIndex = iPacket->Decode4();
+	int nType = iPacket->Decode2();
+	long long int liCashItemSN = iPacket->Decode8();
+	int nIndex = -1;
+	for(int i = 0; i < GetMaxPetIndex(); ++i)
+		if (m_apPet[i] && m_apPet[i]->m_pPetSlot->liCashItemSN == liCashItemSN)
+		{
+			nIndex = i;
+			break;
+		}
+	if (nIndex < 0)
 		return;
+
 	auto pPet = m_apPet[nIndex];
 	if (pPet != nullptr)
-		pPet->OnPacket(iPacket);
+		pPet->OnPacket(iPacket, nType);
 }
 
 void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
@@ -1938,20 +2002,6 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 		else
 			pPetSlot->nActiveState = 0;
 	}
-	if (pPetSlot)
-	{
-		InventoryManipulator::InsertChangeLog(
-			aChangeLog,
-			InventoryManipulator::Change_RemoveFromSlot,
-			GW_ItemSlotBase::CASH, nPos, pPetSlot, 0, 0
-		);
-		InventoryManipulator::InsertChangeLog(
-			aChangeLog,
-			InventoryManipulator::Change_AddToSlot,
-			GW_ItemSlotBase::CASH, nPos, pPetSlot->MakeClone(), 0, 0
-		);
-		QWUInventory::SendInventoryOperation(this, true, aChangeLog);
-	}
 	SendCharacterStat(true, 0);
 }
 
@@ -1971,10 +2021,11 @@ void User::OnActivatePetRequest(InPacket * iPacket)
 
 void User::OnSummonedPacket(InPacket * iPacket)
 {
+	int nType = iPacket->Decode2();
 	int nFieldObjID = iPacket->Decode4();
 	auto pSummoned = m_pField->GetSummonedPool()->GetSummoned(nFieldObjID);
 	if (pSummoned)
-		pSummoned->OnPacket(iPacket);
+		pSummoned->OnPacket(iPacket, nType);
 }
 
 void User::ReregisterSummoned()

@@ -21,6 +21,7 @@ public:
 	~SummonedPool();
 
 	std::mutex& GetSummonedPoolLock();
+	void OnEnter(User *pUser);
 	Summoned* GetSummoned(int nFieldObjID);
 	bool CreateSummoned(User* pUser, Summoned* pSummoned, const FieldPoint& pt);
 	Summoned* CreateSummoned(User* pUser, int nSkillID, int nSLV, const FieldPoint& pt);

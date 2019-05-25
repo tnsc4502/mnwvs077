@@ -19,6 +19,7 @@ public:
 	static bool RawRemoveItemByID(User* pUser, int nItemID, int nCount);
 	static bool RawRemoveItem(User* pUser, int nTI, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>* aChangeLog, int &nDecRet, GW_ItemSlotBase** ppItemRemoved);
 	static bool RawAddItemByID(User* pUser, int nItemID, int nCount);
+	static bool RawRechargeItem(User *pUser, int nPOS, std::vector<InventoryManipulator::ChangeLog>* aChangeLog);
 	static int Exchange(User* pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>* aLogAdd, std::vector<InventoryManipulator::ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bSendOperation = true, bool bReleaseBackupItem = true);
 	static void SendInventoryOperation(User* pUser, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
 	static void OnUpgradeItemRequest(User* pUser, InPacket *iPacket);

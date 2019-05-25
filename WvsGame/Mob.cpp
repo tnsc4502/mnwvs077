@@ -13,10 +13,14 @@
 #include "MobStat.h"
 #include "PartyMan.h"
 #include "SkillInfo.h"
+#include "SkillEntry.h"
+#include "SkillLevelData.h"
 #include "MobSkillEntry.h"
 #include "FieldRect.h"
 #include "User.h"
 #include "LifePool.h"
+#include "AffectedAreaPool.h"
+#include "AffectedArea.h"
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
 
@@ -156,44 +160,48 @@ bool Mob::IsLucidSpecialMob(int dwTemplateID)
 
 bool Mob::OnMobMove(bool bNextAttackPossible, int nAction, int nData, unsigned char *nSkillCommand, unsigned char *nSLV, bool *bShootAttack)
 {
-	auto& aMobSkill = m_pMobTemplate->m_aMobSkill;
-	if (bNextAttackPossible && (int)aMobSkill.size() > 0)
-	{
-		//int nTrialCount = aMobSkill.size();
-		int nRnd = (int)(Rand32::GetInstance()->Random() % aMobSkill.size());
-		*nSkillCommand = aMobSkill[nRnd].first;
-		*nSLV = aMobSkill[nRnd].second;
-		
-	}
-	if (!DoSkill(*nSkillCommand, *nSLV, nData >> 16))
-	{
-		*nSkillCommand = 0;
-		*nSLV = 0;
-	}
-	/*if (nAction >= 0)
+	int tCur = GameDateTime::GetTime();
+	m_tLastMove = tCur;
+
+	if (nAction >= 0)
 	{
 		if (nAction < 12 || nAction > 20)
 		{
-			if (nAction >= 21 && nAction <= 25)
-				DoSkill(*nSkillCommand, *nSLV, nData >> 16);
+			if (nAction >= 21 && nAction <= 25 && !DoSkill(nData & 0x00FF, (nData & 0xFF00) >> 8, nData >> 16))
+			{
+				*nSkillCommand = 0;
+				*nSLV = 0;
+				return false;
+			}
 		}
-	}*/
+		else
+		{
+
+		}
+	}
+	m_bNextAttackPossible = bNextAttackPossible;
+	PrepareNextSkill(nSkillCommand, nSLV, tCur);
 	return true;
 }
 
-//#include "..\WvsLib\Logger\WvsLogger.h"
-
 bool Mob::DoSkill(int nSkillID, int nSLV, int nOption)
 {
+	int nIdx = -1;
+	if (m_pStat->nSealSkill ||
+		m_nSkillCommand != nSkillID ||
+		(nIdx = m_pMobTemplate->GetSkillIndex(nSkillID, nSLV)) < 0)
+		return false;
+	auto& skillContext = m_pMobTemplate->m_aSkillContext[nIdx];
+	nSkillID = skillContext.nSkillID;
+	m_tLastSkillUse = skillContext.tLastSkillUse = GameDateTime::GetTime();
+
 	auto pEntry = SkillInfo::GetInstance()->GetMobSkill(nSkillID);
 	if (pEntry)
 	{
 		auto pLevelData = pEntry->GetLevelData(nSLV);
 		if (pLevelData)
-		{
-			//WvsLogger::LogFormat("Current : %d, Last %d, Interval : %d Diff=  %d\n", GameDateTime::GetTime(), tLastSkillUseTime, pLevelData->tInterval * 1000, GameDateTime::GetTime() - tLastSkillUseTime);
-			if ((GameDateTime::GetTime() - tLastSkillUseTime < (pLevelData->tInterval * 1000)) ||
-				m_liHP < pLevelData->nMPCon)
+		{	
+			if (m_liMP < pLevelData->nMPCon)
 				return false;
 
 			m_liMP -= pLevelData->nMPCon;
@@ -244,17 +252,32 @@ bool Mob::DoSkill(int nSkillID, int nSLV, int nOption)
 				DoSkill_PartizanOneTimeStatChange(nSkillID, nSLV, pLevelData, nOption);
 				break;
 			case 200:
-				DoSkill_Summon(pLevelData, nOption);
+				DoSkill_Summon(pLevelData, nIdx, nOption);
 				break;
 			}
 		}
-		tLastSkillUseTime = GameDateTime::GetTime();
+		m_tLastSkillUse = GameDateTime::GetTime();
 	}
 	return true;
 }
 
 void Mob::DoSkill_AffectArea(int nSkillID, int nSLV, const MobSkillLevelData * pLevel, int tDelay)
 {
+	int tCur = GameDateTime::GetTime();
+	int tEnd = tCur + tDelay + pLevel->tTime;
+	FieldRect rect = pLevel->rcAffectedArea;
+	rect.OffsetRect(GetPosX(), GetPosY());
+	m_pField->GetAffectedAreaPool()->InsertAffectedArea(
+		true,
+		GetFieldObjectID(),
+		nSkillID,
+		nSLV,
+		tCur + tDelay,
+		tEnd,
+		{ GetPosX(), GetPosY() },
+		rect,
+		false
+	);
 }
 
 void Mob::DoSkill_StateChange(int nSkillID, int nSLV, const MobSkillLevelData * pLevel, int tDelay, bool bResetBySkill)
@@ -269,7 +292,7 @@ if(!bResetBySkill) {\
 	m_pStat->nFlagSet |= (MobStat::MS_##name); \
 }\
 
-	int nDuration = tDelay + pLevel->tTime * 1000;
+	int nDuration = tDelay + pLevel->tTime;
 	int nFlagSet = 0;
 	switch (nSkillID)
 	{
@@ -373,7 +396,7 @@ void Mob::DoSkill_UserStatChange(int nArg, int nSkillID, int nSLV, const MobSkil
 	rect.bottom = GetPosY() + std::max(nArg, (pLevel->rcAffectedArea.bottom));
 
 	//Can't find where this variable is set.
-	int nTargetUserCount = 1; 
+	int nTargetUserCount = pLevel->nCount; 
 	bool bAffectAllWithinRect = (nTargetUserCount == 0);
 	for (auto& prUser : mUser)
 	{
@@ -407,10 +430,12 @@ void Mob::DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSki
 
 }
 
-void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
+void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int nContextIdx, int tDelay)
 {
+	const int ADDITIONAL_MOB_CAPACITY = 10;
 	if (pLevel->anTemplateID.size() == 0)
 		return;
+
 	FieldRect rect;
 	rect.left = -150;
 	rect.top = -100;
@@ -431,7 +456,7 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 	auto aPt = m_pField->GetSpace2D()->GetFootholdRandom((int)pLevel->anTemplateID.size(), rect);
 	for (int i = 0; i < (int)pLevel->anTemplateID.size(); ++i)
 	{
-		if (m_pField->GetLifePool()->GetMobCount() >= m_pField->GetLifePool()->GetMaxMobCapacity())
+		if (m_pField->GetLifePool()->GetMobCount() >= m_pField->GetLifePool()->GetMaxMobCapacity() + ADDITIONAL_MOB_CAPACITY)
 			break;
 
 		x = aPt[i].x;
@@ -439,6 +464,7 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 		auto pFh = m_pField->GetSpace2D()->GetFootholdUnderneath(x, y, &y);
 		if (pFh)
 		{
+			++m_pMobTemplate->m_aSkillContext[nContextIdx].nSummoned;
 			m_pField->GetLifePool()->CreateMob(
 				pLevel->anTemplateID[i],
 				x,
@@ -450,6 +476,97 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 				0,
 				0,
 				nullptr);
+		}
+	}
+}
+
+void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, int tCur)
+{
+	*nSkillCommand = 0;
+	if (m_pStat->nSealSkill)
+		return;
+	if (m_pMobTemplate->m_aMobSkill.size() == 0)
+		return;
+	if (!m_bNextAttackPossible)
+		return;
+	if (tCur - m_tLastSkillUse < 3000)
+		return;
+	std::vector<int> aNextSkill;
+
+	MobSkillEntry *pEntry = nullptr;
+	const MobSkillLevelData *pLevel = nullptr;
+
+	for(int i = 0; i < (int)m_pMobTemplate->m_aSkillContext.size(); ++i)
+	{
+		auto& skillContext = m_pMobTemplate->m_aSkillContext[i];
+		int nSkillID = skillContext.nSkillID;
+		if (!(pEntry = SkillInfo::GetInstance()->GetMobSkill(nSkillID)) || 
+			!(pLevel = pEntry->GetLevelData(skillContext.nSLV)))
+			continue;
+
+		if (pLevel->nHPBelow &&
+			((((double)m_liHP / (double)m_pMobTemplate->m_lnMaxHP)) * 100.0 > pLevel->nHPBelow))
+			continue;
+
+		if (pLevel->tInterval &&
+			tCur - (skillContext.tLastSkillUse + pLevel->tInterval) < 0)
+			continue;
+
+		if (nSkillID > 141)
+		{
+			if (nSkillID == 200 &&
+				(pLevel->anTemplateID.size() <= 0 || skillContext.nSummoned >= pLevel->nLimit))
+				continue;
+			else if (nSkillID == 142 &&
+				(m_pStat->nHardSkin && std::abs(100 - m_pStat->nHardSkin) >= std::abs(100 - pLevel->nX)))
+				continue;
+		}
+		else if (nSkillID < 140)
+		{
+			if (nSkillID == 110 &&
+				(m_pStat->nPowerUp && std::abs(100 - m_pStat->nPowerUp) >= std::abs(100 - pLevel->nX)))
+				continue;
+			else if (nSkillID == 111 &&
+				(m_pStat->nMagicUp && std::abs(100 - m_pStat->nMagicUp) >= std::abs(100 - pLevel->nX)))
+				continue;
+			else if (nSkillID == 112 &&
+				(m_pStat->nPGuardUp && std::abs(100 - m_pStat->nPGuardUp) >= std::abs(100 - pLevel->nX)))
+				continue;
+			else if (nSkillID == 113 &&
+				(m_pStat->nMGuardUp && std::abs(100 - m_pStat->nMGuardUp) >= std::abs(100 - pLevel->nX)))
+				continue;
+		}
+		else if (m_pStat->nPImmune || m_pStat->nMImmune)
+			continue;
+		aNextSkill.push_back(i);
+	}
+	if (aNextSkill.size() > 0)
+	{
+		int nRnd = (int)(Rand32::GetInstance()->Random() % aNextSkill.size());
+		m_nSkillCommand = *nSkillCommand = (unsigned char)m_pMobTemplate->m_aSkillContext[nRnd].nSkillID;
+		*nSLV = (unsigned char)m_pMobTemplate->m_aSkillContext[nRnd].nSLV;
+	}
+}
+
+void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
+{
+	auto pEntry = SkillInfo::GetInstance()->GetSkillByID(pArea->GetSkillID());
+	auto pLevel = !pEntry ? nullptr : pEntry->GetLevelData(pArea->GetSkillLevel());
+	if (pLevel)
+	{
+		if (pEntry->GetSkillID() == 2111003 && !m_pMobTemplate->m_bIsBoss)
+		{
+			int nValue = m_pMobTemplate->m_nFixedDamage;
+			if (nValue <= 0)
+				nValue = std::max(pLevel->m_nMad, (int)m_pMobTemplate->m_lnMaxHP / (70 - pArea->GetSkillLevel()));
+			if (m_pMobTemplate->m_bOnlyNormalAttack)
+				nValue = 0;
+
+			m_pStat->nPoison = nValue;
+			m_pStat->tPoison = pLevel->m_nTime + tCur;
+			m_pStat->rPoison = 2111003;
+			m_tLastUpdatePoison = tCur;
+			SendMobTemporaryStatSet(MobStat::MS_Poison, tCur);
 		}
 	}
 }
@@ -794,7 +911,45 @@ Mob::DamageLog& Mob::GetDamageLog()
 
 void Mob::Update(int tCur)
 {
+	UpdatePoison(tCur);
 	auto nFlag = m_pStat->ResetTemporary(tCur);
 	if (nFlag)
 		SendMobTemporaryStatReset(nFlag);
+	auto pAffectedArea = m_pField->GetAffectedAreaPool()->GetAffectedAreaByPoint(
+		{GetPosX(), GetPosY()}
+	);
+	if (pAffectedArea)
+		OnMobInAffectedArea(pAffectedArea, tCur);
+}
+
+void Mob::UpdatePoison(int tCur)
+{
+	int tTime = tCur;
+	if (m_pStat->nPoison > 0)
+	{
+		if (tTime < m_pStat->tPoison)
+			tTime = m_pStat->tPoison;
+		int nTimes = (tTime - m_tLastUpdatePoison) / 1000;
+		int nDamage = m_pStat->nPoison;
+		if (m_pMobTemplate->m_nFixedDamage)
+			nDamage = m_pMobTemplate->m_nFixedDamage;
+		if (m_pMobTemplate->m_bOnlyNormalAttack)
+			nDamage = 0;
+		nDamage = std::max(1, (int)(m_liHP - nTimes * nDamage));
+		m_liHP = nDamage;
+
+		OutPacket oPacket;
+		oPacket.Encode2(MobSendPacketFlag::Mob_OnHPIndicator);
+		oPacket.Encode4(GetFieldObjectID());
+		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
+		m_pField->BroadcastPacket(&oPacket);
+	}
+}
+
+void Mob::UpdateVenom(int tCur)
+{
+}
+
+void Mob::UpdateAmbush(int tCur)
+{
 }

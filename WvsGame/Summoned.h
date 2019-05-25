@@ -45,7 +45,7 @@ public:
 	int GetOwnerID() const;
 	int GetSkillID() const;
 	void Init(User *pUser, int nSkillID, int nSLV);
-	void OnPacket(InPacket *iPacket);
+	void OnPacket(InPacket *iPacket, int nType);
 	void OnMove(InPacket *iPacket);
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);

@@ -96,8 +96,8 @@ void GW_ItemSlotPet::Save(int nCharacterID, bool bRemoveRecord)
 				<< "Tameness = " << (int)nTameness << ", "
 				//<< "PetSkill = " << (int)usPetSkill << ", "
 				//<< "PetName = '" << strPetName << "', "
-				<< "RemainLife = " << (int)nRemainLife << " "
-				//<< "ActiveState = " << (int)nActiveState << ", "
+				<< "RemainLife = " << (int)nRemainLife << ", "
+				<< "ActiveState = " << (int)nActiveState << " "
 				//<< "AutoBuffSkill = " << (int)nAutoBuffSkill << ", "
 				//<< "PetHue = " << (int)nPetHue << ", "
 				//<< "GiantRate = " << (int)nGiantRate << 
@@ -138,6 +138,8 @@ void GW_ItemSlotPet::Encode(OutPacket * oPacket, bool bForInternal) const
 {
 	EncodeInventoryPosition(oPacket);
 	RawEncode(oPacket);
+	if (bForInternal)
+		oPacket->Encode1(nActiveState);
 }
 
 void GW_ItemSlotPet::RawEncode(OutPacket * oPacket) const
@@ -158,6 +160,8 @@ void GW_ItemSlotPet::RawEncode(OutPacket * oPacket) const
 void GW_ItemSlotPet::Decode(InPacket * iPacket, bool bForInternal)
 {
 	RawDecode(iPacket);
+	if (bForInternal)
+		nActiveState = iPacket->Decode1();
 }
 
 void GW_ItemSlotPet::RawDecode(InPacket * iPacket)
