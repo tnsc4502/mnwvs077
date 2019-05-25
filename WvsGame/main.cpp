@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else
 	{
-		WvsLogger::LogRaw("Please run this program with command line, and given the config file path.\n");
+		WvsLogger::LogRaw("Please run this program with command line, and provide the path of config file.\n");
 		return -1;
 	}
 
