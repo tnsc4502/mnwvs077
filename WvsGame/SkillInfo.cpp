@@ -166,24 +166,18 @@ void SkillInfo::IterateSkillInfo()
 	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
-	std::vector<WZ::Node> aRoot;
+	static std::vector<std::pair<int, WZ::Node>> aRoot;
 	for (auto& node : skillWz)
 	{
 		if (!IsValidRootName(node.Name()))
 			continue;
-		aRoot.push_back(node);
+		aRoot.push_back({ atoi(node.Name().c_str()), node["skill"] });
 	}
 	m_nRootCount = (int)aRoot.size();
-	/*for (auto& node : aRoot)
-	{
-		auto& rootNode = node["skill"];
-		for (auto& n : rootNode) n.Name()[0]; //Expand all nodes before entering the thread.
-	}*/
 	for (auto& node : aRoot)
 	{
-		nRootID = atoi(node.Name().c_str());
-		auto& rootNode = node["skill"];
-		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (void*)(&rootNode));
+		nRootID = node.first;
+		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (void*)(&node.second));
 		t.detach();
 	}
 }
