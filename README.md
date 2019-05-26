@@ -21,8 +21,12 @@ The dependencies are included in the "Library" folder, which has been compressed
 The progress
 ---
 Multi-Player gaming is now supported(Friend, Party, Guild system are working properly).
+
 Party Quest (Party1) had been implemented.
+
 InGame Quests(which do not require any script), Shop, Trading, Trunk, Cash Shop, Personal Shop are now working bascially.
+
 Monster stats, skills are working (basically).
+
 Lots of basic functions for the script system have been implemented, it is now easy to extend.
 
