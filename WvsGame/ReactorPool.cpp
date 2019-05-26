@@ -200,6 +200,9 @@ void ReactorPool::RemoveNpc()
 void ReactorPool::Update(int tCur)
 {
 	TryCreateReactor(false);
+	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	for (auto& prReactor : m_mReactor)
+		prReactor.second->DoActionByUpdateEvent();
 }
 
 void ReactorPool::Reset(bool bShuffle)

@@ -47,6 +47,7 @@ public:
 	void MakeStateChangePacket(OutPacket* oPacket, int tActionDelay, int nProperEventIdx);
 	void FindAvailableAction();
 	void DoAction(void* pInfo, int tDelay, int nDropIdx);
+	void DoActionByUpdateEvent();
 	void SetRemoved();
 	void CancelAllEvent();
 	void OnTime(int nEventSN);

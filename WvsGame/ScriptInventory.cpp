@@ -15,7 +15,6 @@ ScriptInventory::ScriptInventory()
 
 ScriptInventory::~ScriptInventory()
 {
-	WvsLogger::LogRaw("Remove Script Inventory.");
 }
 
 void ScriptInventory::SetUser(User * pUser)

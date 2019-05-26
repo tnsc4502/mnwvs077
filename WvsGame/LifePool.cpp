@@ -214,6 +214,8 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		newMob->SetField(m_pField);
 		newMob->SetFieldObjectID(atomicObjectCounter++);
 		newMob->SetMobGen(mob.GetMobGen());
+		newMob->SetSummonType(nType);
+		newMob->SetSummonOption(dwOption);
 		if (mob.GetMobGen()) 
 		{
 			++((MobGen*)mob.GetMobGen())->nMobCount;
@@ -221,7 +223,7 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		}
 
 		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-		newMob->SetHP(newMob->GetMobTemplate()->m_lnMaxHP);
+		newMob->SetHP(1 /*newMob->GetMobTemplate()->m_lnMaxHP*/);
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //й╟кл = 5 ?

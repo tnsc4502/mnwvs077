@@ -480,6 +480,9 @@
     <ClInclude Include="AffectedAreaPool.h">
       <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
     </ClInclude>
+    <ClInclude Include="ScriptArg.h">
+      <Filter>WvsGame\InGame\Script</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">

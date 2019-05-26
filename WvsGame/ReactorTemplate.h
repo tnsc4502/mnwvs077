@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include "FieldPoint.h"
+#include "FieldRect.h"
 #include "..\WvsLib\Common\CommonDef.h"
 
 struct RewardInfo;
@@ -12,7 +13,7 @@ class ReactorTemplate
 	friend class Reactor;
 	struct EventInfo
 	{
-		FieldPoint m_aSpaceVertex[2];
+		FieldRect m_rcSpaceVertex;
 		bool m_bCheckTargetRange = false;
 		char m_nTouchable = 0;
 
@@ -21,6 +22,8 @@ class ReactorTemplate
 			m_nItemID = 0,
 			m_nCount = 0,
 			m_tHitDelay = 0;
+
+		std::vector<int> m_anArg;
 	};
 
 	struct StateInfo

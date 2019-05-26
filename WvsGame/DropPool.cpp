@@ -138,6 +138,39 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 	}
 }
 
+#include "..\WvsLib\Logger\WvsLogger.h"
+
+std::vector<Drop*> DropPool::FindDropInRect(const FieldRect & rc, int tTimeAfter)
+{
+	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);
+	std::vector<Drop*> aRet;
+	int tCur = GameDateTime::GetTime();
+	for (auto& prDrop : m_mDrop)
+	{
+		WvsLogger::LogFormat("Drop POS = %d, %d, Remained Time = %d\n", prDrop.second->GetPosX(), prDrop.second->GetPosY(), tCur - prDrop.second->m_tCreateTime);
+		if (tCur - prDrop.second->m_tCreateTime >= tTimeAfter &&
+			rc.PtInRect({ prDrop.second->GetPosX(), prDrop.second->GetPosY() }))
+			aRet.push_back(prDrop.second);
+	}
+	return aRet;
+}
+
+void DropPool::Remove(int nID, int tDelay)
+{
+	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);
+	auto findIter = m_mDrop.find(nID);
+	if (findIter == m_mDrop.end())
+		return;
+	auto pDrop = findIter->second;
+	m_mDrop.erase(findIter);
+	OutPacket oPacket;
+	pDrop->MakeLeaveFieldPacket(&oPacket, tDelay ? 4 : 0, tDelay);
+	m_pField->BroadcastPacket(&oPacket);
+	if (pDrop->GetItem() != nullptr)
+		pDrop->GetItem()->Release();
+	FreeObj(pDrop);
+}
+
 void DropPool::TryExpire(bool bRemoveAll)
 {
 	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);

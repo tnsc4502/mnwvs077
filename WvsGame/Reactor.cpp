@@ -2,6 +2,7 @@
 #include "Reward.h"
 #include "User.h"
 #include "Field.h"
+#include "Drop.h"
 #include "DropPool.h"
 #include "ReactorTemplate.h"
 #include "ReactorPool.h"
@@ -12,6 +13,8 @@
 #include "NPC.h"
 #include "WvsPhysicalSpace2D.h"
 #include "User.h"
+#include "..\Database\GW_ItemSlotBase.h"
+#include "..\Database\GW_ItemSlotBundle.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -317,6 +320,77 @@ void Reactor::DoAction(void *pInfo_, int tDelay, int nDropIdx)
 	else if (pInfo->nType == 10)
 	{
 
+	}
+}
+
+void Reactor::DoActionByUpdateEvent()
+{
+	auto pInfo = m_pTemplate->GetStateInfo(m_nState);
+	std::vector<bool> abChecked;
+
+	GW_ItemSlotBase *pItem;
+	if (pInfo && pInfo->m_aEventInfo.size() > 0)
+	{
+		int nEventIdx = 0;
+		for (auto& eventInfo : pInfo->m_aEventInfo)
+		{
+			if (eventInfo.m_nType == 100 && eventInfo.m_anArg.size() >= 2)
+			{
+				int nRequiredItemCount = (int)(eventInfo.m_anArg.size() / 2),
+					nMeet = 0;
+				std::vector<std::pair<int, int>> aReq;
+				for (int i = 0; i < nRequiredItemCount; ++i)
+					aReq.push_back({
+						eventInfo.m_anArg[i * 2],
+						eventInfo.m_anArg[i * 2 + 1]
+					});
+
+				FieldRect rc = eventInfo.m_rcSpaceVertex;
+				rc.OffsetRect(GetPosX(), GetPosY());
+
+				std::vector<Drop*> apDrop = m_pField->GetDropPool()->FindDropInRect(
+					rc, 4500
+				);
+				abChecked.resize(apDrop.size(), false);
+
+				for (auto pDrop : apDrop)
+				{
+					pItem = pDrop->GetItem();
+					if (!pItem)
+						continue;
+
+					for(int i = 0; i < aReq.size(); ++i)
+					{
+						if (pItem->nItemID == aReq[i].first &&
+							(pItem->nType == GW_ItemSlotBase::EQUIP ||
+							((GW_ItemSlotBundle*)pItem)->nNumber == aReq[i].second)
+							&& !abChecked[i])
+						{
+							abChecked[i] = true;
+							++nMeet;
+							break;
+						}
+					}
+				}
+				if (nMeet == (int)aReq.size())
+				{
+					if (eventInfo.m_anArg.size() % 2 == 0
+						|| eventInfo.m_anArg.back() == 1)
+					{
+						for (int i = 0; i < (int)apDrop.size(); ++i)
+						{
+							if (abChecked[i])
+								m_pField->GetDropPool()->Remove(apDrop[i]->GetFieldObjectID(), 0);
+						}
+					}
+					m_nOwnPartyID = 0;
+					m_nOwnerID = 0;
+					m_nOwnType = 2;
+					SetState(nEventIdx, 0);
+				}
+			}
+			++nEventIdx;
+		}
 	}
 }
 

@@ -59,6 +59,8 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 	m_mReactorTemplate[nTemplateID] = pTemplate;
 }
 
+#include "..\WvsLib\Logger\WvsLogger.h"
+
 void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 {
 	auto& ref_ = (*((WZ::Node*)pImg));
@@ -82,10 +84,10 @@ void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 		if (lt != empty)
 		{
 			auto& rb = node["rb"];
-			eventInfo.m_aSpaceVertex[0].x = (int)lt["x"];
-			eventInfo.m_aSpaceVertex[0].y = (int)lt["y"];
-			eventInfo.m_aSpaceVertex[1].x = (int)rb["x"];
-			eventInfo.m_aSpaceVertex[1].y = (int)rb["y"];
+			eventInfo.m_rcSpaceVertex.left = (int)lt["x"];
+			eventInfo.m_rcSpaceVertex.top = (int)lt["y"];
+			eventInfo.m_rcSpaceVertex.right = (int)rb["x"];
+			eventInfo.m_rcSpaceVertex.bottom = (int)rb["y"];
 			eventInfo.m_bCheckTargetRange = true;
 		}
 		if (ref_["info"]["activateByTouch"] != empty)
@@ -94,7 +96,15 @@ void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 			eventInfo.m_nTouchable =
 				(node["2"] != empty && (int)node["2"] > 0) ||
 				(node["clickArea"] != empty) ||
-				(eventInfo.m_nType == 9);
+				(eventInfo.m_nType == 9); 
+
+		for (int x = 0; ; ++x)
+		{
+			auto& argNode = node[std::to_string(x)];
+			if (argNode == empty || argNode.Name() == "")
+				break;
+			eventInfo.m_anArg.push_back((int)argNode);
+		}
 
 		eventInfo.m_nItemID = (int)node["0"];
 		eventInfo.m_nCount = (int)node["1"];

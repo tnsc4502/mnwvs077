@@ -66,6 +66,7 @@ bool Drop::IsShowTo(User * pUser)
 
 void Drop::Init(unsigned int dwDropID, Reward * reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int bByPet)
 {
+	SetFieldObjectID(dwDropID);
 	this->m_dwDropID = dwDropID;
 	this->m_dwOwnerID = dwOwnerID;
 	this->m_dwOwnPartyID = dwOwnPartyID;
@@ -76,6 +77,8 @@ void Drop::Init(unsigned int dwDropID, Reward * reward, unsigned int dwOwnerID, 
 	this->m_pt1.y = y1;
 	this->m_pt2.x = x2;
 	this->m_pt2.y = y2;
+	SetPosX(x2);
+	SetPosY(y2);
 	this->m_bIsMoney = reward->GetMoney() != 0;
 	this->m_nMoney = reward->GetMoney();
 	this->m_usQRKey = 0;

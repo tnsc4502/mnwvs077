@@ -9,6 +9,7 @@ class Field;
 class Script;
 class AsyncScheduler;
 class OutPacket;
+class ScriptFieldSet;
 
 class FieldSet
 {
@@ -29,6 +30,7 @@ class FieldSet
 	bool m_bParty, m_bEnd;
 	Script* m_pScript;
 	AsyncScheduler *m_pFieldSetTimer;
+	ScriptFieldSet* m_pScriptFieldSet;
 
 public:
 	enum FieldSetEnterResult
@@ -63,5 +65,6 @@ public:
 	void MakeClockPacket(OutPacket& oPacket);
 	int GetUserCount() const;
 	void IncExpAll(int nCount);
+	ScriptFieldSet* GetScriptFieldSet() const;
 };
 

@@ -2,6 +2,8 @@
 #include <atomic>
 #include <mutex>
 #include <map>
+#include <vector>
+#include "FieldRect.h"
 
 class Drop;
 class User;
@@ -24,6 +26,8 @@ public:
 	void OnEnter(User* pUser);
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnPickUpRequest(User* pUser, InPacket *iPacket);
+	std::vector<Drop*> FindDropInRect(const FieldRect& rc, int tTimeAfter);
+	void Remove(int nID, int tDelay);
 	void TryExpire(bool bRemoveAll);
 	DropPool(Field* pField);
 	~DropPool();

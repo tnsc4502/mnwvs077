@@ -75,16 +75,11 @@ void Mob::EncodeInitData(OutPacket *oPacket, bool bIsControl)
 	oPacket->Encode2(GetFh()); // Current FH m_nFootholdSN
 	oPacket->Encode2(GetFh()); // Origin FH m_nHomeFoothold
 	
-	int nSpawnType = 
-		m_pMobTemplate->m_nSummonType <= 1 || m_pMobTemplate->m_nSummonType == 24 ? -2 : m_pMobTemplate->m_nSummonType;
+	//int nSpawnType = m_nSummonType <= 1 || m_nSummonType == 24 ? -2 : m_nSummonType;
 
-	if (!bIsControl) {
-		oPacket->Encode1(nSpawnType /*m_pMobTemplate->m_nSummonType*/);
-		if (nSpawnType == -3 || nSpawnType >= 0/*m_pMobTemplate->m_nSummonType == -3 || m_pMobTemplate->m_nSummonType >= 0*/)
-			oPacket->Encode4(0); //dwSummonOption  -->  Linked ObjectID
-	}
-	else
-		oPacket->Encode1(-1);
+	oPacket->Encode1(m_nSummonType);
+	if (m_nSummonType == -3 || m_nSummonType >= 0)
+		oPacket->Encode4(m_nSummonOption);
 
 	oPacket->Encode1(-1); //Carnival Team
 	if (m_nTemplateID / 10000 == 961)
@@ -252,7 +247,7 @@ bool Mob::DoSkill(int nSkillID, int nSLV, int nOption)
 				DoSkill_PartizanOneTimeStatChange(nSkillID, nSLV, pLevelData, nOption);
 				break;
 			case 200:
-				DoSkill_Summon(pLevelData, nIdx, nOption);
+				DoSkill_Summon(pLevelData, nIdx);
 				break;
 			}
 		}
@@ -430,7 +425,7 @@ void Mob::DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSki
 
 }
 
-void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int nContextIdx, int tDelay)
+void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 {
 	const int ADDITIONAL_MOB_CAPACITY = 10;
 	if (pLevel->anTemplateID.size() == 0)
@@ -464,7 +459,7 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int nContextIdx, int t
 		auto pFh = m_pField->GetSpace2D()->GetFootholdUnderneath(x, y, &y);
 		if (pFh)
 		{
-			++m_pMobTemplate->m_aSkillContext[nContextIdx].nSummoned;
+			++m_nSkillSummoned;
 			m_pField->GetLifePool()->CreateMob(
 				pLevel->anTemplateID[i],
 				x,
@@ -515,7 +510,7 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 		if (nSkillID > 141)
 		{
 			if (nSkillID == 200 &&
-				(pLevel->anTemplateID.size() <= 0 || skillContext.nSummoned >= pLevel->nLimit))
+				(pLevel->anTemplateID.size() <= 0 || m_nSkillSummoned >= pLevel->nLimit))
 				continue;
 			else if (nSkillID == 142 &&
 				(m_pStat->nHardSkin && std::abs(100 - m_pStat->nHardSkin) >= std::abs(100 - pLevel->nX)))
@@ -892,6 +887,16 @@ void* Mob::GetMobGen() const
 void Mob::SetMobGen(void * pGen)
 {
 	m_pMobGen = pGen;
+}
+
+void Mob::SetSummonType(int nType)
+{
+	m_nSummonType = nType;
+}
+
+void Mob::SetSummonOption(int nOption)
+{
+	m_nSummonOption = nOption;
 }
 
 long long int Mob::GetHP() const

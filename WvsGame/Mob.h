@@ -51,6 +51,9 @@ private:
 		m_tLastUpdatePoison = 0,
 		m_tLastUpdateVenom = 0,
 		m_tLastUpdateAmbush = 0,
+		m_nSkillSummoned = 0,
+		m_nSummonType = 0,
+		m_nSummonOption = 0,
 		m_nSkillCommand = 0;
 
 	bool m_bNextAttackPossible = false;
@@ -81,7 +84,7 @@ public:
 	void DoSkill_UserStatChange(int nArg, int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_PartizanStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
-	void DoSkill_Summon(const MobSkillLevelData *pLevel, int nContextIdx, int tDelay);
+	void DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay);
 	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, int tCur);
 	void OnMobInAffectedArea(AffectedArea *pArea, int tCur);
 	void SendMobTemporaryStatSet(int nSet, int tDelay);
@@ -97,6 +100,8 @@ public:
 	MobStat *GetMobStat();
 	void* GetMobGen() const;
 	void SetMobGen(void* pGen);
+	void SetSummonType(int nType);
+	void SetSummonOption(int nOption);
 
 	long long int GetHP() const;
 	long long int GetMP() const;

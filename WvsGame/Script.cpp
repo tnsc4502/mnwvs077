@@ -88,6 +88,11 @@ Field * Script::GetField()
 	return m_pField;
 }
 
+void Script::SetFieldSet(FieldSet * pFieldSet)
+{
+	m_pUniqueFieldSet = pFieldSet;
+}
+
 lua_State * Script::GetLuaState()
 {
 	return L;
@@ -146,7 +151,11 @@ void Script::Run()
 	auto nResult = lua_resume(L, C, m_sState.m_bResume ? 1 : 0);
 	m_sState.m_bResume = false;
 	if (nResult == LUA_OK || nResult != LUA_YIELD)
+	{
+		if (nResult)
+			OnError();
 		Abort();
+	}
 }
 
 void Script::Run(const std::string & sFunc)
@@ -177,14 +186,55 @@ bool Script::Init()
 	if (luaL_loadfile(L, m_fileName.c_str())) 
 	{
 		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Error, Unable to open the specific script: %s.\n", m_fileName.c_str());
+		OnError();
 		return false;
 	}
 	return true;
 }
 
+void Script::OnError()
+{
+	WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Script Error: %s\n", lua_tostring(L, -1));
+	lua_pop(L, 1);
+}
+
 void Script::OnPacket(InPacket * iPacket)
 {
 	m_pOnPacketInvoker(iPacket, this, L);
+}
+
+bool Script::SafeInvocation(const std::string & sFunc, const std::vector<ScriptArg>& aArg)
+{
+	lua_getglobal(L, sFunc.c_str());
+	if (lua_isfunction(L, lua_gettop(L)))
+	{
+		for (auto& arg : aArg)
+		{
+			switch (arg.nType)
+			{
+				case ScriptArg::e_INT:
+					lua_pushinteger(L, arg.data.n);
+					break;
+				case ScriptArg::e_DOUBLE:
+					lua_pushnumber(L, arg.data.d);
+					break;
+				case ScriptArg::e_STR:
+					lua_pushstring(L, arg.data.c);
+					break;
+				case ScriptArg::e_BOOL:
+					lua_pushboolean(L, arg.data.b ? 1 : 0);
+					break;
+			}
+		}
+		auto nResult = lua_resume(L, C, (int)aArg.size());
+		if (nResult)
+		{
+			OnError();
+			return false;
+		}
+		return true;
+	}
+	return false;
 }
 
 Script::~Script()

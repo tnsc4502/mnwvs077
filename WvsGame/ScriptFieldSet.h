@@ -10,6 +10,7 @@ class ScriptFieldSet
 public:
 	ScriptFieldSet();
 	~ScriptFieldSet();
+	void SetFieldSet(FieldSet *pFieldSet);
 
 	static ScriptFieldSet* GetSelf(lua_State* L);
 	static void DestroySelf(lua_State* L, ScriptFieldSet* p);

@@ -5,7 +5,7 @@
 #include <map>
 
 // Lua is written in C, so compiler needs to know how to link its libraries
-
+#include "ScriptArg.h"
 #include "..\WvsLib\Script\lapi.h"
 #include "..\WvsLib\Script\lua.h"
 #include "..\WvsLib\Script\lauxlib.h"
@@ -14,6 +14,7 @@
 
 class User;
 class Field;
+class FieldSet;
 class InPacket;
 class OutPacket;
 
@@ -46,6 +47,7 @@ public:
 
 	friend class ScriptMan;
 	void *m_pUniqueScriptNpc = nullptr;
+	void *m_pUniqueFieldSet = nullptr;
 
 private:
 	lua_State* L, *C; //L = Basic Lua State, C = Coroutine State
@@ -60,6 +62,7 @@ private:
 	void(*m_pOnPacketInvoker)(InPacket*, Script*, lua_State*);
 
 public:
+
 	Script(const std::string& file, int nTemplateID, Field *pField, const std::vector<void(*)(lua_State*)>& aReg);
 	~Script();
 	static Script* GetSelf(lua_State * L);
@@ -73,25 +76,32 @@ public:
 	void Abort();
 	bool IsDone();
 	bool Init();
+	void OnError();
 	void OnPacket(InPacket *iPacket);
+	bool SafeInvocation(const std::string& sFunc, const std::vector<ScriptArg>& aArg = {});
 
+	//WvsGame
 	int GetID() const; 
 	void SetUser(User *pUser);
 	User* GetUser();
 	Field* GetField();
-	lua_State* GetLuaState();
-	lua_State* GetLuaCoroutineState();
-	void PushInteger(const std::string& strVarName, int nVarValue);
-	void PushNumber(const std::string& strVarName, double dVarValue);
-	void PushString(const std::string& strVarName, const std::string& sVarValue);
+	void SetFieldSet(FieldSet *pFieldSet);
 
+	//NPC
 	NPCConversationState& GetConverstaionState();
 	void SetLastConversationInfo(const NPCConverstaionInfo& refInfo);
 	NPCConverstaionInfo& GetLastConversationInfo();
 
 	//System script funcs
 	static int ScriptSysRandom(lua_State* L);
-	
+
+
+	//Lua Sys.
+	lua_State* GetLuaState();
+	lua_State* GetLuaCoroutineState();
+	void PushInteger(const std::string& strVarName, int nVarValue);
+	void PushNumber(const std::string& strVarName, double dVarValue);
+	void PushString(const std::string& strVarName, const std::string& sVarValue);
 	template<typename T>
 	void RetrieveArray(std::vector<T>& out, int nLuaObjIndex);
 

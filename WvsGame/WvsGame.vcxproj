@@ -255,6 +255,7 @@
     <ClInclude Include="Reward.h" />
     <ClInclude Include="RogueSkills.h" />
     <ClInclude Include="Script.h" />
+    <ClInclude Include="ScriptArg.h" />
     <ClInclude Include="ScriptField.h" />
     <ClInclude Include="ScriptFieldSet.h" />
     <ClInclude Include="ScriptInventory.h" />

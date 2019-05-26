@@ -14,12 +14,24 @@ ScriptFieldSet::~ScriptFieldSet()
 {
 }
 
+void ScriptFieldSet::SetFieldSet(FieldSet * pFieldSet)
+{
+	m_pFieldSet = pFieldSet;
+}
+
 ScriptFieldSet * ScriptFieldSet::GetSelf(lua_State *L)
 {
+	auto pSys = ((Script*)L->selfPtr);	
+	//Call from FieldSet script itself.
+	if (pSys->m_pUniqueFieldSet != nullptr)
+		return ((FieldSet*)(pSys->m_pUniqueFieldSet))->GetScriptFieldSet();
+
+	//Call from Npc
 	const char* sFieldSetName = luaL_checkstring(L, 1);
 	auto pFieldSet = FieldMan::GetInstance()->GetFieldSet(sFieldSetName);
 	if (pFieldSet == nullptr)
 		return nullptr;
+	
 	ScriptFieldSet* p = AllocObj(ScriptFieldSet);
 	p->m_pFieldSet = pFieldSet;
 	return p;
@@ -27,7 +39,8 @@ ScriptFieldSet * ScriptFieldSet::GetSelf(lua_State *L)
 
 void ScriptFieldSet::DestroySelf(lua_State *L, ScriptFieldSet *p)
 {
-	FreeObj(p);
+	if(!((Script*)L->selfPtr)->m_pUniqueFieldSet)
+		FreeObj(p);
 }
 
 void ScriptFieldSet::Register(lua_State * L)

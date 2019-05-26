@@ -5,6 +5,7 @@
 #include "ScriptMan.h"
 #include "PartyMan.h"
 #include "QWUser.h"
+#include "ScriptFieldSet.h"
 #include <functional>
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
@@ -62,8 +63,14 @@ void FieldSet::Init(const std::string & sCfgFilePath)
 	}*/
 
 	m_pScript = ScriptMan::GetInstance()->GetScript(m_sScriptName, 0, nullptr);
-	lua_pushinteger(m_pScript->GetLuaState(), -1);
-	lua_setglobal(m_pScript->GetLuaState(), "userID");
+	if (!m_pScript)
+		return;
+
+	m_pScript->SetFieldSet(this);
+	m_pScriptFieldSet = AllocObj(ScriptFieldSet);
+	m_pScriptFieldSet->SetFieldSet(this);
+	m_pScript->PushInteger("userID", -1);
+
 	lua_pcall(m_pScript->GetLuaState(), 0, 0, 0); //Initialize all functions
 	auto bindT = std::bind(&FieldSet::Update, this);
 	m_pFieldSetTimer = AsyncScheduler::CreateTask(bindT, 1000, true);
@@ -183,8 +190,7 @@ void FieldSet::Update()
 	if (tCur - m_nStartTime > m_nTimeLimit * 1000)
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
-		lua_getglobal(m_pScript->GetLuaState(), "onTimeout");
-		auto nResult = lua_resume(m_pScript->GetLuaState(), m_pScript->GetLuaCoroutineState(), 0);
+		m_pScript->SafeInvocation("onTimeout");
 		m_pFieldSetTimer->Pause();
 	}
 }
@@ -192,7 +198,7 @@ void FieldSet::Update()
 void FieldSet::Reset()
 {
 	m_mVariable.clear();
-	lua_pcall(m_pScript->GetLuaState(), 0, 0, 0); //Initialize all functions
+	m_pScript->SafeInvocation("initialize");
 	for (auto pField : m_aField)
 		pField->Reset(true);
 }
@@ -227,11 +233,7 @@ const std::string & FieldSet::GetVar(const std::string& sVarName)
 
 void FieldSet::OnUserEnterField(User* pUser, Field *pField)
 {
-	lua_getglobal(m_pScript->GetLuaState(), "onUserEnter");
-	lua_pushinteger(m_pScript->GetLuaState(), pField->GetFieldID());
-	lua_pushinteger(m_pScript->GetLuaState(), pUser->GetUserID());
-	lua_resume(m_pScript->GetLuaState(), m_pScript->GetLuaCoroutineState(), 2);
-
+	m_pScript->SafeInvocation("onUserEnter", { pField->GetFieldID(), pUser->GetUserID() });
 	if (m_pFieldSetTimer->IsStarted()) 
 	{
 		OutPacket oPacket;
@@ -259,4 +261,9 @@ void FieldSet::IncExpAll(int nCount)
 	for (auto& prUser : m_mUser)
 		if (prUser.second)
 			QWUser::IncEXP(prUser.second, nCount, false);
+}
+
+ScriptFieldSet* FieldSet::GetScriptFieldSet() const
+{
+	return m_pScriptFieldSet;
 }
