@@ -38,8 +38,10 @@ public:
 	void OnPutItem(User *pUser, InPacket *iPacket);
 	void OnBuyItem(User *pUser, InPacket *iPacket);
 	void OnMoveItemToInventory(User *pUser, InPacket *iPacket);
-	virtual void DoTransaction(User *pUser, int nSlot, Item* psItem, int nNumber);
+	virtual GW_ItemSlotBase* MoveItemToShop(GW_ItemSlotBase *pItem, User *pUser, int nTI, int nPOS, int nNumber, int *nPOS2);
+	virtual bool RestoreItemFromShop(User *pUser, PersonalShop::Item* psItem);
 
+	virtual void DoTransaction(User *pUser, int nSlot, Item* psItem, int nNumber);
 	virtual void OnPacket(User *pUser, int nType, InPacket *iPacket);
 	virtual void OnLeave(User *pUser, int nLeaveType);
 	virtual void EncodeEnterResult(User *pUser, OutPacket *oPacket);

@@ -161,7 +161,8 @@ public:
 	static User* FindUserByName(const std::string& strName);
 
 	User(ClientSocket *pSocket, InPacket *iPacket);
-	void FlushCharacterData(OutPacket *oPacket);
+	void EncodeCharacterDataInternal(OutPacket *oPacket);
+	void FlushCharacterData();
 	~User();
 
 	//Basic Routine
@@ -310,6 +311,8 @@ public:
 	void SetMiniRoomBalloon(bool bOpen);
 	void EncodeMiniRoomBalloon(OutPacket *oPacket, bool bOpen);
 	bool HasOpenedEntrustedShop() const;
+	void SetEntrustedShopOpened(bool bOpened);
+	void CreateEmployee(bool bOpen);
 
 	//Trunk
 	void OnTrunkResult(InPacket *iPacket);

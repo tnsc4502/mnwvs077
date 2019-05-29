@@ -77,6 +77,7 @@ public:
 		res_Admission_Success = 0x00,
 		res_Admission_InvalidUserStat = 0x04,
 		res_Admission_InvalidFieldID = 0x05,
+		res_Admission_InvalidShopStatus = 0x08,
 		res_Admission_InvalidPassword = 0x13,
 	};
 
@@ -96,7 +97,7 @@ public:
 	bool IsGameOn() const;
 	bool IsPrivate() const;
 	bool IsOpened() const;
-	virtual bool IsEmployer(User *pUser);
+	virtual bool IsEmployer(User *pUser) const;
 	virtual bool IsEntrusted() const;
 	virtual int GetEmployeeTemplateID() const;
 	const std::string& GetEmployeeName() const;
@@ -116,11 +117,11 @@ public:
 	void OnLeaveBase(User *pUser, InPacket *iPacket);
 	void OnBalloonBase(User *pUser, InPacket *iPacket);
 	virtual void OnLeave(User *pUser, int nLeaveType);
-	void CloseRquest(User *pUser, int nLeaveType, int nLeaveType2);
+	void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
 	void DoLeave(int nIdx, int nLeaveType, bool bBroadcast);
 	unsigned char OnEnterBase(User *pUser, InPacket *iPacket);
 	virtual int IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate);
-	void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
+	//void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
 	void ProcessLeaveRequest();
 
 	//Encode

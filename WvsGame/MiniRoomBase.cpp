@@ -11,6 +11,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\Database\GW_ItemSlotBase.h"
 
 std::atomic<int> MiniRoomBase::ms_nSNCounter = 1;
 std::map<int, MiniRoomBase*> MiniRoomBase::ms_mMiniRoom;
@@ -113,14 +114,14 @@ bool MiniRoomBase::IsOpened() const
 	return m_bOpened;
 }
 
-bool MiniRoomBase::IsEmployer(User * pUser)
+bool MiniRoomBase::IsEmployer(User *pUser) const
 {
 	return false;
 }
 
 bool MiniRoomBase::IsEntrusted() const
 {
-	return false;
+	return (m_nType == MiniRoomType::e_MiniRoom_EntrustedShop);
 }
 
 int MiniRoomBase::GetEmployeeTemplateID() const
@@ -155,7 +156,9 @@ int MiniRoomBase::GetType() const
 unsigned char MiniRoomBase::FindEmptySlot(int nCharacterID)
 {
 	for (int i = 0; i < m_nMaxUsers; ++i)
-		if (GameDateTime::GetTime() - 30 * 1000 > m_anReservedTime[i]) 
+		if (i == 0 && IsEntrusted()) //Position 0 is always reserved for OWNER.
+			continue;
+		else if (GameDateTime::GetTime() - 30 * 1000 > m_anReservedTime[i])
 			m_anReserved[i] = m_anReservedTime[i] = 0;
 
 	for (int i = 0; i < m_nMaxUsers; ++i)
@@ -233,6 +236,12 @@ unsigned char MiniRoomBase::OnCreateBase(User *pUser, InPacket *iPacket, int nRo
 	if (pUser->CanAttachAdditionalProcess())
 	{
 		pUser->SetMiniRoom(this);
+		int nAdmissionRet = IsAdmitted(pUser, iPacket, true);
+		if (nAdmissionRet)
+		{
+			pUser->SetMiniRoom(nullptr);
+			return nAdmissionRet;
+		}
 		m_nCurUsers = 1;
 		m_nRound = nRound;
 		m_anLeaveRequest[0] = -1;
@@ -283,7 +292,7 @@ void MiniRoomBase::OnLeaveBase(User *pUser, InPacket *iPacket)
 	if (m_nCurUsers && nIdx >= 0)
 	{
 		if (m_nType == MiniRoomType::e_MiniRoom_MemoryGame)
-			CloseRquest(pUser, 2, 0);
+			CloseRequest(pUser, 2, 0);
 		else if (m_nType != MiniRoomType::e_MiniRoom_Omok || nIdx)
 		{
 			DoLeave(nIdx, 0, true);
@@ -296,7 +305,7 @@ void MiniRoomBase::OnLeaveBase(User *pUser, InPacket *iPacket)
 			}
 		}
 		else
-			CloseRquest(pUser, 3, 3);
+			CloseRequest(pUser, 3, 3);
 	}
 }
 
@@ -313,7 +322,8 @@ void MiniRoomBase::OnBalloonBase(User *pUser, InPacket *iPacket)
 	m_bOpened = true;
 	if (IsEntrusted())
 	{
-
+		pUser->CreateEmployee(iPacket->Decode1() == 1);
+		CloseRequest(pUser, -1, 12);
 	}
 	else
 	{
@@ -322,10 +332,6 @@ void MiniRoomBase::OnBalloonBase(User *pUser, InPacket *iPacket)
 }
 
 void MiniRoomBase::OnLeave(User * pUser, int nLeaveType)
-{
-}
-
-void MiniRoomBase::CloseRquest(User * pUser, int nLeaveType, int nLeaveType2)
 {
 }
 
@@ -349,7 +355,8 @@ void MiniRoomBase::DoLeave(int nIdx, int nLeaveType, bool bBroadcast)
 		}
 		pUser->SetMiniRoom(nullptr);
 		m_apUser[nIdx] = 0;
-		--m_nCurUsers;
+		if(!IsEmployer(pUser))
+			--m_nCurUsers;
 
 		if (bBroadcast)
 		{
@@ -393,16 +400,19 @@ unsigned char MiniRoomBase::OnEnterBase(User *pUser, InPacket *iPacket)
 	else
 	{
 		m_apUser[nIdx] = pUser;
-		m_anReserved[nIdx] = 0;
-		m_anLeaveRequest[nIdx] = -1;
-		++m_nCurUsers;
-
 		if (IsEmployer(pUser))
 		{
-			//Kick all users out.
+			m_bOpened = false;
+			for (int i = 1; i < m_nCurUsers; ++i)
+				if (m_apUser[i])
+					m_anLeaveRequest[i] = 14;
+			ProcessLeaveRequest();
 		}
 		else
 		{
+			++m_nCurUsers;
+			m_anReserved[nIdx] = 0;
+			m_anLeaveRequest[nIdx] = -1;
 			OutPacket oPacket;
 			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
 			oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MREnter);
@@ -457,6 +467,9 @@ int MiniRoomBase::IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate)
 
 	if (!bOnCreate)
 	{
+		if (!m_bOpened)
+			return MiniRoomAdmissionResult::res_Admission_InvalidShopStatus;
+
 		if (iPacket->Decode1())
 		{
 			if (!m_bPrivate || CheckPassword(iPacket->DecodeStr()))
@@ -567,25 +580,33 @@ MiniRoomBase* MiniRoomBase::Create(User *pUser, int nMiniRoomType, InPacket *iPa
 	oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
 	oPacket.Encode1(MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MRCreateResult);
 
-	char nResult = pMiniRoom->OnCreateBase(pUser, iPacket, nRound);
+	try 
+	{
+		char nResult = pMiniRoom->OnCreateBase(pUser, iPacket, nRound);
 
-	if (nResult)
-	{
-		oPacket.Encode1(0);
-		oPacket.Encode1(nResult);
-		pUser->SendPacket(&oPacket);
-		pMiniRoom->Release();
-		return nullptr;
+		if (nResult)
+		{
+			oPacket.Encode1(0);
+			oPacket.Encode1(nResult);
+			pUser->SendPacket(&oPacket);
+			pMiniRoom->Release();
+			return nullptr;
+		}
+		else
+		{
+			oPacket.Encode1((char)pMiniRoom->GetType());
+			oPacket.Encode1((char)pMiniRoom->GetMaxUsers());
+			oPacket.Encode1(0); //nIdx
+			pMiniRoom->EncodeAvatar(0, &oPacket);
+			oPacket.Encode1((char)0xFF);
+			pMiniRoom->EncodeEnterResult(pUser, &oPacket);
+			pUser->SendPacket(&oPacket);
+		}
 	}
-	else
+	catch (std::exception& e)
 	{
-		oPacket.Encode1((char)pMiniRoom->GetType());
-		oPacket.Encode1((char)pMiniRoom->GetMaxUsers());
-		oPacket.Encode1(0); //nIdx
-		pMiniRoom->EncodeAvatar(0, &oPacket);
-		oPacket.Encode1((char)0xFF);
-		pMiniRoom->EncodeEnterResult(pUser, &oPacket);
-		pUser->SendPacket(&oPacket);
+		FreeObj(pMiniRoom);
+		throw e;
 	}
 
 	return pMiniRoom;
@@ -613,9 +634,9 @@ MiniRoomBase* MiniRoomBase::MiniRoomFactory(int nMiniRoomType, InPacket *iPacket
 	}
 	else if (nMiniRoomType == MiniRoomType::e_MiniRoom_EntrustedShop)
 	{
-		//pRet = AllocObj(EntrustedShop);
-		//pRet->m_nType = MiniRoomType::e_MiniRoom_EntrustedShop;
-		//pRet->m_sTitle = iPacket->DecodeStr();
+		pRet = AllocObj(EntrustedShop);
+		pRet->m_nType = MiniRoomType::e_MiniRoom_EntrustedShop;
+		pRet->m_sTitle = iPacket->DecodeStr();	
 	}
 
 	return pRet;

@@ -40,8 +40,8 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 			if (nType != UserRecvPacketFlag::User_OnFuncKeyMappedModified
 				&& nType != NPCRecvPacketFlags::NPC_OnMoveRequest
 				&& nType != MobRecvPacketFlag::Mob_OnMove) {
-				//WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]封包接收：");
-				//iPacket->Print();
+				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]封包接收：");
+				iPacket->Print();
 			}
 			pUser->OnPacket(iPacket);
 		}

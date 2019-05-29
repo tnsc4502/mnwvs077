@@ -15,6 +15,7 @@
 #include "WvsCenter.h"
 #include "WvsWorld.h"
 #include "UserTransferStatus.h"
+#include "EntrustedShopMan.h"
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
@@ -118,6 +119,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 			break;
 		case GameSrvSendPacketFlag::FlushCharacterData:
 			CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
+			break;
+		case GameSrvSendPacketFlag::EntrustedShopRequest:
+			OnEntrustedShopRequest(iPacket);
 			break;
 	}
 }
@@ -690,4 +694,27 @@ void LocalServer::OnTrunkRequest(InPacket * iPacket)
 		}
 	}
 	FreeObj(pTrunk);
+}
+
+void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
+{
+	int nType = iPacket->Decode1();
+	switch (nType)
+	{
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck:
+			EntrustedShopMan::GetInstance()->CheckEntrustedShopOpenPossible(
+				this, iPacket->Decode4(), 0
+			);
+			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop:
+			EntrustedShopMan::GetInstance()->CreateEntrustedShop(
+				this, iPacket->Decode4(), 0, 0
+			);
+			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop:
+			EntrustedShopMan::GetInstance()->RemoveEntrustedShop(
+				this, iPacket->Decode4()
+			);
+			break;
+	}
 }

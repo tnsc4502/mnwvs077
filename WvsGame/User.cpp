@@ -24,6 +24,8 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
 
+#include "..\WvsCenter\EntrustedShopMan.h"
+
 #include "FieldMan.h"
 #include "Portal.h"
 #include "PortalMap.h"
@@ -112,10 +114,18 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	OnMigrateIn();
 }
 
-void User::FlushCharacterData(OutPacket * oPacket)
+void User::EncodeCharacterDataInternal(OutPacket *oPacket)
 {
 	m_pCharacterData->EncodeCharacterData(oPacket, true);
 	m_pFuncKeyMapped->Encode(oPacket, true);
+}
+
+void User::FlushCharacterData()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::FlushCharacterData);
+	EncodeCharacterDataInternal(&oPacket);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
 User::~User()
@@ -136,7 +146,7 @@ User::~User()
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
-	FlushCharacterData(&oPacket);
+	EncodeCharacterDataInternal(&oPacket);
 	if (m_nTransferStatus == TransferStatus::eOnTransferShop || m_nTransferStatus == TransferStatus::eOnTransferChannel) 
 	{
 		oPacket.Encode1(1); //bGameEnd
@@ -539,9 +549,10 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEntrustedShopCheckResult);
-			oPacket.Encode1(6);
-			SendPacket(&oPacket);
+			oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
+			oPacket.Encode4(GetUserID());
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 			break;
 		}
 		default:
@@ -2337,6 +2348,31 @@ void User::EncodeMiniRoomBalloon(OutPacket *oPacket, bool bOpen)
 bool User::HasOpenedEntrustedShop() const
 {
 	return m_bHasOpenedEntrustedShop;
+}
+
+void User::SetEntrustedShopOpened(bool bOpened)
+{
+	m_bHasOpenedEntrustedShop = bOpened;
+}
+
+void User::CreateEmployee(bool bOpen)
+{
+	if (GetMiniRoom())
+		if (m_pField->GetLifePool()->CreateEmployee(
+			GetPosX(),
+			GetPosY(),
+			GetUserID(),
+			GetName(),
+			GetMiniRoom(),
+			GetFh()
+		))
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop);
+			oPacket.Encode4(GetUserID());
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		}
 }
 
 void User::OnTrunkResult(InPacket *iPacket)

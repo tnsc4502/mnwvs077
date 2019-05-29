@@ -78,9 +78,24 @@ LocalServerEntry * WvsCenter::GetShop()
 	return m_pShopEntry;
 }
 
-void WvsCenter::SetShop(LocalServerEntry * pEntry)
+void WvsCenter::SetShop(LocalServerEntry *pEntry)
 {
+	if (m_pShopEntry)
+		FreeObj(m_pShopEntry);
 	m_pShopEntry = pEntry;
+}
+
+LocalServerEntry *WvsCenter::GetLoginServer()
+{
+	return m_pLoginEntry;
+}
+
+void WvsCenter::SetLoginServer(LocalServerEntry *pEntry)
+{
+	if (m_pLoginEntry)
+		FreeObj(m_pLoginEntry);
+
+	m_pLoginEntry = pEntry;
 }
 
 void WvsCenter::RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pServer, InPacket *iPacket)
@@ -129,4 +144,11 @@ void WvsCenter::RestoreConnectedUser(int nChannelID, InPacket * iPacket)
 			nUserID, pwUser
 		);
 	}
+}
+
+void WvsCenter::RegisterLoginServer(std::shared_ptr<SocketBase>& pServer)
+{
+	LocalServerEntry *pEntry = AllocObj(LocalServerEntry);
+	pEntry->SetLocalSocket(pServer);
+	SetLoginServer(pEntry);
 }

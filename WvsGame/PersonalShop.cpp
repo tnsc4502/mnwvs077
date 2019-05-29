@@ -29,11 +29,15 @@ PersonalShop::~PersonalShop()
 
 void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
 {
+	std::lock_guard<std::recursive_mutex> uLock(pUser->GetLock());
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+
 	int nTI = iPacket->Decode1();
 	int nPOS = iPacket->Decode2();
 	int nNumber = iPacket->Decode2();
 	int nSet = iPacket->Decode2();
 	int nPrice = iPacket->Decode4();
+	int nPOS2 = 0;
 
 	int nIdx = FindUserSlot(pUser);
 	if (!m_nCurUsers || nIdx == -1 || m_bOpened || nSet == 0 || (int)m_aItem.size() == m_nSlotCount)
@@ -55,28 +59,28 @@ void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
 		pUser->SendCharacterStat(true, 0);
 		return;
 	}
-	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 
 	Item item;
 	item.nNumber = nNumber;
 	item.nTI = nTI;
-	item.nPOS = nPOS;
 	item.nPrice = nPrice;
 	item.nSet = nSet;
 	item.pItem = pItem->MakeClone();
 	if (item.pItem->nType != GW_ItemSlotBase::EQUIP)
 		((GW_ItemSlotBundle*)item.pItem)->nNumber = nNumber * nSet;
+	MoveItemToShop(pItem, pUser, nTI, nPOS, nNumber * nSet, &nPOS2);
+	item.nPOS = nPOS2;
 	m_aItem.push_back(item);
-
-	QWUInventory::MoveItemToTemp(pUser, nullptr, nTI, nPOS, nNumber * nSet);
 	BroadcastItemList();
 }
 
 void PersonalShop::OnBuyItem(User *pUser, InPacket *iPacket)
 {
+	std::lock_guard<std::recursive_mutex> uLock(pUser->GetLock());
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+
 	int nItemIdx = iPacket->Decode1();
 	int nNumber = iPacket->Decode2();
-	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	int nIdx = FindUserSlot(pUser);
 	if (!m_bOpened || 
 		nIdx == -1 ||
@@ -98,8 +102,9 @@ void PersonalShop::OnBuyItem(User *pUser, InPacket *iPacket)
 
 void PersonalShop::OnMoveItemToInventory(User *pUser, InPacket *iPacket)
 {
-	int nItemIdx = iPacket->Decode2();
+	std::lock_guard<std::recursive_mutex> uLock(pUser->GetLock());
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	int nItemIdx = iPacket->Decode2();
 
 	if (nItemIdx >= (int)m_aItem.size())
 	{
@@ -107,27 +112,43 @@ void PersonalShop::OnMoveItemToInventory(User *pUser, InPacket *iPacket)
 		return;
 	}
 
-	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-	auto& psItem = m_aItem[nItemIdx];
-	auto pItem = psItem.pItem;
-	if (pItem->nType == GW_ItemSlotBase::EQUIP ||
-		((GW_ItemSlotBundle*)pItem)->nNumber == psItem.nNumber * psItem.nSet)
-		InventoryManipulator::InsertChangeLog(
-			aChangeLog, InventoryManipulator::ChangeType::Change_AddToSlot, psItem.nTI, psItem.nPOS, pItem, 0, 0
-		);
-	else 
+	if (!RestoreItemFromShop(pUser, &m_aItem[nItemIdx]))
 	{
-		int nTradingCount = pUser->GetCharacterData()->GetTradingCount(m_aItem[nItemIdx].nTI, m_aItem[nItemIdx].nPOS);
+		pUser->SendCharacterStat(true, 0);
+		return;
+	}
+	m_aItem.erase(m_aItem.begin() + nItemIdx);
+	//m_aItem.pop_back();
+	BroadcastItemList();
+	pUser->SendCharacterStat(true, 0);
+}
+
+GW_ItemSlotBase * PersonalShop::MoveItemToShop(GW_ItemSlotBase *pItem, User *pUser, int nTI, int nPOS, int nNumber, int* nPOS2)
+{
+	*nPOS2 = nPOS;
+	QWUInventory::MoveItemToTemp(pUser, nullptr, nTI, nPOS, nNumber);
+	return pItem;
+}
+
+bool PersonalShop::RestoreItemFromShop(User *pUser, PersonalShop::Item* psItem)
+{
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	auto pItem = psItem->pItem;
+	if (pItem->nType == GW_ItemSlotBase::EQUIP ||
+		((GW_ItemSlotBundle*)pItem)->nNumber == psItem->nNumber * psItem->nSet)
 		InventoryManipulator::InsertChangeLog(
-			aChangeLog,	InventoryManipulator::ChangeType::Change_QuantityChanged, psItem.nTI, psItem.nPOS, nullptr,	0, nTradingCount - (psItem.nNumber * psItem.nSet)
+			aChangeLog, InventoryManipulator::ChangeType::Change_AddToSlot, psItem->nTI, psItem->nPOS, pItem, 0, 0
+		);
+	else
+	{
+		int nTradingCount = pUser->GetCharacterData()->GetTradingCount(psItem->nTI, psItem->nPOS);
+		InventoryManipulator::InsertChangeLog(
+			aChangeLog, InventoryManipulator::ChangeType::Change_QuantityChanged, psItem->nTI, psItem->nPOS, nullptr, 0, nTradingCount - (psItem->nNumber * psItem->nSet)
 		);
 	}
 	QWUInventory::SendInventoryOperation(pUser, true, aChangeLog);
 	pItem->Release();
-	for (int i = nItemIdx; i < (int)m_aItem.size() - 1; ++i)
-		m_aItem[i] = m_aItem[i + 1];
-	m_aItem.pop_back();
-	BroadcastItemList();
+	return true;
 }
 
 void PersonalShop::DoTransaction(User *pUser, int nSlot, Item *psItem, int nNumber)
@@ -202,7 +223,8 @@ void PersonalShop::OnLeave(User *pUser, int nLeaveType)
 	{
 		QWUInventory::RestoreFromTemp(pUser, pUser->GetCharacterData()->mItemTrading);
 		pUser->SetMiniRoomBalloon(false);
-		m_bOpened = false;
+
+		m_bOpened = IsEntrusted() && IsEmployer(pUser);
 		if(m_nCurUsers > 1)
 			CloseRequest(pUser, 0, PersonalShopMessgae::e_Message_ShopClosed);
 	}

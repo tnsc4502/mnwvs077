@@ -23,6 +23,17 @@ class AffectedAreaPool;
 
 class Field
 {
+	struct BalloonEntry
+	{
+		enum BalloonType
+		{
+			e_Balloon_EntrustedShop = 0x02,
+		};
+
+		int nBalloonType = 0;
+		int nHostX = 0, nHostY = 0;
+	};
+
 	enum FieldEffect
 	{
 		e_FieldEffect_Object = 0x02,
@@ -70,11 +81,6 @@ class Field
 
 	std::string m_strFirstUserEnter, 
 				m_strUserEnter;
-
-	static void UpdateTrigger(Field* pField)
-	{
-		pField->Update();
-	}
 
 public:
 	Field(int nFieldID);

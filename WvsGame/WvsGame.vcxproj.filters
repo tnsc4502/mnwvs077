@@ -70,6 +70,9 @@
     <Filter Include="WvsGame\InGame\Field\AffectedArea">
       <UniqueIdentifier>{5eb2d153-7417-40e2-a64f-3cb042b6bd9f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WvsGame\InGame\Field\Life\Employee">
+      <UniqueIdentifier>{34664c9d-019d-4cd3-a4ec-068beb0fdd7a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -483,6 +486,9 @@
     <ClInclude Include="ScriptArg.h">
       <Filter>WvsGame\InGame\Script</Filter>
     </ClInclude>
+    <ClInclude Include="Employee.h">
+      <Filter>WvsGame\InGame\Field\Life\Employee</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -737,6 +743,9 @@
     </ClCompile>
     <ClCompile Include="AffectedAreaPool.cpp">
       <Filter>WvsGame\InGame\Field\AffectedArea</Filter>
+    </ClCompile>
+    <ClCompile Include="Employee.cpp">
+      <Filter>WvsGame\InGame\Field\Life\Employee</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

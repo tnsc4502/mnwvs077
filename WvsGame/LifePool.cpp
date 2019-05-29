@@ -23,6 +23,8 @@
 #include "StaticFoothold.h"
 #include "WvsPhysicalSpace2D.h"
 #include "FieldRect.h"
+#include "Employee.h"
+#include "MiniRoomBase.h"
 #include <cmath>
 
 LifePool::LifePool()
@@ -304,6 +306,43 @@ int LifePool::GetMobCount() const
 	return (int)m_mMob.size();
 }
 
+Employee* LifePool::CreateEmployee(int x, int y, int nEmployerID, const std::string &sEmployerName, MiniRoomBase *pMiniRoom, int nFh)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	if (m_mEmployee.find(nEmployerID) != m_mEmployee.end())
+		return nullptr;
+
+	auto pEmployee = AllocObj(Employee);
+	pEmployee->m_nEmployerID = nEmployerID;
+	pEmployee->m_sEmployerName = sEmployerName;
+	pEmployee->m_pMiniRoom = pMiniRoom;
+	pEmployee->m_nTemplateID = pMiniRoom->GetEmployeeTemplateID();
+	pEmployee->SetPosX(x);
+	pEmployee->SetPosY(y);
+	pEmployee->SetFh(nFh);
+
+	m_mEmployee.insert({ nEmployerID, pEmployee });
+	OutPacket oPacket;
+	pEmployee->MakeEnterFieldPacket(&oPacket);
+	m_pField->BroadcastPacket(&oPacket);
+
+	return pEmployee;
+}
+
+void LifePool::RemoveEmployee(int nEmployerID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	auto findIter = m_mEmployee.find(nEmployerID);
+	if (findIter == m_mEmployee.end())
+		return;
+
+	OutPacket oPacket;
+	findIter->second->MakeLeaveFieldPacket(&oPacket);
+
+	m_mEmployee.erase(findIter);
+	m_pField->BroadcastPacket(&oPacket);
+}
+
 void LifePool::OnEnter(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
@@ -316,14 +355,18 @@ void LifePool::OnEnter(User *pUser)
 		pUser->SendPacket(&oPacket);
 		npc.second->SendChangeControllerPacket(pUser);
 	}
-	//WvsLogger::LogFormat("LifePool::OnEnter : Total Mob = %d\n", m_aMobGen.size());
 	for (auto& mob : m_mMob)
 	{
 		OutPacket oPacket;
 		mob.second->MakeEnterFieldPacket(&oPacket);
 		pUser->SendPacket(&oPacket);
 	}
-	//WvsLogger::LogFormat("LifePool::OnEnter : Total Controlled = %d Null Controlled = %d\n size of m_hCtrl = %d", m_mController[pUser->GetUserID()]->second->GetTotalControlledCount(), m_pCtrlNull->GetTotalControlledCount(), m_hCtrl.size());
+	for (auto& employee : m_mEmployee)
+	{
+		OutPacket oPacket;
+		employee.second->MakeEnterFieldPacket(&oPacket);
+		pUser->SendPacket(&oPacket);
+	}
 }
 
 void LifePool::InsertController(User* pUser)

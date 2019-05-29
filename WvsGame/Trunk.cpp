@@ -224,11 +224,7 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 		oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveTrunkToSlot);
 		Encode(0xFFFF, &oPacket);
 		pUser->SendPacket(&oPacket);
-
-		OutPacket oFlushPacket;
-		oFlushPacket.Encode2(GameSrvSendPacketFlag::FlushCharacterData);
-		pUser->FlushCharacterData(&oFlushPacket);
-		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oFlushPacket);
+		pUser->FlushCharacterData();
 	}
 }
 

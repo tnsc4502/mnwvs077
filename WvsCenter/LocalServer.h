@@ -41,5 +41,6 @@ public:
 	void OnGroupMessage(InPacket *iPacket);
 	void OnWhisperMessage(InPacket *iPacket);
 	void OnTrunkRequest(InPacket *iPacket);
+	void OnEntrustedShopRequest(InPacket *iPacket);
 };
 

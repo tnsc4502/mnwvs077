@@ -28,6 +28,20 @@
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_Shop.h"
 
+BOOL WINAPI ConsoleHandler(DWORD CEvent)
+{
+	switch (CEvent)
+	{
+		case CTRL_C_EVENT:
+		case CTRL_BREAK_EVENT:
+		case CTRL_CLOSE_EVENT:
+		case CTRL_LOGOFF_EVENT:
+		case CTRL_SHUTDOWN_EVENT:
+			break;
+	}
+	return TRUE;
+}
+
 void ConnectionAcceptorThread(short nPort)
 {
 	WvsGame *gameServer = WvsBase::GetInstance<WvsGame>();
@@ -37,6 +51,7 @@ void ConnectionAcceptorThread(short nPort)
 
 int main(int argc, char **argv)
 {
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	SetConsoleTitle(L"MapleStory Server [WvsGame][TWMS][077]");
 	TimerThread::RegisterTimerPool(50, 1000);
 	QuestMan::GetInstance()->LoadAct();
