@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <mutex>
+#include <vector>
 #include <functional>
 #include "FieldPoint.h"
 #include "FieldRect.h"
@@ -11,6 +12,7 @@ class Portal;
 class PortalMap;
 class TownPortalPool;
 class ReactorPool;
+class Reactor;
 class DropPool;
 class FieldSet;
 class User;
@@ -23,6 +25,8 @@ class AffectedAreaPool;
 
 class Field
 {
+
+protected:
 	struct BalloonEntry
 	{
 		enum BalloonType
@@ -83,7 +87,7 @@ class Field
 				m_strUserEnter;
 
 public:
-	Field(int nFieldID);
+	Field(void *pData, int nFieldID);
 	~Field();
 
 	void SetCould(bool cloud);
@@ -127,12 +131,13 @@ public:
 	LifePool *GetLifePool();
 	DropPool *GetDropPool();
 
-	void OnEnter(User *pUser);
-	void OnLeave(User *pUser);
+	virtual void OnEnter(User *pUser);
+	virtual void OnLeave(User *pUser);
 
 	//發送oPacket給該地圖的其他User，其中pExcept是例外對象
 	void SplitSendPacket(OutPacket* oPacket, User* pExcept);
 	void BroadcastPacket(OutPacket* oPacket);
+	void BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID);
 
 	void OnMobMove(User* pCtrl, Mob* pMob, InPacket* iPacket);
 	virtual void OnPacket(User* pUser, InPacket* iPacket);
@@ -147,18 +152,22 @@ public:
 	AffectedAreaPool* GetAffectedAreaPool();
 	const std::map<int, User*>& GetUsers();
 
+	virtual void AddCP(int nLastDamageCharacterID, int nAddCP);
 	void TransferAll(int nFieldID, const std::string& sPortal);
 	void LoadAreaRect(void *pData);
 	int CountFemaleInArea(const std::string& sArea);
 	int CountMaleInArea(const std::string& sArea);
 	int CountUserInArea(const std::string& sArea);
 	void EffectScreen(const std::string& sEffect);
+	void EffectScreen(const std::string& sEffect, std::vector<int>& anCharacterID);
 	void EffectSound(const std::string& sEffect);
+	void EffectSound(const std::string& sEffect, std::vector<int>& anCharacterID);
 	void EffectObject(const std::string& sEffect);
 	void EnablePortal(const std::string& sPortal, bool bEnable);
 	void OnContiMoveState(User *pUser, InPacket *iPacket);
 
-	void Reset(bool bShuffleReactor);
-	void Update();
+	virtual void OnReactorDestroyed(Reactor *pReactor);
+	virtual void Reset(bool bShuffleReactor);
+	virtual void Update();
 };
 

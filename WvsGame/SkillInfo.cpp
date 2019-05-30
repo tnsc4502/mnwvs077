@@ -1,6 +1,7 @@
 
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
+#include "..\WvsLib\Random\Rand32.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_SkillRecord.h"
 #include "ItemInfo.h"
@@ -17,6 +18,8 @@
 #include "PirateSkills.h"
 #include "RogueSkills.h"
 #include "WarriorSkills.h"
+#include "MCSkillEntry.h"
+#include "MCGuardianEntry.h"
 
 #include <thread>
 #include <unordered_map>
@@ -69,6 +72,30 @@ MobSkillEntry* SkillInfo::GetMobSkill(int nMobSkillID) const
 {
 	auto findResult = m_mMobSKill.find(nMobSkillID);
 	return (findResult != m_mMobSKill.end() ? findResult->second : nullptr);
+}
+
+MCSkillEntry* SkillInfo::GetMCRandomSkill() const
+{
+	int nRnd = (int)(Rand32::GetInstance()->Random() % m_mMCSkill.size());
+	auto iter = m_mMCSkill.begin();
+	for (int i = 0; i < (int)m_mMCSkill.size(); ++i)
+		if (nRnd == i)
+			return iter->second;
+		else
+			++iter;
+	return nullptr;
+}
+
+MCSkillEntry* SkillInfo::GetMCSkill(int nIndex) const
+{
+	auto findResult = m_mMCSkill.find(nIndex);
+	return (findResult != m_mMCSkill.end() ? findResult->second : nullptr);
+}
+
+MCGuardianEntry* SkillInfo::GetMCGuardian(int nIndex) const
+{
+	auto findResult = m_mMCGuardian.find(nIndex);
+	return (findResult != m_mMCGuardian.end() ? findResult->second : nullptr);
 }
 
 SkillInfo * SkillInfo::GetInstance()
@@ -157,6 +184,40 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 		}
 
 		pEntry->m_apLevelData.push_back(pLevel);
+	}
+}
+
+void SkillInfo::LoadMCSkill()
+{
+	auto& mcSkillNode = stWzResMan->GetWz(Wz::Skill)["MCSkill"];
+	for (auto& node : mcSkillNode)
+	{
+		auto pEntry = AllocObj(MCSkillEntry);
+		pEntry->nLevel = node["level"];
+		pEntry->nMobSkillID = node["mobSkillID"];
+		pEntry->nSpendCP = node["spendCP"];
+		pEntry->nTarget = node["target"];
+		pEntry->sDesc = (std::string)node["desc"];
+		pEntry->sName = (std::string)node["name"];
+
+		m_mMCSkill.insert({ atoi(node.Name().c_str()), pEntry });
+	}
+}
+
+void SkillInfo::LoadMCGuardian()
+{
+	auto& mcGNode = stWzResMan->GetWz(Wz::Skill)["MCGuardian"];
+	for (auto& node : mcGNode)
+	{
+		auto pEntry = AllocObj(MCGuardianEntry);
+		pEntry->nLevel = node["level"];
+		pEntry->nMobSkillID = node["mobSkillID"];
+		pEntry->nSpendCP = node["spendCP"];
+		pEntry->nType = node["type"];
+		pEntry->sDesc = (std::string)node["desc"];
+		pEntry->sName = (std::string)node["name"];
+
+		m_mMCGuardian.insert({ atoi(node.Name().c_str()), pEntry });
 	}
 }
 

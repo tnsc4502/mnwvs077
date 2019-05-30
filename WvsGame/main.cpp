@@ -37,6 +37,7 @@ BOOL WINAPI ConsoleHandler(DWORD CEvent)
 		case CTRL_CLOSE_EVENT:
 		case CTRL_LOGOFF_EVENT:
 		case CTRL_SHUTDOWN_EVENT:
+			//WvsBase::GetInstance<WvsGame>()->ShutdownService();
 			break;
 	}
 	return TRUE;
@@ -64,6 +65,8 @@ int main(int argc, char **argv)
 	NpcTemplate::GetInstance()->Load();
 	try {
 		SkillInfo::GetInstance()->LoadMobSkill();
+		SkillInfo::GetInstance()->LoadMCSkill();
+		SkillInfo::GetInstance()->LoadMCGuardian();
 		SkillInfo::GetInstance()->IterateSkillInfo();
 	}
 	catch (...) {}
@@ -71,6 +74,8 @@ int main(int argc, char **argv)
 	WvsBase::GetInstance<WvsGame>()->Init();
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
+
+	FieldMan::GetInstance()->GetField(980000401);
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else

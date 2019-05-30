@@ -5,6 +5,7 @@
 #include "TimerThread.h"
 
 #include "Field.h"
+#include "Field_MonsterCarnival.h"
 #include "FieldSet.h"
 #include "PortalMap.h"
 #include "ReactorPool.h"
@@ -59,42 +60,31 @@ void FieldMan::FieldFactory(int nFieldID)
 		Field_Wedding
 		...
 		*/
-	std::string fieldStr = std::to_string(nFieldID);
-	while (fieldStr.size() < 9)
-		fieldStr = "0" + fieldStr;
-	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldID / 100000000)][fieldStr];
+	std::string sField = std::to_string(nFieldID);
+	while (sField.size() < 9)
+		sField = "0" + sField;
+	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldID / 100000000)][sField];
 	if (mapWz == WZ::Node())
 		return;
 
 	auto& infoData = mapWz["info"];
-	auto& areaData = mapWz["area"];
-	Field* newField = AllocObjCtor(Field)(nFieldID);
-	newField->SetFieldID(nFieldID);
+	int nFieldType = infoData["fieldType"];
 
-	newField->SetCould(((int)infoData["cloud"] != 0));
-	newField->SetTown(((int)infoData["town"] != 0));
-	newField->SetSwim(((int)infoData['swim'] != 0));
-	newField->SetFly(((int)infoData['fly'] != 0));
-	newField->SetReturnMap(infoData["returnMap"]);
-	newField->SetForcedReturn(infoData["forcedReturn"]);
-	newField->SetMobRate(infoData["mobRate"]);
-	newField->SetFieldType(infoData["fieldType"]);
-	newField->SetFieldLimit(infoData["fieldLimit"]);
-	newField->SetCreateMobInterval(infoData["createMobInterval"]);
-	newField->SetFiexdMobCapacity(infoData["fixedMobCapacity"]);
-	newField->SetFirstUserEnter(infoData["onFirstUerEnter"]);
-	newField->SetUserEnter(infoData["onUserEnter"]);
+	Field* pField = nullptr;
+	switch (nFieldType)
+	{
+		case 10:
+			pField = AllocObjCtor(Field_MonsterCarnival)(&mapWz, nFieldID);
+			break;
+		default:
+			pField = AllocObjCtor(Field)(&mapWz, nFieldID);
+			break;
+	}
 
-	if (areaData != mapWz.end())
-		newField->LoadAreaRect(&areaData);
-
-	newField->GetPortalMap()->RestorePortal(newField, &(mapWz["portal"]));
-	newField->GetReactorPool()->Init(newField, &(mapWz["reactor"]));
-	RestoreFoothold(newField, &(mapWz["foothold"]), nullptr, &infoData);
-	newField->InitLifePool();
-
-	m_mField[nFieldID] = newField;
-	TimerThread::RegisterField(newField);
+	RestoreFoothold(pField, &(mapWz["foothold"]), nullptr, &infoData);
+	pField->InitLifePool();
+	m_mField[nFieldID] = pField;
+	TimerThread::RegisterField(pField);
 }
 
 void FieldMan::LoadFieldSet()
@@ -107,19 +97,11 @@ void FieldMan::LoadFieldSet()
 		//Convert std::wstring to std::string, note that the path shouldn't include any NON-ASCII character.
 		pFieldSet->Init(std::string{ wStr.begin(), wStr.end() });
 		m_mFieldSet[pFieldSet->GetFieldSetName()] = pFieldSet;
-
-		/*std::cout << file << std::endl; 
-		std::ifstream t(file.path());
-		std::string str((std::istreambuf_iterator<char>(t)),
-			std::istreambuf_iterator<char>());
-		std::cout << str << std::endl;*/
 	}
 }
 
 Field* FieldMan::GetField(int nFieldID)
 {
-	//printf("Get Field ID = %d\n", nFieldID);
-	//Prevent Double Registerations Or Enter On-Registering Map
 	auto fieldResult = m_mField.find(nFieldID);
 	if (fieldResult == m_mField.end())
 		RegisterField(nFieldID);

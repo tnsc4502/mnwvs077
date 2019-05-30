@@ -78,6 +78,8 @@ void ScriptUser::Register(lua_State * L)
 		{ "getPosX", TargetGetPosX },
 		{ "getPosY", TargetGetPosY },
 		{ "isPartyBoss", TargetIsPartyBoss },
+		{ "getPartyID", TargetGetPartyID },
+		{ "getMCTeam", TargetGetMCTeam },
 		{ "getName", TargetGetName },
 		{ NULL, NULL }
 	};
@@ -454,6 +456,24 @@ int ScriptUser::TargetIsPartyBoss(lua_State * L)
 		lua_pushinteger(L, 0);
 	else
 		lua_pushinteger(L, self->m_pUser->GetUserID() == pParty->party.nPartyBossCharacterID ? 1 : 0);
+	return 1;
+}
+
+int ScriptUser::TargetGetPartyID(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(self->m_pUser->GetUserID());
+	if (!pParty)
+		lua_pushinteger(L, -1);
+	else
+		lua_pushinteger(L, pParty->nPartyID);
+	return 1;
+}
+
+int ScriptUser::TargetGetMCTeam(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetMCarnivalTeam());
 	return 1;
 }
 

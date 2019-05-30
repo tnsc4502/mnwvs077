@@ -4,6 +4,7 @@
 #include "FieldSet.h"
 #include "User.h"
 #include "ScriptUser.h"
+#include "PartyMan.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 ScriptFieldSet::ScriptFieldSet()
@@ -47,11 +48,16 @@ void ScriptFieldSet::Register(lua_State * L)
 {
 	luaL_Reg FieldSetMetatable[] = {
 		{ "enter", FieldSetEnter },
+		{ "join", FieldSetJoin },
 		{ "setVar", FieldSetSetVar },
 		{ "getVar", FieldSetGetVar },
 		{ "transferAll", FieldSetTransferAll },
+		{ "transferParty", FieldSetTransferParty },
 		{ "getUserCount", FieldSetGetUserCount },
 		{ "incExpAll", FieldSetIncExpAll },
+		{ "resetTimeLimit", FieldSetResetTimeLimit },
+		{ "setMCTeam", FieldSetSetMCTeam },
+		{ "destroyClock", FieldSetDestroyClock },
 		{ NULL, NULL }
 	};
 
@@ -72,6 +78,14 @@ int ScriptFieldSet::FieldSetEnter(lua_State * L)
 	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
 	int nUserID = (int)luaL_checkinteger(L, 2);
 	lua_pushinteger(L, self->m_pFieldSet->Enter(nUserID, 0));
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetJoin(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nUserID = (int)luaL_checkinteger(L, 2);
+	lua_pushinteger(L, self->m_pFieldSet->Enter(nUserID, 0, true));
 	return 1;
 }
 
@@ -101,6 +115,16 @@ int ScriptFieldSet::FieldSetTransferAll(lua_State * L)
 	return 1;
 }
 
+int ScriptFieldSet::FieldSetTransferParty(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nPartyID = (int)luaL_checkinteger(L, 2);
+	int nFieldID = (int)luaL_checkinteger(L, 3);
+	const char* sVal = luaL_checkstring(L, 4);
+	self->m_pFieldSet->TransferParty(nPartyID, nFieldID, sVal);
+	return 1;
+}
+
 int ScriptFieldSet::FieldSetGetUserCount(lua_State * L)
 {
 	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
@@ -113,5 +137,41 @@ int ScriptFieldSet::FieldSetIncExpAll(lua_State * L)
 	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
 	int nInc = (int)luaL_checkinteger(L, 2);
 	self->m_pFieldSet->IncExpAll(nInc);
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetResetTimeLimit(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nLimitSet = (int)luaL_checkinteger(L, 2);
+	bool bResetTime = ((int)luaL_checkinteger(L, 3)) == 1;
+	self->m_pFieldSet->ResetTimeLimit(nLimitSet, bResetTime);
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetSetMCTeam(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nPartyBoss = (int)luaL_checkinteger(L, 2);
+	int nSet = (int)luaL_checkinteger(L, 3);
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(nPartyBoss);
+	if (pParty)
+	{
+		int anCharacterID[6];
+		PartyMan::GetInstance()->GetSnapshot(pParty->nPartyID, anCharacterID);
+		for (int nID : anCharacterID)
+		{
+			auto pUser = User::FindUser(nID);
+			if (pUser)
+				pUser->SetMCarnivalTeam(nSet);
+		}
+	}
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetDestroyClock(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	self->m_pFieldSet->DestroyClock();
 	return 1;
 }

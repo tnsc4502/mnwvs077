@@ -1,14 +1,15 @@
 #include "Script.h"
 #include <memory>
 #include "User.h"
+#include "QWUser.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
-#include "QWUser.h"
 #include "..\WvsLib\Script\lvm.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 Script * Script::GetSelf(lua_State * L)
@@ -30,6 +31,7 @@ void Script::Register(lua_State * L)
 
 	luaL_Reg SysTable[] = {
 		{ "random", ScriptSysRandom },
+		{ "getTime", ScriptSysTime },
 		{ NULL, NULL }
 	};
 
@@ -142,6 +144,12 @@ int Script::ScriptSysRandom(lua_State * L)
 	auto liMin = luaL_checkinteger(L, 1);
 	auto liMax = luaL_checkinteger(L, 2);
 	lua_pushinteger(L, (liMin + (liRand % (liMax - liMin))));
+	return 1;
+}
+
+int Script::ScriptSysTime(lua_State * L)
+{
+	lua_pushinteger(L, GameDateTime::GetTime());
 	return 1;
 }
 

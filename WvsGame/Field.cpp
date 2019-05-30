@@ -9,9 +9,10 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Task\AsyncScheduler.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
-#include "..\WvsLib\Task\AsyncScheduler.h"
 #include "Mob.h"
 #include "MovePath.h"
 #include "PortalMap.h"
@@ -27,10 +28,7 @@
 #include "AffectedArea.h"
 #include "AffectedAreaPool.h"
 
-#include <mutex>
-#include <functional>
-
-Field::Field(int nFieldID)
+Field::Field(void *pData, int nFieldID)
 	: m_pLifePool(AllocObj(LifePool)),
 	  m_pPortalMap(AllocObj(PortalMap)),
 	  m_pTownPortalPool(AllocObj(TownPortalPool)),
@@ -41,9 +39,30 @@ Field::Field(int nFieldID)
 	m_pDropPool = AllocObjCtor(DropPool)(this);
 	m_pSummonedPool = AllocObjCtor(SummonedPool)(this);
 	m_pAffectedAreaPool = AllocObjCtor(AffectedAreaPool)(this);
-	//m_asyncUpdateTimer = AsyncScheduler::CreateTask(std::bind(&Field::UpdateTrigger, this), 5000, true);
-	//this->m_asyncUpdateTimer = (void*)timer;
-	//InitLifePool();
+
+	auto& mapWz = *((WZ::Node*)pData);
+	auto& infoData = mapWz["info"];
+	auto& areaData = mapWz["area"];
+	SetFieldID(nFieldID);
+	SetCould(((int)infoData["cloud"] != 0));
+	SetTown(((int)infoData["town"] != 0));
+	SetSwim(((int)infoData['swim'] != 0));
+	SetFly(((int)infoData['fly'] != 0));
+	SetReturnMap(infoData["returnMap"]);
+	SetForcedReturn(infoData["forcedReturn"]);
+	SetMobRate(infoData["mobRate"]);
+	SetFieldType(infoData["fieldType"]);
+	SetFieldLimit(infoData["fieldLimit"]);
+	SetCreateMobInterval(infoData["createMobInterval"]);
+	SetFiexdMobCapacity(infoData["fixedMobCapacity"]);
+	SetFirstUserEnter(infoData["onFirstUerEnter"]);
+	SetUserEnter(infoData["onUserEnter"]);
+
+	if (areaData != mapWz.end())
+		LoadAreaRect(&areaData);
+
+	GetPortalMap()->RestorePortal(this, &(mapWz["portal"]));
+	GetReactorPool()->Init(this, &(mapWz["reactor"]));
 }
 
 Field::~Field()
@@ -69,6 +88,20 @@ void Field::BroadcastPacket(OutPacket * oPacket)
 		return;
 	for (auto& user : m_mUser)
 		user.second->SendPacket(oPacket);
+}
+
+void Field::BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
+	oPacket->GetSharedPacket()->ToggleBroadcasting();
+	for (auto& nID : anCharacterID)
+	{
+		auto iter = m_mUser.find(nID);
+		if (iter == m_mUser.end())
+			continue;
+		
+		iter->second->SendPacket(oPacket);
+	}
 }
 
 void Field::SetCould(bool cloud)
@@ -529,6 +562,15 @@ void Field::EffectScreen(const std::string& sEffect)
 	BroadcastPacket(&oPacket);
 }
 
+void Field::EffectScreen(const std::string& sEffect, std::vector<int>& anCharacterID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode1(FieldEffect::e_FieldEffect_Screen);
+	oPacket.EncodeStr(sEffect);
+	BroadcastPacket(&oPacket, anCharacterID);
+}
+
 void Field::EffectSound(const std::string& sEffect)
 {
 	OutPacket oPacket;
@@ -536,6 +578,15 @@ void Field::EffectSound(const std::string& sEffect)
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Sound);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket);
+}
+
+void Field::EffectSound(const std::string& sEffect, std::vector<int>& anCharacterID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode1(FieldEffect::e_FieldEffect_Sound);
+	oPacket.EncodeStr(sEffect);
+	BroadcastPacket(&oPacket, anCharacterID);
 }
 
 void Field::EffectObject(const std::string& sEffect)
@@ -564,12 +615,20 @@ void Field::OnContiMoveState(User * pUser, InPacket * iPacket)
 	pUser->SendPacket(&oPacket);
 }
 
+void Field::AddCP(int nLastDamageCharacterID, int nAddCP)
+{
+}
+
 void Field::TransferAll(int nFieldID, const std::string& sPortal)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	auto iter = m_mUser.begin();
 	while (iter != m_mUser.end())
 		(iter++)->second->TryTransferField(nFieldID, sPortal);
+}
+
+void Field::OnReactorDestroyed(Reactor* pReactor)
+{
 }
 
 void Field::Reset(bool bShuffleReactor)

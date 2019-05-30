@@ -19,6 +19,7 @@ class FieldSet
 	std::vector<int> m_aFieldID, m_aJobType;
 	std::vector<Field*> m_aField;
 	std::string m_sFieldSetName, m_sScriptName;
+	void *m_pCfg;
 
 	int m_nTimeLimit, 
 		m_nStartTime, 
@@ -27,7 +28,7 @@ class FieldSet
 		m_nLevelMin,
 		m_nLevelMax;
 
-	bool m_bParty, m_bEnd;
+	bool m_bParty, m_bEnd, m_bInvokeUpdateFunc;
 	Script* m_pScript;
 	AsyncScheduler *m_pFieldSetTimer;
 	ScriptFieldSet* m_pScriptFieldSet;
@@ -47,18 +48,21 @@ public:
 	~FieldSet();
 
 	void Init(const std::string& sCfgFilePath);
+	void InitConfig();
 	const std::string& GetFieldSetName() const;
-	int Enter(int nCharacterID, int nFieldInfo);
+	int Enter(int nCharacterID, int nFieldInfo, bool bJoin = false);
 	bool CheckEnterRequirement(User *pUser);
 	bool IsPartyFieldSet() const;
 	bool IsGuildFieldSet() const;
 	void OnLeaveFieldSet(int nCharacterID);
 	void TransferAll(int nFieldID, const std::string& sPortal);
+	void TransferParty(int nPartyID, int nFieldID, const std::string& sPortal);
 	int TryEnter(const std::vector<User*>& lpUser, int nFieldIdx, int nEnterChar);
 	void Update();
 	void Reset();
-	void EndFieldSet();
+	void ForceClose();
 	void DestroyClock();
+	void ResetTimeLimit(int nTimeLimit, bool bResetTimeTick);
 	void SetVar(const std::string& sVarName, const std::string& sVal);
 	const std::string& GetVar(const std::string& sVarName);
 	void OnUserEnterField(User* pUser, Field *pField);

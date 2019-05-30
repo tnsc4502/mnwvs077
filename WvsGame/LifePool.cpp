@@ -25,6 +25,9 @@
 #include "FieldRect.h"
 #include "Employee.h"
 #include "MiniRoomBase.h"
+#include "SkillInfo.h"
+#include "MobSkillEntry.h"
+#include "MobSkillLevelData.h"
 #include <cmath>
 
 LifePool::LifePool()
@@ -124,6 +127,7 @@ void LifePool::LoadMobData(WZ::Node& dataNode)
 
 	pMobGen->mob.SetMobTemplate(MobTemplate::GetMobTemplate(pMobGen->mob.GetTemplateID()));
 	pMobGen->nRegenInterval = (int)dataNode["mobTime"];
+	pMobGen->nTeamForMCarnival = dataNode["team"] == WZ::Node() ? -1 : (int)dataNode["team"];
 	pMobGen->nRegenAfter = (pMobGen->nRegenInterval == -1 ? 0 : 
 		GameDateTime::GetTime() + (pMobGen->nRegenInterval * 1000));
 	pMobGen->mob.SetMobGen(pMobGen);
@@ -155,10 +159,23 @@ void LifePool::TryCreateMob(bool bReset)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	int tCur = GameDateTime::GetTime();
+	if (!m_bMobGenEnable)
+		return;
 
 	if (m_aMobGen.size() > 0)
 	{
 		std::vector<MobGen*> apGen;
+
+		//MC Mob Gen
+		for (auto pGen : m_aMCMobGen)
+		{
+			if (bReset)
+				pGen->nRegenAfter = 1000;
+			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur - pGen->nRegenAfter >= 0)))
+				apGen.push_back(pGen);
+		}
+
+		//Normal Gen
 		for (auto pGen : m_aMobGen)
 		{
 			if (bReset)
@@ -167,7 +184,8 @@ void LifePool::TryCreateMob(bool bReset)
 				apGen.push_back(pGen);
 		}
 
-		for (int i = 0; i < m_nMobCapacityMax - ((int)m_mMob.size()); ++i)
+		int nMaxGenCapacity = m_nMobCapacityMax + (int)m_aMCMobGen.size();
+		for (int i = 0; i < nMaxGenCapacity - ((int)m_mMob.size()); ++i)
 		{
 			//Force generate mobGens in apGen, if there is any empty space, then randomly choose one to create.
 			auto pMobGen = apGen.size() > 0 ? apGen.back() : 
@@ -184,6 +202,17 @@ void LifePool::TryCreateMob(bool bReset)
 			}
 		}
 	}
+}
+
+void LifePool::SetMobGenEnable(bool bEnable)
+{
+	m_bMobGenEnable = bEnable;
+}
+
+void LifePool::InsertMCMobGen(MobGen *pGen)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	m_aMCMobGen.push_back(pGen);
 }
 
 void LifePool::CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller * pOwner)
@@ -299,6 +328,11 @@ void LifePool::Reset()
 {
 	RemoveAllMob(false);
 	TryCreateMob(true);
+
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	for (auto pGen : m_aMCMobGen)
+		FreeObj(pGen);
+	m_aMCMobGen.clear();
 }
 
 int LifePool::GetMobCount() const
@@ -448,6 +482,51 @@ bool LifePool::OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem *pInfo, b
 	for (auto nID : aSummon)
 		CreateMob(nID, nX, pcy, p->GetSN(), bNoDropPriority, pInfo->nType, 0, 0, 0, nullptr);
 	return true;
+}
+
+void LifePool::MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	auto pEntry = SkillInfo::GetInstance()->GetMobSkill(nSkillID);
+	const MobSkillLevelData* pLevel = nullptr;
+	if (!pEntry ||
+		!(pLevel = pEntry->GetLevelData(nSLV)))
+		return;
+
+	MobGen *pGen = nullptr;
+	for (auto& prMob : m_mMob)
+	{
+		pGen = (MobGen*)prMob.second->GetMobGen();
+		if (!pGen || pGen->nTeamForMCarnival != nTeam)
+			continue;
+
+		prMob.second->DoSkill_StateChange(
+			nSkillID,
+			nSLV,
+			pLevel,
+			0
+		);
+	}
+}
+
+void LifePool::MobStatResetByGuardian(int nTeam, int nSkillID, int nSLV)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	auto pEntry = SkillInfo::GetInstance()->GetMobSkill(nSkillID);
+	const MobSkillLevelData* pLevel = nullptr;
+	if (!pEntry ||
+		!(pLevel = pEntry->GetLevelData(nSLV)))
+		return;
+
+	MobGen *pGen = nullptr;
+	for (auto& prMob : m_mMob)
+	{
+		pGen = (MobGen*)prMob.second->GetMobGen();
+		if (!pGen || pGen->nTeamForMCarnival != nTeam)
+			continue;
+
+		prMob.second->ResetStatChangeSkill(nSkillID);
+	}
 }
 
 std::vector<Mob*> LifePool::FindAffectedMobInRect(FieldRect& rc, Mob * pExcept)

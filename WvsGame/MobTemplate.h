@@ -56,6 +56,7 @@ public:
 		m_nEVA, 
 		m_nPushed, 
 		m_nEXP, 
+		m_nGetCP,
 		m_nCategory, 
 		m_nFixedDamage,
 		m_nSummonType, 

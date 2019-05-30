@@ -81,7 +81,10 @@ void Mob::EncodeInitData(OutPacket *oPacket, bool bIsControl)
 	if (m_nSummonType == -3 || m_nSummonType >= 0)
 		oPacket->Encode4(m_nSummonOption);
 
-	oPacket->Encode1(-1); //Carnival Team
+	oPacket->Encode1(
+		m_pMobGen ? ((LifePool::MobGen*)m_pMobGen)->nTeamForMCarnival : -1
+	); //Carnival Team
+
 	if (m_nTemplateID / 10000 == 961)
 		oPacket->EncodeStr("");
 	oPacket->Encode4(0);
@@ -543,6 +546,49 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 	}
 }
 
+void Mob::ResetStatChangeSkill(int nSkillID)
+{
+
+#define CLEAR_STAT(name) \
+nFlag |= MobStat::MS_##name; \
+m_pStat->n##name = 0; \
+m_pStat->r##name = 0; \
+m_pStat->t##name = 0; 
+
+	int nFlag = 0;
+	switch (nSkillID)
+	{
+	case 140:
+		CLEAR_STAT(PImmune);
+		break;
+	case 141:
+		CLEAR_STAT(MImmune);
+		break;
+	case 150:
+		CLEAR_STAT(PAD);
+		break;
+	case 151:
+		CLEAR_STAT(MAD);
+		break;
+	case 152:
+		CLEAR_STAT(PDD);
+		break;
+	case 153:
+		CLEAR_STAT(MDD);
+		break;
+	case 154:
+		CLEAR_STAT(ACC);
+		break;
+	case 155:
+		CLEAR_STAT(EVA);
+		break;
+	case 156:
+		CLEAR_STAT(Speed);
+		break;
+	}
+	SendMobTemporaryStatReset(nFlag);
+}
+
 void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
 {
 	auto pEntry = SkillInfo::GetInstance()->GetSkillByID(pArea->GetSkillID());
@@ -611,7 +657,7 @@ void Mob::OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem)
 {
 	int nOwnType, nOwnPartyID, nLastDamageCharacterID;
 	int nOwnerID = DistributeExp(nOwnType, nOwnPartyID, nLastDamageCharacterID);
-
+	m_pField->AddCP(nLastDamageCharacterID, m_pMobTemplate->m_nGetCP);
 	GiveReward(
 		nOwnerID,
 		nOwnType,
@@ -769,7 +815,7 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 
 		while (--nPartyMemberCount >= 0)
 		{
-			if (anLevel[nPartyBonusCount] < nMinLevel)
+			if (anLevel[nPartyMemberCount] < nMinLevel)
 				continue;
 			pUser = apUser[nPartyMemberCount];
 			dIncEXP = anLevel[nPartyMemberCount] * dEXPMain / nLevelSum;

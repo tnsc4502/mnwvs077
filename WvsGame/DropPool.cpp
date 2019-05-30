@@ -116,7 +116,15 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 			nItemID = pDrop->m_pItem->nItemID;
 			if (!ItemInfo::IsTreatSingly(pDrop->m_pItem->nItemID, pDrop->m_pItem->liExpireDate))
 				nCount = ((GW_ItemSlotBundle*)pDrop->m_pItem)->nNumber;
-			bDropRemained = (QWUInventory::PickUpItem(pUser, false, pDrop->m_pItem) == false);
+
+			if (ItemInfo::GetInstance()->ConsumeOnPickup(nItemID))
+			{
+				auto *psItem = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
+				psItem->Apply(pUser, GameDateTime::GetTime(), false);
+				bDropRemained = false;
+			}
+			else
+				bDropRemained = (QWUInventory::PickUpItem(pUser, false, pDrop->m_pItem) == false);
 		}
 		pUser->SendDropPickUpResultPacket(
 			!bDropRemained,

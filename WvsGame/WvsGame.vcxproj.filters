@@ -489,6 +489,15 @@
     <ClInclude Include="Employee.h">
       <Filter>WvsGame\InGame\Field\Life\Employee</Filter>
     </ClInclude>
+    <ClInclude Include="Field_MonsterCarnival.h">
+      <Filter>WvsGame\InGame\Field</Filter>
+    </ClInclude>
+    <ClInclude Include="MCSkillEntry.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="MCGuardianEntry.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -746,6 +755,9 @@
     </ClCompile>
     <ClCompile Include="Employee.cpp">
       <Filter>WvsGame\InGame\Field\Life\Employee</Filter>
+    </ClCompile>
+    <ClCompile Include="Field_MonsterCarnival.cpp">
+      <Filter>WvsGame\InGame\Field</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

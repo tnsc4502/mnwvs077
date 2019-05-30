@@ -51,5 +51,6 @@ public:
 	void SetRemoved();
 	void CancelAllEvent();
 	void OnTime(int nEventSN);
+	const std::string& GetReactorName() const;
 };
 

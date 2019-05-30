@@ -16,10 +16,15 @@ public:
 	static void DestroySelf(lua_State* L, ScriptFieldSet* p);
 	static void Register(lua_State* L);
 	static int FieldSetEnter(lua_State* L);
+	static int FieldSetJoin(lua_State* L);
 	static int FieldSetGetVar(lua_State* L);
 	static int FieldSetSetVar(lua_State* L);
 	static int FieldSetTransferAll(lua_State* L);
+	static int FieldSetTransferParty(lua_State* L);
 	static int FieldSetGetUserCount(lua_State* L);
 	static int FieldSetIncExpAll(lua_State* L);
+	static int FieldSetResetTimeLimit(lua_State* L);
+	static int FieldSetSetMCTeam(lua_State* L);
+	static int FieldSetDestroyClock(lua_State* L);
 };
 

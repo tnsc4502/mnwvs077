@@ -493,16 +493,16 @@ bool ItemInfo::IsRechargable(int nItemID)
 	return nItemID / 10000 == 207 || nItemID / 10000 == 233;
 }
 
-bool ItemInfo::ConsumeOnPickup(int nItemID)
+int ItemInfo::ConsumeOnPickup(int nItemID)
 {
 	StateChangeItem* pItem = nullptr;
 	if (nItemID / 1000000 == 2 && (pItem = GetStateChangeItem(nItemID)) != nullptr)
 	{
 		for (auto& p : pItem->spec)
-			if (p.first == "consumeOnPickup" && p.second == 1)
-				return true;
+			if (p.first == "consumeOnPickup")
+				return p.second;
 	}
-	return false;
+	return 0;
 }
 
 bool ItemInfo::ExpireOnLogout(int nItemID)

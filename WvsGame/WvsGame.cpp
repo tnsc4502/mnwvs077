@@ -121,3 +121,10 @@ User * WvsGame::FindUserByName(const std::string & strName)
 		return nullptr;
 	return findIter->second.get();
 }
+
+void WvsGame::ShutdownService()
+{
+	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	for (auto& prUser : m_mUserMap)
+		prUser.second->OnMigrateOut();
+}

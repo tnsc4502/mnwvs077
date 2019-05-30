@@ -71,6 +71,7 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_dFs = info["fs"];
 	pTemplate->m_nSummonType = info["summonType"];
 	pTemplate->m_nEXP = info["exp"];
+	pTemplate->m_nGetCP = info["getCP"];
 	pTemplate->m_nCategory = info["category"];
 	pTemplate->m_strElemAttr = info["elemAttr"];
 	pTemplate->m_strMobType = info["mobType"];

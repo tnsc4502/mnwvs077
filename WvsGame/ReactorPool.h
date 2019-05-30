@@ -41,7 +41,7 @@ private:
 	int m_tLastCreateReactorTime,
 		m_nReactorTotalHit;
 
-	std::mutex m_mtxReactorPoolMutex;
+	std::recursive_mutex m_mtxReactorPoolMutex;
 public:
 	ReactorPool();
 	~ReactorPool();
@@ -57,6 +57,7 @@ public:
 	void RemoveReactor(Reactor *pReactor, bool bForce = false);
 	void RegisterNpc(Npc* pNpc);
 	void RemoveNpc();
+	std::recursive_mutex& GetLock();
 	void Update(int tCur);
 	void Reset(bool bShuffle);
 };

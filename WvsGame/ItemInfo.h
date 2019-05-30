@@ -128,7 +128,7 @@ public:
 	static int GetItemSlotType(int nItemID);
 	static bool IsTreatSingly(int nItemID, long long int liExpireDate);
 	static bool IsRechargable(int nItemID);
-	bool ConsumeOnPickup(int nItemID);
+	int ConsumeOnPickup(int nItemID);
 	bool ExpireOnLogout(int nItemID);
 	int GetBulletPAD(int nItemID);
 	long long int GetItemDateExpire(const std::string& sDate);

@@ -165,7 +165,7 @@ void Reactor::SetState(int nEventIdx, int tActionDelay)
 		m_nState = (m_nState + 1) % m_pTemplate->m_aStateInfo.size();
 	pInfo = m_pTemplate->GetStateInfo(m_nState);
 	m_tTimeout = pInfo->m_tTimeout;
-	m_bRemove = (pInfo->m_aEventInfo.size() == 0) && (m_pField->GetFieldSet() == nullptr || m_pTemplate->m_bRemoveInFieldSet);
+	m_bRemove = (pInfo->m_aEventInfo.size() == 0) /*&& (m_pField->GetFieldSet() == nullptr || m_pTemplate->m_bRemoveInFieldSet)*/;
 	FindAvailableAction();
 	if (m_bRemove && !m_bDestroyAfterEvent)
 		m_pField->GetReactorPool()->RemoveReactor(this);
@@ -416,6 +416,7 @@ void Reactor::CancelAllEvent()
 
 void Reactor::OnTime(int nEventSN)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_pField->GetReactorPool()->GetLock());
 	auto p = m_mEvent.find(nEventSN);
 	if (p == m_mEvent.end())
 		return;
@@ -425,4 +426,9 @@ void Reactor::OnTime(int nEventSN)
 	m_mEvent.erase(nEventSN);
 	if (m_bDestroyAfterEvent && m_mEvent.size() == 0)
 		m_pField->GetReactorPool()->RemoveReactor(this);
+}
+
+const std::string& Reactor::GetReactorName() const
+{
+	return m_sReactorName;
 }

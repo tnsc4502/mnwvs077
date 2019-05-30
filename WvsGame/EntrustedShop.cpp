@@ -333,6 +333,7 @@ void EntrustedShop::Encode(OutPacket *oPacket)
 
 void EntrustedShop::Release()
 {
+	FreeObj(this);
 }
 
 void EntrustedShop::RegisterOpenTime()

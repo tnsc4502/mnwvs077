@@ -292,6 +292,7 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 
 	//Berserk
 	oPacket->Encode1(0);
+	oPacket->Encode1(m_nTeamForMCarnival);
 
 	/*oPacket->Encode4(0);
 	oPacket->Encode4(0);
@@ -593,27 +594,28 @@ void User::OnTransferFieldRequest(InPacket * iPacket)
 		....
 	}
 	*/
-	TryTransferField(dwFieldReturn, sPortalName);
+	Portal* pPortal = m_pField->GetPortalMap()->FindPortal(sPortalName);
+	if (dwFieldReturn == -1 && pPortal == nullptr)
+		return;
+
+	TryTransferField(
+		dwFieldReturn == -1 ? pPortal->GetTargetMap() : dwFieldReturn, 
+		pPortal->GetTargetPortalName()
+	);
 }
 
 bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 {
 	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserlock);
 	SetTransferStatus(TransferStatus::eOnTransferField);
-	Portal* pPortal = m_pField->GetPortalMap()->FindPortal(sPortalName);
-	Field *pTargetField = FieldMan::GetInstance()->GetField(
-		nFieldID == -1 ?
-		pPortal->GetTargetMap() :
-		nFieldID
-	);
+	Field *pTargetField = FieldMan::GetInstance()->GetField(nFieldID);
+	Portal* pPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
 	if (pTargetField != nullptr)
 	{
-		Portal* pTargetPortal = pPortal == nullptr ?
-			pTargetField->GetPortalMap()->GetRandStartPoint() :
-			pTargetField->GetPortalMap()->FindPortal(pPortal->GetTargetPortalName());
+		Portal* pTargetPortal = 
+			pPortal == nullptr ? pTargetField->GetPortalMap()->GetRandStartPoint() : pPortal;
 
 		LeaveField();
-
 		if (GetFieldSet() && GetFieldSet() != pTargetField->GetFieldSet())
 			GetFieldSet()->OnLeaveFieldSet(GetUserID());
 
@@ -2151,6 +2153,16 @@ void User::PostHPToPartyMembers()
 				pUser->SendPacket(&oPacket);
 		}
 	}
+}
+
+int User::GetMCarnivalTeam() const
+{
+	return m_nTeamForMCarnival;
+}
+
+void User::SetMCarnivalTeam(int nTeam)
+{
+	m_nTeamForMCarnival = nTeam;
 }
 
 void User::AddGuildInvitedCharacterID(int nCharacterID)

@@ -200,6 +200,7 @@
     <ClInclude Include="ActSP.h" />
     <ClInclude Include="FieldRect.h" />
     <ClInclude Include="FieldSet.h" />
+    <ClInclude Include="Field_MonsterCarnival.h" />
     <ClInclude Include="FootholdTree.h" />
     <ClInclude Include="FriendMan.h" />
     <ClInclude Include="GuildMan.h" />
@@ -214,6 +215,8 @@
     <ClInclude Include="LuminousSkills.h" />
     <ClInclude Include="MagicSkills.h" />
     <ClInclude Include="ManagerSkills.h" />
+    <ClInclude Include="MCGuardianEntry.h" />
+    <ClInclude Include="MCSkillEntry.h" />
     <ClInclude Include="MechanicSkills.h" />
     <ClInclude Include="MercedesSkills.h" />
     <ClInclude Include="MihileSkills.h" />
@@ -316,6 +319,7 @@
     <ClCompile Include="FieldMan.cpp" />
     <ClCompile Include="FieldObj.cpp" />
     <ClCompile Include="FieldSet.cpp" />
+    <ClCompile Include="Field_MonsterCarnival.cpp" />
     <ClCompile Include="FootholdTree.cpp" />
     <ClCompile Include="FriendMan.cpp" />
     <ClCompile Include="GuildMan.cpp" />

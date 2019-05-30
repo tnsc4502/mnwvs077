@@ -45,7 +45,7 @@ void ReactorPool::Init(Field * pField, void * pImg)
 
 void ReactorPool::TryCreateReactor(bool bReset)
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	std::vector<ReactorGen*> aGen;
 
 	auto tCur = GameDateTime::GetTime();
@@ -103,7 +103,7 @@ void ReactorPool::CreateReactor(ReactorGen * pPrg)
 
 void ReactorPool::OnEnter(User * pUser)
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	for (auto& pReactor : m_mReactor)
 	{
 		OutPacket oPacket;
@@ -126,7 +126,7 @@ void ReactorPool::OnPacket(User *pUser, int nType, InPacket * iPacket)
 
 void ReactorPool::OnHit(User *pUser, InPacket *iPacket)
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	int nID = iPacket->Decode4();
 	auto pFindIter = m_mReactor.find(nID);
 	if (pFindIter == m_mReactor.end())
@@ -136,7 +136,7 @@ void ReactorPool::OnHit(User *pUser, InPacket *iPacket)
 
 void ReactorPool::SetState(const std::string &sName, int nState)
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	auto findNameIter = m_mReactorName.find(sName);
 	if (findNameIter == m_mReactorName.end())
 		return;
@@ -149,7 +149,7 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 	auto pInfo = pReactor->m_pTemplate->GetStateInfo(nState);
 
 	if (((!pInfo || pInfo->m_aEventInfo.size() == 0) && !m_pField->GetFieldSet())
-		|| !pReactor->m_pTemplate->RemoveInFieldSet())
+		/*|| !pReactor->m_pTemplate->RemoveInFieldSet()*/)
 		RemoveReactor(pReactor);
 	else
 	{
@@ -161,7 +161,7 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 
 void ReactorPool::RemoveAllReactor()
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	for (auto prReactor : m_mReactor)
 		RemoveReactor(prReactor.second, true);
 }
@@ -180,27 +180,35 @@ void ReactorPool::RemoveReactor(Reactor * pReactor, bool bForce)
 	m_pField->BroadcastPacket(&oPacket);
 	m_mReactorName.erase(((ReactorGen*)pReactor->m_pReactorGen)->sName);
 	m_mReactor.erase(pReactor->m_nFieldObjectID);
-	if(!pReactor->m_bDestroyAfterEvent)
-		FreeObj( pReactor );
+	if (!pReactor->m_bDestroyAfterEvent) 
+	{
+		m_pField->OnReactorDestroyed(pReactor);
+		FreeObj(pReactor);
+	}
 }
 
 void ReactorPool::RegisterNpc(Npc * pNpc)
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	m_lNpc.push_back(pNpc);
 }
 
 void ReactorPool::RemoveNpc()
 {
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	for (auto& pNpc : m_lNpc)
 		m_pField->GetLifePool()->RemoveNpc(pNpc);
+}
+
+std::recursive_mutex& ReactorPool::GetLock()
+{
+	return m_mtxReactorPoolMutex;
 }
 
 void ReactorPool::Update(int tCur)
 {
 	TryCreateReactor(false);
-	std::lock_guard<std::mutex> lock(m_mtxReactorPoolMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
 	for (auto& prReactor : m_mReactor)
 		prReactor.second->DoActionByUpdateEvent();
 }

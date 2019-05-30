@@ -20,6 +20,7 @@ class MiniRoomBase;
 
 class LifePool
 {
+public:
 	const static int MAX_WINDOW_VIEW_X = 1280, 
 		MAX_WINDOW_VIEW_Y = 1024, 
 		MAX_MOB_GEN = 40,
@@ -30,14 +31,16 @@ class LifePool
 		Mob mob;
 		int nRegenAfter = 0, 
 			nRegenInterval = 0, 
+			nTeamForMCarnival = -1,
 			nMobCount = 0;
 	};
 
+private:
 	std::atomic<int> atomicObjectCounter = 0x1000;
 	std::recursive_mutex m_lifePoolMutex;
 
 	std::vector<Npc> m_lNpc;
-	std::vector<MobGen*> m_aMobGen;
+	std::vector<MobGen*> m_aMobGen, m_aMCMobGen;
 	std::map<int, Mob*> m_mMob;
 	std::map<int, Npc*> m_mNpc;
 	std::map<int, Employee*> m_mEmployee;
@@ -69,6 +72,8 @@ public:
 	Npc* CreateNpc(const Npc&);
 	void TryCreateMob(bool bReset);
 
+	void SetMobGenEnable(bool bEnable);
+	void InsertMCMobGen(MobGen* pGen);
 	void CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
 	void CreateMob(const Mob&, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
 	void RemoveNpc(Npc *pNpc);
@@ -78,15 +83,15 @@ public:
 	int GetMobCount() const;
 	Employee* CreateEmployee(int x, int y, int nEmployerID, const std::string& sEmployerName, MiniRoomBase* pMiniRoom, int nFh);
 	void RemoveEmployee(int nEmployerID);
-
 	void Init(Field* pField, int nFieldID);
 	void OnEnter(User* pUser);
-
 	void InsertController(User* pUser);
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
 	bool GiveUpMobController(Controller* pController);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
+	void MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV);
+	void MobStatResetByGuardian(int nTeam, int nSkillID, int nSLV);
 	std::vector<Mob*> FindAffectedMobInRect(FieldRect& rc, Mob* pExcept);
 
 	void RedistributeLife();

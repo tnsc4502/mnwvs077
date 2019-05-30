@@ -139,7 +139,7 @@ private:
 	std::set<int> m_snPartyInvitedCharacterID, m_snGuildInvitedCharacterID;
 
 	//Party
-	int m_nPartyID = -1;
+	int m_nPartyID = -1, m_nTeamForMCarnival = -1;
 
 	//Guild
 	std::string m_sGuildName;
@@ -291,6 +291,8 @@ public:
 	void SetPartyID(int nPartyID);
 	int GetPartyID() const;
 	void PostHPToPartyMembers();
+	int GetMCarnivalTeam() const;
+	void SetMCarnivalTeam(int nTeam);
 
 	//Guild
 	void AddGuildInvitedCharacterID(int nCharacterID);

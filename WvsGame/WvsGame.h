@@ -45,4 +45,6 @@ public:
 
 	User* FindUser(int nUserID);
 	User* FindUserByName(const std::string& strName);
+
+	void ShutdownService();
 };

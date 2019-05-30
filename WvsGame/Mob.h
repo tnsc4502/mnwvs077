@@ -86,6 +86,7 @@ public:
 	void DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay);
 	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, int tCur);
+	void ResetStatChangeSkill(int nSkillID);
 	void OnMobInAffectedArea(AffectedArea *pArea, int tCur);
 	void SendMobTemporaryStatSet(int nSet, int tDelay);
 	void SendMobTemporaryStatReset(int nSet);

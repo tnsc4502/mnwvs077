@@ -56,11 +56,22 @@ MAKE_FIELD_SEND_PACKET_FLAG(Field_OnFootHoldInfo, 100);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_TrunkRequest, 222);
 MAKE_FIELD_SEND_PACKET_FLAG(Field_MiniRoomRequest, 227);
 
+
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_OnEnter, 208);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_SendPersonalCP, 209);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_SendTeamCP, 210);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_OnRequestResult_Success, 211);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_OnRequestResult_Failed, 212);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_OnProcessForDeath, 213);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_ShowMemberOutMsg, 214);
+MAKE_FIELD_SEND_PACKET_FLAG(Field_MCarnival_ShowGameResult, 215);
+
 //結束Opcode Flag註冊
 FLAG_COLLECTION_BODY_END
 
 MAKE_FLAG_COLLECTION_BODY(FieldRecvPacketFlag)
 //以下開始註冊封包Opcode Flag
+MAKE_FIELD_RECV_PACKET_FLAG(Field_MCarnival_OnRequest, 0xA9);
 MAKE_FIELD_RECV_PACKET_FLAG(Field_OnContiMoveStateRequest, 171);
 
 //結束Opcode Flag註冊
