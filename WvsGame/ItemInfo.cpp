@@ -701,12 +701,20 @@ bool ItemInfo::IsPet(int nItemID)
 	return nTI == GW_ItemSlotBase::CASH && (nPrefix % 10 == 0);
 }
 
-int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nAttackType, int *pnACCInc, int *pnPADInc)
+int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSkillID, int nAttackType, int *pnACCInc, int *pnPADInc)
 {
 	int nWT = GetWeaponType(nWeaponID);
 	int nResult1 = 0, nResult2 = 0;
 	switch (nWT)
 	{
+	case 49:
+		if (nAttackType != 1 && (nSkillID != 5221003 || nAttackType))
+			return 0;
+		return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 5200000, nullptr, pnACCInc);;
+		case 48:
+			if (nAttackType && (nSkillID != 5121002 || nAttackType != 1))
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 5100001, nullptr, pnACCInc);
 		case 47:
 			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 4100000, nullptr, pnACCInc);
 		case 46:
@@ -763,7 +771,7 @@ int ItemInfo::GetWeaponType(int nItemID)
 
 	if (nItemID / 1000000 != 1
 		|| (result = nItemID / 10000 % 100, result < 30)
-		|| result > 33 && (result <= 36 || result > 38 && (result <= 39 || result > 47)))
+		|| result > 33 && (result <= 36 || result > 49))
 	{
 		result = 0;
 	}
@@ -781,7 +789,7 @@ int ItemInfo::GetCriticalSkillLevel(GA_Character * pCharacter, int nWeaponID, in
 	{
 		if (nAttackType != 1)
 			return 0;
-		if (nWT == 46)
+		if (nWT == 45 || nWT == 46)
 			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 3000001, &pEntry, 0, 0, 0, 0);
 		else if(nWT == 47)
 			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 4100001, &pEntry, 0, 0, 0, 0);

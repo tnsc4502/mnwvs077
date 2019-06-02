@@ -12,6 +12,8 @@ class MobTemplate
 	static WZ::Node* m_MobWzProperty;
 
 public:
+	const static int MAX_DAMAGED_ELEM_ATTR = 8;
+
 	struct MobSkillContext
 	{
 		int nSkillID = 0, 
@@ -33,6 +35,7 @@ public:
 	//cloneNewOne為true，代表不使用共用屬性 (用於複寫特定怪物屬性)
 	static MobTemplate* GetMobTemplate(int dwTemplateID, bool bCloneNewOne = false);
 	static void RegisterMob(int dwTemplateID);
+	static int GetElementAttribute(const char *s, int *aElemAttr);
 	void MakeSkillContext();
 	int GetSkillIndex(int nSkillID, int nSLV);
 	void SetMobCountQuestInfo(User *pUser) const;
@@ -59,21 +62,24 @@ public:
 		m_nGetCP,
 		m_nCategory, 
 		m_nFixedDamage,
+		m_nFlySpeed,
 		m_nSummonType, 
-		m_nMoveAbility;
+		m_nMoveAbility,
+		m_aDamagedElemAttr[MAX_DAMAGED_ELEM_ATTR] = { 0 }
+	;
 
 	bool 
 		m_bIsBodyAttack, 
 		m_bIsChangeableMob, 
 		m_bIsDamagedByMob, 
 		m_bIsSmartPhase, 
+		m_bInvincible,
 		m_bOnlyNormalAttack,
 		m_bIsExplosiveDrop,
 		m_bIsBoss = false,
 		m_bIsTargetFromSrv = true;
 
 	double m_dFs;
-
 	std::string m_strElemAttr, m_strMobType;
 
 	/*void SetMaxHP(long long int maxHp);

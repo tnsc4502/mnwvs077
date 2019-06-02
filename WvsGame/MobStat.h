@@ -1,6 +1,7 @@
 #pragma once
-class OutPacket;
+#include "MobTemplate.h"
 
+class OutPacket;
 class MobStat
 {
 public:
@@ -10,15 +11,12 @@ public:
 	};
 
 private:
-#define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name = 0, r##name = 0, t##name = 0;
+#define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name##_ = 0, r##name##_ = 0, t##name##_ = 0;
 	friend class Mob;
-	const static int MAX_DAMAGED_ELEM_ATTR = 8;
-
 	int nFlagSet = 0;
 	BurnedInfo burnedInfo;
 
 public:
-
 	ADD_MOB_STAT(PAD, 0);
 	ADD_MOB_STAT(PDD, 1);
 	ADD_MOB_STAT(MAD, 2);
@@ -49,12 +47,22 @@ public:
 	ADD_MOB_STAT(Dazzle, 27);
 	ADD_MOB_STAT(Burned, 28);
 
+	int nPAD = 0,
+		nPDD = 0,
+		nMAD = 0,
+		nMDD = 0,
+		nACC = 0,
+		nEVA = 0,
+		nSpeed = 0,
+		nLevel = 0;
+	double dFs = 0;
 	bool bInvincible = false;
-	int aDamagedElemAttr[MAX_DAMAGED_ELEM_ATTR] = { 0 };
+	int aDamagedElemAttr[MobTemplate::MAX_DAMAGED_ELEM_ATTR] = { 0 };
 
 	MobStat();
 	~MobStat();
 
+	void SetFrom(const MobTemplate *pTemplate);
 	void EncodeTemporary(int nSet, OutPacket *oPacket, int tCur);
 	int ResetTemporary(int tCur);
 };

@@ -185,7 +185,7 @@ bool Mob::OnMobMove(bool bNextAttackPossible, int nAction, int nData, unsigned c
 bool Mob::DoSkill(int nSkillID, int nSLV, int nOption)
 {
 	int nIdx = -1;
-	if (m_pStat->nSealSkill ||
+	if (m_pStat->nSealSkill_ ||
 		m_nSkillCommand != nSkillID ||
 		(nIdx = m_pMobTemplate->GetSkillIndex(nSkillID, nSLV)) < 0)
 		return false;
@@ -283,9 +283,9 @@ void Mob::DoSkill_StateChange(int nSkillID, int nSLV, const MobSkillLevelData * 
 #define REGISTER_MOB_STAT(name, value) \
 nFlagSet |= MobStat::MS_##name; \
 m_pStat->nFlagSet &= ~(MobStat::MS_##name); \
-m_pStat->n##name = bResetBySkill ? 0 : value; \
-m_pStat->r##name = bResetBySkill ? 0 : nSkillID | (nSLV << 16); \
-m_pStat->t##name = bResetBySkill ? 0 : GameDateTime::GetTime() + nDuration; \
+m_pStat->n##name##_ = bResetBySkill ? 0 : value; \
+m_pStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16); \
+m_pStat->t##name##_ = bResetBySkill ? 0 : GameDateTime::GetTime() + nDuration; \
 if(!bResetBySkill) {\
 	m_pStat->nFlagSet |= (MobStat::MS_##name); \
 }\
@@ -481,7 +481,7 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, int tCur)
 {
 	*nSkillCommand = 0;
-	if (m_pStat->nSealSkill)
+	if (m_pStat->nSealSkill_)
 		return;
 	if (m_pMobTemplate->m_aMobSkill.size() == 0)
 		return;
@@ -516,25 +516,25 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 				(pLevel->anTemplateID.size() <= 0 || m_nSkillSummoned >= pLevel->nLimit))
 				continue;
 			else if (nSkillID == 142 &&
-				(m_pStat->nHardSkin && std::abs(100 - m_pStat->nHardSkin) >= std::abs(100 - pLevel->nX)))
+				(m_pStat->nHardSkin_ && std::abs(100 - m_pStat->nHardSkin_) >= std::abs(100 - pLevel->nX)))
 				continue;
 		}
 		else if (nSkillID < 140)
 		{
 			if (nSkillID == 110 &&
-				(m_pStat->nPowerUp && std::abs(100 - m_pStat->nPowerUp) >= std::abs(100 - pLevel->nX)))
+				(m_pStat->nPowerUp_ && std::abs(100 - m_pStat->nPowerUp_) >= std::abs(100 - pLevel->nX)))
 				continue;
 			else if (nSkillID == 111 &&
-				(m_pStat->nMagicUp && std::abs(100 - m_pStat->nMagicUp) >= std::abs(100 - pLevel->nX)))
+				(m_pStat->nMagicUp_ && std::abs(100 - m_pStat->nMagicUp_) >= std::abs(100 - pLevel->nX)))
 				continue;
 			else if (nSkillID == 112 &&
-				(m_pStat->nPGuardUp && std::abs(100 - m_pStat->nPGuardUp) >= std::abs(100 - pLevel->nX)))
+				(m_pStat->nPGuardUp_ && std::abs(100 - m_pStat->nPGuardUp_) >= std::abs(100 - pLevel->nX)))
 				continue;
 			else if (nSkillID == 113 &&
-				(m_pStat->nMGuardUp && std::abs(100 - m_pStat->nMGuardUp) >= std::abs(100 - pLevel->nX)))
+				(m_pStat->nMGuardUp_ && std::abs(100 - m_pStat->nMGuardUp_) >= std::abs(100 - pLevel->nX)))
 				continue;
 		}
-		else if (m_pStat->nPImmune || m_pStat->nMImmune)
+		else if (m_pStat->nPImmune_ || m_pStat->nMImmune_)
 			continue;
 		aNextSkill.push_back(i);
 	}
@@ -552,9 +552,9 @@ void Mob::ResetStatChangeSkill(int nSkillID)
 #define CLEAR_STAT(name) \
 nFlag |= MobStat::MS_##name; \
 m_pStat->nFlagSet &= ~(MobStat::MS_##name);\
-m_pStat->n##name = 0; \
-m_pStat->r##name = 0; \
-m_pStat->t##name = 0; 
+m_pStat->n##name##_ = 0; \
+m_pStat->r##name##_ = 0; \
+m_pStat->t##name##_ = 0; 
 
 	int nFlag = 0;
 	switch (nSkillID)
@@ -604,9 +604,9 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
 			if (m_pMobTemplate->m_bOnlyNormalAttack)
 				nValue = 0;
 
-			m_pStat->nPoison = nValue;
-			m_pStat->tPoison = pLevel->m_nTime + tCur;
-			m_pStat->rPoison = 2111003;
+			m_pStat->nPoison_ = nValue;
+			m_pStat->tPoison_ = pLevel->m_nTime + tCur;
+			m_pStat->rPoison_ = 2111003;
 			m_tLastUpdatePoison = tCur;
 			SendMobTemporaryStatSet(MobStat::MS_Poison, tCur);
 		}
@@ -919,6 +919,8 @@ void Mob::SetMP(long long int liMP)
 void Mob::SetMobStat(MobStat * pStat)
 {
 	m_pStat = pStat;
+	if (m_pStat)
+		m_pStat->SetFrom(GetMobTemplate());
 }
 
 MobStat* Mob::GetMobStat()
@@ -977,12 +979,12 @@ void Mob::Update(int tCur)
 void Mob::UpdatePoison(int tCur)
 {
 	int tTime = tCur;
-	if (m_pStat->nPoison > 0)
+	if (m_pStat->nPoison_ > 0)
 	{
-		if (tTime < m_pStat->tPoison)
-			tTime = m_pStat->tPoison;
+		if (tTime < m_pStat->tPoison_)
+			tTime = m_pStat->tPoison_;
 		int nTimes = (tTime - m_tLastUpdatePoison) / 1000;
-		int nDamage = m_pStat->nPoison;
+		int nDamage = m_pStat->nPoison_;
 		if (m_pMobTemplate->m_nFixedDamage)
 			nDamage = m_pMobTemplate->m_nFixedDamage;
 		if (m_pMobTemplate->m_bOnlyNormalAttack)

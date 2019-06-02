@@ -643,4 +643,12 @@ namespace WvsGameConstants
 			result = true;
 		return result;
 	}
+
+	static bool IsCorrectJobForSkillRoot(int nJob, int nSkillRoot)
+	{
+		if (nSkillRoot % 100)
+			return (nSkillRoot / 10 == nJob / 10) && (nJob % 10 >= nSkillRoot % 10);
+		else
+			return (nSkillRoot / 100 == nJob / 100);
+	}
 }

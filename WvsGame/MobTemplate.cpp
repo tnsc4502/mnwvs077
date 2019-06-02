@@ -69,13 +69,16 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_nEVA = info["eva"];
 	pTemplate->m_nPushed = info["pushed"];
 	pTemplate->m_dFs = info["fs"];
+	pTemplate->m_nFlySpeed = info["flySpeed"];
 	pTemplate->m_nSummonType = info["summonType"];
 	pTemplate->m_nEXP = info["exp"];
 	pTemplate->m_nGetCP = info["getCP"];
 	pTemplate->m_nCategory = info["category"];
 	pTemplate->m_strElemAttr = info["elemAttr"];
+	GetElementAttribute(pTemplate->m_strElemAttr.c_str(), pTemplate->m_aDamagedElemAttr);
 	pTemplate->m_strMobType = info["mobType"];
 	pTemplate->m_nFixedDamage = info["fixedDamage"];
+	pTemplate->m_bInvincible = ((int)info["invincible"] == 1);
 	pTemplate->m_bIsExplosiveDrop = ((int)info["explosiveReward"] == 1);
 	pTemplate->m_bOnlyNormalAttack = ((int)info["onlyNormalAttack"] == 1);
 	pTemplate->m_bIsBoss = ((int)info["boss"] == 1);
@@ -101,6 +104,114 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 		pTemplate->m_unTotalRewardProb += pInfo->m_unWeight;
 
 	(*m_MobTemplates)[dwTemplateID] = pTemplate;
+}
+
+int MobTemplate::GetElementAttribute(const char *s, int *aElemAttr)
+{
+	const char *v2; 
+	unsigned __int16 v3;
+	unsigned __int16 v4;
+	int v5; 
+	bool v6;
+	int v7; 
+	int v8; 
+
+	if (!s)
+		return 1;
+	v2 = s;
+	if (!*s)
+		return 1;
+	while (1)
+	{
+		v3 = *v2;
+		v4 = v2[1];
+		++v2;
+		v5 = 0;
+		if (!v4)
+			goto LABEL_40;
+		do
+		{
+			if (v4 < 0x30u)
+				break;
+			if (v4 > 0x39u)
+				break;
+			v5 = v4 + 10 * v5 - 48;
+			++v2;
+			v4 = *v2;
+		} while (*v2);
+		if (!v5)
+			LABEL_40:
+		v5 = 0;
+		if ((signed int)v3 > 100)
+			break;
+		if (v3 == 100)
+			goto LABEL_41;
+		if ((signed int)v3 > 76)
+		{
+			v7 = v3 - 80;
+			v6 = v3 == 80;
+			goto LABEL_25;
+		}
+		if (v3 == 76)
+			goto LABEL_31;
+		if (v3 == 68)
+		{
+		LABEL_41:
+			aElemAttr[6] = v5;
+			goto LABEL_34;
+		}
+		if (v3 == 70)
+			goto LABEL_33;
+		if (v3 == 72)
+			goto LABEL_32;
+		if (v3 != 73)
+			return 0;
+	LABEL_17:
+		aElemAttr[1] = v5;
+	LABEL_34:
+		if (!*v2)
+			return 1;
+	}
+	if (v3 == 102)
+	{
+	LABEL_33:
+		aElemAttr[2] = v5;
+		goto LABEL_34;
+	}
+	if (v3 == 104)
+	{
+	LABEL_32:
+		aElemAttr[5] = v5;
+		goto LABEL_34;
+	}
+	if (v3 == 105)
+		goto LABEL_17;
+	if (v3 == 108)
+	{
+	LABEL_31:
+		aElemAttr[3] = v5;
+		goto LABEL_34;
+	}
+	v7 = v3 - 112;
+	v6 = v3 == 112;
+LABEL_25:
+	if (v6)
+	{
+		*aElemAttr = v5;
+		goto LABEL_34;
+	}
+	v8 = v7 - 3;
+	if (!v8)
+	{
+		aElemAttr[4] = v5;
+		goto LABEL_34;
+	}
+	if (v8 == 2)
+	{
+		aElemAttr[7] = v5;
+		goto LABEL_34;
+	}
+	return 0;
 }
 
 void MobTemplate::MakeSkillContext()

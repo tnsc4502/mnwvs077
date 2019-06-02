@@ -620,63 +620,112 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 
 #include "CalcDamage.h"
 
-void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo * pInfo)
+void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo *pInfo)
 {
 	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
+	for (auto& iterDmgInfo : pInfo->m_mDmgInfo)
+	{
+		auto& dmgInfo = iterDmgInfo.second;
+		auto mobIter = m_mMob.find(iterDmgInfo.first);
+		if (mobIter == m_mMob.end())
+			continue;
+		auto pMob = mobIter->second;
 
+		dmgInfo.pMob = pMob;
+		if (pInfo->m_nAttackType == 2)
+			pUser->GetCalcDamage()->MDamage(
+				pMob,
+				pMob->GetMobStat(),
+				pInfo->GetDamageCountPerMob(),
+				pInfo->m_nWeaponItemID,
+				pInfo->m_nAction,
+				pSkill,
+				pInfo->m_nSLV,
+				dmgInfo.anDamageSrv,
+				dmgInfo.abDamageCriticalSrv,
+				pInfo->GetDamagedMobCount(),
+				pInfo->m_tKeyDown
+			);
+		else
+			pUser->GetCalcDamage()->PDamage(
+				pMob,
+				pMob->GetMobStat(),
+				pInfo->GetDamageCountPerMob(),
+				pInfo->m_nWeaponItemID,
+				pInfo->m_nBulletItemID,
+				pInfo->m_nSkillID == 0 ? 0 : pInfo->m_nAttackType,
+				pInfo->m_nAction,
+				false,
+				pSkill,
+				pInfo->m_nSLV,
+				dmgInfo.anDamageSrv,
+				dmgInfo.abDamageCriticalSrv,
+				pInfo->m_tKeyDown,
+				0,
+				0
+			);
+		/*for (int i = 0; i < 8; ++i)
+			WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
+				i, dmgInfo.anDamageSrv[i], 0, dmgInfo.abDamageCriticalSrv[i]);*/
+
+		long long int liTotalDmgClient = 0, liTotalDmgSrv = 0;
+		//Inspection
+		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
+		{
+			liTotalDmgClient += dmgInfo.anDamageClient[i];
+			liTotalDmgSrv += dmgInfo.anDamageSrv[i];
+
+			if ((double)dmgInfo.anDamageClient[i] >= (double)dmgInfo.anDamageSrv[i] * 1.3)
+			{
+				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably hacking 
+				{
+					pUser->SendChatMessage(0, "Suspicious Attacking.");
+					dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
+					continue;
+				}
+				else //Possible that critial damages were yielded in the client but not in the server. 
+					dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i] = true;
+			} 
+			//If not, that means the calculations are very close
+			else if(dmgInfo.anDamageClient[i] > (double)dmgInfo.anDamageSrv[i]
+				|| dmgInfo.anDamageSrv[i] >= (double)dmgInfo.anDamageClient[i] * 1.4)
+				dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i];
+
+			dmgInfo.anDamageSrv[i] = dmgInfo.anDamageClient[i];
+		}
+
+		if (liTotalDmgClient > liTotalDmgSrv * 2.2)
+			pUser->GetCalcDamage()->IncInvalidCount();
+		else
+			pUser->GetCalcDamage()->DecInvalidCount();
+	}
 	OutPacket attackPacket;
 	EncodeAttackInfo(pUser, pInfo, &attackPacket);
 	m_pField->SplitSendPacket(&attackPacket, nullptr);
 
-	for (const auto& dmgInfo : pInfo->m_mDmgInfo)
+	//Apply damages to the monster
+	for (auto& iter : pInfo->m_mDmgInfo) 
 	{
-		auto mobIter = m_mMob.find(dmgInfo.first);
-		if (mobIter == m_mMob.end())
-			continue;
-		auto pMob = mobIter->second;
-		int aDamage[8] = { 0 };
-		int abCritical[8] = { 0 };
-		pUser->GetCalcDamage()->PDamage(
-			pMob,
-			pMob->GetMobStat(),
-			pInfo->m_nDamagePerMob,
-			pInfo->m_nWeaponItemID,
-			pInfo->m_nBulletItemID,
-			pInfo->m_nAttackType,
-			pInfo->m_nAction,
-			false,
-			pSkill,
-			pInfo->m_nSLV,
-			aDamage,
-			abCritical,
-			0,
-			0,
-			0
-		);
-		for (int i = 0; i < 8; ++i)
-			WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
-				i, aDamage[i], 0, abCritical[i]);
-
-		auto& refDmgValues = dmgInfo.second;
-		for (const auto& dmgValue : refDmgValues)
+		auto& dmgInfo = iter.second;
+		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
 		{
-			//printf("Monster %d Damaged : %d Total : %d\n", dmgInfo.first, dmgValue, pMob->GetMobTemplate()->m_lnMaxHP);
-			pMob->OnMobHit(pUser, dmgValue, pInfo->m_nType);
-			if (pMob->GetHP() <= 0)
+			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
+			if (dmgInfo.pMob->GetHP() <= 0)
 			{
-				pMob->OnMobDead(
+				dmgInfo.pMob->OnMobDead(
 					pInfo->m_nX,
 					pInfo->m_nY,
 					pUser->GetSecondaryStat()->nMesoUp_,
 					pUser->GetSecondaryStat()->nMesoUpByItem_
 				);
-				pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
-				RemoveMob(pMob);
+				dmgInfo.pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
+				RemoveMob(dmgInfo.pMob);
 				break;
 			}
 		}
 	}
 }
+
 
 void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oPacket)
 {
@@ -695,15 +744,17 @@ void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oP
 	oPacket->Encode1(pInfo->m_nAttackActionType);
 	oPacket->Encode1(pInfo->m_nAttackSpeed);
 
-	oPacket->Encode4(pInfo->m_nCsStar);
+	oPacket->Encode4(pInfo->m_nCsStar ? pInfo->m_nCsStar : pInfo->m_nBulletItemID);
 	for (const auto& dmgInfo : pInfo->m_mDmgInfo)
 	{
 		oPacket->Encode4(dmgInfo.first);
 		oPacket->Encode1(7);
 		if (pInfo->m_nSkillID == 4211006)
-			oPacket->Encode1((char)dmgInfo.second.size());
-		for (const auto& dmgValue : dmgInfo.second)
-			oPacket->Encode4((int)dmgValue);
+			oPacket->Encode1((char)pInfo->GetDamageCountPerMob());
+		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
+			oPacket->Encode4(
+			(int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31)
+			);
 	}
 
 	if (pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)

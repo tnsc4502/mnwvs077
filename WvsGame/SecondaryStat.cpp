@@ -102,9 +102,9 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 	}
 
 	int nAttackType = 0, nACCInc = 0, nPADInc = 0;
-	if (nJobType == 3 || nJob / 10 == 41)
+	if (nJobType == 3 || nJob / 10 == 41 || nJob / 10 == 52)
 		nAttackType = 1;
-	if (ItemInfo::GetWeaponMastery(pChar, pWeapon ? pWeapon->nItemID : 0, nAttackType, &nACCInc, &nPADInc))
+	if (ItemInfo::GetWeaponMastery(pChar, pWeapon ? pWeapon->nItemID : 0, 0, nAttackType, &nACCInc, &nPADInc))
 	{
 		nACC += nACCInc;
 		nPAD += nPADInc;

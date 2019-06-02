@@ -151,6 +151,7 @@ private:
 	bool m_bHasOpenedEntrustedShop = false;
 
 	void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket);
+	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
 	AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
 	AttackInfo* TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
 	AttackInfo* TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);

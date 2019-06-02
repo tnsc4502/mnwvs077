@@ -2,6 +2,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Random\Rand32.h"
+#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_SkillRecord.h"
 #include "ItemInfo.h"
@@ -229,6 +230,87 @@ int SkillInfo::GetElementAttribute(const char *s, int *nElemAttr)
 LABEL_31:
 	*nElemAttr = 0;
 	return result;
+}
+
+int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID, int *pnIncMPCon)
+{
+	SkillEntry *pEntry = nullptr;
+	const SkillLevelData *pLevel = nullptr;
+	int nSLV = 0;
+	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 211))
+	{
+		nSLV = GetSkillLevel(pCharacter, 2110001, &pEntry, 0, 0, 0, 0);
+		if (nSLV)
+			pLevel = pEntry->GetLevelData(nSLV);
+	}
+	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 221))
+	{
+		nSLV = GetSkillLevel(pCharacter, 2210001, &pEntry, 0, 0, 0, 0);
+		if (nSLV)
+			pLevel = pEntry->GetLevelData(nSLV);
+	}
+	bool bCheck = false;
+	int nRet = 100;
+	if (pnIncMPCon)
+		*pnIncMPCon = 0;
+	if (pLevel && pnIncMPCon)
+	{
+		if (nSkillID <= 2121007)
+		{
+			if (nSkillID < 2121006)
+			{
+				if (nSkillID <= 2111006)
+				{
+					if (nSkillID != 2111006
+						&& (nSkillID < 2001004
+							|| nSkillID > 2001005
+							&& (nSkillID <= 2101003 || nSkillID > 2101005 && (nSkillID <= 2111001 || nSkillID > 2111003))))
+					{
+						goto LABEL_37;
+					}
+					goto LABEL_36;
+				}
+				if (nSkillID != 2121001)
+				{
+					bCheck = nSkillID == 2121003;
+					goto LABEL_24;
+				}
+			}
+			goto LABEL_36;
+		}
+		if (nSkillID > 2221001)
+		{
+			if (nSkillID != 2221003 && (nSkillID <= 2221005 || nSkillID > 2221007))
+				goto LABEL_37; //2221002 2221004 2221005 2221008 ~
+			goto LABEL_36; //2221003
+		}
+		if (nSkillID == 2221001)
+		{
+		LABEL_36:
+			*pnIncMPCon = pLevel->m_nX;
+			goto LABEL_37;
+		}
+		if (nSkillID >= 2201004)
+		{
+			if (nSkillID <= 2201005)
+				goto LABEL_36; //2211005
+			if (nSkillID > 2211001)
+			{
+				if (nSkillID > 2211003)
+				{
+					bCheck = nSkillID == 2211006;
+				LABEL_24:
+					if (!bCheck)
+						goto LABEL_37; //2211004 2211005
+					goto LABEL_36; //2211006
+				}
+				goto LABEL_36; //2211002
+			}
+		}
+	LABEL_37:
+		nRet = pLevel->m_nY;
+	}
+	return nRet;
 }
 
 void SkillInfo::LoadMobSkill()

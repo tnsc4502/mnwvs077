@@ -1,4 +1,5 @@
 #include "MobStat.h"
+#include "MobTemplate.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
 MobStat::MobStat()
@@ -11,17 +12,35 @@ MobStat::~MobStat()
 }
 
 #define CHECK_MOB_FLAG(f_) if(nSet & MS_##f_) { \
-oPacket->Encode2(n##f_); \
-oPacket->Encode4(r##f_); \
-oPacket->Encode2((t##f_ - tCur) / 500); \
+oPacket->Encode2(n##f_##_); \
+oPacket->Encode4(r##f_##_); \
+oPacket->Encode2((t##f_##_ - tCur) / 500); \
 }\
 
-#define CHECK_MOB_STAT_TIMEOUT(f_) if(n##f_ > 0 && tCur - t##f_ > 0) { \
+#define CHECK_MOB_STAT_TIMEOUT(f_) if(n##f_##_ > 0 && tCur - t##f_##_ > 0) { \
 nSet |= MS_##f_; \
-n##f_ = 0; \
-r##f_ = 0; \
-t##f_ = 0; \
+n##f_##_ = 0; \
+r##f_##_ = 0; \
+t##f_##_ = 0; \
 nFlagSet &= ~(MS_##f_);\
+}
+
+void MobStat::SetFrom(const MobTemplate * pTemplate)
+{
+	nLevel = pTemplate->m_nLevel;
+	memcpy(aDamagedElemAttr, pTemplate->m_aDamagedElemAttr, sizeof(aDamagedElemAttr));
+	nPAD = pTemplate->m_nPAD;
+	nPDD = pTemplate->m_nPDD;
+	nMAD = pTemplate->m_nMAD;
+	nMDD = pTemplate->m_nMDD;
+	nACC = pTemplate->m_nACC;
+	nEVA = pTemplate->m_nEVA;
+	if (pTemplate->m_nMoveAbility == 3)
+		nSpeed = pTemplate->m_nFlySpeed;
+	else
+		nSpeed = pTemplate->m_nSpeed;
+	dFs = pTemplate->m_dFs;
+	bInvincible = pTemplate->m_bInvincible;
 }
 
 void MobStat::EncodeTemporary(int nSet, OutPacket *oPacket, int tCur)

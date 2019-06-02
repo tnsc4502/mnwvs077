@@ -13,19 +13,52 @@
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
+#include "..\WvsLib\Wz\ImgAccessor.h"
+
+static int ms_annStandardPDD[5][255];
 
 #undef max
 #undef min
 
+#define NEXT_RAND nRnd = aRandom[nRndIdx++ % 7]
+#define CURRENT_RAND (double)(nRnd % 10000000) * 0.0000001
+
 CalcDamage::CalcDamage(User* pUser)
 {
 	m_pUser = pUser;
-	m_pRndGenForCharacter = AllocObj(Rand32);
+	m_pRndGen = AllocObj(Rand32);
 }
 
 CalcDamage::~CalcDamage()
 {
-	FreeObj(m_pRndGenForCharacter);
+	FreeObj(m_pRndGen);
+}
+
+void CalcDamage::LoadStandardPDD()
+{
+	static WZ::ImgAccessor img("./DataSrv/StandardPDD");
+	static auto empty = WZ::Node();
+	int nJobCategory = 0, nLastValue = 0;
+	for (auto& node : img)
+	{
+		nJobCategory = atoi(node.Name().c_str());
+		if (nJobCategory < 0 || nJobCategory > 5)
+			continue;
+		for (int i = 0; i < 256; ++i)
+		{
+			auto& v = node[std::to_string(i)];
+			if (v.Name() != "" && v != empty)
+				nLastValue = v;
+			ms_annStandardPDD[nJobCategory][i] = nLastValue;
+		}
+	}
+}
+
+int CalcDamage::GetStandardPDD(int nJobCategory, int nLevel)
+{
+	if (nJobCategory < 0 || nJobCategory > 5 || nLevel < 0 || nLevel > 255)
+		return 0;
+	return ms_annStandardPDD[nJobCategory][nLevel];
 }
 
 double CalcDamage::GetDamageAdjustedByElemAttr(long double damage, int nAttr, long double dAdjust)
@@ -219,14 +252,161 @@ int CalcDamage::GetComboDamageParam(User * pUser, int nSkillID, int nComboCounte
 	return result;
 }
 
-void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, int *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage)
+void CalcDamage::DecInvalidCount()
+{
+	if (m_nInvalidCount >= -5)
+	--m_nInvalidCount;
+}
+
+void CalcDamage::IncInvalidCount()
+{
+	++m_nInvalidCount;
+	if (m_nInvalidCount >= 10)
+		m_pUser->SendChatMessage(0, "You have over 10 times of invalid attacking!");
+}
+
+int CalcDamage::GetInvalidCount() const
+{
+	return m_nInvalidCount;
+}
+
+void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponItemID, int nAction, const SkillEntry * pSkill, int nSLV, int *aDamage, bool *abCritical, int nMobCount, int tKeyDown)
 {
 	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
-	int nSkillID = pSkill ? pSkill->GetSkillID() : 0;
+	for (auto& nRnd : aRandom)
+		nRnd = (unsigned int)m_pRndGen->Random();
+
+	int nSkillID = pSkill ? pSkill->GetSkillID() : 0, 
+		nCriticalAttackProp = 0, 
+		nCriticalAttackParam = 0;
 	auto ss = m_pUser->GetSecondaryStat();
 	auto bs = m_pUser->GetBasicStat();
 	auto cd = m_pUser->GetCharacterData();
 	auto mt = pMob->GetMobTemplate();
+
+	int nMAD = std::min(1999, std::max(0, ss->nMAD + ss->nMAD_)), nMobPDD = 0;
+	if (ss->nMaxLevelBuff_)
+		nMAD = std::min(1999, nMAD + nMAD / ss->nMaxLevelBuff_ * 100);
+
+	int nWT = ItemInfo::GetWeaponType(nWeaponItemID),
+		nAmp = 5 * (bs->nINT / 10 + bs->nLUK / 10);
+
+	double s = (double)nAmp * 100 / ((double)std::max(0, mt->m_nLevel - bs->nLevel) * 10.0 + 255.0),
+		M = ((double)pSkill->GetLevelData(nSLV)->m_nMastery  * 5.0 + 10.0) * 0.009,
+		damage = 0,
+		calc = 0,
+		highDamage = 0;
+
+	nAmp = SkillInfo::GetInstance()->GetAmplification(cd, bs->nJob, 0, nullptr);
+	//SharpEyes
+	int nSharpEyes = ss->nSharpEyes_;
+	nCriticalAttackProp += std::min(100, std::max(0, nSharpEyes >> 8));
+	if (nSharpEyes)
+		if (nCriticalAttackParam)
+			nCriticalAttackParam += nSharpEyes;
+		else
+			nCriticalAttackParam = nSharpEyes + 100;
+
+	for (int i = 0; i < nDamagePerMob; ++i)
+	{
+		NEXT_RAND;
+		aDamage[i] = 0;
+		if (ms->bInvincible)
+			continue;
+
+		nMobPDD = std::min(999, std::max(0, ms->nEVA + ms->nEVA_));
+		if (pSkill && pSkill->GetLevelData(nSLV)->m_nFixDamage == 0)
+		{
+			damage = s * 0.5;
+			highDamage = s * 1.2;
+
+			if (damage + (highDamage - damage) * CURRENT_RAND < nMobPDD)
+				continue;
+
+			if (nSkillID == 2301002)
+			{
+				damage = bs->nINT * 0.2;
+				highDamage = bs->nINT * 0.8;
+
+				damage += (highDamage - damage) * CURRENT_RAND;
+				calc = ((double)pSkill->GetLevelData(nSLV)->m_nHp * 0.01)
+					* (damage * 1.5 + (double)bs->nLUK)
+					* ((double)nMobCount * 0.3 + 1.0)
+					* (double)nMAD
+					* 0.005
+					/ (double)nMobCount;
+			}
+			else
+			{
+				damage = nMAD;
+				highDamage = nMAD * M;
+				if (damage > highDamage)
+					std::swap(damage, highDamage);
+
+				damage += (highDamage - damage) * CURRENT_RAND;
+				calc = pSkill->GetLevelData(nSLV)->m_nMad
+					* ((double)bs->nINT * 0.5 + std::pow(nMAD * 0.058, 2) + damage * 3.3)
+					* 0.01;
+			}
+
+			damage = GetDamageAdjustedByElemAttr(
+				(double)nAmp * calc * 0.01,
+				pSkill,
+				ms->aDamagedElemAttr,
+				nSLV
+			);
+
+			nMobPDD = std::min(1999, std::max(0, ms->nMDD + ms->nMDD_));
+			highDamage = nMobPDD * 0.5;
+			calc = nMobPDD * 0.6;
+			damage -= (highDamage + (highDamage - calc) * CURRENT_RAND);
+
+			if (ms->nMGuardUp_)
+				damage *= (double)ms->nMGuardUp_ * 0.01;
+
+			//Critical Damage
+			if (nCriticalAttackParam > 0
+				&& nCriticalAttackProp > 0
+				&& (NEXT_RAND, (double)(nRnd % 10000000) * 0.00001 < nCriticalAttackProp))
+			{
+				abCritical[i] = true;
+				damage *= (((double)nCriticalAttackParam - 100.0) * 0.01 + 1.0);
+			}
+
+			if (tKeyDown)
+				damage *= (90.0 * (double)tKeyDown / 2000.0 + 10.0) * 0.01;
+
+			if (!ms->nHardSkin_ || abCritical[i])
+			{
+				damage = std::max(1.0, std::min(99999.0, damage));
+				aDamage[i] = (int)std::round(damage);
+			}
+		}
+		else
+		{
+			//Calc FixDamage
+			int nLevelDiff = ms->nLevel - bs->nLevel;
+			if (nLevelDiff > 0)
+			{
+				calc = (((double)bs->nLevel * 100.0) / ((double)(150 * nLevelDiff) + 255.0));
+				damage = calc * 0.7;
+				highDamage = calc * 1.3;
+				if ((damage + (highDamage - damage) * CURRENT_RAND >= nMobPDD))
+					aDamage[i] = pSkill->GetLevelData(nSLV)->m_nFixDamage;
+			}
+		}
+	}
+}
+
+void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage)
+{
+	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
+	int nSkillID = pSkill ? pSkill->GetSkillID() : 0, 
+		nCriticalAttackProp = 0, 
+		nCriticalAttackParam = 0;
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	auto cd = m_pUser->GetCharacterData();
 
 	SkillEntry *pSPSkill;
 	int nSPSLV = SkillInfo::GetInstance()->GetSkillLevel(
@@ -239,9 +419,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 		0
 	);
 	for (auto& nRnd : aRandom)
-		nRnd = (unsigned int)m_pRndGenForCharacter->Random();
-
-	int nCriticalAttackProp = 0, nCriticalAttackParam = 0;
+		nRnd = (unsigned int)m_pRndGen->Random();
 	int nWT = ItemInfo::GetWeaponType(nWeaponItemID);
 
 	//Basic PDD
@@ -258,7 +436,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 		nPAD = std::min(1999, nPAD + nPAD / ss->nMaxLevelBuff_ * 100);
 
 	//Critical Skill
-	int nCSLV = ItemInfo::GetWeaponMastery(cd, nWeaponItemID, nAttackType, nullptr, nullptr);
+	int nCSLV = ItemInfo::GetWeaponMastery(cd, nWeaponItemID, nSkillID, nAttackType, nullptr, nullptr);
 	double M = ((double)nCSLV * 5.0 + 10.0) * 0.009;
 
 	if (nAction == 58)
@@ -275,17 +453,14 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 	nCriticalAttackProp += std::min(100, std::max(0, nSharpEyes >> 8));
 	if (nSharpEyes)
 		if (nCriticalAttackParam)
-			nCriticalAttackParam += nSharpEyes;
+			nCriticalAttackParam += (nSharpEyes & 0xFF);
 		else
-			nCriticalAttackParam = nSharpEyes + 100;
+			nCriticalAttackParam = (nSharpEyes & 0xFF) + 100;
 
 	int nNinjaStormProp = (nSkillID == 4121008 ? pSkill->GetLevelData(nSLV)->m_nProp : 0);
 	bool bHighDamageAction = false;
 
-#define NEXT_RAND nRnd = aRandom[nRndIdx++ % 7]
-#define CURRENT_RAND (double)(nRnd % 10000000) * 0.0000001
-
-	for (int i = 0; i < nDamagerPerMob; ++i)
+	for (int i = 0; i < nDamagePerMob; ++i)
 	{
 		NEXT_RAND;
 		bHighDamageAction = false;
@@ -294,7 +469,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 		if (ms->bInvincible)
 			continue;
 
-		if (ms->nPImmune || nSkillID == 1221011)
+		if (ms->nPImmune_ || nSkillID == 1221011)
 		{
 			aDamage[i] = 1;
 			continue;
@@ -318,7 +493,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 			}
 		}
 
-		nMobPDD = std::min(999, std::max(0, mt->m_nEVA + ms->nEVA));
+		nMobPDD = std::min(999, std::max(0, ms->nEVA + ms->nEVA_));
 		if (!pSkill || pSkill->GetLevelData(nSLV)->m_nFixDamage == 0)
 		{
 			damage = a * 0.7;
@@ -347,7 +522,8 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 					bHighDamageAction = true;
 			}
 
-			if (nWT == 45 || nWT == 46)
+			if ((nWT == 45 || nWT == 46) &&
+				((nAction < 22 || nAction > 27) && nAction != 54))
 			{
 				damage = bs->nDEX;
 				highDamage = damage * M;
@@ -355,7 +531,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 					std::swap(damage, highDamage);
 
 				calc = (bs->nSTR + (highDamage - damage) * CURRENT_RAND + damage)
-					* ((nAction < 22 || nAction > 27) && nAction != 54) ? 1.0 : 3.4
+					* (nSkillID != 3201003 && nSkillID != 3101003) ? 1.0 : 3.4
 					* (double)nPAD * 0.005;
 			}
 			else if (nWT == 47
@@ -372,6 +548,23 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 				calc = (highDamage - damage) * CURRENT_RAND + damage;
 				calc = ((double)(bs->nSTR + bs->nDEX) + calc) * (double)nPAD * 0.0067;
 			} 
+			else if (nWT == 49
+				&& (nAction < 22 || nAction > 27)
+				&& (nAction != 94 && nAction != 95)
+				&& nSkillID != 5201002
+				&& nSkillID != 5221003
+				&& nSkillID != 5221007
+				&& nSkillID != 45221008)
+			{
+				damage = bs->nDEX;
+				highDamage = damage * M;
+				if (highDamage < damage)
+					std::swap(damage, highDamage);
+				if(nAction != 77 && nAction != 78)
+					calc = (((highDamage - damage) * CURRENT_RAND + damage) + bs->nSTR) * (double)nPAD * 0.005;
+				else
+					calc = (((highDamage - damage) * CURRENT_RAND + damage) * 1.8 + bs->nSTR) * (double)nPAD * 0.01;
+			}
 			else if (nAction == 32)
 			{
 				damage = bs->nSTR;
@@ -382,123 +575,153 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 			}
 			else
 			{
-				bHighDamageAction = bHighDamageAction | (nAction >= 5 && nAction <= 15);
+				bHighDamageAction = bHighDamageAction || (nAction >= 5 && nAction <= 15);
 				switch (nWT)
 				{
-				case 45:
-					damage = bs->nDEX;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.4;
-					calc = (damage + bs->nSTR) * (double)nPAD * 0.01;
-					break;
-				case 46:
-					damage = bs->nDEX;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.6;
-					calc = (damage + bs->nSTR) * (double)nPAD * 0.01;
-					break;
-				case 41:
-				case 42:
-					damage = bs->nSTR;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 3.4 : 4.8);
-					calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
-					break;
-				case 43:
-				case 44:
-					damage = bs->nSTR;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * (nSkillID == 1311006 ? 4.0 : (bHighDamageAction != (nWT == 43)) ? 5.0 : 3.0);
-					calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
-					break;
-				case 40:
-					damage = bs->nSTR;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * 4.6;
-					calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
-					break;
-				case 31:
-				case 32:
-				case 37:
-				case 38:
-					damage = bs->nSTR;
-					highDamage = damage * M;
-					if (damage > highDamage)
-						std::swap(damage, highDamage);
-					damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 4.4 : 3.2);
-					calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
-					break;
-				case 30:
-				case 33:
-					if (bs->nJob / 100 == 4 && nWT == 33)
-					{
-						damage = bs->nLUK;
+					case 45:
+						damage = bs->nDEX;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.4;
+						calc = (damage + bs->nSTR) * (double)nPAD * 0.01;
+						break;
+					case 46:
+						damage = bs->nDEX;
 						highDamage = damage * M;
 						if (damage > highDamage)
 							std::swap(damage, highDamage);
 						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.6;
-						calc = (double)(damage + bs->nDEX + bs->nSTR) * (double)nPAD * 0.01;
-					}
-					else
-					{
+						calc = (damage + bs->nSTR) * (double)nPAD * 0.01;
+						break;
+					case 41:
+					case 42:
 						damage = bs->nSTR;
 						highDamage = damage * M;
 						if (damage > highDamage)
 							std::swap(damage, highDamage);
-						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 4.0;
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 3.4 : 4.8);
 						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
-					}
-					break;
-				case 47:
-					if (nSkillID != 4001344 && nSkillID != 4121007)
-					{
-						if (nSkillID != 4111004)
+						break;
+					case 43:
+					case 44:
+						damage = bs->nSTR;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (nSkillID == 1311006 ? 4.0 : (bHighDamageAction != (nWT == 43)) ? 5.0 : 3.0);
+						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						break;
+					case 40:
+						damage = bs->nSTR;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 4.6;
+						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						break;
+					case 31:
+					case 32:
+					case 37:
+					case 38:
+						damage = bs->nSTR;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 4.4 : 3.2);
+						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						break;
+					case 30:
+					case 33:
+						if (bs->nJob / 100 == 4 && nWT == 33)
 						{
 							damage = bs->nLUK;
 							highDamage = damage * M;
 							if (damage > highDamage)
 								std::swap(damage, highDamage);
 							damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.6;
-							calc = (damage + bs->nSTR + bs->nDEX) * (double)nPAD * 0.01;
+							calc = (double)(damage + bs->nDEX + bs->nSTR) * (double)nPAD * 0.01;
 						}
 						else
 						{
-							int nMoneyCon = pSkill->GetLevelData(nSLV)->m_nMoneyCon;
-							damage = nMoneyCon * 0.5;
-							highDamage = nMoneyCon * 1.5;
-							calc = (damage + (highDamage - damage) * CURRENT_RAND) * 10;
-							if (CURRENT_RAND < pSkill->GetLevelData(nSLV)->m_nProp)
+							damage = bs->nSTR;
+							highDamage = damage * M;
+							if (damage > highDamage)
+								std::swap(damage, highDamage);
+							damage = ((highDamage - damage) * CURRENT_RAND + damage) * 4.0;
+							calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						}
+						break;
+					case 47:
+						if (nSkillID != 4001344 && nSkillID != 4121007)
+						{
+							if (nSkillID != 4111004)
 							{
-								calc *= (double)(pSkill->GetLevelData(nSLV)->m_nX + 100) * 0.01;
-								abCritical[i] = 1;
+								damage = bs->nLUK;
+								highDamage = damage * M;
+								if (damage > highDamage)
+									std::swap(damage, highDamage);
+								damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.6;
+								calc = (damage + bs->nSTR + bs->nDEX) * (double)nPAD * 0.01;
+							}
+							else
+							{
+								int nMoneyCon = pSkill->GetLevelData(nSLV)->m_nMoneyCon;
+								damage = nMoneyCon * 0.5;
+								highDamage = nMoneyCon * 1.5;
+								calc = (damage + (highDamage - damage) * CURRENT_RAND) * 10;
+								if (CURRENT_RAND < pSkill->GetLevelData(nSLV)->m_nProp)
+								{
+									calc *= (double)(pSkill->GetLevelData(nSLV)->m_nX + 100) * 0.01;
+									abCritical[i] = 1;
+								}
 							}
 						}
-					}
-					else
-					{
-						damage = bs->nLUK;
-						highDamage = damage * 0.5;
+						else
+						{
+							damage = bs->nLUK;
+							highDamage = damage * 0.5;
+							if (damage > highDamage)
+								std::swap(damage, highDamage);
+							damage = ((highDamage - damage) * CURRENT_RAND + damage) * 5.0;
+							calc = (damage) * (double)nPAD * 0.01;
+						}
+						break;
+					case 39:
+						damage = bs->nSTR;
+						highDamage = damage * M;
 						if (damage > highDamage)
 							std::swap(damage, highDamage);
-						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 5.0;
-						calc = (damage) * (double)nPAD * 0.01;
-					}
-					break;
+
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bs->nJob == 500 ? 3.0: 4.2);
+						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						break;
+					case 48:
+						damage = bs->nSTR;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 4.8;
+						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
+						break;
+					case 49:
+						damage = bs->nDEX;
+						highDamage = damage * M;
+						if (damage > highDamage)
+							std::swap(damage, highDamage);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * 3.6;
+						calc = (damage + bs->nSTR) * (double)nPAD * 0.01;
+						if (nSkillID == 5211004 && nBulletItemID / 1000 != 2331)
+							calc *= 0.5;
+						if (nSkillID == 5211005 && nBulletItemID / 1000 != 2332)
+							calc *= 0.5;
+						break;
 				}
+
 			}
 
-			if (bs->nLevel < mt->m_nLevel)
-				calc = (100.0 - (double)(mt->m_nLevel - bs->nLevel)) * calc * 0.01;
+			if (bs->nLevel < ms->nLevel)
+				calc = (100.0 - (double)(ms->nLevel - bs->nLevel)) * calc * 0.01;
 
 			//Attack Elem Attribute
 			damage = GetDamageAdjustedByChargedElemAttr(
@@ -509,7 +732,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 
 			if (nSkillID != 1311005 && nSkillID != 4111004 && nSkillID != 4211002)
 			{
-				nMobPDD = std::min(1999, std::max(0, mt->m_nPDD + ms->nPDD));
+				nMobPDD = std::min(1999, std::max(0, ms->nPDD + ms->nPDD_));
 				highDamage = nMobPDD * 0.5;
 				calc = nMobPDD * 0.6;
 				damage -= (highDamage - calc) * CURRENT_RAND + highDamage;
@@ -535,18 +758,18 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 				&& (nCSLV > 0 || ss->nSharpEyes_)
 				&& (NEXT_RAND, (double)(nRnd % 10000000) * 0.00001 < nCriticalAttackProp))
 			{
-				abCritical[i] = 1;
+				abCritical[i] = true;
 				damage += ((double)nCriticalAttackParam - 100.0) * 0.01 * highDamage;
 			}
 
-			if (nSkillID != 1311005 && ms->nPGuardUp)
-				damage *= (double)ms->nPGuardUp * 0.01;
+			if (nSkillID != 1311005 && ms->nPGuardUp_)
+				damage *= (double)ms->nPGuardUp_ * 0.01;
 
 			//Shadow Partner
 			if (bShadowPartner && nSkillID != 4121003)
 			{
-				int nRealPartIdx = i - (nDamagerPerMob / 2);
-				if (i >= nDamagerPerMob / 2)
+				int nRealPartIdx = i - (nDamagePerMob / 2);
+				if (i >= nDamagePerMob / 2)
 				{
 					if (pSkill)
 						highDamage = aDamage[nRealPartIdx] * (double)pSPSkill->GetLevelData(nSPSLV)->m_nY / 100.0;
@@ -564,12 +787,19 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 					damage = 0.0;
 			}
 			if (tKeyDown)
-				damage *= (90.0 * (double)tKeyDown / 2000.0 + 10.0) * 0.01;
+				if(nSkillID == 5101004)
+					damage *= (90.0 * (double)tKeyDown / 1000.0 + 10.0) * 0.01;
+				else
+					damage *= (90.0 * (double)tKeyDown / 2000.0 + 10.0) * 0.01;
 
-			if (!ms->nHardSkin || abCritical[i])
+			if (!ms->nHardSkin_ || abCritical[i])
 			{
 				if (nBerserkDamage)
 					damage *= (double)(nBerserkDamage + 100.0) * 0.01;
+
+				if (nSkillID == 5121007)
+					damage *= (i == 4 ? 2.0 : (i == 5 ? 4.0 : 1.0));
+
 				damage = std::max(1.0, std::min(99999.0, damage));
 				aDamage[i] = (int)std::round(damage);
 			}
@@ -577,7 +807,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagerPerMob, int nWeapon
 		else
 		{
 			//Calc FixDamage
-			int nLevelDiff = mt->m_nLevel - bs->nLevel;
+			int nLevelDiff = ms->nLevel - bs->nLevel;
 			if (nLevelDiff > 0)
 			{
 				calc = (((double)bs->nLevel * 100.0) / ((double)(150 * nLevelDiff) + 255.0));

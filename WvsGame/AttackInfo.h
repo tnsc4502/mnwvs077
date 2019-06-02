@@ -2,16 +2,24 @@
 #include <map>
 #include <vector>
 
+class Mob;
+
 struct AttackInfo
 {
-	std::map<int, std::vector<long long int>> m_mDmgInfo;
+	struct DamageInfo
+	{
+		Mob *pMob;
+		const static int MAX_DAMAGE_COUNT = 16;
+		int anDamageClient[MAX_DAMAGE_COUNT] = { 0 },
+			anDamageSrv[MAX_DAMAGE_COUNT] = { 0 };
 
+		bool abDamageCriticalClient[MAX_DAMAGE_COUNT] = { false },
+			abDamageCriticalSrv[MAX_DAMAGE_COUNT] = { false };
+	};
+
+	std::map<int, DamageInfo> m_mDmgInfo;
 	int m_bAttackInfoFlag;
-
-	//How many monsters were damaged
 	int GetDamagedMobCount();
-
-	//How many count the monster was damaged
 	int GetDamageCountPerMob();
 
 	char 

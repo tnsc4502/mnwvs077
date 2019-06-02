@@ -326,9 +326,9 @@ void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
 		iPacket->Decode1();
 		iPacket->Decode1();
 		iPacket->Decode1();
-		iPacket->Decode1();
-		iPacket->Decode4();
-		iPacket->Decode1();
+		iPacket->Decode2();
+		iPacket->Decode2();
+		iPacket->Decode2();
 		iPacket->Decode2();
 		iPacket->Decode2();
 
@@ -336,12 +336,69 @@ void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
 		{
 			long long int nDmg = iPacket->Decode4();
 			//printf("Monster %d Damage : %d\n", nObjectID, (int)nDmg);
-			ref.push_back(nDmg);
+			ref.anDamageClient[j] = (int)nDmg;
 		}
 	}
 
 	pInfo->m_nX = iPacket->Decode2();
 	pInfo->m_nY = iPacket->Decode2();
+}
+
+AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *iPacket)
+{
+	pInfo->m_nType = nType;
+	pInfo->m_bFieldKey = iPacket->Decode1();
+	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
+	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
+	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
+	pInfo->m_nSLV = SkillInfo::GetInstance()->GetSkillLevel(
+		m_pCharacterData,
+		nSkillID,
+		nullptr,
+		0,
+		0,
+		0,
+		0
+	);
+	if (nSkillID && !pInfo->m_nSLV)
+		return nullptr;
+
+	if (WvsGameConstants::IsRushBombSkill(nSkillID))
+		pInfo->m_pGrenade = iPacket->Decode4();
+	else if (WvsGameConstants::IsKeyDownSkill(nSkillID))
+		pInfo->m_tKeyDown = iPacket->Decode4();
+
+	pInfo->m_nOption = iPacket->Decode1();
+	pInfo->m_nDisplay = iPacket->Decode1();
+	pInfo->m_nAction = pInfo->m_nDisplay & 0x7F;
+	pInfo->m_nAttackActionType = iPacket->Decode1();
+	pInfo->m_nAttackSpeed = iPacket->Decode1();
+	pInfo->m_tLastAttackTime = iPacket->Decode4();
+
+	if (nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)
+	{
+		pInfo->m_nSlot = iPacket->Decode2();
+		int nDecCount = 0;
+		auto pBullet = m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, pInfo->m_nSlot);
+		if (pBullet && (ItemInfo::IsRechargable(pBullet->nItemID) || pBullet->nItemID / 10000 == 206))
+			pInfo->m_nBulletItemID = pBullet->nItemID;
+
+		//Try Consume Item.
+		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+		if (!QWUInventory::RawWasteItem(this, pInfo->m_nSlot, 1, aChangeLog)
+			&& !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, 1, &aChangeLog, nDecCount, nullptr))
+		{
+			SendNoticeMessage("Invalid Attack.");
+		}
+		else
+			QWUInventory::SendInventoryOperation(this, false, aChangeLog);
+
+		pInfo->m_nCsStar = iPacket->Decode2();
+		pInfo->m_nShootRange = iPacket->Decode1();
+	}
+
+	TryParsingDamageData(pInfo, iPacket);
+	return pInfo;
 }
 
 AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
@@ -434,22 +491,7 @@ AttackInfo * User::TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nAttackActionType = iPacket->Decode1();
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
-	pInfo->m_nSlot = iPacket->Decode2();
-	int nDecCount = 0;
-	auto pStar = m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, pInfo->m_nSlot);
-	if (pStar && ItemInfo::IsRechargable(pStar->nItemID))
-		pInfo->m_nBulletItemID = pStar->nItemID;
-	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-	if (!QWUInventory::RawWasteItem(this, pInfo->m_nSlot, 1, aChangeLog)
-		&& !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, 1, &aChangeLog, nDecCount, nullptr))
-	{
-		SendNoticeMessage("Invalid Attack.");
-	}
-	else
-		QWUInventory::SendInventoryOperation(this, false, aChangeLog);
 
-	pInfo->m_nCsStar = iPacket->Decode2();
-	pInfo->m_nShootRange = iPacket->Decode1();
 
 	TryParsingDamageData(pInfo, iPacket);
 	return pInfo;
@@ -996,18 +1038,18 @@ void User::OnAttack(int nType, InPacket * iPacket)
 	{
 		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
 			attackInfo.m_nAttackType = 0;
-			pResult = (TryParsingMeleeAttack(&attackInfo, nType, iPacket));
+			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
 			attackInfo.m_nAttackType = 1;
-			pResult = (TryParsingShootAttack(&attackInfo, nType, iPacket));
+			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
 			attackInfo.m_nAttackType = 2;
-			pResult = (TryParsingMagicAttack(&attackInfo, nType, iPacket));
+			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
-			pResult = (TryParsingBodyAttack(&attackInfo, nType, iPacket));
+			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
 	}
 	if (pResult)
