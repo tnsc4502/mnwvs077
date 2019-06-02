@@ -51,12 +51,22 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 void ClientSocket::OnMigrateIn(InPacket *iPacket)
 {
 	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
-	int nCharacterID = iPacket->Decode4();
+	m_nCharacterID = iPacket->Decode4();
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateIn);
 	oPacket.Encode4(GetSocketID());
-	oPacket.Encode4(nCharacterID);
+	oPacket.Encode4(m_nCharacterID);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
+	pCenter->SendPacket(&oPacket);
+}
+
+void ClientSocket::OnSocketDisconnected()
+{
+	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::GameClientDisconnected);
+	oPacket.Encode4(GetSocketID());
+	oPacket.Encode4(m_nCharacterID);
 	pCenter->SendPacket(&oPacket);
 }
 

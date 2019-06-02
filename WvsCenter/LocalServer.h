@@ -22,10 +22,12 @@ public:
 	void OnRequestCharacterList(InPacket *iPacket);
 	void OnRequestCreateNewCharacter(InPacket *iPacket);
 	void OnRequestGameServerInfo(InPacket *iPacket);
+	void OnRequestLoginAuth(InPacket *iPacket);
 	void OnRequestMigrateIn(InPacket *iPacket);
 	void OnRequestMigrateOut(InPacket *iPacket);
 	void OnRequestTransferChannel(InPacket *iPacket);
 	void OnRequestMigrateCashShop(InPacket *iPacket);
+	void OnGameClientDisconnected(InPacket *iPacket);
 	
 	//Cash Shop
 	void OnRequestBuyCashItem(InPacket *iPacket);

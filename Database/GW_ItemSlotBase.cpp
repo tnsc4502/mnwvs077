@@ -7,6 +7,7 @@
 
 std::atomic<GW_ItemSlotBase::ATOMIC_COUNT_TYPE> GW_ItemSlotBase::ms_liSN[6];
 int GW_ItemSlotBase::ms_nChannelID;
+int GW_ItemSlotBase::ms_nWorldID;
 
 GW_ItemSlotBase::GW_ItemSlotBase()
 {
@@ -58,11 +59,14 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::InitItemSN(GW_ItemSlotType t
 	return result > 1 ? result : 2;
 }
 
-GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetInitItemSN(GW_ItemSlotType type, int nChannelID)
+GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetInitItemSN(GW_ItemSlotType type, int nWorldID, int nChannelID)
 {
 	unsigned long long int liLBound = 0, liHBound = 0;
-	((unsigned char*)&liLBound)[6] = nChannelID;
-	((unsigned char*)&liHBound)[6] = nChannelID + 1;
+	((unsigned char*)&liLBound)[6] = (nChannelID) << 2; //Uses highest 6 bits as Channel flag.
+	((unsigned char*)&liLBound)[7] = (nWorldID) & 0x1F; //Uses only 5 bits for World flag.
+
+	((unsigned char*)&liHBound)[6] = (nChannelID + 1) << 2; 
+	((unsigned char*)&liHBound)[7] = (nWorldID) & 0x1F;
 
 	std::string strTableName = "";
 	if (type == GW_ItemSlotType::EQUIP)
@@ -129,7 +133,9 @@ void GW_ItemSlotBase::SetInitSN(int nTI, ATOMIC_COUNT_TYPE liSN)
 GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetNextSN(int nTI)
 {
 	ATOMIC_COUNT_TYPE ret = ++ms_liSN[nTI];
-	((unsigned char*)&ret)[6] = ms_nChannelID;
+	((unsigned char*)&ret)[6] = (ms_nChannelID) << 2;
+	((unsigned char*)&ret)[7] = (ms_nWorldID) & 0x1F;
+
 	return ret;
 }
 

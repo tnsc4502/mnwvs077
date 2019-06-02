@@ -45,6 +45,11 @@ void SkillEntry::SetSkillID(int nID)
 	m_nSkillID = nID;
 }
 
+void SkillEntry::SetAttackElemAttr(int nAttr)
+{
+	m_nAttackElemAttr = nAttr;
+}
+
 int SkillEntry::GetMasterLevel() const
 {
 	return m_nMasterLevel;
@@ -58,4 +63,9 @@ int SkillEntry::GetMaxLevel() const
 int SkillEntry::GetSkillID() const
 {
 	return m_nSkillID;
+}
+
+int SkillEntry::GetAttackElemAttr() const
+{
+	return m_nAttackElemAttr;
 }

@@ -30,11 +30,11 @@ struct GW_ItemSlotBase
 	};
 
 	static ATOMIC_COUNT_TYPE InitItemSN(GW_ItemSlotType type);
-	static ATOMIC_COUNT_TYPE GetInitItemSN(GW_ItemSlotType type, int nChannelID);
+	static ATOMIC_COUNT_TYPE GetInitItemSN(GW_ItemSlotType type, int nWorldID, int nChannelID);
 	static ATOMIC_COUNT_TYPE IncItemSN(GW_ItemSlotType type);
 
 	static std::atomic<ATOMIC_COUNT_TYPE> ms_liSN[6];
-	static int ms_nChannelID;
+	static int ms_nChannelID, ms_nWorldID;
 	static void SetInitSN(int nTI, ATOMIC_COUNT_TYPE liSN);
 	static ATOMIC_COUNT_TYPE GetNextSN(int nTI);
 

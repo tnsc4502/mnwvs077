@@ -7,6 +7,17 @@
 #define MAKE_LOGIN_SEND_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static LoginSendPacketFlag flagName {value, #flagName}; } const static int flagName = value
 #define MAKE_LOGIN_RECV_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static LoginRecvPacketFlag flagName {value, #flagName}; } const static int flagName = value
 
+enum LoginAuthRequest
+{
+	rq_LoginAuth_RefreshLoginState = 0x00,
+};
+
+enum LoginAuthResult
+{
+	res_LoginAuth_RefreshLoginState = 0x00,
+	res_LoginAuth_UnRegisterMigratinon = 0x01,
+};
+
 MAKE_FLAG_COLLECTION_BODY(LoginSendPacketFlag) 
 //以下開始註冊封包Opcode Flag
 
@@ -15,6 +26,7 @@ MAKE_LOGIN_SEND_PACKET_FLAG(Center_RegisterCenterRequest, 1);
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestCharacterList, 2);
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestCreateNewCharacter, 3);
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestGameServerInfo, 4);
+MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestLoginAuth, 5);
 
 //Flags for Game Client
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_CheckPasswordResponse, 0x00);

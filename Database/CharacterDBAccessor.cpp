@@ -101,6 +101,7 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 	GW_ItemSlotEquip gwWeaponEquip;
 	gwWeaponEquip.nItemID = aBody[EQP_ID_WeaponEquip];
 	gwWeaponEquip.nPOS = EQP_POS_Weapon;
+	gwWeaponEquip.nPAD = 3;
 
 	GW_ItemSlotEquip gwShoesEquip;
 	gwShoesEquip.nItemID = aBody[EQP_ID_ShoesEquip];
@@ -414,6 +415,15 @@ int CharacterDBAccessor::QueryCharacterFriendMax(int nCharacterID)
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	return recordSet.rowCount() == 0 ? -1 : recordSet["FriendMaxNum"];
+}
+
+int CharacterDBAccessor::QueryCharacterAccountID(int nCharacterID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT AccountID From Characters Where CharacterID = " << nCharacterID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	return recordSet.rowCount() == 0 ? -1 : recordSet["AccountID"];
 }
 
 void CharacterDBAccessor::OnCharacterSaveRequest(void *iPacket)

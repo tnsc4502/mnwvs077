@@ -551,6 +551,7 @@ void Mob::ResetStatChangeSkill(int nSkillID)
 
 #define CLEAR_STAT(name) \
 nFlag |= MobStat::MS_##name; \
+m_pStat->nFlagSet &= ~(MobStat::MS_##name);\
 m_pStat->n##name = 0; \
 m_pStat->r##name = 0; \
 m_pStat->t##name = 0; 
@@ -728,11 +729,11 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 
 				dBaseExp = ((double)GetMobTemplate()->m_nEXP * (double)info.second.nDamage);
 				dIncEXP = (dBaseExp * 0.8 / (double)m_damageLog.liTotalDamage + dLastHitBonus);
-				dIncEXP *= (pUser->GetSecondaryStat()->nHolySymbol * 0.2 + 100.0);
+				dIncEXP *= (pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0);
 				dIncEXP *= 0.01;
 				dIncEXP *= (dStatBonusRate * 1.0); //1.0 = User::GetIncEXPRate()
 				dIncEXP *= m_pField->GetIncEXPRate();
-				if (pUser->GetSecondaryStat()->nCurse)
+				if (pUser->GetSecondaryStat()->nCurse_)
 					dIncEXP *= 0.5;
 				dIncEXP = dIncEXP > 1.0 ? dIncEXP : 1.0;
 
@@ -824,20 +825,20 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 				dIncEXP += dLastDamageCharBonus;
 
 			if(nPartyBonusCount == 1)
-				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol * 0.2 + 100.0) * 0.01;
+				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0) * 0.01;
 			else if (nPartyBonusCount > 1)
 			{
-				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol + 100.0) * 0.01;
+				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol_ + 100.0) * 0.01;
 				dIncEXP = std::min(
 					dIncEXP,
-					((double)pUser->GetSecondaryStat()->nHolySymbol * 0.2 + 100.0) * m_pMobTemplate->m_nEXP * 0.01);
+					((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0) * m_pMobTemplate->m_nEXP * 0.01);
 			}
 
 			dIncEXP *= 1.0 * 1.0; //User::GetIncEXPRate & Showdown
 
 			/*Calculate Marriage Bonus EXP*/
 
-			if (pUser->GetSecondaryStat()->nCurse)
+			if (pUser->GetSecondaryStat()->nCurse_)
 				dIncEXP *= 0.5;
 
 			int nPartyBonusPercentage = (int)(dPartyEXPIncRate * 100.0 - 100.0);

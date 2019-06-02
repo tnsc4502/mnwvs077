@@ -69,7 +69,7 @@ long long int QWUser::IncINT(User *pUser, int nInc, bool bOnlyFull)
 long long int QWUser::IncMP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	if (nInc < 0 && pUser->GetSecondaryStat()->nInfinity > 0)
+	if (nInc < 0 && pUser->GetSecondaryStat()->nInfinity_ > 0)
 		return 0;
 	int nMP = pUser->GetCharacterData()->mStat->nMP;
 	int nMaxMP = pUser->GetBasicStat()->nMMP;

@@ -1,8 +1,9 @@
 #include "NpcTemplate.h"
 #include "User.h"
-#include "..\WvsLib\Net\OutPacket.h"
 #include "ItemInfo.h"
 #include "SkillInfo.h"
+#include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Wz\ImgAccessor.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 std::map<int, NpcTemplate*> NpcTemplate::m_mNpcTemplates;
@@ -25,13 +26,46 @@ void NpcTemplate::Load()
 	}
 }
 
+void NpcTemplate::LoadShop()
+{
+#undef max
+	static WZ::ImgAccessor img("./DataSrv/NpcShop");
+	std::string sNpcTemplateName = std::to_string(m_nTemplateID);
+	while (sNpcTemplateName.size() < 7)
+		sNpcTemplateName = "0" + sNpcTemplateName;
+
+	auto& node = img[sNpcTemplateName];
+	int nItemID = 0;
+	ShopItem* pItem = nullptr;
+	for (auto& item : node)
+	{
+		nItemID = item["item"];
+		if (!ItemInfo::GetInstance()->GetBundleItem(nItemID) &&
+			!ItemInfo::GetInstance()->GetEquipItem(nItemID))
+			continue;
+
+		pItem = AllocObj(ShopItem);
+		pItem->nItemID = nItemID;
+		pItem->nPrice = (int)item["price"];
+		pItem->nPeriod = (int)item["period"];
+		pItem->nQuantity = std::max(1, (int)item["quantity"]);
+		pItem->dUnitPrice = (double)item["unitPrice"];
+		pItem->nStockMax = item["stock"];
+		pItem->nStock = 0;
+		pItem->nLastFullStock = 0;
+
+		m_aShopItem.push_back(pItem);
+	}
+}
+
 void NpcTemplate::RegisterNpc(int nNpcID, void *pProp)
 {
 	auto data = *((WZ::Node*)pProp);
 	NpcTemplate *pTemplate = AllocObj(NpcTemplate);
 	pTemplate->m_nTemplateID = nNpcID;
-	pTemplate->m_aShopItem = GW_Shop::GetInstance()->GetShopItemList(nNpcID);
+	//pTemplate->m_aShopItem = GetInstance()->GetShopItemList(nNpcID);
 	pTemplate->m_nTrunkPut = data["info"]["trunkPut"];
+	pTemplate->LoadShop();
 	m_mNpcTemplates[nNpcID] = pTemplate;
 }
 
@@ -45,7 +79,7 @@ NpcTemplate* NpcTemplate::GetNpcTemplate(int dwTemplateID)
 
 bool NpcTemplate::HasShop() const
 {
-	return m_aShopItem != nullptr;
+	return m_aShopItem.size() != 0;
 }
 
 int NpcTemplate::GetTrunkCost() const
@@ -59,7 +93,7 @@ NpcTemplate * NpcTemplate::GetInstance()
 	return pInstance;
 }
 
-std::vector<GW_Shop::ShopItem*>* NpcTemplate::GetShopItem()
+std::vector<NpcTemplate::ShopItem*>& NpcTemplate::GetShopItem()
 {
 	return m_aShopItem;
 }
@@ -67,38 +101,36 @@ std::vector<GW_Shop::ShopItem*>* NpcTemplate::GetShopItem()
 void NpcTemplate::EncodeShop(User * pUser, OutPacket * oPacket)
 {
 	oPacket->Encode4(m_nTemplateID);
-	oPacket->Encode2((short)(!m_aShopItem ? 0 : m_aShopItem->size()));
-	if (m_aShopItem)
+	oPacket->Encode2((short)(m_aShopItem.size()));
+	if (m_aShopItem.size())
 	{
-		for (auto& item : *m_aShopItem)
+		for (auto& item : m_aShopItem)
 			EncodeShopItem(pUser, item, oPacket);
 	}
 }
 
-void NpcTemplate::EncodeShopItem(User *pUser, GW_Shop::ShopItem * pItem, OutPacket * oPacket)
+void NpcTemplate::EncodeShopItem(User *pUser, NpcTemplate::ShopItem* pItem, OutPacket* oPacket)
 {
+	int nMaxPerSlot = 0;
+	auto pBundleItem = ItemInfo::GetInstance()->GetBundleItem(pItem->nItemID);
+
 	oPacket->Encode4(pItem->nItemID);
 	oPacket->Encode4(pItem->nPrice);
 
 	if (!ItemInfo::IsRechargable(pItem->nItemID)) 
 	{
 		oPacket->Encode2(pItem->nQuantity);
-		oPacket->Encode2(pItem->nMaxPerSlot);
+		nMaxPerSlot = (pBundleItem ? pBundleItem->nMaxPerSlot : 1);
 	}
 	else
 	{
-		auto pBundleItem = ItemInfo::GetInstance()->GetBundleItem(pItem->nItemID);
-		double dPrice = 0;
 		if (pBundleItem)
-		{
-			dPrice = pBundleItem->dSellUnitPrice;
-			oPacket->EncodeBuffer((unsigned char*)&dPrice, 8);
-		}
-		oPacket->Encode2(
-			SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(
+			oPacket->EncodeBuffer((unsigned char*)&pBundleItem->dSellUnitPrice, 8);
+		nMaxPerSlot = SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(
 				pItem->nItemID,
 				pUser->GetCharacterData()
-			));
+			);
 	}
+	oPacket->Encode2(nMaxPerSlot);
 }
 

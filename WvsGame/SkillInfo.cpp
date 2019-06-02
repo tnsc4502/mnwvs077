@@ -127,6 +127,110 @@ int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterDat
 	return 0;
 }
 
+int SkillInfo::GetElementAttribute(const char *s, int *nElemAttr)
+{
+	signed int v2; // ecx@1
+	int result; // eax@1
+	int v4; // ecx@6
+	int v5; // ecx@7
+	int v6; // ecx@16
+	int v7; // ecx@17
+	int v8; // ecx@18
+	int v9; // ecx@25
+	int v10; // ecx@26
+
+	v2 = *s;
+	result = 1;
+	if (v2 > 85)
+	{
+		if (v2 > 108)
+		{
+			v9 = v2 - 112;
+			if (!v9)
+				goto LABEL_31;
+			v10 = v9 - 3;
+			if (!v10)
+			{
+			LABEL_30:
+				*nElemAttr = 4;
+				return result;
+			}
+			if (v10 == 2)
+			{
+			LABEL_29:
+				*nElemAttr = 7;
+				return result;
+			}
+		}
+		else
+		{
+			if (v2 == 108)
+				goto LABEL_24;
+			v6 = v2 - 100;
+			if (!v6)
+				goto LABEL_23;
+			v7 = v6 - 2;
+			if (!v7)
+				goto LABEL_22;
+			v8 = v7 - 2;
+			if (!v8)
+				goto LABEL_21;
+			if (v8 == 1)
+				goto LABEL_20;
+		}
+		return 0;
+	}
+	if (v2 == 85)
+		goto LABEL_29;
+	if (v2 <= 73)
+	{
+		if (v2 != 73)
+		{
+			if (*s)
+			{
+				v4 = v2 - 68;
+				if (v4)
+				{
+					v5 = v4 - 2;
+					if (v5)
+					{
+						if (v5 != 2)
+							return 0;
+					LABEL_21:
+						*nElemAttr = 5;
+						return result;
+					}
+				LABEL_22:
+					*nElemAttr = 2;
+					return result;
+				}
+			LABEL_23:
+				*nElemAttr = 6;
+				return result;
+			}
+			goto LABEL_31;
+		}
+	LABEL_20:
+		*nElemAttr = 1;
+		return result;
+	}
+	if (v2 == 76)
+	{
+	LABEL_24:
+		*nElemAttr = 3;
+		return result;
+	}
+	if (v2 != 80)
+	{
+		if (v2 != 83)
+			return 0;
+		goto LABEL_30;
+	}
+LABEL_31:
+	*nElemAttr = 0;
+	return result;
+}
+
 void SkillInfo::LoadMobSkill()
 {
 	std::set<std::string> sNode;
@@ -287,8 +391,13 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 
 SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 {
+	int nElemAttr = 0;
 	bool bLevelStructure = false;
 	auto& skillDataImg = *((WZ::Node*)pData);
+	std::string sElemAttr = skillDataImg["elemAttr"];
+	if (sElemAttr != "")
+		GetElementAttribute(sElemAttr.c_str(), &nElemAttr);
+
 	auto& skillCommonImg = skillDataImg["level"];
 	bLevelStructure = true;
 	/*if (skillCommonImg == skillDataImg.end()) //部分初心者技能
@@ -304,6 +413,7 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 	auto& skillListImg = skillDataImg["skillList"];
 	auto& skillReqImg = skillDataImg["req"];
 	SkillEntry* pResult = new SkillEntry;
+	pResult->SetAttackElemAttr(nElemAttr);
 	pResult->SetSkillID(nSkillID);
 	pResult->SetMasterLevel(atoi(((std::string)skillDataImg["masterLevel"]).c_str()));
 	pResult->SetMaxLevel(atoi(((std::string)skillCommonImg["maxLevel"]).c_str()));
@@ -365,6 +475,7 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		pLevelData->m_nLt = PARSE_SKILLDATA(lt);
 		pLevelData->m_nRb = PARSE_SKILLDATA(rb);
 		pLevelData->m_nFixDamage = PARSE_SKILLDATA(fixdamage);
+		pLevelData->m_nCriticalDamage = PARSE_SKILLDATA(criticalDamage);
 		auto&lt = skillCommonImg["lt"];
 		if (lt != empty && lt.Name() != "")
 		{
@@ -439,4 +550,19 @@ bool SkillInfo::IsSummonSkill(int nSkillID)
 			return true;
 	}
 	return false;
+}
+
+int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)
+{
+	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry, 0, 0, 0, 0);
+	if (pnInc)
+	{
+		if (nSLV <= 0)
+			*pnInc = 0;
+		else
+			*pnInc = pEntry->GetLevelData(nSLV)->m_nX;
+	}
+	if (nSLV)
+		return pEntry->GetLevelData(nSLV)->m_nMastery;
+	return 0;
 }

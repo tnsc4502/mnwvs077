@@ -75,16 +75,7 @@ public:
 		nIncRMAF = 0,
 		nIncRMAI = 0,
 		nIncRMAL = 0,
-		nElemDefault = 0,
-		nPDD,
-		nMDD,
-		nMAD,
-		nPAD,
-		nACC,
-		nEVA,
-		nSpeed,
-		nJump,
-		nCraft
+		nElemDefault = 0
 		;
 
 public:

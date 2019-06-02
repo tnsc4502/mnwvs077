@@ -21,6 +21,7 @@ struct SkillLevelData
 		m_nHpCon = 0,
 		m_nItemCon = 0,
 		m_nItemConNo = 0,
+		m_nCriticalDamage = 0,
 		m_nJump = 0,
 		m_nMad = 0,
 		m_nMdd = 0,

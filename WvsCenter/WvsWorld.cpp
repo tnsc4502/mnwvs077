@@ -1,13 +1,15 @@
 #include "WvsWorld.h"
 #include "WvsCenter.h"
+#include "AuthEntry.h"
 #include "UserTransferStatus.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsGame\FriendMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 
 WvsWorld::WvsWorld()
 {
@@ -72,7 +74,6 @@ void WvsWorld::UserMigrateIn(int nCharacterID, int nChannelID)
 void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate)
 {
 	auto pwUser = GetUser(nUserID);
-
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 	if (pwUser)
 	{
@@ -87,17 +88,51 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 			false
 		);
 		FriendMan::GetInstance()->NotifyLogout(nUserID);
+
+		OutPacket oPacket;
+		oPacket.Encode2(CenterSendPacketFlag::LoginAuthResult);
+		oPacket.Encode1(LoginAuthResult::res_LoginAuth_UnRegisterMigratinon);
+		oPacket.Encode4(pwUser->m_nAccountID);
+
+		//Remove User Entry
 		m_mUser.erase(nUserID);
+		m_mAccountToUser.erase(pwUser->m_nAccountID);
+
+		//Remove Auth Entry
+		RemoveAuthEntry(pwUser->m_nAccountID);
 		FreeObj(pwUser);
+		WvsBase::GetInstance<WvsCenter>()->GetLoginServer()->GetLocalSocket()->SendPacket(&oPacket);
 	}
 }
 
-void WvsWorld::SetUser(int nUserID, WorldUser * pWorldUser)
+int WvsWorld::RefreshLoginState(int nAccountID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+
+	if (GetAuthEntryByAccountID(nAccountID))
+		return 1; //On auth.
+
+	auto findIter = m_mAccountToUser.find(nAccountID);
+	if (findIter == m_mAccountToUser.end())
+		return 0; //Not migrated in.
+
+	//Check again.
+	auto pwUser = GetUser(findIter->second->m_nCharacterID);
+	if (!pwUser)
+	{
+		m_mAccountToUser.erase(nAccountID);
+		return 0;
+	}
+	return 1; //Migrated in
+}
+
+void WvsWorld::SetUser(int nUserID, WorldUser* pWorldUser)
 {
 	auto pUser = GetUser(nUserID);
-
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 	m_mUser[nUserID] = pWorldUser;
+	m_mAccountToUser[pWorldUser->m_nAccountID] = pWorldUser;
+
 	if (pUser)
 		FreeObj(pUser);
 }
@@ -120,7 +155,7 @@ bool WvsWorld::IsUserTransfering(int nUserID)
 	return pwUser && pwUser->m_bTransfering;
 }
 
-WvsWorld::WorldUser * WvsWorld::GetUser(int nUserID)
+WvsWorld::WorldUser* WvsWorld::GetUser(int nUserID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 
@@ -128,7 +163,40 @@ WvsWorld::WorldUser * WvsWorld::GetUser(int nUserID)
 	return findIter == m_mUser.end() ? nullptr : findIter->second;
 }
 
-const WorldInfo & WvsWorld::GetWorldInfo() const
+void WvsWorld::InsertAuthEntry(int nAuthCharacterID, int nAuthAccountID, AuthEntry* pEntry)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	m_mAuthEntry.insert({ nAuthCharacterID, pEntry });
+	m_mAccountIDToAuthEntry.insert({ nAuthAccountID, pEntry });
+}
+
+AuthEntry* WvsWorld::GetAuthEntry(int nAuthCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto findIter = m_mAuthEntry.find(nAuthCharacterID);
+	return findIter == m_mAuthEntry.end() ? nullptr : findIter->second;
+}
+
+AuthEntry* WvsWorld::GetAuthEntryByAccountID(int nAuthAccountID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto findIter = m_mAccountIDToAuthEntry.find(nAuthAccountID);
+	return findIter == m_mAccountIDToAuthEntry.end() ? nullptr : findIter->second;
+}
+
+void WvsWorld::RemoveAuthEntry(int nAuthCharacterID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto pEntry = GetAuthEntry(nAuthCharacterID);
+	if (pEntry)
+	{
+		m_mAccountIDToAuthEntry.erase(pEntry->nAccountID);
+		m_mAuthEntry.erase(nAuthCharacterID);
+		FreeObj(pEntry);
+	}
+}
+
+const WorldInfo& WvsWorld::GetWorldInfo() const
 {
 	return m_WorldInfo;
 }

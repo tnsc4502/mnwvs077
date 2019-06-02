@@ -23,10 +23,10 @@
     <ClInclude Include="GW_CashItemInfo.h" />
     <ClInclude Include="GW_Account.h" />
     <ClInclude Include="GW_FuncKeyMapped.h" />
-    <ClInclude Include="GW_Shop.h" />
     <ClInclude Include="GuildDBAccessor.h" />
     <ClInclude Include="GW_Friend.h" />
     <ClInclude Include="TrunkDBAccessor.h" />
+    <ClInclude Include="LoginDBAccessor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -48,9 +48,9 @@
     <ClCompile Include="GW_CashItemInfo.cpp" />
     <ClCompile Include="GW_Account.cpp" />
     <ClCompile Include="GW_FuncKeyMapped.cpp" />
-    <ClCompile Include="GW_Shop.cpp" />
     <ClCompile Include="GuildDBAccessor.cpp" />
     <ClCompile Include="GW_Friend.cpp" />
     <ClCompile Include="TrunkDBAccessor.cpp" />
+    <ClCompile Include="LoginDBAccessor.cpp" />
   </ItemGroup>
 </Project>

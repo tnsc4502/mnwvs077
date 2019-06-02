@@ -3,15 +3,14 @@
 
 #include <iostream>
 #include <thread>
-#include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\OutPacket.h"
 #include "WvsLogin.h"
 #include "LoginSocket.h"
-#include "..\WvsLib\Common\WvsLoginConstants.hpp"
-
 #include "..\WvsLib\Task\AsyncScheduler.h"
+#include "..\WvsLib\Common\WvsLoginConstants.hpp"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
-//#include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Net\InPacket.h"
+#include "..\WvsLib\Net\OutPacket.h"
+#include "..\Database\WvsUnified.h"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -33,10 +32,10 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
+	WvsUnified::InitDB(pConfigLoader);
 	pLoginServer->SetConfigLoader(pConfigLoader);
 	pLoginServer->Init();
 	pLoginServer->InitializeCenter();
-
 	std::thread initLoginServerThread(ConnectionAcceptorThread, pConfigLoader->IntValue("port"));
 
 	// start the i/o work

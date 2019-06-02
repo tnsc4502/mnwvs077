@@ -6,8 +6,7 @@ class Center :
 	public SocketBase
 {
 private:
-	int nCenterIndex;
-
+	int m_nCenterIndex, m_nWorldID;
 	void OnConnected();
 
 public:
@@ -17,6 +16,8 @@ public:
 	void OnClosed();
 	void OnConnectFailed();
 	void SetCenterIndex(int idx);
+	void SetWorldID(int nWorldID);
+	int GetWorldID() const;
 
 	void OnPacket(InPacket *iPacket);
 	void OnCenterMigrateInResult(InPacket *iPacket);

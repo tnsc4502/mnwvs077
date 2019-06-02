@@ -7,7 +7,7 @@ class SkillEntry
 {
 	std::vector<SkillLevelData*> m_aLevelData;
 
-	int m_nMasterLevel, m_nMaxLevel, m_nSkillID;
+	int m_nMasterLevel, m_nMaxLevel, m_nSkillID, m_nAttackElemAttr = 0;
 
 public:
 	SkillEntry();
@@ -20,9 +20,11 @@ public:
 	void SetMasterLevel(int nLevel);
 	void SetMaxLevel(int nLevel);
 	void SetSkillID(int nID);
+	void SetAttackElemAttr(int nAttr);
 
 	int GetMasterLevel() const;
 	int GetMaxLevel() const;
 	int GetSkillID() const;
+	int GetAttackElemAttr() const;
 };
 

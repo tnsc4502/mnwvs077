@@ -14,22 +14,20 @@ private:
 public:
 	WvsCenter();
 	~WvsCenter();
+	void Init();
+	int GetChannelCount();
+	void OnNotifySocketDisconnected(SocketBase *pSocket);
+	void NotifyWorldChanged();
 
 	void RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RegisterCashShop(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RestoreConnectedUser(int nChannelID, InPacket *iPacket);
 	void RegisterLoginServer(std::shared_ptr<SocketBase> &pServer);
+	void SetShop(LocalServerEntry* pEntry);
+	void SetLoginServer(LocalServerEntry* pEntry);
 
 	LocalServerEntry* GetChannel(int nIdx);
-	int GetChannelCount();
-	void Init();
-	void OnNotifySocketDisconnected(SocketBase *pSocket);
-	void NotifyWorldChanged();
-
 	LocalServerEntry* GetShop();
-	void SetShop(LocalServerEntry* pEntry);
-
 	LocalServerEntry* GetLoginServer();
-	void SetLoginServer(LocalServerEntry* pEntry);
 };
 

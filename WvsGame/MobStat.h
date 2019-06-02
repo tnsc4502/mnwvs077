@@ -12,6 +12,7 @@ public:
 private:
 #define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name = 0, r##name = 0, t##name = 0;
 	friend class Mob;
+	const static int MAX_DAMAGED_ELEM_ATTR = 8;
 
 	int nFlagSet = 0;
 	BurnedInfo burnedInfo;
@@ -47,6 +48,9 @@ public:
 	ADD_MOB_STAT(SealSkill, 26);
 	ADD_MOB_STAT(Dazzle, 27);
 	ADD_MOB_STAT(Burned, 28);
+
+	bool bInvincible = false;
+	int aDamagedElemAttr[MAX_DAMAGED_ELEM_ATTR] = { 0 };
 
 	MobStat();
 	~MobStat();

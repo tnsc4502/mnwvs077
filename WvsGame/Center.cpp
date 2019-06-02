@@ -34,9 +34,19 @@ Center::~Center()
 {
 }
 
-void Center::SetCenterIndex(int idx)
+void Center::SetCenterIndex(int nIdx)
 {
-	nCenterIndex = idx;
+	m_nCenterIndex = nIdx;
+}
+
+void Center::SetWorldID(int nWorldID)
+{
+	m_nWorldID = nWorldID;
+}
+
+int Center::GetWorldID() const
+{
+	return m_nWorldID;
 }
 
 void Center::OnNotifyCenterDisconnected(SocketBase *pSocket)
@@ -95,9 +105,19 @@ void Center::OnPacket(InPacket *iPacket)
 				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Warning]The Center Server Didn't Accept This Socket. Program Will Terminated.\n");
 				exit(0);
 			}
+			int nWorldID = iPacket->Decode1();
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SetWorldID(nWorldID);
+			GW_ItemSlotBase::ms_nWorldID = nWorldID;
+			GW_ItemSlotBase::ms_nChannelID = 
+				WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1; //Channel 0 is reserved for Center
 
-			//Channel 0 is reserved for Center
-			GW_ItemSlotBase::ms_nChannelID = WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1;
+			char aBuffer[128];
+			sprintf_s(aBuffer, "MapleStory Server [WvsGame][TWMS][%03d][WorldID : %02d][ChannelID : %02d]",
+				ServerConstants::kGameVersion,
+				nWorldID,
+				WvsBase::GetInstance<WvsGame>()->GetChannelID());
+			SetConsoleTitleA(aBuffer);
+
 			for (int i = 1; i <= 5; ++i)
 				GW_ItemSlotBase::SetInitSN(i, iPacket->Decode8());
 			WvsLogger::LogRaw("Center Server Authenciated Ok. The Connection Between Local Server Has Builded.\n");

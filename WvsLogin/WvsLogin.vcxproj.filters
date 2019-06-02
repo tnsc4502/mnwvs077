@@ -30,5 +30,8 @@
     <ClInclude Include="Center.h">
       <Filter>Login</Filter>
     </ClInclude>
+    <ClInclude Include="LoginEntry.h">
+      <Filter>Login</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

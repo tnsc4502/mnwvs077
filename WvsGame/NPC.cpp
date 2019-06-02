@@ -23,7 +23,7 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 	//iPacket->Decode4();
 	//int nUnitPrice = iPacket->Decode4();
 
-	auto& aItemList = *(m_pTemplate->GetShopItem());
+	auto& aItemList = m_pTemplate->GetShopItem();
 	if (nPOS >= 0 && nPOS < aItemList.size())
 	{
 		auto pItem = aItemList[nPOS];
@@ -117,7 +117,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 		}
 		if (nCount > 0)
 		{
-			auto pSoldItem = pItem->MakeClone();
+			//auto pSoldItem = pItem->MakeClone();
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
 			std::vector<BackupItem> aBackup;
@@ -153,7 +153,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 		return;
 	}
 	auto nMaxPerSlot = SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(pItem->nItemID, pUser->GetCharacterData());
-	auto& apItemList = *(m_pTemplate->GetShopItem());
+	auto& apItemList = m_pTemplate->GetShopItem();
 	int nCount = nMaxPerSlot - pItem->nNumber;
 	if (nCount <= 0)
 	{
@@ -194,7 +194,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 
 void Npc::MakeShopResult(User *pUser, void* pItem_, OutPacket * oPacket, int nAction, int nIdx)
 {
-	GW_Shop::ShopItem* pItem = (GW_Shop::ShopItem*)pItem_;
+	auto pItem = (NpcTemplate::ShopItem*)pItem_;
 	oPacket->Encode2((short)NPCSendPacketFlags::NPC_OnNpcShopRequest);
 	oPacket->Encode1(nAction);
 	if (nAction == 8)

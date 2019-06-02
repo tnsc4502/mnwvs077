@@ -618,6 +618,8 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 		OnNpcPacket(pUser, nType, iPacket);
 }
 
+#include "CalcDamage.h"
+
 void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo * pInfo)
 {
 	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
@@ -632,6 +634,29 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 		if (mobIter == m_mMob.end())
 			continue;
 		auto pMob = mobIter->second;
+		int aDamage[8] = { 0 };
+		int abCritical[8] = { 0 };
+		pUser->GetCalcDamage()->PDamage(
+			pMob,
+			pMob->GetMobStat(),
+			pInfo->m_nDamagePerMob,
+			pInfo->m_nWeaponItemID,
+			pInfo->m_nBulletItemID,
+			pInfo->m_nAttackType,
+			pInfo->m_nAction,
+			false,
+			pSkill,
+			pInfo->m_nSLV,
+			aDamage,
+			abCritical,
+			0,
+			0,
+			0
+		);
+		for (int i = 0; i < 8; ++i)
+			WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
+				i, aDamage[i], 0, abCritical[i]);
+
 		auto& refDmgValues = dmgInfo.second;
 		for (const auto& dmgValue : refDmgValues)
 		{
@@ -642,8 +667,8 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 				pMob->OnMobDead(
 					pInfo->m_nX,
 					pInfo->m_nY,
-					pUser->GetSecondaryStat()->nMesoUp,
-					pUser->GetSecondaryStat()->nMesoUpByItem
+					pUser->GetSecondaryStat()->nMesoUp_,
+					pUser->GetSecondaryStat()->nMesoUpByItem_
 				);
 				pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
 				RemoveMob(pMob);

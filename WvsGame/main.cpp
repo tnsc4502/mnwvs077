@@ -25,9 +25,6 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
-#include "..\Database\GA_Character.hpp"
-#include "..\Database\GW_Shop.h"
-
 BOOL WINAPI ConsoleHandler(DWORD CEvent)
 {
 	switch (CEvent)
@@ -50,17 +47,16 @@ void ConnectionAcceptorThread(short nPort)
 	gameServer->BeginAccept<ClientSocket>();
 }
 
+#include "..\WvsLib\Random\Rand32.h"
+
 int main(int argc, char **argv)
 {
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
-	SetConsoleTitle(L"MapleStory Server [WvsGame][TWMS][077]");
 	TimerThread::RegisterTimerPool(50, 1000);
 	QuestMan::GetInstance()->LoadAct();
 	QuestMan::GetInstance()->LoadDemand();
 	ItemInfo::GetInstance()->Initialize();
 	Reward::LoadReward();
-	//GW_MobReward::GetInstance()->Load();
-	GW_Shop::GetInstance()->Load();
 	ReactorTemplate::Load();
 	NpcTemplate::GetInstance()->Load();
 	try {
@@ -83,13 +79,11 @@ int main(int argc, char **argv)
 		WvsLogger::LogRaw("Please run this program with command line, and provide the path of config file.\n");
 		return -1;
 	}
-
 	WvsBase::GetInstance<WvsGame>()->SetExternalIP(pCfgLoader->StrValue("ExternalIP"));
 	WvsBase::GetInstance<WvsGame>()->SetExternalPort(pCfgLoader->IntValue("Port"));
 	// start the connection acceptor thread
 
 	std::thread thread1(ConnectionAcceptorThread, pCfgLoader->IntValue("Port"));
-
 	WvsBase::GetInstance<WvsGame>()->SetConfigLoader(pCfgLoader);
 	WvsBase::GetInstance<WvsGame>()->InitializeCenter();
 

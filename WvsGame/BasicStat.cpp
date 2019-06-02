@@ -63,16 +63,18 @@ void BasicStat::SetFrom(GA_Character * pChar, int nMaxHPIncRate, int nMaxMPIncRa
 	nPOP = pCS->nPOP;
 	nMHP = pCS->nMaxHP;
 	nMMP = pCS->nMaxMP;
+
 	nCharismaEXP = pCS->nCharismaEXP;
 	nInsightEXP = pCS->nInsightEXP;
 	nWillEXP = pCS->nWillEXP;
 	nSenseEXP = pCS->nSenseEXP;
 	nCharmEXP = pCS->nCharmEXP;
-	//SetPermanentSkillStat(pChar);
 	const GW_ItemSlotEquip* pEquip;
 	for (const auto& itemEquipped : pChar->mItemSlot[1])
 	{
 		pEquip = (const GW_ItemSlotEquip*)itemEquipped.second;
+		if (pEquip->nPOS >= 0)
+			break;
 		nSTR += pEquip->nSTR;
 		nLUK += pEquip->nLUK;
 		nDEX += pEquip->nDEX;
@@ -85,8 +87,13 @@ void BasicStat::SetFrom(GA_Character * pChar, int nMaxHPIncRate, int nMaxMPIncRa
 	}
 	nMHP = nMHP * (nMaxHPIncRate + 100) / 100;
 	nMMP = nMMP * (nMaxMPIncRate + 100) / 100;
-	if (nMHP > 500000)
-		nMHP = 500000;
-	if (nMMP > 500000)
-		nMMP = 500000;
+	if (nMHP > 30000)
+		nMHP = 30000;
+	if (nMMP > 30000)
+		nMMP = 30000;
+
+	nSTR += nBasicStatInc * pCS->nStr / 100;
+	nLUK += nBasicStatInc * pCS->nLuk / 100;
+	nDEX += nBasicStatInc * pCS->nDex / 100;
+	nINT += nBasicStatInc * pCS->nInt / 100;
 }

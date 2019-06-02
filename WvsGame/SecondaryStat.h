@@ -5,7 +5,7 @@
 #include "BasicStat.h"
 #include "TemporaryStat.h"
 
-#define ADD_TEMPORARY(stat) int nLv##stat = 0, n##stat = 0, t##stat = 0, r##stat = 0, b##stat = 0, x##stat = 0, c##stat = 0, y##stat = 0;
+#define ADD_TEMPORARY(stat) int nLv##stat##_ = 0, n##stat##_ = 0, t##stat##_ = 0, r##stat##_ = 0, b##stat##_ = 0, x##stat##_ = 0, c##stat##_ = 0, y##stat##_ = 0;
 
 class User;
 struct GA_Character;
@@ -88,6 +88,17 @@ public:
 	ADD_TEMPORARY(GuidedBullet);
 	ADD_TEMPORARY(Undead);
 	ADD_TEMPORARY(RideVehicleExpire);
+
+	int nPDD,
+		nMDD,
+		nMAD,
+		nPAD,
+		nACC,
+		nEVA,
+		nSpeed,
+		nJump,
+		nCraft;
+
 public:
 	SecondaryStat();
 	~SecondaryStat();

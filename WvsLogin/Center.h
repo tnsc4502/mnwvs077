@@ -34,6 +34,7 @@ public:
 	void OnCharacterListResponse(InPacket *iPacket);
 	void OnGameServerInfoResponse(InPacket *iPacket);
 	void OnCreateCharacterResult(InPacket *iPacket);
+	void OnLoginAuthResult(InPacket *iPacket);
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };
 

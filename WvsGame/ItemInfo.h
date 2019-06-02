@@ -15,6 +15,7 @@
 #include <vector>
 
 class User;
+struct GA_Character;
 struct GW_ItemSlotBase;
 
 class ItemInfo
@@ -65,50 +66,14 @@ public:
 	void RegisterSetHalloweenItem();
 
 	void RegisterEquipItemInfo(EquipItem* pEqpItem, int nItemID, void* pProp);
-
-	/*
-	一般升級用卷軸
-	*/
 	void RegisterUpgradeItem(int nItemID, void *pProp);
-
-	/*
-	移動卷軸
-	*/
 	void RegisterPortalScrollItem(int nItemID, void *pProp);
-
-	/*
-	召喚袋之類的
-	*/
 	void RegisterMobSummonItem(int nItemID, void *pProp);
-
-	/*
-	寵物相關的
-	*/
 	void RegisterPetFoodItem(int nItemID, void *pProp);
-
-	/*
-	騎寵相關的
-	*/
 	void RegisterTamingMobFoodItem(int nItemID, void *pProp);
-
-	/*
-	
-	*/
 	void RegisterBridleItem(int nItemID, void *pProp);
-
-	/*
-	椅子
-	*/
 	void RegisterPortableChairItem(int nItemID, void *pProp);
-
-	/*
-	技能書
-	*/
 	void RegisterSkillLearnItem(int nItemID, void *pProp);
-
-	/*
-	會改變角色狀態的物品，例如藥水
-	*/
 	void RegisterStateChangeItem(int nItemID, void *pProp);
 
 	EquipItem* GetEquipItem(int nItemID);
@@ -149,6 +114,9 @@ public:
 	static bool IsLongcoat(int nItemID);
 	static bool IsCap(int nItemID);
 	static bool IsPet(int nItemID);
+	static int GetWeaponMastery(GA_Character* pCharacter, int nWeaponID, int nAttackType, int *pnACCInc, int *pnPADInc);
+	static int GetWeaponType(int nItemID);
+	static int GetCriticalSkillLevel(GA_Character* pCharacter, int nWeaponID, int nAttackType, int *pnProp, int *pnParam);
 	GW_ItemSlotBase* GetItemSlot(int nItemID, ItemVariationOption enOption);
 
 private:

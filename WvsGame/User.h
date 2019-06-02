@@ -29,7 +29,7 @@ class Summoned;
 class Script;
 class Trunk;
 struct MobSkillLevelData;
-
+class CalcDamage;
 class MiniRoomBase;
 
 class User : public FieldObj
@@ -127,6 +127,7 @@ private:
 	Npc *m_pTradingNpc = nullptr;
 	int m_nTrunkTemplateID = 0;
 	Trunk *m_pTrunk = nullptr;
+	CalcDamage* m_pCalcDamage = nullptr;
 
 	//Pet
 	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
@@ -215,6 +216,7 @@ public:
 	void EncodeMarriageInfo(OutPacket *oPacket);
 
 	//Stat
+	CalcDamage* GetCalcDamage();
 	SecondaryStat* GetSecondaryStat();
 	BasicStat* GetBasicStat();
 	void ValidateStat(bool bCalledByConstructor = false);

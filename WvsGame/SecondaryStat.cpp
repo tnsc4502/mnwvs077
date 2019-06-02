@@ -12,6 +12,7 @@
 
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotEquip.h"
+#include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_CharacterLevel.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
@@ -21,17 +22,17 @@
 
 #define CHECK_TS_REMOTE_N(name, size)\
 if(flag & GET_TS_FLAG(name))\
-	oPacket->Encode##size(n##name)
+	oPacket->Encode##size(n##name##_)
 
 #define CHECK_TS_REMOTE_R(name, size)\
 if(flag & GET_TS_FLAG(name))\
-	oPacket->Encode##size(r##name)
+	oPacket->Encode##size(r##name##_)
 
 #define CHECK_TS_NORMAL(name) \
 if (flag & GET_TS_FLAG(name)) { \
-oPacket->Encode2(n##name);\
-oPacket->Encode4(r##name); \
-oPacket->Encode4(t##name); }
+oPacket->Encode2(n##name##_);\
+oPacket->Encode4(r##name##_); \
+oPacket->Encode4(t##name##_); }
 
 
 SecondaryStat::SecondaryStat()
@@ -46,27 +47,36 @@ SecondaryStat::~SecondaryStat()
 
 void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 {
+#undef min
+#undef max
 	const GW_CharacterStat *pCS = pChar->mStat;
 
+	//Set from basic stats
+	int nJobType = pCS->nJob / 100;
 	this->nPAD = 0;
 	this->nPDD = 0;
-
-	//不知道新的計算公式為何
 	this->nMAD = pBS->nINT;
 	this->nMDD = pBS->nINT;
-
 	this->nEVA = pBS->nLUK / 2 + pBS->nDEX / 4;
-	this->nACC = pBS->nDEX + pBS->nLUK;
+	if(nJobType == 3 || nJobType == 4)
+		this->nACC = (int)((double)pBS->nDEX * 0.3 + (double)pBS->nLUK * 0.6);
+	else
+		this->nACC = (int)((double)pBS->nDEX * 0.8 + (double)pBS->nLUK * 0.5);
+
 	this->nSpeed = 100;
 	this->nJump = 100;
 	this->nCraft = pBS->nDEX + pBS->nLUK + pBS->nINT;
+	int nPDDIncRate = 100; //shield mastery ?
 
-	int nPDDIncRate = 0; //shield mastery ?
-
-	const GW_ItemSlotEquip* pEquip;
+	//Inc from equips
+	const GW_ItemSlotEquip* pEquip, *pWeapon = nullptr;
 	for (const auto& itemEquipped : pChar->mItemSlot[1])
 	{
 		pEquip = (const GW_ItemSlotEquip*)itemEquipped.second;
+		if (pEquip->nPOS >= 0)
+			break;
+		if (pEquip->nPOS == -11)
+			pWeapon = pEquip;
 
 		nPDD += pEquip->nPDD;
 		nPAD += pEquip->nPAD;
@@ -75,45 +85,39 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 
 		nACC += pEquip->nACC;
 		nEVA += pEquip->nEVA;
+		nSpeed += pEquip->nSpeed;
+		nJump += pEquip->nJump;
 	}
-	SkillEntry
-		*pShoutOfEmpress = nullptr,
-		*pMichaelShoutOfEmpress = nullptr,
-		*pUltimateAdventurer = nullptr,
-		*pReinforcementOfEmpress = nullptr;
 
-	int nCheckSLV = 0;
-	nCheckSLV = SkillInfo::GetInstance()->GetSkillLevel(pChar, 10000074, &pShoutOfEmpress, 0, 0, 0, 1);
-	if (nCheckSLV && pShoutOfEmpress)
+	//Inc from skills
+	SkillEntry *pEntry1 = nullptr, *pEntry2 = nullptr;
+	int nSLV1 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 3000000, &pEntry1, 0, 0, 0, 0);
+	int nSLV2 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 4000000, &pEntry2, 0, 0, 0, 0);
+	if (nSLV1)
+		nACC += pEntry1->GetLevelData(nSLV1)->m_nX;
+	if (nSLV2)
 	{
-		auto pLevelData = pShoutOfEmpress->GetLevelData(nCheckSLV);
-		nIncMaxHPr = pLevelData->m_nX;
-		nIncMaxMPr = pLevelData->m_nX;
+		nACC += pEntry2->GetLevelData(nSLV2)->m_nX;
+		nEVA += pEntry2->GetLevelData(nSLV2)->m_nY;
 	}
 
-	nCheckSLV = SkillInfo::GetInstance()->GetSkillLevel(pChar, 50000074, &pMichaelShoutOfEmpress, 0, 0, 0, 1);
-	if (nCheckSLV && pMichaelShoutOfEmpress)
+	int nAttackType = 0, nACCInc = 0, nPADInc = 0;
+	if (nJobType == 3 || nJob / 10 == 41)
+		nAttackType = 1;
+	if (ItemInfo::GetWeaponMastery(pChar, pWeapon ? pWeapon->nItemID : 0, nAttackType, &nACCInc, &nPADInc))
 	{
-		auto pLevelData = pMichaelShoutOfEmpress->GetLevelData(nCheckSLV);
-		nIncMaxHPr = pLevelData->m_nX;
-		nIncMaxMPr = pLevelData->m_nX;
+		nACC += nACCInc;
+		nPAD += nPADInc;
 	}
 
-	nCheckSLV = SkillInfo::GetInstance()->GetSkillLevel(pChar, 74, &pUltimateAdventurer, 0, 0, 0, 1);
-	if (nCheckSLV && pUltimateAdventurer)
-	{
-		auto pLevelData = pUltimateAdventurer->GetLevelData(nCheckSLV);
-		nLevel = pLevelData->m_nX;
-	}
-
-	nCheckSLV = SkillInfo::GetInstance()->GetSkillLevel(pChar, 80, &pReinforcementOfEmpress, 0, 0, 0, 1);
-	if (nCheckSLV && pReinforcementOfEmpress)
-	{
-		auto pLevelData = pReinforcementOfEmpress->GetLevelData(nCheckSLV);
-		nLevel = pLevelData->m_nX;
-	}
-
-	nIncMaxHPr_Forced = nIncMaxHPr;
+	nPAD = std::min(1999, std::max(nPAD, 0));
+	nPDD = std::min(1999, std::max(nPDD, 0));
+	nMAD = std::min(1999, std::max(nMAD, 0));
+	nMDD = std::min(1999, std::max(nMDD, 0));
+	nACC = std::min(999, std::max(nACC, 0));
+	nEVA = std::min(999, std::max(nEVA, 0));
+	nSpeed = std::min(140, std::max(nSpeed, 0));
+	nJump = std::min(123, std::max(nJump, 0));
 }
 
 void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag & flag)
@@ -177,8 +181,8 @@ void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag &
 	CHECK_TS_NORMAL(DefenseAtt);
 	CHECK_TS_NORMAL(DefenseState);
 
-	oPacket->Encode1((int)nDefenseAtt);
-	oPacket->Encode1((int)nDefenseState);
+	oPacket->Encode1((int)nDefenseAtt_);
+	oPacket->Encode1((int)nDefenseState_);
 	//oPacket->Encode1((int)nPVPDamage);
 
 
@@ -222,8 +226,8 @@ void SecondaryStat::EncodeForRemote(OutPacket * oPacket, TemporaryStat::TS_Flag 
 	CHECK_TS_REMOTE_R(DefenseAtt, 4);
 	CHECK_TS_REMOTE_R(DefenseState, 4);
 
-	oPacket->Encode1((char)nDefenseAtt);
-	oPacket->Encode1((char)nDefenseState);
+	oPacket->Encode1((char)nDefenseAtt_);
+	oPacket->Encode1((char)nDefenseState_);
 	//RideVechicle
 }
 

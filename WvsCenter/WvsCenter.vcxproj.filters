@@ -87,5 +87,8 @@
     <ClInclude Include="EntrustedShopMan.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="AuthEntry.h">
+      <Filter>World</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

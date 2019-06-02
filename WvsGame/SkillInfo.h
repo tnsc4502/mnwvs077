@@ -36,6 +36,7 @@ public:
 	static SkillInfo* GetInstance();
 	static bool IsValidRootName(const std::string& sName);
 	int GetBundleItemMaxPerSlot(int nItemID, GA_Character* pCharacterData);
+	int GetElementAttribute(const char *s, int *nElemAttr);
 	void LoadMobSkill();
 	void LoadMobSkillLeveData(MobSkillEntry* pEntry, void *pData);
 	void LoadMCSkill();
@@ -47,5 +48,6 @@ public:
 	int GetSkillLevel(GA_Character* pCharacter, int nSkillID, SkillEntry** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot);
 	GW_SkillRecord* GetSkillRecord(int nSkillID, int nSLV, long long int tExpired);
 	static bool IsSummonSkill(int nSkillID);
+	int GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry *pEntry, int *pnInc);
 };
 

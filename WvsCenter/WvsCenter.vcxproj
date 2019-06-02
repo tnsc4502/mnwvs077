@@ -172,6 +172,7 @@
     <ClInclude Include="..\WvsGame\PartyMan.h" />
     <ClInclude Include="..\WvsGame\Trunk.h" />
     <ClInclude Include="EntrustedShopMan.h" />
+    <ClInclude Include="AuthEntry.h" />
     <ClInclude Include="LocalServerEntry.h" />
     <ClInclude Include="UserTransferStatus.h" />
     <ClInclude Include="WvsCenter.h" />

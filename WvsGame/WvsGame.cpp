@@ -91,6 +91,7 @@ void WvsGame::OnNotifySocketDisconnected(SocketBase *pSocket)
 {
 	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
 	auto pClient = (ClientSocket*)pSocket;
+	pClient->OnSocketDisconnected();
 	if (pClient->GetUser())
 	{
 		m_mUserMap.erase(pClient->GetUser()->GetUserID());

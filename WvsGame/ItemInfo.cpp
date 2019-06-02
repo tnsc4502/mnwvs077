@@ -1,9 +1,13 @@
 #include "ItemInfo.h"
+#include "SkillInfo.h"
+#include "SkillEntry.h"
+#include "SkillLevelData.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotPet.h"
+#include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
@@ -695,6 +699,101 @@ bool ItemInfo::IsPet(int nItemID)
 	int nTI = GetItemSlotType(nItemID);
 	int nPrefix = nItemID / 1000;
 	return nTI == GW_ItemSlotBase::CASH && (nPrefix % 10 == 0);
+}
+
+int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nAttackType, int *pnACCInc, int *pnPADInc)
+{
+	int nWT = GetWeaponType(nWeaponID);
+	int nResult1 = 0, nResult2 = 0;
+	switch (nWT)
+	{
+		case 47:
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 4100000, nullptr, pnACCInc);
+		case 46:
+			if (nAttackType != 1)
+				return 0;
+			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3200000, nullptr, pnACCInc);
+			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3220004, nullptr, pnPADInc);
+			return nResult1 ? nResult1 : nResult2;
+		case 45:
+			if (nAttackType != 1)
+				return 0;
+			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3100000, nullptr, pnACCInc);
+			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3120005, nullptr, pnPADInc);
+			return nResult1 ? nResult1 : nResult2;
+		case 44:
+			if (nAttackType)
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1300001, nullptr, pnACCInc)
+				+ SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1321007, nullptr, pnPADInc);
+		case 43:
+			if (nAttackType)
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1300000, nullptr, pnACCInc)
+				+ SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1321007, nullptr, pnPADInc);
+		case 42:
+		case 32:
+			if (nAttackType)
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1200001, nullptr, pnACCInc);
+		case 31:
+		case 41:
+			if (nAttackType)
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1100001, nullptr, pnACCInc);
+		case 30:
+		case 40:
+			if (nAttackType)
+				return 0;
+			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1100000, nullptr, pnACCInc);
+			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1200000, nullptr, pnPADInc);
+			return nResult1 ? nResult1 : nResult2;
+		default:
+			if (nWT > 42 && nAttackType != 1)
+				return 0;
+			else if (nWT <= 42 && nAttackType)
+				return 0;
+	}
+	return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 4200000, nullptr, pnACCInc);
+}
+
+int ItemInfo::GetWeaponType(int nItemID)
+{
+	int result = 0;
+
+	if (nItemID / 1000000 != 1
+		|| (result = nItemID / 10000 % 100, result < 30)
+		|| result > 33 && (result <= 36 || result > 38 && (result <= 39 || result > 47)))
+	{
+		result = 0;
+	}
+	return result;
+}
+
+int ItemInfo::GetCriticalSkillLevel(GA_Character * pCharacter, int nWeaponID, int nAttackType, int * pnProp, int * pnParam)
+{
+	SkillEntry* pEntry = nullptr;
+	pnParam ? *pnParam = 0 : void();
+	pnProp ? *pnProp = 0 : void();
+	int nCSLV = 0;
+	int nWT = GetWeaponType(nWeaponID);
+	if (nWT >= 45)
+	{
+		if (nAttackType != 1)
+			return 0;
+		if (nWT == 46)
+			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 3000001, &pEntry, 0, 0, 0, 0);
+		else if(nWT == 47)
+			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 4100001, &pEntry, 0, 0, 0, 0);
+		if (pEntry && nCSLV > 0)
+		{
+			if (pnProp)
+				*pnProp = pEntry->GetLevelData(nCSLV)->m_nProp;
+			if (pnParam)
+				*pnParam = pEntry->GetLevelData(nCSLV)->m_nDamage;
+		}
+	}
+	return nCSLV;
 }
 
 void ItemInfo::LoadIncrementStat(BasicIncrementStat & refStat, void * pProp)

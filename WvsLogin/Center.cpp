@@ -4,14 +4,13 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Common\ServerConstants.hpp"
-
-#include "WvsLogin.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "WvsLogin.h"
+#include "LoginEntry.h"
 
 Center::Center(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -73,6 +72,9 @@ void Center::OnPacket(InPacket *iPacket)
 	case CenterSendPacketFlag::CreateCharacterResult:
 		OnCreateCharacterResult(iPacket);
 		break;
+	case CenterSendPacketFlag::LoginAuthResult:
+		OnLoginAuthResult(iPacket);
+		break;
 	}
 }
 
@@ -129,10 +131,24 @@ void Center::OnCharacterListResponse(InPacket *iPacket)
 void Center::OnGameServerInfoResponse(InPacket *iPacket)
 {
 	unsigned int nLoginSocketID = iPacket->Decode4();
-	auto pSocket = WvsBase::GetInstance<WvsLogin>()->GetSocket(nLoginSocketID); 
+	auto pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByLoginSocketSN(nLoginSocketID);
+	auto pSocket = WvsBase::GetInstance<WvsLogin>()->GetSocket(nLoginSocketID);
+	if (!pEntry || !pSocket)
+		return;
+	pEntry->nLoginState = LoginState::LS_Stage_MigratedIn;
+
+	//Auth
+	if (!iPacket->Decode1())
+	{
+		pEntry->nLoginState = LoginState::LS_Stage_SelectWorld;
+		pSocket->GetSocket().close();
+		return;
+	}
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketFlag::Client_ClientSelectCharacterResult);
-	oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
+	oPacket.EncodeBuffer(
+		iPacket->GetPacket() + iPacket->GetReadCount(), 
+		iPacket->GetPacketSize() - iPacket->GetReadCount());
 	pSocket->SendPacket(&oPacket);
 }
 
@@ -144,6 +160,22 @@ void Center::OnCreateCharacterResult(InPacket * iPacket)
 	oPacket.Encode2((short)LoginSendPacketFlag::Client_ClientCreateCharacterResult);
 	oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
 	pSocket->SendPacket(&oPacket);
+}
+
+void Center::OnLoginAuthResult(InPacket * iPacket)
+{
+	int nType = iPacket->Decode1();
+	int nAccountID = iPacket->Decode4();
+	switch (nType)
+	{
+		case LoginAuthResult::res_LoginAuth_RefreshLoginState:
+		case LoginAuthResult::res_LoginAuth_UnRegisterMigratinon:
+		{
+			if (nType == LoginAuthResult::res_LoginAuth_UnRegisterMigratinon ||
+				!iPacket->Decode1())
+				WvsBase::GetInstance<WvsLogin>()->RemoveLoginEntryByAccountID(nAccountID);
+		}
+	}
 }
 
 void Center::OnNotifyCenterDisconnected(SocketBase * pSocket)

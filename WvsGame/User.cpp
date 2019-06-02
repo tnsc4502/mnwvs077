@@ -65,12 +65,15 @@
 #include "Trunk.h"
 #include "MobSkillEntry.h"
 #include "AffectedAreaPool.h"
+#include "CalcDamage.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
-	: m_pSocket(_pSocket),
+	: 
+	m_pSocket(_pSocket),
 	m_pCharacterData(AllocObj(GA_Character)),
-	  m_pBasicStat(AllocObj(BasicStat)),
-	  m_pSecondaryStat(AllocObj(SecondaryStat))
+	m_pBasicStat(AllocObj(BasicStat)),
+	m_pSecondaryStat(AllocObj(SecondaryStat)),
+	m_pCalcDamage(AllocObjCtor(CalcDamage)(this))
 {
 	_pSocket->SetUser(this);
 	m_pCharacterData->nAccountID = iPacket->Decode4();
@@ -180,6 +183,7 @@ User::~User()
 	FreeObj(m_pCharacterData);
 	FreeObj(m_pBasicStat);
 	FreeObj(m_pSecondaryStat);
+	FreeObj(m_pCalcDamage);
 	FreeObj(m_pFuncKeyMapped);
 
 	m_pUpdateTimer->Pause();
@@ -345,6 +349,7 @@ AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nType = nType;
 	pInfo->m_bFieldKey = iPacket->Decode1();
 	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
+	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
 	pInfo->m_nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 		m_pCharacterData,
@@ -359,8 +364,9 @@ AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket 
 	if (WvsGameConstants::IsRushBombSkill(nSkillID))
 		pInfo->m_pGrenade = iPacket->Decode4();
 
-	iPacket->Decode1();
+	pInfo->m_nOption = iPacket->Decode1();
 	pInfo->m_nDisplay = iPacket->Decode1();
+	pInfo->m_nAction = pInfo->m_nDisplay & 0x7F;
 	pInfo->m_nAttackActionType = iPacket->Decode1();
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 
@@ -374,6 +380,7 @@ AttackInfo * User::TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nType = nType;
 	pInfo->m_bFieldKey = iPacket->Decode1();
 	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
+	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
 	pInfo->m_nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 		m_pCharacterData,
@@ -389,8 +396,9 @@ AttackInfo * User::TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket 
 	if (WvsGameConstants::IsKeyDownSkill(nSkillID))
 		pInfo->m_tKeyDown = iPacket->Decode4();
 
-	iPacket->Decode1();
+	pInfo->m_nOption = iPacket->Decode1();
 	pInfo->m_nDisplay = iPacket->Decode1();
+	pInfo->m_nAction = pInfo->m_nDisplay & 0x7F;
 	pInfo->m_nAttackActionType = iPacket->Decode1();
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
@@ -404,6 +412,7 @@ AttackInfo * User::TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nType = nType;
 	pInfo->m_bFieldKey = iPacket->Decode1();
 	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
+	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
 
 	pInfo->m_nSLV = SkillInfo::GetInstance()->GetSkillLevel(
@@ -421,11 +430,15 @@ AttackInfo * User::TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket 
 
 	pInfo->m_nOption = iPacket->Decode1();
 	pInfo->m_nDisplay = iPacket->Decode1();
+	pInfo->m_nAction = pInfo->m_nDisplay & 0x7F;
 	pInfo->m_nAttackActionType = iPacket->Decode1();
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 	pInfo->m_nSlot = iPacket->Decode2();
 	int nDecCount = 0;
+	auto pStar = m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, pInfo->m_nSlot);
+	if (pStar && ItemInfo::IsRechargable(pStar->nItemID))
+		pInfo->m_nBulletItemID = pStar->nItemID;
 	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 	if (!QWUInventory::RawWasteItem(this, pInfo->m_nSlot, 1, aChangeLog)
 		&& !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, 1, &aChangeLog, nDecCount, nullptr))
@@ -609,9 +622,9 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserlock);
 	SetTransferStatus(TransferStatus::eOnTransferField);
 	Field *pTargetField = FieldMan::GetInstance()->GetField(nFieldID);
-	Portal* pPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
 	if (pTargetField != nullptr)
 	{
+		Portal* pPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
 		Portal* pTargetPortal = 
 			pPortal == nullptr ? pTargetField->GetPortalMap()->GetRandStartPoint() : pPortal;
 
@@ -633,6 +646,7 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 		ReregisterSummoned();
 		return true;
 	}
+	SetTransferStatus(TransferStatus::eOnTransferNone);
 	return false;
 }
 
@@ -841,7 +855,7 @@ void User::EncodeMarriageInfo(OutPacket * oPacket)
 
 void User::ValidateStat(bool bCalledByConstructor)
 {
-	m_pBasicStat->SetFrom(m_pCharacterData, m_pSecondaryStat->nMaxHP, m_pSecondaryStat->nMaxMP, m_pSecondaryStat->nBasicStatUp);
+	m_pBasicStat->SetFrom(m_pCharacterData, m_pSecondaryStat->nMaxHP_, m_pSecondaryStat->nMaxMP_, m_pSecondaryStat->nBasicStatUp_);
 	m_pSecondaryStat->SetFrom(m_pCharacterData, m_pBasicStat);
 	long long int liFlag = 0;
 	if (m_pCharacterData->mStat->nHP > m_pBasicStat->nMHP)
@@ -981,12 +995,15 @@ void User::OnAttack(int nType, InPacket * iPacket)
 	switch (nType)
 	{
 		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
+			attackInfo.m_nAttackType = 0;
 			pResult = (TryParsingMeleeAttack(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
+			attackInfo.m_nAttackType = 1;
 			pResult = (TryParsingShootAttack(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
+			attackInfo.m_nAttackType = 2;
 			pResult = (TryParsingMagicAttack(&attackInfo, nType, iPacket));
 			break;
 		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
@@ -998,7 +1015,8 @@ void User::OnAttack(int nType, InPacket * iPacket)
 		auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(pResult->m_nSkillID);
 		auto pLevel = !pSkillEntry ? nullptr : pSkillEntry->GetLevelData(pResult->m_nSLV);
 		int tCur = GameDateTime::GetTime();
-
+		auto pWeapon = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -11);
+		pResult->m_nWeaponItemID = pWeapon ? pWeapon->nItemID : 0;
 		m_pField->GetLifePool()->OnUserAttack(
 			this,
 			pSkillEntry,
@@ -1044,6 +1062,11 @@ void User::OnEmotion(InPacket *iPacket)
 
 		GetField()->SplitSendPacket(&oPacket, this);
 	}
+}
+
+CalcDamage* User::GetCalcDamage()
+{
+	return m_pCalcDamage;
 }
 
 SecondaryStat * User::GetSecondaryStat()
@@ -1175,19 +1198,19 @@ void User::OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelDat
 #define SET_BY_MOB_X(name, value) \
 tsFlag |= GET_TS_FLAG(##name); \
 auto *pRef = &m_pSecondaryStat->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
-m_pSecondaryStat->n##name = bResetBySkill ? 0 : value;\
-m_pSecondaryStat->r##name = bResetBySkill ? 0 : nSkillID | (nSLV << 16);\
-m_pSecondaryStat->t##name = bResetBySkill ? 0 : nDuration;\
-m_pSecondaryStat->nLv##name =  bResetBySkill ? 0 : nSLV;\
+m_pSecondaryStat->n##name##_ = bResetBySkill ? 0 : value;\
+m_pSecondaryStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16);\
+m_pSecondaryStat->t##name##_ = bResetBySkill ? 0 : nDuration;\
+m_pSecondaryStat->nLv##name##_ =  bResetBySkill ? 0 : nSLV;\
 m_pSecondaryStat->m_tsFlagSet ^= TemporaryStat::TS_##name;\
 if(!bResetBySkill)\
 {\
 	m_pSecondaryStat->m_tsFlagSet |= TemporaryStat::TS_##name;\
 	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
-	pRef->second.push_back(&m_pSecondaryStat->n##name);\
-	pRef->second.push_back(&m_pSecondaryStat->r##name);\
-	pRef->second.push_back(&m_pSecondaryStat->t##name);\
-	pRef->second.push_back(&m_pSecondaryStat->nLv##name);\
+	pRef->second.push_back(&m_pSecondaryStat->n##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->r##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->t##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->nLv##name##_);\
 }\
 
 	if ((int)(Rand32::GetInstance()->Random() % 100) < (!pLevel->nProp ? 100 : pLevel->nProp))
@@ -1204,19 +1227,19 @@ if(!bResetBySkill)\
 			switch (nSkillID)
 			{
 				case 120:
-					if (!m_pSecondaryStat->nHolyShield)
+					if (!m_pSecondaryStat->nHolyShield_)
 					{
 						SET_BY_MOB_X(Seal, 1);
 					}
 					break;
 				case 121:
-					if (!m_pSecondaryStat->nHolyShield)
+					if (!m_pSecondaryStat->nHolyShield_)
 					{
 						SET_BY_MOB_X(Darkness, 1);
 					}
 					break;
 				case 122:
-					if (!m_pSecondaryStat->nHolyShield)
+					if (!m_pSecondaryStat->nHolyShield_)
 					{
 						SET_BY_MOB_X(Weakness, 1);
 					}
@@ -1228,19 +1251,19 @@ if(!bResetBySkill)\
 				}
 				case 124: 
 				{
-					if (m_pSecondaryStat->nHolyShield)
+					if (m_pSecondaryStat->nHolyShield_)
 						break;
 					SET_BY_MOB_X(Curse, 1);
 					break;
 				}
 				case 125:
-					if (!m_pSecondaryStat->nHolyShield)
+					if (!m_pSecondaryStat->nHolyShield_)
 					{
 						SET_BY_MOB_X(Poison, pLevel->nX);
 					}
 					break;
 				case 126:
-					if (!m_pSecondaryStat->nHolyShield)
+					if (!m_pSecondaryStat->nHolyShield_)
 					{
 						SET_BY_MOB_X(Slow, pLevel->nX);
 					}

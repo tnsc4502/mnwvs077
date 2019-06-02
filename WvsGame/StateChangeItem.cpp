@@ -9,17 +9,17 @@
 #define REGISTER_TS(name, value)\
 retTSFlag |= GET_TS_FLAG(##name);\
 pRef = &pSS->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
-pSS->n##name = bResetByItem ? 0 : value;\
-pSS->r##name = bResetByItem ? 0 : -nItemID;\
-pSS->t##name = bResetByItem ? 0 : tTime;\
-pSS->nLv##name = 0;\
+pSS->n##name##_ = bResetByItem ? 0 : value;\
+pSS->r##name##_ = bResetByItem ? 0 : -nItemID;\
+pSS->t##name##_ = bResetByItem ? 0 : tTime;\
+pSS->nLv##name##_ = 0;\
 if(!bResetByItem)\
 {\
 	pRef->first = bForcedSetTime ? nForcedSetTime : tCur;\
-	pRef->second.push_back(&pSS->n##name);\
-	pRef->second.push_back(&pSS->r##name);\
-	pRef->second.push_back(&pSS->t##name);\
-	pRef->second.push_back(&pSS->nLv##name);\
+	pRef->second.push_back(&pSS->n##name##_);\
+	pRef->second.push_back(&pSS->r##name##_);\
+	pRef->second.push_back(&pSS->t##name##_);\
+	pRef->second.push_back(&pSS->nLv##name##_);\
 }\
 
 TemporaryStat::TS_Flag StateChangeItem::Apply(User * pUser, int tCur, bool bApplyBetterOnly, bool bResetByItem, bool bForcedSetTime, int nForcedSetTime)

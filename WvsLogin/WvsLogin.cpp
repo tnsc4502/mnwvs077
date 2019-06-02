@@ -1,4 +1,5 @@
 #include "WvsLogin.h"
+#include "LoginEntry.h"
 #include <thread>
 #include <iostream>
 #include <functional>
@@ -79,4 +80,61 @@ void WvsLogin::InitializeCenter()
 
 void WvsLogin::OnNotifySocketDisconnected(SocketBase *pSocket)
 {
+	auto pEntry = GetLoginEntryByLoginSocketSN(pSocket->GetSocketID());
+	if(pEntry && pEntry->nLoginState != LoginState::LS_Stage_MigratedIn)
+		RemoveLoginEntryByLoginSocketID(pSocket->GetSocketID());
+}
+
+void WvsLogin::RegisterLoginEntry(LoginEntry* pEntry)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	m_mSocketIDToAccountID[pEntry->uLoginSocketSN] = pEntry->nAccountID;
+	m_mAccountIDToLoginEntry[pEntry->nAccountID] = pEntry;
+}
+
+void WvsLogin::RemoveLoginEntryByAccountID(int nAccountID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	auto pEntry = GetLoginEntryByAccountID(nAccountID);
+	if (pEntry)
+	{
+		auto psEntry = GetLoginEntryByLoginSocketSN(pEntry->uLoginSocketSN);
+		if (psEntry && (psEntry != pEntry || psEntry->nAccountID != nAccountID))
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Inconsistent login entry, current AccountID = %d, existing data: [LoginSocketSN %u with AccountID: %d\n]", nAccountID, psEntry->uLoginSocketSN, psEntry->nAccountID);
+
+		m_mSocketIDToAccountID.erase(pEntry->uLoginSocketSN);
+		m_mAccountIDToLoginEntry.erase(nAccountID);
+	}
+}
+
+void WvsLogin::RemoveLoginEntryByLoginSocketID(unsigned int uLoginSocketSN)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	auto pEntry = GetLoginEntryByLoginSocketSN(uLoginSocketSN);
+	if (pEntry)
+	{
+		auto paEntry = GetLoginEntryByAccountID(pEntry->nAccountID);
+		if(paEntry && (paEntry != pEntry || paEntry->uLoginSocketSN != uLoginSocketSN))
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Inconsistent login entry, current LoginSocketSN = %d, existing data: [LoginSocketSN %u with AccountID: %d\n]", uLoginSocketSN, paEntry->uLoginSocketSN, paEntry->nAccountID);
+
+		m_mSocketIDToAccountID.erase(uLoginSocketSN);
+		m_mAccountIDToLoginEntry.erase(pEntry->nAccountID);
+	}
+}
+
+LoginEntry* WvsLogin::GetLoginEntryByAccountID(int nAccountID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	auto findIter = m_mAccountIDToLoginEntry.find(nAccountID);
+	return findIter == m_mAccountIDToLoginEntry.end() ? nullptr : findIter->second;
+}
+
+LoginEntry* WvsLogin::GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	auto findIter = m_mSocketIDToAccountID.find(uLoginSocketSN);
+	if (findIter == m_mSocketIDToAccountID.end())
+		return nullptr;
+	auto accountIter = m_mAccountIDToLoginEntry.find(findIter->second);
+	return accountIter == m_mAccountIDToLoginEntry.end() ? nullptr : accountIter->second;
 }

@@ -9,6 +9,7 @@
 class UserTransferStatus;
 class User;
 class OutPacket;
+struct AuthEntry;
 
 class WvsWorld
 {
@@ -41,6 +42,8 @@ private:
 	WorldInfo m_WorldInfo;
 
 	std::map<int, WorldUser*> m_mUser;
+	std::map<int, WorldUser*> m_mAccountToUser;
+	std::map<int, AuthEntry*> m_mAuthEntry, m_mAccountIDToAuthEntry;
 	std::map<int, std::shared_ptr<UserTransferStatus>> m_mUserTransferStatus;
 
 public:
@@ -57,9 +60,15 @@ public:
 	void ClearUserTransferStatus(int nUserID);
 	void UserMigrateIn(int nCharacterID, int nChannelID);
 	void RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate);
+	int RefreshLoginState(int nAccountID);
 	void SetUser(int nUserID, WorldUser *pWorldUser);
 	void SetUserTransfering(int nUserID, bool bTransfering);
 	bool IsUserTransfering(int nUserID);
 	WorldUser* GetUser(int nUserID);
+
+	void InsertAuthEntry(int nAuthCharacterID, int nAuthAccountID, AuthEntry* pEntry);
+	AuthEntry* GetAuthEntry(int nAuthCharacterID);
+	AuthEntry* GetAuthEntryByAccountID(int nAuthAccountID);
+	void RemoveAuthEntry(int nAuthCharacterID);
 };
 

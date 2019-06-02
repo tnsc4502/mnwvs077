@@ -49,19 +49,19 @@ int nDuration = pSkillLVLData->m_nTime;\
 #define REGISTER_TS(name, value)\
 tsFlag |= GET_TS_FLAG(##name);\
 pRef = &pSS->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
-pSS->n##name = bResetBySkill ? 0 : value;\
-pSS->r##name = bResetBySkill ? 0 : nSkillID;\
-pSS->t##name = bResetBySkill ? 0 : nDuration;\
-pSS->nLv##name = bResetBySkill ? 0 : nSLV;\
+pSS->n##name##_ = bResetBySkill ? 0 : value;\
+pSS->r##name##_ = bResetBySkill ? 0 : nSkillID;\
+pSS->t##name##_ = bResetBySkill ? 0 : nDuration;\
+pSS->nLv##name##_ = bResetBySkill ? 0 : nSLV;\
 pSS->m_tsFlagSet ^= TemporaryStat::TS_##name;\
 if(!bResetBySkill)\
 {\
 	pSS->m_tsFlagSet |= TemporaryStat::TS_##name;\
 	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
-	pRef->second.push_back(&pSS->n##name);\
-	pRef->second.push_back(&pSS->r##name);\
-	pRef->second.push_back(&pSS->t##name);\
-	pRef->second.push_back(&pSS->nLv##name);\
+	pRef->second.push_back(&pSS->n##name##_);\
+	pRef->second.push_back(&pSS->r##name##_);\
+	pRef->second.push_back(&pSS->t##name##_);\
+	pRef->second.push_back(&pSS->nLv##name##_);\
 }\
 
 void USkill::ValidateSecondaryStat(User * pUser)

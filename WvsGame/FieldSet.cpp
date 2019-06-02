@@ -166,7 +166,7 @@ void FieldSet::OnLeaveFieldSet(int nCharacterID)
 	if (m_mUser.size() == 0) 
 	{
 		ForceClose();
-		m_pFieldSetTimer->Pause();
+		//m_pFieldSetTimer->Pause();
 	}
 }
 

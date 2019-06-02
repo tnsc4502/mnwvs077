@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "..\Common\ServerConstants.hpp"
 
 struct WorldConnectionInfo
 {
@@ -9,7 +10,7 @@ struct WorldConnectionInfo
 
 struct WorldInfo
 {
-	int m_aChannelStatus[30];
+	int m_aChannelStatus[ServerConstants::kMaxChannelCount];
 	int nWorldID, nEventType, nGameCount;
 	std::string strWorldDesc, strEventDesc;
 };

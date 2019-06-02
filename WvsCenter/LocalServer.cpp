@@ -1,7 +1,6 @@
 
 #include "..\Database\CharacterDBAccessor.h"
 #include "..\Database\GW_ItemSlotBase.h"
-#include "LocalServer.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
@@ -14,6 +13,8 @@
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "WvsCenter.h"
 #include "WvsWorld.h"
+#include "LocalServer.h"
+#include "AuthEntry.h"
 #include "UserTransferStatus.h"
 #include "EntrustedShopMan.h"
 #include "..\WvsGame\ItemInfo.h"
@@ -70,6 +71,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case LoginSendPacketFlag::Center_RequestGameServerInfo:
 			OnRequestGameServerInfo(iPacket);
 			break;
+		case LoginSendPacketFlag::Center_RequestLoginAuth:
+			OnRequestLoginAuth(iPacket);
+			break;
 		case GameSrvSendPacketFlag::RequestMigrateIn:
 			OnRequestMigrateIn(iPacket);
 			break;
@@ -123,6 +127,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case GameSrvSendPacketFlag::EntrustedShopRequest:
 			OnEntrustedShopRequest(iPacket);
 			break;
+		case GameSrvSendPacketFlag::GameClientDisconnected:
+			OnGameClientDisconnected(iPacket);
+			break;
 	}
 }
 
@@ -145,9 +152,16 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 	oPacket.Encode2(CenterSendPacketFlag::RegisterCenterAck);
 	oPacket.Encode1(1); //Success;
 
-	if(serverType == ServerConstants::SRV_GAME)
+	if (serverType == ServerConstants::SRV_GAME) 
+	{
+		oPacket.Encode1(WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 		for (int i = 1; i <= 5; ++i)
-			oPacket.Encode8(GW_ItemSlotBase::GetInitItemSN((GW_ItemSlotBase::GW_ItemSlotType)i, nChannel + 1)); //Channel 0 is reserved for Center
+			oPacket.Encode8(GW_ItemSlotBase::GetInitItemSN(
+			(GW_ItemSlotBase::GW_ItemSlotType)i,
+				WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
+				nChannel + 1 //Channel 0 is reserved for Center
+			));
+	}
 
 	if (serverType == ServerConstants::SRV_LOGIN)
 	{
@@ -156,6 +170,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 		oPacket.Encode1(pWorld->GetWorldInfo().nEventType);
 		oPacket.EncodeStr(pWorld->GetWorldInfo().strWorldDesc);
 		oPacket.EncodeStr(pWorld->GetWorldInfo().strEventDesc);
+		WvsBase::GetInstance<WvsCenter>()->RegisterLoginServer(shared_from_this());
 		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
 	}
 	
@@ -257,28 +272,66 @@ void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)
 	int nLoginSocketID = iPacket->Decode4();
 	int nAccountID = iPacket->Decode4();
 	int nWorldID = iPacket->Decode4();
-	if (nWorldID != WvsWorld::GetInstance()->GetWorldInfo().nWorldID)
-	{
-		WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequstGameServerInfo]異常：客戶端嘗試連線至不存在的頻道伺服器[WvsGame]。\n");
-		return;
-	}
-
 	int nChannelID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
-	
+
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::GameServerInfoResponse);
 	oPacket.Encode4(nLoginSocketID);
+
+	if (nWorldID != WvsWorld::GetInstance()->GetWorldInfo().nWorldID ||
+		WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) == nullptr ||
+		CharacterDBAccessor::GetInstance()->QueryCharacterAccountID(nCharacterID) != nAccountID)
+	{
+		WvsLogger::LogFormat(
+			WvsLogger::LEVEL_ERROR, 
+			"[WvsCenter][LocalServer::OnRequstGameServerInfo]異常：客戶端嘗試連線至不存在的頻道伺服器[WvsGame: %02d]或者登入不存在的角色[AccountID = %d, CharacterID = %d]。\n", 
+			nChannelID,
+			nAccountID,
+			nCharacterID);
+
+		oPacket.Encode1(0); //Failed
+		SendPacket(&oPacket);
+		return;
+	}
+
+	auto pAuthEntry = AllocObj(AuthEntry);
+	pAuthEntry->nAccountID = nAccountID;
+	pAuthEntry->nChannelID = nChannelID;
+	pAuthEntry->nCharacterID = nCharacterID;
+	oPacket.Encode1(1); //Auth Inserted.
+
+	//Encode For Client
 	oPacket.Encode2(0);
 	oPacket.Encode4(WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID)->GetExternalIP());
 	oPacket.Encode2(WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID)->GetExternalPort());
-
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(0);
 	oPacket.Encode4(0);
 
+	WvsWorld::GetInstance()->InsertAuthEntry(nCharacterID, nAccountID, pAuthEntry);
 	WvsWorld::GetInstance()->ClearUserTransferStatus(nCharacterID);
 	SendPacket(&oPacket);
+}
+
+void LocalServer::OnRequestLoginAuth(InPacket* iPacket)
+{
+	int nType = iPacket->Decode1();
+	switch (nType)
+	{
+		case LoginAuthRequest::rq_LoginAuth_RefreshLoginState:
+		{
+			int nAccountID = iPacket->Decode4();
+
+			OutPacket oPacket;
+			oPacket.Encode2(CenterSendPacketFlag::LoginAuthResult);
+			oPacket.Encode1(LoginAuthResult::res_LoginAuth_RefreshLoginState);
+			oPacket.Encode4(nAccountID);
+			oPacket.Encode1(WvsWorld::GetInstance()->RefreshLoginState(nAccountID));
+			SendPacket(&oPacket);
+			break;
+		}
+	}
 }
 
 void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
@@ -290,13 +343,31 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	InsertConnectedUser(nCharacterID);
 	if (!WvsWorld::GetInstance()->IsUserTransfering(nCharacterID))
 	{
+		auto pAuthEntry = WvsWorld::GetInstance()->GetAuthEntry(nCharacterID);
+		auto pMigratedInUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+
+		if(!pAuthEntry)
+		{
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]異常：嘗試登入未認證角色[CharacterID = %d]。\n",	nCharacterID);
+			return;
+		}
+
+		if (pMigratedInUser)
+		{
+			WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]異常：嘗試登入已經登入的角色[CharacterID = %d]。\n", nCharacterID);
+			return;
+		}
+
 		auto pwUser = AllocObj(WvsWorld::WorldUser);
 		pwUser->m_nCharacterID = nCharacterID;
 		pwUser->m_bInShop = false;
 		pwUser->m_bMigrated = true;
 		pwUser->m_nChannelID = nChannelID;
 		pwUser->m_nLocalSocketSN = nClientSocketID;
+		pwUser->m_nAccountID = pAuthEntry->nAccountID;
 
+		WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
 		WvsWorld::GetInstance()->SetUser(
 			nCharacterID,
 			pwUser
@@ -401,7 +472,13 @@ void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
 	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, WvsWorld::CHANNELID_SHOP);
 }
 
-void LocalServer::OnRequestBuyCashItem(InPacket * iPacket)
+void LocalServer::OnGameClientDisconnected(InPacket* iPacket)
+{
+	iPacket->Decode4();
+	WvsWorld::GetInstance()->RemoveAuthEntry(iPacket->Decode4());
+}
+
+void LocalServer::OnRequestBuyCashItem(InPacket* iPacket)
 {
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();

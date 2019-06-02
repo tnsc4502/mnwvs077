@@ -178,6 +178,7 @@
     <ClInclude Include="BowmanSkills.h" />
     <ClInclude Include="BridleItem.h" />
     <ClInclude Include="BundleItem.h" />
+    <ClInclude Include="CalcDamage.h" />
     <ClInclude Include="CashItem.h" />
     <ClInclude Include="Center.h" />
     <ClInclude Include="ClientSocket.h" />
@@ -305,6 +306,7 @@
     <ClCompile Include="BasicStat.cpp" />
     <ClCompile Include="BridleItem.cpp" />
     <ClCompile Include="BundleItem.cpp" />
+    <ClCompile Include="CalcDamage.cpp" />
     <ClCompile Include="Center.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CommandManager.cpp" />

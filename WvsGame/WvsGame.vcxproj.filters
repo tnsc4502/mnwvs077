@@ -498,6 +498,9 @@
     <ClInclude Include="MCGuardianEntry.h">
       <Filter>WvsGame\InGame\Skill</Filter>
     </ClInclude>
+    <ClInclude Include="CalcDamage.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -758,6 +761,9 @@
     </ClCompile>
     <ClCompile Include="Field_MonsterCarnival.cpp">
       <Filter>WvsGame\InGame\Field</Filter>
+    </ClCompile>
+    <ClCompile Include="CalcDamage.cpp">
+      <Filter>WvsGame\InGame\Skill</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
