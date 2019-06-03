@@ -221,8 +221,10 @@ void LifePool::CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPr
 	mob.SetPosX(nX);
 	mob.SetPosY(nY);
 	mob.SetTemplateID(nTemplateID);
-	mob.SetMobTemplate(MobTemplate::GetMobTemplate(mob.GetTemplateID()));
-
+	auto pTemplate = MobTemplate::GetMobTemplate(mob.GetTemplateID());
+	if (!pTemplate)
+		return;
+	mob.SetMobTemplate(pTemplate);
 	CreateMob(mob, nX, nY, nFh, bNoDropPriority, nType, dwOption, bLeft, nMobType, pOwner);
 }
 

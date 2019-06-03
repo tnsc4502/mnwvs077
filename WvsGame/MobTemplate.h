@@ -1,5 +1,5 @@
 #pragma once
-
+#include "FieldRect.h"
 #include <map>
 #include "..\WvsLib\Wz\WzResMan.hpp"
 
@@ -22,8 +22,28 @@ public:
 			nSummoned = 0;
 	};
 
+	struct MobAttackInfo
+	{
+		int nType = 0,
+			nConMP = 0,
+			nPAD = 0,
+			nLevel = 0,
+			nSkillLevel = 0,
+			nDisease = 0,
+			nMPBurn = 0,
+			nMagicElemAttr = 0;
+
+		bool bDeadlyAttack = false,
+			bDoFirst = false,
+			bMagicAttack = false,
+			bKnockBack = false;
+
+		FieldRect rc;
+	};
+
 	const std::vector<RewardInfo*> *m_paMobReward;
 	std::vector<MobSkillContext> m_aSkillContext;
+	std::vector<MobAttackInfo> m_aAttackInfo;
 	std::vector<std::pair<int, int>> m_aMobSkill;
 
 	unsigned int m_unTotalRewardProb = 0;
@@ -31,11 +51,10 @@ public:
 	MobTemplate();
 	~MobTemplate();
 	const std::vector<RewardInfo*>& GetMobReward();
-
-	//cloneNewOne為true，代表不使用共用屬性 (用於複寫特定怪物屬性)
-	static MobTemplate* GetMobTemplate(int dwTemplateID, bool bCloneNewOne = false);
+	static MobTemplate* GetMobTemplate(int dwTemplateID);
 	static void RegisterMob(int dwTemplateID);
 	static int GetElementAttribute(const char *s, int *aElemAttr);
+	static int GetMagicAttackElementAttribute(const char *s, int *nElemAttr);
 	void MakeSkillContext();
 	int GetSkillIndex(int nSkillID, int nSLV);
 	void SetMobCountQuestInfo(User *pUser) const;

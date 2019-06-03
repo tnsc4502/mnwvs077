@@ -9,6 +9,7 @@
 #include "MobStat.h"
 #include "Mob.h"
 #include "ItemInfo.h"
+#include "QWUser.h"
 #include "MobTemplate.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\Random\Rand32.h"
@@ -252,6 +253,33 @@ int CalcDamage::GetComboDamageParam(User * pUser, int nSkillID, int nComboCounte
 	return result;
 }
 
+int CalcDamage::GetMesoGuardReduce(User *pUser, double damage)
+{
+	if (damage <= 1.0)
+		damage = 1.0;
+	if (damage >= 99999.0)
+		damage = 99999.0;
+	SkillEntry *pEntry = nullptr;
+	int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
+		pUser->GetCharacterData(),
+		4211005,
+		&pEntry,
+		0,
+		0,
+		0,
+		0
+	);
+	if (pEntry && nSLV)
+	{
+		int nX = pEntry->GetLevelData(nSLV)->m_nX;
+		if (((int)damage / 2) * nX / 100 > QWUser::GetMoney(pUser))
+			return (int)(100 * QWUser::GetMoney(pUser) / nX);
+
+		return (int)(damage / 2);
+	}
+	return (int)damage;
+}
+
 void CalcDamage::DecInvalidCount()
 {
 	if (m_nInvalidCount >= -5)
@@ -270,6 +298,63 @@ int CalcDamage::GetInvalidCount() const
 	return m_nInvalidCount;
 }
 
+bool CalcDamage::CheckMDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
+{
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	int nACC = std::min(999, std::max(0, ss->nEVA + ss->nEVA_)),
+		nMobACC = 0;
+	if (bs->nLevel >= ms->nLevel || (nACC -= (ms->nLevel - bs->nLevel), nACC > 0))
+		nMobACC = nACC;
+	
+	double accLow = (double)(nMobACC) * 0.1;
+	double calc = accLow + ((double)nMobACC - accLow) * CURRENT_RAND;
+	nMobACC = std::min(999, std::max(0, ms->nACC + ms->nACC_));
+	return calc >= (double)nMobACC;
+}
+
+int CalcDamage::MDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand)
+{
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	if (pnRand)
+		*pnRand = (int)nRnd;
+	int nMobMDD = std::min(1999, std::max(0, ms->nMAD + ms->nMAD_));
+	double damage = (double)nMobMDD * 0.75,
+		highDamage = (double)nMobMDD * 0.8;
+
+	double calc = damage + (highDamage - damage) * CURRENT_RAND;
+	calc *= (double)nMobMDD * 0.01;
+	nMobMDD = std::min(1999, std::max(0, ss->nMDD + ss->nMDD_));
+	damage = (double)bs->nSTR * 0.14285714285714
+		+ (double)bs->nLUK * 0.2
+		+ (double)bs->nDEX * 0.1666666666667
+		+ nMobMDD;
+
+	if (bs->nJob / 100 == 2)
+		damage *= 0.3;
+	else
+		damage *= 0.25;
+
+	damage = calc - damage;
+	if (ss->nMesoGuard_ && pnReduce)
+	{
+		*pnReduce = GetMesoGuardReduce(m_pUser, damage);
+		damage = (double)*pnReduce;
+	}
+
+	if (ms->nMagicUp_)
+		damage *= (double)ms->nMagicUp_ * 0.01;
+	if (damage <= 1.0)
+		damage = 1.0;
+	if (damage >= 99999.0)
+		damage = 99999.0;
+
+	return (int)damage;
+}
+
 void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponItemID, int nAction, const SkillEntry * pSkill, int nSLV, int *aDamage, bool *abCritical, int nMobCount, int tKeyDown)
 {
 	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
@@ -282,7 +367,6 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 	auto ss = m_pUser->GetSecondaryStat();
 	auto bs = m_pUser->GetBasicStat();
 	auto cd = m_pUser->GetCharacterData();
-	auto mt = pMob->GetMobTemplate();
 
 	int nMAD = std::min(1999, std::max(0, ss->nMAD + ss->nMAD_)), nMobPDD = 0;
 	if (ss->nMaxLevelBuff_)
@@ -291,7 +375,7 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 	int nWT = ItemInfo::GetWeaponType(nWeaponItemID),
 		nAmp = 5 * (bs->nINT / 10 + bs->nLUK / 10);
 
-	double s = (double)nAmp * 100 / ((double)std::max(0, mt->m_nLevel - bs->nLevel) * 10.0 + 255.0),
+	double s = (double)nAmp * 100 / ((double)std::max(0, ms->nLevel - bs->nLevel) * 10.0 + 255.0),
 		M = ((double)pSkill->GetLevelData(nSLV)->m_nMastery  * 5.0 + 10.0) * 0.009,
 		damage = 0,
 		calc = 0,
@@ -396,6 +480,89 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 			}
 		}
 	}
+}
+
+bool CalcDamage::CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
+{
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	int nEVA = std::min(999, std::max(0, ss->nEVA + ss->nEVA_)),
+		nMobEVA = 0;
+	if (bs->nLevel >= ms->nLevel || (nEVA -= (ms->nLevel - bs->nLevel), nEVA > 0))
+		nMobEVA = nEVA;
+
+	int nMobACC = std::min(999, std::max(0, ms->nACC + ms->nACC_));
+	double calc = (double)nMobEVA / ((double)nMobACC * 4.5) * 100.0;
+	if (bs->nJob / 100 == 4)
+		calc = std::max(5.0, std::min(95.0, calc));
+	else
+		calc = std::max(2.0, std::min(80.0, calc));
+
+	return calc > CURRENT_RAND;
+}
+
+int CalcDamage::PDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand)
+{
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	if (pnRand)
+		*pnRand = (int)nRnd;
+	int nMobPDD = std::min(1999, std::max(0, ms->nPAD + ms->nPAD_));
+	double damage = (double)nMobPDD * 0.8,
+		highDamage = (double)nMobPDD * 0.85,
+		calc1 = 0, 
+		calc2 = 0;
+
+	double calc = damage + (highDamage - damage) * CURRENT_RAND;
+	calc *= (double)nMobPDD * 0.01;
+
+	nMobPDD = std::min(1999, std::max(0, ss->nPDD + ss->nPDD_));
+	int nJobCategory = bs->nJob / 100;
+	int nStandardPDD = GetStandardPDD(nJobCategory, bs->nLevel),
+		nBase = 0;
+
+	if (nJobCategory == 1)
+		nBase = (int)((double)bs->nLUK 
+		+ (double)bs->nDEX * 0.25 
+		+ (double)bs->nINT * 0.111111111
+		+ (double)bs->nSTR * 0.2857142857142857);
+	else
+		nBase = (int)((double)bs->nINT * 0.111111111111 
+		+ (double)bs->nDEX * 0.2857142857142857 
+		+ (double)bs->nSTR * 0.4
+		+ (double)bs->nLUK * 0.25);
+
+	if (nStandardPDD > nMobPDD)
+	{
+		calc1 = (double)ms->nLevel * 0.00181818181 + ((double)nBase * 0.00125) + 0.28;
+		if (bs->nLevel >= ms->nLevel)
+			calc2 = calc1 * (double)(nMobPDD - nStandardPDD) * 13.0 / ((double)(bs->nLevel - ms->nLevel) + 13.0);
+		else
+			calc2 = calc1 * (double)(nMobPDD - nStandardPDD) * 1.3;
+	}
+	else
+		calc2 = ((double)nBase * 0.0011111111111111 + (double)bs->nLevel * 0.0007692307692307692 + 0.28) * (nMobPDD - nStandardPDD) * 0.7;
+	calc1 = ((double)nBase * 0.00125);
+	damage = calc
+		- (calc2 + (calc1 + 0.28) * (double)nMobPDD)
+		- (double)ss->nInvincible_ * (calc - (calc2 + (calc1 + 0.28) * (double)nMobPDD)) * 0.01;
+
+	if (ss->nMesoGuard_ && pnReduce)
+	{
+		*pnReduce = GetMesoGuardReduce(m_pUser, damage);
+		damage = (double)*pnReduce;
+	}
+
+	if (ms->nPowerUp_)
+		damage *= (double)ms->nPowerUp_ * 0.01;
+	if (damage <= 1.0)
+		damage = 1.0;
+	if (damage >= 99999.0)
+		damage = 99999.0;
+
+	return (int)damage;
 }
 
 void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage)

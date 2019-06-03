@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <mutex>
 #include <vector>
 
 #include "BasicStat.h"
@@ -18,6 +19,7 @@ public:
 	//m[TS Flag, [tDuration, a[nValue, rValue, tValue, nSLV]]]
 	std::map<int, std::pair<long long int, std::vector<int*>>> m_mSetByTS;
 	TemporaryStat::TS_Flag m_tsFlagSet;
+	std::recursive_mutex m_mtxLock;
 
 	ADD_TEMPORARY(PAD);
 	ADD_TEMPORARY(PDD);
@@ -108,6 +110,7 @@ public:
 	void EncodeForRemote(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
 	bool EnDecode4Byte(TemporaryStat::TS_Flag& flag);
 	void ResetByTime(User* pUser, int tCur);
+	void ResetAll(User* pUser);
 
 	void DecodeInternal(User* pUser, InPacket *iPacket);
 	void EncodeInternal(User* pUser, OutPacket *oPacket);

@@ -23,34 +23,35 @@ const std::vector<RewardInfo*>& MobTemplate::GetMobReward()
 	return *m_paMobReward;
 }
 
-//cloneNewOne為true，代表不使用共用屬性 (用於複寫特定怪物屬性)
-MobTemplate* MobTemplate::GetMobTemplate(int dwTemplateID, bool bCloneNewOne)
+MobTemplate* MobTemplate::GetMobTemplate(int dwTemplateID)
 {
 	auto iter = m_MobTemplates->find(dwTemplateID);
-	if (!bCloneNewOne &&  iter != m_MobTemplates->end())
+	if (iter != m_MobTemplates->end())
 		return (*m_MobTemplates)[dwTemplateID];
 
-	if (iter == m_MobTemplates->end()) {
+	if (iter == m_MobTemplates->end()) 
+	{
 		RegisterMob(dwTemplateID); 
 		iter = m_MobTemplates->find(dwTemplateID);
 	}
-	if (!bCloneNewOne) 
-	{
-		MobTemplate* clone = AllocObj(MobTemplate);
-		*clone = *(iter->second);
-		return clone;
-	}
-	return iter->second;
+	return iter == m_MobTemplates->end() ? nullptr : iter->second;
 }
 
 void MobTemplate::RegisterMob(int dwTemplateID)
 {
+#undef max
 	m_MobWzProperty = &(stWzResMan->GetWz(Wz::Mob));
-	auto pTemplate = AllocObj(MobTemplate);
 	std::string templateID = std::to_string(dwTemplateID);
+	auto empty = WZ::Node();
+
 	while (templateID.length() < 7)
 		templateID = "0" + templateID;
-	auto& info = (*m_MobWzProperty)[templateID]["info"];
+	auto& mobNode = (*m_MobWzProperty)[templateID];
+	if (mobNode == WZ::Node())
+		return;
+
+	auto& info = mobNode["info"];
+	auto pTemplate = AllocObj(MobTemplate);
 	pTemplate->m_nLevel = info["level"];
 	pTemplate->m_bIsBodyAttack = ((int)info["bodyAttack"] == 1);
 	pTemplate->m_bIsChangeableMob = ((int)info["changeableMob"] == 1);
@@ -88,10 +89,33 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	for (auto& skill : skillNode)
 		pTemplate->m_aMobSkill.push_back({ skill["skill"], skill["level"] });
 	pTemplate->MakeSkillContext();
+	for (int i = 1; ; ++i)
+	{
+		auto& atkNode = mobNode["attack" + std::to_string(i)];
+		if (atkNode == empty || atkNode.Name() == "")
+			break;
+		pTemplate->m_aAttackInfo.push_back({});
+		auto& attackInfo = pTemplate->m_aAttackInfo.back();
+		attackInfo.nType = atkNode["type"];
+		attackInfo.nConMP = atkNode["conMP"];
+		attackInfo.nDisease = atkNode["disease"];
+		attackInfo.nSkillLevel = atkNode["level"];
+		attackInfo.nMPBurn = atkNode["mpBurn"];
+		attackInfo.nPAD = std::max(pTemplate->m_nPAD, (int)atkNode["PADamage"]);
+		attackInfo.bMagicAttack = ((int)atkNode["magic"] == 1);
+		attackInfo.bKnockBack = ((int)atkNode["knockBack"] == 1);
+		attackInfo.bDeadlyAttack = ((int)atkNode["deadlyAttack"] == 1);
+		attackInfo.bDoFirst = ((int)atkNode["doFirst"] == 1);
+		if (attackInfo.bMagicAttack)
+			GetMagicAttackElementAttribute(
+				((std::string)atkNode["elemAttr"]).c_str(),
+				&(attackInfo.nMagicElemAttr)
+			);
+	}
 
-	bool bFly = (info["fly"] == info.end());
-	bool bMove = (info["move"] == info.end());
-	bool bJump = (info["jump"] == info.end());
+	bool bFly = (info["fly"] == empty);
+	bool bMove = (info["move"] == empty);
+	bool bJump = (info["jump"] == empty);
 	if (bFly)
 		pTemplate->m_nMoveAbility = 3;
 	else if (bJump)
@@ -212,6 +236,57 @@ LABEL_25:
 		goto LABEL_34;
 	}
 	return 0;
+}
+
+int MobTemplate::GetMagicAttackElementAttribute(const char * s, int * nElemAttr)
+{
+	signed int v2; // ecx@1
+	int result; // eax@1
+
+	v2 = *s;
+	result = 1;
+	if (v2 > 83)
+	{
+		if (v2 == 102)
+			goto LABEL_17;
+		if (v2 == 105)
+		{
+		LABEL_16:
+			*nElemAttr = 1;
+			return result;
+		}
+		if (v2 == 108)
+		{
+		LABEL_15:
+			*nElemAttr = 3;
+			return result;
+		}
+		if (v2 != 115)
+			return 0;
+	LABEL_14:
+		*nElemAttr = 4;
+		return result;
+	}
+	if (v2 == 83)
+		goto LABEL_14;
+	if (!*s)
+	{
+		*nElemAttr = 0;
+		return result;
+	}
+	if (v2 != 70)
+	{
+		if (v2 != 73)
+		{
+			if (v2 != 76)
+				return 0;
+			goto LABEL_15;
+		}
+		goto LABEL_16;
+	}
+LABEL_17:
+	*nElemAttr = 2;
+	return result;
 }
 
 void MobTemplate::MakeSkillContext()

@@ -6,6 +6,7 @@
 #include "..\Database\GW_SkillRecord.h"
 
 #include "User.h"
+#include "QWUser.h"
 #include "TemporaryStat.h"
 #include "SecondaryStat.h"
 #include "SkillEntry.h"
@@ -16,7 +17,6 @@
 
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
-
 #include "..\WvsLib\Logger\WvsLogger.h"
 
 
@@ -89,17 +89,29 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 	int nSLV = iPacket->Decode1();
 	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
 	auto pSkillRecord = pUser->GetCharacterData()->GetSkill(nSkillID);
-	if (pSkillEntry == nullptr || pSkillRecord == nullptr)
+	if (pSkillEntry == nullptr || 
+		pSkillRecord == nullptr ||
+		pUser->GetCharacterData()->mStat->nHP <= 0)
 	{
 		SendFailPacket(pUser);
 		return;
 	}
 	nSLV = nSLV > pSkillRecord->nSLV ? pSkillRecord->nSLV : nSLV;
-	if (!pUser->GetField() || nSLV <= 0) 
+	if (!pUser->GetField() || 
+		nSLV <= 0 ||
+		nSLV > pSkillEntry->GetMaxLevel() ||
+		pUser->GetCharacterData()->mStat->nMP < pSkillEntry->GetLevelData(nSLV)->m_nMpCon)
 	{
 		SendFailPacket(pUser);
 		return;
 	}
+
+	if(pUser->GetSecondaryStat()->nInfinity_ == 0)
+		pUser->SendCharacterStat(
+			false,
+			QWUser::IncMP(pUser, -pSkillEntry->GetLevelData(nSLV)->m_nMpCon, false)
+		);
+
 	USkill::OnSkillUseRequest(
 		pUser,
 		iPacket,

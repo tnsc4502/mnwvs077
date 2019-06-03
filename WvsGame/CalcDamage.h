@@ -21,10 +21,15 @@ public:
 	static double GetDamageAdjustedByElemAttr(double damage, const SkillEntry* pSkill, int *aDamagedElemAttr, int nSLV);
 	static double GetDamageAdjustedByChargedElemAttr(double damage, int *aDamagedElemAttr, User* pUser);
 	static int GetComboDamageParam(User *pUser, int nSkillID, int nComboCounter);
+	static int GetMesoGuardReduce(User *pUser, double damage);
 	void DecInvalidCount();
 	void IncInvalidCount();
 	int GetInvalidCount() const;
+	bool CheckMDamageMiss(MobStat *ms, unsigned int nRandForMissCheck);
+	int MDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand);
 	void MDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nAction, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int nMobCount, int tKeyDown);
+	bool CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck);
+	int PDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand);
 	void PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage);
 };
 

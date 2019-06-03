@@ -38,6 +38,7 @@ public:
 	int GetBundleItemMaxPerSlot(int nItemID, GA_Character* pCharacterData);
 	int GetElementAttribute(const char *s, int *nElemAttr);
 	int GetAmplification(GA_Character* pCharacter, int nJob, int nSkillID, int *pnIncMPCon);
+	int GetResistance(int nSLV, int nJob, int nElement);
 	void LoadMobSkill();
 	void LoadMobSkillLeveData(MobSkillEntry* pEntry, void *pData);
 	void LoadMCSkill();

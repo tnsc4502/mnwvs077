@@ -313,6 +313,31 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 	return nRet;
 }
 
+int SkillInfo::GetResistance(int nSLV, int nJob, int nElement)
+{
+	if (nElement <= 0 || nElement >= 8 || !nSLV)
+		return 0;
+
+	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 131))
+		return GetSkillByID(1310000)->GetLevelData(nSLV)->m_nX;
+	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 211)) 
+	{
+		if(nElement == 2 || nElement == 4)
+			return GetSkillByID(2110000)->GetLevelData(nSLV)->m_nX;
+	}
+
+	if (!WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 221)) 
+	{
+		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 231))
+			return GetSkillByID(2310000)->GetLevelData(nSLV)->m_nX;
+		return 0;
+	}
+
+	if(nElement == 1 || nElement == 3)
+		return GetSkillByID(2210000)->GetLevelData(nSLV)->m_nX;
+	return 0;
+}
+
 void SkillInfo::LoadMobSkill()
 {
 	std::set<std::string> sNode;

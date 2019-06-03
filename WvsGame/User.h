@@ -120,6 +120,9 @@ private:
 	BasicStat* m_pBasicStat;
 	SecondaryStat* m_pSecondaryStat;
 	GW_FuncKeyMapped *m_pFuncKeyMapped;
+	int m_nInvalidDamageMissCount = 0,
+		m_nInvalidDamageCount = 0;
+	bool m_bDeadlyAttack = false;
 
 	//System
 	AsyncScheduler *m_pUpdateTimer;
@@ -198,6 +201,7 @@ public:
 	void OnChat(InPacket *iPacket);
 	void EncodeChatMessage(OutPacket *oPacket, const std::string strMsg, bool bAdmin, bool bBallon);
 	void OnAttack(int nType, InPacket *iPacket);
+	void OnHit(InPacket *iPacket);
 	void OnLevelUp();
 	void OnEmotion(InPacket *iPacket);
 	void PostTransferField(int dwFieldID, Portal* pPortal, int bForce);
@@ -228,6 +232,7 @@ public:
 	void OnAbilityUpRequest(InPacket *iPacket);
 	long long int IncMaxHPAndMP(int nFlag, bool bLevelUp);
 	void OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData* pLevel, int tDelay, int nTemplateID, bool bResetBySkill = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
+	void OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);

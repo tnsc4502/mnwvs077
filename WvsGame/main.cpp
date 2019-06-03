@@ -17,6 +17,7 @@
 #include "ReactorTemplate.h"
 #include "ContinentMan.h"
 #include "Reward.h"
+#include "CalcDamage.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
@@ -47,8 +48,6 @@ void ConnectionAcceptorThread(short nPort)
 	gameServer->BeginAccept<ClientSocket>();
 }
 
-#include "..\WvsLib\Random\Rand32.h"
-
 int main(int argc, char **argv)
 {
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -59,19 +58,18 @@ int main(int argc, char **argv)
 	Reward::LoadReward();
 	ReactorTemplate::Load();
 	NpcTemplate::GetInstance()->Load();
-	try {
-		SkillInfo::GetInstance()->LoadMobSkill();
-		SkillInfo::GetInstance()->LoadMCSkill();
-		SkillInfo::GetInstance()->LoadMCGuardian();
-		SkillInfo::GetInstance()->IterateSkillInfo();
-	}
-	catch (...) {}
+
+	SkillInfo::GetInstance()->LoadMobSkill();
+	SkillInfo::GetInstance()->LoadMCSkill();
+	SkillInfo::GetInstance()->LoadMCGuardian();
+	SkillInfo::GetInstance()->IterateSkillInfo();
+
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
+	CalcDamage::LoadStandardPDD();
 
-	FieldMan::GetInstance()->GetField(980000401);
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else

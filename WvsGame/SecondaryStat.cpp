@@ -258,6 +258,7 @@ void SecondaryStat::ResetByTime(User* pUser, int tCur)
 {
 	std::vector<int> aSkillResetReason;
 	auto pSS = pUser->GetSecondaryStat();
+	std::lock_guard<std::recursive_mutex> lock(pSS->m_mtxLock);
 	for (auto& setFlag : pSS->m_mSetByTS)
 	{
 		int nID = *(setFlag.second.second[1]);
@@ -274,6 +275,14 @@ void SecondaryStat::ResetByTime(User* pUser, int tCur)
 			aSkillResetReason.push_back(nID);
 	}
 	USkill::ResetTemporaryByTime(pUser, aSkillResetReason);
+}
+
+void SecondaryStat::ResetAll(User* pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);	
+	for (auto& setFlag : m_mSetByTS)
+		*(setFlag.second.second[2]) = 0;
+	ResetByTime(pUser, GameDateTime::GetTime());
 }
 
 void SecondaryStat::DecodeInternal(User* pUser, InPacket * iPacket)
