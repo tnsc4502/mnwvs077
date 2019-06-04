@@ -36,7 +36,7 @@ void PortalMap::RestorePortal(Field * pField, void* pImg)
 		);
 		int nType = newPortal->GetPortalType();
 		if (nType >= 7 && nType <= 9)
-			newPortal->SetPortalScriptName(portalNode["portal"]);
+			newPortal->SetPortalScriptName(portalNode["script"]);
 		else if (nType == 6)
 		{
 			FieldPoint pt;

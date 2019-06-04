@@ -66,8 +66,14 @@ void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
 	item.nPrice = nPrice;
 	item.nSet = nSet;
 	item.pItem = pItem->MakeClone();
-	if (item.pItem->nType != GW_ItemSlotBase::EQUIP)
+
+	if (item.pItem->nType == GW_ItemSlotBase::EQUIP || 
+		ItemInfo::IsRechargable(pItem->nItemID) ||
+		((GW_ItemSlotBundle*)item.pItem)->nNumber == nNumber * nSet)
+		item.pItem->liItemSN = pItem->liItemSN;
+	else
 		((GW_ItemSlotBundle*)item.pItem)->nNumber = nNumber * nSet;
+
 	MoveItemToShop(pItem, pUser, nTI, nPOS, nNumber * nSet, &nPOS2);
 	item.nPOS = nPOS2;
 	m_aItem.push_back(item);

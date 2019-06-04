@@ -31,6 +31,7 @@ class Trunk;
 struct MobSkillLevelData;
 class CalcDamage;
 class MiniRoomBase;
+class StoreBank;
 
 class User : public FieldObj
 {
@@ -99,6 +100,7 @@ public:
 	{
 		eEffect_LevelUp = 0x00, //Flag only
 		eEffect_OnUseSkill = 0x01,
+		eEffect_OnSkillAppliedByParty = 0x02,
 		eEffect_ShowSkillAffected = 0x05, 
 		eEffect_ChangeJobEffect = 0x08,//Flag only
 		eEffect_QuestCompleteEffect = 0x09, //Flag only
@@ -127,8 +129,9 @@ private:
 	//System
 	AsyncScheduler *m_pUpdateTimer;
 	Script* m_pScript = nullptr;
+	StoreBank* m_pStoreBank = nullptr;
 	Npc *m_pTradingNpc = nullptr;
-	int m_nTrunkTemplateID = 0;
+	int m_nTrunkTemplateID = 0, m_nStoreBankTemplateID = 0;
 	Trunk *m_pTrunk = nullptr;
 	CalcDamage* m_pCalcDamage = nullptr;
 
@@ -196,6 +199,7 @@ public:
 
 	void OnTransferFieldRequest(InPacket* iPacket);
 	bool TryTransferField(int nFieldID, const std::string& sPortalName);
+	void OnPortalScriptRequest(InPacket *iPacket);
 	void OnTransferChannelRequest(InPacket* iPacket);
 	void OnMigrateToCashShopRequest(InPacket* iPacket);
 	void OnChat(InPacket *iPacket);
@@ -268,6 +272,7 @@ public:
 	//Effect
 	void SendQuestEndEffect();
 	void SendUseSkillEffect(int nSkillID, int nSLV);
+	void SendUseSkillEffectByParty(int nSkillID, int nSLV);
 	void SendLevelUpEffect();
 	void SendChangeJobEffect();
 
@@ -323,9 +328,14 @@ public:
 	bool HasOpenedEntrustedShop() const;
 	void SetEntrustedShopOpened(bool bOpened);
 	void CreateEmployee(bool bOpen);
+	void OnOpenEntrustedShop(InPacket *iPacket);
 
 	//Trunk
 	void OnTrunkResult(InPacket *iPacket);
 	void SetTrunk(Trunk *pTrunk);
+
+	//StoreBank
+	StoreBank* GetStoreBank();
+	void SetStoreBank(StoreBank *pStoreBank);
 };
 

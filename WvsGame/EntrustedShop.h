@@ -62,6 +62,8 @@ public:
 	virtual bool RestoreItemFromShop(User *pUser, PersonalShop::Item* psItem);
 
 	void OnLeave(User *pUser, int nLeaveType);
+	void EncodeItemNumberChanged(OutPacket *oPacket, std::vector<Item*>& apItem);
+	void SendItemBackup();
 	void EncodeEnterResult(User *pUser, OutPacket *oPacket);
 	void EncodeItemList(OutPacket *oPacket);
 	void EncodeSoldItemList(OutPacket *oPacket);

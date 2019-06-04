@@ -27,6 +27,7 @@
     <ClInclude Include="GW_Friend.h" />
     <ClInclude Include="TrunkDBAccessor.h" />
     <ClInclude Include="LoginDBAccessor.h" />
+    <ClInclude Include="EntrustedShopDBAccessor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -52,5 +53,6 @@
     <ClCompile Include="GW_Friend.cpp" />
     <ClCompile Include="TrunkDBAccessor.cpp" />
     <ClCompile Include="LoginDBAccessor.cpp" />
+    <ClCompile Include="EntrustedShopDBAccessor.cpp" />
   </ItemGroup>
 </Project>

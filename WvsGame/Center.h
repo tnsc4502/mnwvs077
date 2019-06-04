@@ -24,6 +24,7 @@ public:
 	void OnTransferChannelResult(InPacket *iPacket);
 	void OnRemoteBroadcasting(InPacket *iPacket);
 	void OnTrunkResult(InPacket *iPacket);
+	void OnEntrustedShopResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

@@ -69,6 +69,7 @@
 #include "CalcDamage.h"
 #include "MobStat.h"
 #include "MobTemplate.h"
+#include "StoreBank.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: 
@@ -182,6 +183,9 @@ User::~User()
 
 	if (m_pTrunk)
 		FreeObj(m_pTrunk);
+
+	if (m_pStoreBank)
+		FreeObj(m_pStoreBank);
 
 	FreeObj(m_pCharacterData);
 	FreeObj(m_pBasicStat);
@@ -608,15 +612,16 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnHit:
 			OnHit(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
-		{
-			OutPacket oPacket;
-			oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
-			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
-			oPacket.Encode4(GetUserID());
-			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		case UserRecvPacketFlag::User_OnStoreBankRequest:
+			if (m_pStoreBank)
+				m_pStoreBank->OnPacket(iPacket);
 			break;
-		}
+		case UserRecvPacketFlag::User_OnPortalScriptRequest:
+			OnPortalScriptRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
+			OnOpenEntrustedShop(iPacket);
+			break;
 		default:
 			iPacket->RestorePacket();
 			//Pet Packet
@@ -707,7 +712,33 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 	return false;
 }
 
-void User::OnTransferChannelRequest(InPacket * iPacket)
+void User::OnPortalScriptRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::mutex> lock(m_pCharacterData->GetCharacterDataLock());
+	if (!m_pField)
+		return;
+
+	int nFieldKey = iPacket->Decode1();
+	std::string sPortalName = iPacket->DecodeStr();
+	auto pPortal = m_pField->GetPortalMap()->FindPortal(sPortalName);
+	if (pPortal)
+	{
+		/*Doing some checks here, let's see*/
+		auto pScript = ScriptMan::GetInstance()->GetScript(
+			"./DataSrv/Script/Portal/" + pPortal->GetPortalScriptName() + ".lua",
+			0,
+			m_pField
+		);
+		if (pScript) 
+		{
+			pScript->SetUser(this);
+			pScript->Run();
+		}
+	}
+	SendCharacterStat(true, 0);
+}
+
+void User::OnTransferChannelRequest(InPacket *iPacket)
 {
 	int nChannelID = iPacket->Decode1();
 
@@ -1765,6 +1796,32 @@ void User::SendUseSkillEffect(int nSkillID, int nSLV)
 	GetField()->SplitSendPacket(&oPacket, this);
 }
 
+void User::SendUseSkillEffectByParty(int nSkillID, int nSLV)
+{
+	auto funcEncode = [](OutPacket& oPacket, int nSkillID, int nSLV) {
+		oPacket.Encode4(nSkillID);
+		oPacket.Encode1((char)nSLV);
+		if (nSkillID == 1320006)
+			oPacket.Encode1(1);
+		else if (nSkillID == 1121001 || nSkillID == 1221001 || nSkillID == 1321001)
+			oPacket.Encode1(1);
+		oPacket.Encode1(0);
+	};
+	OutPacket oPacketSelf;
+	oPacketSelf.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketSelf.Encode1(Effect::eEffect_OnSkillAppliedByParty);
+	funcEncode(oPacketSelf, nSkillID, nSLV);
+	SendPacket(&oPacketSelf);
+
+	//For Remote
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(Effect::eEffect_OnSkillAppliedByParty);
+	funcEncode(oPacket, nSkillID, nSLV);
+	GetField()->SplitSendPacket(&oPacket, this);
+}
+
 void User::SendLevelUpEffect()
 {
 	OutPacket oPacket;
@@ -1958,6 +2015,14 @@ void User::OnSelectNpc(InPacket * iPacket)
 		oPacket.Encode4(GetAccountID());
 		oPacket.Encode4(GetUserID());
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		return;
+	}
+	if (pTemplate && pNpc->GetTemplateID() == 9030000)
+	{
+		m_nTrunkTemplateID = pNpc->GetTemplateID();
+		SetStoreBank(AllocObjCtor(StoreBank)(this));
+		m_pStoreBank->SetStoreBankTemplateID(m_nTrunkTemplateID);
+		m_pStoreBank->OnSelectStoreBankNPC();
 		return;
 	}
 	if (pTemplate && pTemplate->HasShop())
@@ -2869,6 +2934,15 @@ void User::CreateEmployee(bool bOpen)
 		}
 }
 
+void User::OnOpenEntrustedShop(InPacket * iPacket)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
+	oPacket.Encode4(GetUserID());
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+}
+
 void User::OnTrunkResult(InPacket *iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
@@ -2902,6 +2976,18 @@ void User::SetTrunk(Trunk *pTrunk)
 	if (m_pTrunk)
 		FreeObj(m_pTrunk);
 	m_pTrunk = pTrunk;
+}
+
+StoreBank* User::GetStoreBank()
+{
+	return m_pStoreBank;
+}
+
+void User::SetStoreBank(StoreBank *pStoreBank)
+{
+	if (m_pStoreBank)
+		FreeObj(m_pStoreBank);
+	m_pStoreBank = pStoreBank;
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)

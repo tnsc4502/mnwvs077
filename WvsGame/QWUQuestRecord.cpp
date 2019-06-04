@@ -104,7 +104,10 @@ void QWUQuestRecord::ValidateMobCountRecord(User * pUser)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	for (auto& prRecord : pUser->GetCharacterData()->mQuestRecord)
 	{
-		auto& aDemandMob = QuestMan::GetInstance()->GetCompleteDemand(prRecord.first)->m_aDemandMob;
+		auto pDemand = QuestMan::GetInstance()->GetCompleteDemand(prRecord.first);
+		if (!pDemand)
+			continue;
+		auto& aDemandMob = pDemand->m_aDemandMob;
 		if (aDemandMob.size() > 0)
 		{
 			if (prRecord.second->sStringRecord.size() != aDemandMob.size() * 3)

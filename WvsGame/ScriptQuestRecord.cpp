@@ -40,6 +40,7 @@ void ScriptQuestRecord::Register(lua_State * L)
 	luaL_Reg QRMetatable[] = {
 		{ "getState", QuestRecordGetState },
 		{ "setState", QuestRecordSetState },
+		{ "get", QuestRecordGet },
 		{ NULL, NULL }
 	};
 
@@ -60,6 +61,14 @@ int ScriptQuestRecord::QuestRecordGetState(lua_State * L)
 	int nQuestID = (int)luaL_checkinteger(L, 2);
 	int nResult = QWUQuestRecord::GetState(self->m_pUser, nQuestID);
 	lua_pushinteger(L, nResult);
+	return 1;
+}
+
+int ScriptQuestRecord::QuestRecordGet(lua_State * L)
+{
+	ScriptQuestRecord* self = luaW_check<ScriptQuestRecord>(L, 1);
+	int nQuestID = (int)luaL_checkinteger(L, 2);
+	lua_pushstring(L, QWUQuestRecord::Get(self->m_pUser, nQuestID).c_str());
 	return 1;
 }
 

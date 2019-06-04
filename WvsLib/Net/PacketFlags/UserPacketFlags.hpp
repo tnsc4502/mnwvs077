@@ -168,8 +168,8 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnDropMoneyRequest, 0x4B);
 MAKE_USER_RECV_PACKET_FLAG(User_OnGivePopularityRequest, 0x4C);
 MAKE_USER_RECV_PACKET_FLAG(User_OnCharacterInfoRequest, 0x4E);
 MAKE_USER_RECV_PACKET_FLAG(User_OnActivatePetRequest, 0x4F);
-MAKE_USER_RECV_PACKET_FLAG(User_OnMapTransferItemUseRequest, 0x50);
-MAKE_USER_RECV_PACKET_FLAG(User_OnPortalScrollUseRequest, 0x51); 
+MAKE_USER_RECV_PACKET_FLAG(User_OnTemporaryStatUpdateRequest, 0x50);
+MAKE_USER_RECV_PACKET_FLAG(User_OnPortalScriptRequest, 0x51);
 
 MAKE_USER_RECV_PACKET_FLAG(User_OnQuestRequest, 0x57);
 MAKE_USER_RECV_PACKET_FLAG(User_OnSendGroupMessage, 0x5C);

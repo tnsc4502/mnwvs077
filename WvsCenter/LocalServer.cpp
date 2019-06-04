@@ -793,5 +793,20 @@ void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
 				this, iPacket->Decode4()
 			);
 			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest:
+			EntrustedShopMan::GetInstance()->SaveItem(
+				this, iPacket->Decode4(), iPacket
+			);
+			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged:
+			EntrustedShopMan::GetInstance()->ItemNumberChanged(
+				this, iPacket->Decode4(), iPacket
+			);
+			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_LoadItemRequest:
+			EntrustedShopMan::GetInstance()->LoadItemRequest(
+				this, iPacket->Decode4()
+			);
+			break;
 	}
 }

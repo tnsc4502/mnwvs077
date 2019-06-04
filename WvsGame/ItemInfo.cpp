@@ -701,6 +701,7 @@ bool ItemInfo::IsPet(int nItemID)
 	return nTI == GW_ItemSlotBase::CASH && (nPrefix % 10 == 0);
 }
 
+#ifdef _WVSGAME
 int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSkillID, int nAttackType, int *pnACCInc, int *pnPADInc)
 {
 	int nWT = GetWeaponType(nWeaponID);
@@ -803,6 +804,7 @@ int ItemInfo::GetCriticalSkillLevel(GA_Character * pCharacter, int nWeaponID, in
 	}
 	return nCSLV;
 }
+#endif
 
 void ItemInfo::LoadIncrementStat(BasicIncrementStat & refStat, void * pProp)
 {

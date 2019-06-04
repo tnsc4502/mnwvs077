@@ -16,6 +16,7 @@ public:
 	static void DestroySelf(lua_State* L, ScriptQuestRecord* p);
 	static void Register(lua_State* L);
 	static int QuestRecordGetState(lua_State* L);
+	static int QuestRecordGet(lua_State* L);
 	static int QuestRecordSetState(lua_State* L);
 };
 

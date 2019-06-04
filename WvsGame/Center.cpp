@@ -24,6 +24,7 @@
 #include "PartyMan.h"
 #include "GuildMan.h"
 #include "FriendMan.h"
+#include "StoreBank.h"
 
 Center::Center(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -145,6 +146,9 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterSendPacketFlag::TrunkResult:
 			OnTrunkResult(iPacket);
 			break;
+		case CenterSendPacketFlag::EntrustedShopResult:
+			OnEntrustedShopResult(iPacket);
+			break;
 	}
 }
 
@@ -220,5 +224,12 @@ void Center::OnTrunkResult(InPacket *iPacket)
 	auto pUser = User::FindUser(iPacket->Decode4());
 	if (pUser)
 		pUser->OnTrunkResult(iPacket);
+}
+
+void Center::OnEntrustedShopResult(InPacket *iPacket)
+{
+	auto pUser = User::FindUser(iPacket->Decode4());
+	if (pUser)
+		pUser->GetStoreBank()->OnPacket(iPacket);
 }
 

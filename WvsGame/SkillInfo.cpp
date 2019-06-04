@@ -659,6 +659,38 @@ bool SkillInfo::IsSummonSkill(int nSkillID)
 	return false;
 }
 
+bool SkillInfo::IsPartyStatChangeSkill(int nSkillID)
+{
+	switch (nSkillID)
+	{
+		case 1101006:
+		case 1121000:
+		case 1221000:
+		case 1301006:
+		case 1301007:
+		case 1321000:
+		case 2101001:
+		case 2121000:
+		case 2221000:
+		case 2201001:
+		case 2301002:
+		case 2311003:
+		case 2311001:
+		case 2321000:
+		case 2321005:
+		case 2321006:
+		case 3121000:
+		case 3121002:
+		case 4101004:
+		case 4111001:
+		case 4121000:
+		case 4201003:
+		case 4221000:
+			return true;
+	}
+	return false;
+}
+
 int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)
 {
 	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry, 0, 0, 0, 0);

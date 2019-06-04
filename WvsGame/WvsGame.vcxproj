@@ -277,6 +277,7 @@
     <ClInclude Include="SkillLevelData.h" />
     <ClInclude Include="StateChangeItem.h" />
     <ClInclude Include="StaticFoothold.h" />
+    <ClInclude Include="StoreBank.h" />
     <ClInclude Include="Summoned.h" />
     <ClInclude Include="SummonedPool.h" />
     <ClInclude Include="TamingMobFoodItem.h" />
@@ -373,6 +374,7 @@
     <ClCompile Include="SkillLevelData.cpp" />
     <ClCompile Include="StateChangeItem.cpp" />
     <ClCompile Include="StaticFoothold.cpp" />
+    <ClCompile Include="StoreBank.cpp" />
     <ClCompile Include="Summoned.cpp" />
     <ClCompile Include="SummonedPool.cpp" />
     <ClCompile Include="TamingMobFoodItem.cpp" />

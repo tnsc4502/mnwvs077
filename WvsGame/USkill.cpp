@@ -14,10 +14,12 @@
 #include "SkillLevelData.h"
 #include "SkillInfo.h"
 #include "QWUSkillRecord.h"
+#include "PartyMan.h"
 
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Random\Rand32.h"
 
 
 /*
@@ -128,6 +130,8 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry
 	int nSkillID = pEntry->GetSkillID();
 	if (SkillInfo::IsSummonSkill(nSkillID))
 		DoActiveSkill_Summon(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
+	else if (SkillInfo::IsPartyStatChangeSkill(nSkillID))
+		DoActiveSkill_PartyStatChange(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
 	else
 		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, 0, bResetBySkill, bForceSetTime, nForceSetTime);
 }
@@ -550,8 +554,109 @@ void USkill::DoActiveSkill_TownPortal(User* pUser, const SkillEntry * pSkill, in
 {
 }
 
-void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket)
+void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill, int nSLV, InPacket *iPacket, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
 {
+	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
+	REGISTER_USE_SKILL_SECTION;
+
+	int anCharacterID[PartyMan::MAX_PARTY_MEMBER_COUNT] = { 0 }, nHPInc = 0;
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(pUser->GetUserID());
+	if (!pParty)
+		anCharacterID[0] = pUser->GetUserID();
+	else
+		PartyMan::GetInstance()->GetSnapshot(pParty->nPartyID, anCharacterID);
+
+	User *pMember = nullptr;
+	int nValidMemberCount = 0;
+
+	for (auto& nID : anCharacterID)
+	{
+		if (nID == 0 ||
+			!(pMember = User::FindUser(nID)) ||
+			pMember->GetField() != pUser->GetField()) 
+		{
+			nID = 0;
+			continue;
+		}
+		++nValidMemberCount;
+	}
+
+	if (pSkillLVLData->m_nHp)
+	{
+		double dINT = (double)QWUser::GetINT(pUser);
+		int nOffset = (int)(dINT * 0.2), nInc = 0;
+		if (nOffset)
+			nInc = (int)(Rand32::GetInstance()->Random() % nOffset);
+		nOffset = pUser->GetSecondaryStat()->nMAD + pUser->GetSecondaryStat()->nMAD_;
+		nOffset = (int)(((double)nInc * 1.15 + (double)QWUser::GetLUK(pUser)) * (double)nOffset * 0.01);
+		nHPInc = (int)(((double)nOffset * ((double)nValidMemberCount * 0.3 + 1.0)) * (double)pSkillLVLData->m_nHp * 0.01);
+	}
+
+	for (auto& nID : anCharacterID)
+	{
+		if (nID == 0 ||
+			!(pMember = User::FindUser(nID))
+			|| (bResetBySkill && pMember != pUser))
+			continue;
+
+		TemporaryStat::TS_Flag tsSet;
+		SecondaryStat* pSS = pMember->GetSecondaryStat();
+		long long int liFlag = 0;
+
+		if (pSkillLVLData->m_nPad)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nPad);
+		}
+		if (pSkillLVLData->m_nPdd)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nPdd);
+		}
+		if (pSkillLVLData->m_nMad)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nMad);
+		}		
+		if (pSkillLVLData->m_nMdd)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nMdd);
+		}
+		if (pSkillLVLData->m_nAcc)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nAcc);
+		}
+		if (pSkillLVLData->m_nEva)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nEva);
+		}
+		if (pSkillLVLData->m_nCraft)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nCraft);
+		}		
+		if (pSkillLVLData->m_nSpeed)
+		{
+			REGISTER_TS(PAD, pSkillLVLData->m_nSpeed);
+		}
+
+		if (pSkillLVLData->m_nHp)
+		{
+			liFlag |= QWUser::IncHP(pMember, nHPInc / nValidMemberCount, false);
+			if(liFlag)
+			{
+			}
+		}	
+		if (bResetBySkill)
+		{
+			pMember->SendTemporaryStatReset(tsFlag);
+			ValidateSecondaryStat(pMember);
+		}
+		else
+		{
+			pMember->SendCharacterStat(pMember == pUser, liFlag);
+			pMember->SendTemporaryStatSet(tsFlag, 0);
+			pMember->SendTemporaryStatSet(tsFlag, tDelay);
+			if (pMember != pUser)
+				pMember->SendUseSkillEffectByParty(nSkillID, nSLV);
+		}
+	}
 }
 
 void USkill::DoActiveSkill_MobStatChange(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, int bSendResult)

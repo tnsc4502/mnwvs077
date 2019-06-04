@@ -50,6 +50,7 @@ public:
 	int GetSkillLevel(GA_Character* pCharacter, int nSkillID, SkillEntry** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot);
 	GW_SkillRecord* GetSkillRecord(int nSkillID, int nSLV, long long int tExpired);
 	static bool IsSummonSkill(int nSkillID);
+	static bool IsPartyStatChangeSkill(int nSkillID);
 	int GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry *pEntry, int *pnInc);
 };
 

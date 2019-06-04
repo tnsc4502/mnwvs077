@@ -108,9 +108,14 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 		if ((pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByAccountID(m_loginEntry.nAccountID)))
 		{
 			nCheckResult = LoginResult::res_LoginStatus_Account_AlreadyLoggedIn;
-			if (pEntry->nLoginState == LoginState::LS_Stage_MigratedIn ||
-				pEntry->nLoginState == LoginState::LS_Stage_SelectCharacter)
+			if (!WvsBase::GetInstance<WvsLogin>()->GetSocket(pEntry->uLoginSocketSN))
 			{
+				if (pEntry->nWorldID == -1)
+				{
+					nCheckResult = LoginResult::res_PasswdCheck_Success;
+					WvsBase::GetInstance<WvsLogin>()->RemoveLoginEntryByAccountID(m_loginEntry.nAccountID);
+					goto LOGIN_SUCCESS;
+				}
 				//To ensure the consistency of specific login state between WvsLogin and WvsCenter.
 				OutPacket oPacket;
 				oPacket.Encode2(LoginSendPacketFlag::Center_RequestLoginAuth);
@@ -126,11 +131,12 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 			goto REPORT_FAILED_REASON;
 		}
 
+	LOGIN_SUCCESS:
+		oPacket.Encode1(nCheckResult);
 		m_loginEntry.uLoginSocketSN = GetSocketID();
 		m_loginEntry.strAccountName = sID;
 		m_loginEntry.nLoginState = LoginState::LS_PasswdCheck_Authenticated;
 		WvsBase::GetInstance<WvsLogin>()->RegisterLoginEntry(&m_loginEntry);
-
 		oPacket.Encode4(m_loginEntry.nAccountID); //Account ID
 		oPacket.Encode1(m_loginEntry.nGender); //Gender
 		oPacket.Encode1(0); //GM
@@ -146,8 +152,8 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 REPORT_FAILED_REASON:
 	if (nCheckResult)
 	{
-		m_loginEntry.Initialize();
 		oPacket.Encode1(nCheckResult);
+		m_loginEntry.Initialize();
 		SendPacket(&oPacket);
 	}
 }

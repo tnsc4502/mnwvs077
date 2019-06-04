@@ -501,6 +501,9 @@
     <ClInclude Include="CalcDamage.h">
       <Filter>WvsGame\InGame\Skill</Filter>
     </ClInclude>
+    <ClInclude Include="StoreBank.h">
+      <Filter>WvsGame\InGame\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -764,6 +767,9 @@
     </ClCompile>
     <ClCompile Include="CalcDamage.cpp">
       <Filter>WvsGame\InGame\Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="StoreBank.cpp">
+      <Filter>WvsGame\InGame\World</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

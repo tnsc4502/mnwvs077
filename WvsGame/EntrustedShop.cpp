@@ -17,6 +17,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
+#include "..\WvsCenter\EntrustedShopMan.h"
 
 EntrustedShop::EntrustedShop()
 {
@@ -63,11 +64,9 @@ void EntrustedShop::DoTransaction(User *pUser, int nSlot, Item *psItem, int nNum
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	std::lock_guard<std::recursive_mutex> buyerLock(pUser->GetLock());
-
 	std::vector<BackupItem> aBackup;
 	std::vector<ExchangeElement> aExchange;
 	std::vector<InventoryManipulator::ChangeLog> aLogAdd;
-
 
 	//For buyer
 	aExchange.push_back({});
@@ -97,6 +96,9 @@ void EntrustedShop::DoTransaction(User *pUser, int nSlot, Item *psItem, int nNum
 		soldItem.nNumber = nNumber;
 		soldItem.nPrice = (nMoneyCost * -1);
 		m_aSoldItem.push_back(soldItem);
+		OutPacket oPacket;
+		EncodeItemNumberChanged(&oPacket, std::vector<Item*>{ psItem });
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	}
 	BroadcastItemList();
 }
@@ -140,10 +142,12 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 		bFailed = true;
 	else
 	{
+		std::vector<Item*> aRemove;
 		std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 		std::vector<ExchangeElement> aExchange;
 		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 		std::vector<BackupItem> aBackup;
+		OutPacket oCenterPacket;
 
 		for (auto& item : m_aItem)
 			if (item.nNumber > 0)
@@ -151,8 +155,10 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 				aExchange.push_back({});
 				aExchange.back().m_nCount = item.nNumber;
 				aExchange.back().m_pItem = item.pItem->MakeClone();
+				item.nNumber = 0;
+				aRemove.push_back(&item);
 			}
-
+		EncodeItemNumberChanged(&oCenterPacket, aRemove);
 		if (QWUInventory::Exchange(
 			pUser,
 			(int)m_liEShopMoney,
@@ -173,8 +179,11 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 		oPacket.Encode1(bFailed ? 1 : 0);
 		pUser->SendPacket(&oPacket);
 
-		if(!bFailed)
+		if (!bFailed) 
+		{
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oCenterPacket);
 			CloseRequest(pUser, 3, 0);
+		}
 	}
 }
 
@@ -254,19 +263,25 @@ bool EntrustedShop::RestoreItemFromShop(User* pUser, PersonalShop::Item* psItem)
 	std::vector<BackupItem> aBackup;
 	std::vector<ExchangeElement> aExchange;
 	ExchangeElement elem;
-	elem.m_pItem = psItem->pItem;
-	elem.m_nCount = psItem->nSet * psItem->nNumber;
-	aExchange.push_back(elem);
+	OutPacket oPacket;
+	//int nPSItemNumber = psItem->nNumber;
 
-	int nNumber = psItem->pItem->nType == GW_ItemSlotBase::EQUIP ? 
+	int nNumber = psItem->pItem->nType == GW_ItemSlotBase::EQUIP ?
 		1 : ((GW_ItemSlotBundle*)psItem->pItem)->nNumber;
+	psItem->nNumber = 0;
+	elem.m_pItem = psItem->pItem;
+	elem.m_nCount = psItem->nSet * nNumber;
+	aExchange.push_back(elem);
+	EncodeItemNumberChanged(&oPacket, std::vector<Item*>{ psItem });
 
 	if (QWUInventory::Exchange(pUser, 0, aExchange, &aChangeLog, nullptr, aBackup))
 	{
 		if (psItem->pItem->nType != GW_ItemSlotBase::EQUIP)
 			((GW_ItemSlotBundle*)psItem->pItem)->nNumber = nNumber;
+		psItem->nNumber = nNumber;
 		return false;
 	}
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	return true;
 }
 
@@ -275,12 +290,54 @@ void EntrustedShop::OnLeave(User *pUser, int nLeaveType)
 	if (IsEmployer(pUser))
 	{
 		pUser->FlushCharacterData();
-		if (nLeaveType == 3)
+		if (m_aItem.size() == 0 || nLeaveType == 3)
 		{
 			CloseShop();
 			--m_nCurUsers;
 		}
+		else
+			SendItemBackup();
 	}
+}
+
+void EntrustedShop::EncodeItemNumberChanged(OutPacket *oPacket, std::vector<Item*>& apItem)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	oPacket->Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket->Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
+	oPacket->Encode4(GetEmployerID());
+	oPacket->Encode8(m_liEShopMoney);
+	oPacket->Encode1((char)apItem.size());
+	for (auto& prItem : apItem)
+	{
+		oPacket->Encode1(prItem->nTI);
+		oPacket->Encode2(prItem->nNumber * prItem->nSet);
+		prItem->pItem->Encode(oPacket, true);
+	}
+}
+
+void EntrustedShop::SendItemBackup()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest);
+	oPacket.Encode4(GetEmployerID());
+	oPacket.Encode1((char)m_aItem.size());
+	for (auto& prItem : m_aItem)
+	{
+		oPacket.Encode1(prItem.nTI);
+		if (prItem.pItem->liItemSN == -1)
+		{
+			prItem.pItem->liItemSN = GW_ItemSlotBase::GetNextSN(prItem.nTI);
+			oPacket.Encode1(1);
+			prItem.pItem->Encode(&oPacket, true);
+		}
+		else
+			oPacket.Encode1(0);
+		oPacket.Encode8(prItem.pItem->liItemSN);
+	}
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
 void EntrustedShop::EncodeEnterResult(User *pUser, OutPacket *oPacket)

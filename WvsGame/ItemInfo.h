@@ -114,9 +114,11 @@ public:
 	static bool IsLongcoat(int nItemID);
 	static bool IsCap(int nItemID);
 	static bool IsPet(int nItemID);
+#ifdef _WVSGAME
 	static int GetWeaponMastery(GA_Character* pCharacter, int nWeaponID, int nSkillID, int nAttackType, int *pnACCInc, int *pnPADInc);
 	static int GetWeaponType(int nItemID);
 	static int GetCriticalSkillLevel(GA_Character* pCharacter, int nWeaponID, int nAttackType, int *pnProp, int *pnParam);
+#endif
 	GW_ItemSlotBase* GetItemSlot(int nItemID, ItemVariationOption enOption);
 
 private:
