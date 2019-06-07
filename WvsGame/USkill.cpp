@@ -156,12 +156,19 @@ void USkill::OnSkillUpRequest(User * pUser, int nSkillID, int nAmount, bool bDec
 		pUser,
 		nSkillID,
 		nAmount,
-		bDecSP,
+		(nSkillID == 1000 ||
+		 nSkillID == 1001 || 
+		 nSkillID == 1002) ? false : bDecSP,
 		bCheckMasterLevel,
 		aChange))
 	{
+		long long int liFlag = BasicStat::BS_SP;
+		if (nSkillID == 1000001)
+			liFlag |= pUser->IncMaxHPAndMP(0x2000, false);
+		else if (nSkillID == 2000001)
+			liFlag |= pUser->IncMaxHPAndMP(0x8000, false);
 		pUser->ValidateStat();
-		pUser->SendCharacterStat(false, BasicStat::BS_SP);
+		pUser->SendCharacterStat(false, liFlag);
 	}
 	QWUSkillRecord::SendCharacterSkillRecord(pUser, aChange);
 }

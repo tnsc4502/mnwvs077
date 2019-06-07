@@ -256,6 +256,7 @@ void ItemInfo::RegisterSetHalloweenItem()
 
 void ItemInfo::RegisterEquipItemInfo(EquipItem * pEqpItem, int nItemID, void * pProp)
 {
+#undef max
 	auto& infoImg = (*((WZ::Node*)pProp))["info"];
 
 	LoadIncrementStat(pEqpItem->incStat, (void*)&infoImg);
@@ -282,6 +283,7 @@ void ItemInfo::RegisterEquipItemInfo(EquipItem * pEqpItem, int nItemID, void * p
 	pEqpItem->nElemDefault = infoImg["elemDefault"];
 	pEqpItem->nCuttable = (int)infoImg["tradeAvailable"];
 	pEqpItem->dwPetAbilityFlag = 0;
+	pEqpItem->dRecovery = std::max(1.0, (double)infoImg["recovery"]);
 	if (nItemID / 10000 == 181)
 	{
 		if ((int)infoImg["pickupItem"] == 1)

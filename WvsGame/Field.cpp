@@ -28,6 +28,9 @@
 #include "AffectedArea.h"
 #include "AffectedAreaPool.h"
 
+#undef min
+#undef max
+
 Field::Field(void *pData, int nFieldID)
 	: m_pLifePool(AllocObj(LifePool)),
 	  m_pPortalMap(AllocObj(PortalMap)),
@@ -57,12 +60,17 @@ Field::Field(void *pData, int nFieldID)
 	SetFiexdMobCapacity(infoData["fixedMobCapacity"]);
 	SetFirstUserEnter(infoData["onFirstUerEnter"]);
 	SetUserEnter(infoData["onUserEnter"]);
+	SetRecoveryRate(std::max(1.0, (double)infoData["recovery"]));
 
 	if (areaData != mapWz.end())
 		LoadAreaRect(&areaData);
 
 	GetPortalMap()->RestorePortal(this, &(mapWz["portal"]));
 	GetReactorPool()->Init(this, &(mapWz["reactor"]));
+
+	auto& seatNode = mapWz["seat"];
+	for (auto& seat : seatNode)
+		m_aSeat.push_back({ { seat["x"], seat["y"] }, false });
 }
 
 Field::~Field()
@@ -264,6 +272,16 @@ const FieldPoint & Field::GetLeftTop() const
 double Field::GetIncEXPRate() const
 {
 	return m_dIncRate_EXP;
+}
+
+void Field::SetRecoveryRate(double dRate)
+{
+	m_dRecoveryRate = dRate;
+}
+
+double Field::GetRecoveryRate() const
+{
+	return m_dRecoveryRate;
 }
 
 void Field::SetFieldSet(FieldSet * pFieldSet)
@@ -613,6 +631,34 @@ void Field::OnContiMoveState(User * pUser, InPacket * iPacket)
 	oPacket.Encode1(nState);
 	oPacket.Encode1((char)nEventDoing);
 	pUser->SendPacket(&oPacket);
+}
+
+bool Field::OnSitRequest(User *pUser, int nSeatID)
+{
+	if(nSeatID >= (int)m_aSeat.size())
+		return false;
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	if (nSeatID >= 0 &&
+		m_aSeat[nSeatID].second == false)
+	{
+		if (m_aSeat[nSeatID].first.Range(FieldPoint({ pUser->GetPosX(), pUser->GetPosY() })) >= 200)
+			return false;
+
+		m_aSeat[nSeatID].second = true;
+		m_mUserSeat[pUser->GetUserID()] = nSeatID;
+		return true;
+	}
+	else
+	{
+		auto findIter = m_mUserSeat.find(pUser->GetUserID());
+		if (findIter == m_mUserSeat.end())
+			return false;
+		m_aSeat[findIter->second].second = false;
+		m_mUserSeat.erase(findIter);
+		return true;
+	}
+	return false;
 }
 
 void Field::AddCP(int nLastDamageCharacterID, int nAddCP)

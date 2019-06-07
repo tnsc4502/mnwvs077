@@ -52,5 +52,8 @@ public:
 	static bool IsSummonSkill(int nSkillID);
 	static bool IsPartyStatChangeSkill(int nSkillID);
 	int GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry *pEntry, int *pnInc);
+	int GetEndureDuration(GA_Character* pCharacter);
+	int GetHPRecoveryUpgrade(GA_Character* pCharacter);
+	int GetMPRecoveryUpgrade(GA_Character* pCharacter);
 };
 

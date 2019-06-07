@@ -674,7 +674,7 @@ void Mob::OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem)
 int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamageCharacterID)
 {
 	long long int nHighestDamageRecord = 0, nTotalHP = GetMobTemplate()->m_lnMaxHP;
-	double dLastHitBonus = 0.0, dStatBonusRate = 1.0, dBaseExp = 0, dIncEXP = 0;
+	double dLastHitBonus = 0.0, dStatBonusRate = 15.0, dBaseExp = 0, dIncEXP = 0;
 	int nHighestDamageUser = 0;
 
 	refOwnType = 0;

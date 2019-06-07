@@ -8,6 +8,8 @@
 #include "..\Database\GW_FuncKeyMapped.h"
 #include "..\Database\GW_SkillRecord.h"
 #include "..\Database\GW_Avatar.hpp"
+#include "..\Database\GW_ItemSlotBase.h"
+#include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotPet.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
@@ -137,7 +139,7 @@ void User::FlushCharacterData()
 
 User::~User()
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	auto bindT = std::bind(&User::Update, this);
 	m_pUpdateTimer->Abort();
@@ -273,7 +275,7 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->Encode4(0);
 
 	//PortableChair
-	oPacket->Encode4(0);
+	oPacket->Encode4(m_nActivePortableChairID);
 
 	oPacket->Encode2(GetPosX());
 	oPacket->Encode2(GetPosY());
@@ -535,8 +537,20 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnUserMoveRequest:
 			m_pField->OnUserMove(this, iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnSitRequest:
+			OnSitRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnSitOnPortableChairRequest:
+			OnPortableChairSitRequest(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnChangeStatRequest:
+			OnChangeStatRequest(iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
 			QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnPortalScrollUseRequest:
+			OnPortalScrollUseRequest(iPacket);
 			break;
 		case UserRecvPacketFlag::User_OnUserAbilityUpRequest:
 			OnAbilityUpRequest(iPacket);
@@ -681,7 +695,7 @@ void User::OnTransferFieldRequest(InPacket * iPacket)
 
 bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 {
-	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserLock);
 	SetTransferStatus(TransferStatus::eOnTransferField);
 	Field *pTargetField = FieldMan::GetInstance()->GetField(nFieldID);
 	if (pTargetField != nullptr)
@@ -968,6 +982,7 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 	{
 		GuildMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mStat->nJob, false);
 		PartyMan::GetInstance()->PostChangeLevelOrJob(this, m_pCharacterData->mStat->nJob, false);
+		SendChangeJobEffect();
 	}
 
 	if (liFlag & BasicStat::BasicStatFlag::BS_HP)
@@ -1034,6 +1049,15 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 	oPacket.Encode1(0);
 
 	SendPacket(&oPacket);
+}
+
+void User::SendPortableChairEffect(int nSeatID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetActivePortableChair);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode4(m_nActivePortableChairID);
+	m_pField->SplitSendPacket(&oPacket, this);
 }
 
 void User::SendTemporaryStatReset(TemporaryStat::TS_Flag& flag)
@@ -1136,7 +1160,7 @@ void User::OnAttack(int nType, InPacket * iPacket)
 
 void User::OnHit(InPacket *iPacket)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	int tDamagedTime = iPacket->Decode4();
 	int nMobAttackIdx = iPacket->Decode1();
@@ -1371,6 +1395,7 @@ void User::OnHit(InPacket *iPacket)
 
 		if (m_pCharacterData->mStat->nHP == 0)
 		{
+			DecreaseEXP(m_pField->IsTown());
 		}
 		else if (nDamage)
 		{
@@ -1516,6 +1541,18 @@ void User::OnHit(InPacket *iPacket)
 
 void User::OnLevelUp()
 {
+	auto liFlag = IncMaxHPAndMP(0x2000 | 0x8000, true);
+	ValidateStat();
+
+	QWUser::IncHP(this, (int)QWUser::GetMaxHPVal(this), true);
+	QWUser::IncMP(this, (int)QWUser::GetMaxMPVal(this), true);
+	SendCharacterStat(false, BasicStat::BS_HP | BasicStat::BS_MP | liFlag);
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(Effect::eEffect_LevelUp);
+	m_pField->SplitSendPacket(&oPacket, this);
 }
 
 void User::OnEmotion(InPacket *iPacket)
@@ -1547,15 +1584,55 @@ BasicStat * User::GetBasicStat()
 	return this->m_pBasicStat;
 }
 
+void User::DecreaseEXP(bool bTown)
+{
+	if (m_pBasicStat->nJob)
+	{
+		int nLevel = QWUser::GetLevel(this);
+		long long int liEXP = 0, liSet = 0;
+		double dDecRate = 0;
+		if (nLevel > 200)
+			liEXP = 0x7FFFFFFF;
+		else
+			liEXP = WvsGameConstants::m_nEXP[nLevel];
+		
+		if (bTown)
+			dDecRate = 0.01;
+		else
+		{
+			if (m_pBasicStat->nJob / 100 == 3)
+				dDecRate = (0.08);
+			else
+				dDecRate = (0.2);
+			dDecRate = dDecRate / (double)QWUser::GetLUK(this) + 0.05;
+		}
+		if (nLevel < 200)
+		{
+			liSet = QWUser::GetEXP(this) - (int)((double)liEXP * dDecRate);
+			liSet = std::max((long long int)0, std::min(liSet, liEXP - 1));
+		}
+		else
+			liSet = 0;
+		m_pCharacterData->mStat->nExp = liSet;
+		SendCharacterStat(false, BasicStat::BS_EXP);
+	}
+}
+
 std::recursive_mutex & User::GetLock()
 {
-	return m_mtxUserlock;
+	return m_mtxUserLock;
 }
 
 void User::Update()
 {
 	int tCur = GameDateTime::GetTime();
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
+
+	if (tCur - m_tLastBackupTime >= 2 * 60 * 1000)
+	{
+		FlushCharacterData();
+		m_tLastBackupTime = tCur;
+	}
 }
 
 void User::ResetTemporaryStat(int tCur, int nReasonID)
@@ -1568,7 +1645,7 @@ void User::ResetTemporaryStat(int tCur, int nReasonID)
 
 void User::OnAbilityUpRequest(InPacket * iPacket)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	if (QWUser::GetAP(this) <= 0) 
 	{
 		this->m_pSocket->GetSocket().close();
@@ -1767,6 +1844,9 @@ void User::OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx)
 			nMobAttackIdx < (int)pTemplate->m_aAttackInfo.size())
 		{
 			auto pSkill = SkillInfo::GetInstance()->GetMobSkill(pTemplate->m_aAttackInfo[nMobAttackIdx].nDisease);
+			if (!pSkill)
+				return;
+
 			int nSLV = pTemplate->m_aAttackInfo[nMobAttackIdx].nSkillLevel;
 			OnStatChangeByMobSkill(
 				pSkill->GetSkillID(),
@@ -1776,6 +1856,113 @@ void User::OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx)
 				0
 			);
 		}
+	}
+}
+
+void User::OnSitRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	if (!m_pField)
+		return;
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSitResult);
+	int nSeatID = iPacket->Decode2();
+	if (nSeatID >= 0)
+	{
+		if (m_pField->OnSitRequest(this, nSeatID))
+		{
+			oPacket.Encode1(1);
+			oPacket.Encode2(nSeatID);
+		}
+	}
+	else if (m_nActivePortableChairID)
+	{
+		oPacket.Encode1(0);
+		m_nActivePortableChairID = 0;
+		SendPortableChairEffect(0);
+	}
+	else
+	{
+		oPacket.Encode1(0);
+		m_pField->OnSitRequest(this, nSeatID);
+	}
+	SendPacket(&oPacket);
+}
+
+void User::OnPortableChairSitRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	if (m_pField)
+	{
+		int nItemID = iPacket->Decode4();
+		auto pChair = ItemInfo::GetInstance()->GetPortableChairItem(nItemID);
+		if (nItemID / 10000 == 301 &&
+			pChair &&
+			m_pCharacterData->GetItemByID(nItemID) &&
+			pChair->nReqLevel <= QWUser::GetLevel(this))
+		{
+			m_nActivePortableChairID = nItemID;
+			m_tPortableChairSittingTime = GameDateTime::GetTime();
+
+			SendPortableChairEffect(0);
+			SendCharacterStat(true, 0);
+		}
+		else
+			m_pSocket->GetSocket().close();
+	}
+}
+
+void User::OnChangeStatRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	int tCur = GameDateTime::GetTime();
+
+	if (m_pField && tCur - m_tLastRecoveryTime >= 8000)
+	{
+		int nFlag = iPacket->Decode4(); //Always 20480 ??
+		int nHPInc = iPacket->Decode2(), nHPIncSrv = 0;
+		int nMPInc = iPacket->Decode2(), nMPIncSrv = 0;
+		int nOption = iPacket->Decode1();
+		double dRate = m_pField->GetRecoveryRate();
+
+		PortableChairItem* pChair = nullptr;
+		if (nOption & 2)
+		{
+			dRate *= 1.5;
+			pChair = ItemInfo::GetInstance()->GetPortableChairItem(m_nActivePortableChairID);
+		}
+
+		auto pEquip = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -5);
+		if (pEquip)
+			dRate *= ItemInfo::GetInstance()->GetEquipItem(pEquip->nItemID)->dRecovery;
+
+		long long int liFlag = 0;
+		if (nHPInc > 0)
+		{
+			nHPIncSrv = (int)(((double)SkillInfo::GetInstance()->GetHPRecoveryUpgrade(m_pCharacterData) + 10.0) * dRate);
+			if (pChair && pChair->nPortableChairRecoveryRateHP)
+				nHPIncSrv = pChair->nPortableChairRecoveryRateHP;
+			if (nHPInc > nHPIncSrv) //Might be suspicious hacking.
+			{
+				SendChatMessage(0, "[Warning]Suspicious hacking for \"HP\" recovery.");
+				return;
+			} 
+			liFlag |= QWUser::IncHP(this, nHPIncSrv, false);
+		}
+		if (nMPInc > 0)
+		{
+			nMPIncSrv = (int)(((double)SkillInfo::GetInstance()->GetMPRecoveryUpgrade(m_pCharacterData) + 10.0) * dRate);
+			if (pChair && pChair->nPortableChairRecoveryRateMP)
+				nMPIncSrv = pChair->nPortableChairRecoveryRateMP;
+			if (nMPInc > nMPIncSrv) //Might be suspicious hacking.
+			{
+				SendChatMessage(0, "[Warning]Suspicious hacking for \"MP\" recovery.");
+				return;
+			} 
+			liFlag |= QWUser::IncMP(this, nMPIncSrv, false);
+		}
+		SendCharacterStat(false, liFlag);
+		m_tLastRecoveryTime = tCur;
 	}
 }
 
@@ -1834,7 +2021,7 @@ void User::SendLevelUpEffect()
 void User::SendChangeJobEffect()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_ChangeJobEffect);
 	GetField()->SplitSendPacket(&oPacket, this);
@@ -1916,6 +2103,57 @@ void User::OnMobSummonItemUseRequest(InPacket * iPacket)
 		goto FAILED;
 }
 
+void User::OnPortalScrollUseRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(GetField()->GetFieldLock());
+	int tRequestTime = iPacket->Decode4();
+	int nPOS = iPacket->Decode2();
+	int nItemID = iPacket->Decode4();
+	GW_ItemSlotBundle* pItem = (GW_ItemSlotBundle*)m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	auto pScroll = ItemInfo::GetInstance()->GetPortalScrollItem(nItemID);
+	if (!pItem ||
+		!pScroll ||
+		!CanAttachAdditionalProcess() ||
+		nItemID != pItem->nItemID ||
+		!pItem->nNumber)
+	{
+	PORTAL_SCROLL_USE_FAILED:
+		SendCharacterStat(true, 0);
+		return;
+	}
+	int nTo = pScroll->spec["moveTo"];
+	if (nTo <= 0 || 
+		nTo == 999999999 ||
+		!FieldMan::GetInstance()->GetField(nTo))
+		nTo = m_pField->GetReturnMap();
+
+	if (!FieldMan::GetInstance()->GetField(nTo) ||
+		nTo == m_pField->GetFieldID())
+		goto PORTAL_SCROLL_USE_FAILED;
+
+	if (FieldMan::GetInstance()->IsConnected(m_pField->GetFieldID(), nTo))
+	{
+		int nDecCount = 0;
+		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+		InventoryManipulator::RawRemoveItem(
+			m_pCharacterData,
+			GW_ItemSlotBase::CONSUME,
+			nPOS,
+			1,
+			&aChangeLog,
+			&nDecCount,
+			nullptr
+		);
+
+		/*if (nDecCount != 1)
+			throw "Incorrect portal-scroll-item use request";*/
+		
+		QWUInventory::SendInventoryOperation(this, true, aChangeLog);
+		SendCharacterStat(true, 0);
+		TryTransferField(nTo, "");
+	}
+}
+
 void User::OnMigrateOut()
 {
 	//LeaveField();
@@ -1928,6 +2166,8 @@ bool User::CanAttachAdditionalProcess()
 		m_nTransferStatus == TransferStatus::eOnTransferNone &&
 		m_pCharacterData->mStat->nHP &&
 		!m_pScript &&
+		!m_pMiniRoom &&
+		!m_pStoreBank &&
 		!m_pTradingNpc;
 }
 
@@ -2239,10 +2479,11 @@ void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
 		return;
 	TryExchange(pCompleteAct->aActItem);
 
+	long long int liFlag = 0;
 	if (pCompleteAct->nEXP >= 0)
-		QWUser::IncEXP(this, pCompleteAct->nEXP, false);
-	QWUser::IncMoney(this, pCompleteAct->nMoney, false);
-
+		liFlag |= QWUser::IncEXP(this, pCompleteAct->nEXP, false);
+	liFlag |= QWUser::IncMoney(this, pCompleteAct->nMoney, false);
+	SendCharacterStat(false, liFlag);
 	QWUQuestRecord::SetComplete(this, nQuestID);
 	SendQuestEndEffect();
 }
@@ -2527,7 +2768,7 @@ void User::OnPetPacket(InPacket * iPacket)
 
 void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	int nAvailableIdx = -1;
 	int nMaxIndex = GetMaxPetIndex();
 	GW_ItemSlotPet *pPetSlot = nullptr;
@@ -2598,7 +2839,7 @@ void User::ReregisterSummoned()
 
 void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint & pt, bool bMigrate)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	if (!m_pField)
 	{
 		m_aMigrateSummoned.push_back(pSkill->GetSkillID());
@@ -2614,7 +2855,7 @@ void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint 
 //nForceRemoveSkillID = -1 means that remove all summoneds.
 void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	if (nForceRemoveSkillID == -1 || nForceRemoveSkillID != 0)
 	{
 		int nSummoned = (int)m_lSummoned.size();
@@ -2639,13 +2880,13 @@ void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 
 void User::AddPartyInvitedCharacterID(int nCharacterID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	m_snPartyInvitedCharacterID.insert(nCharacterID);
 }
 
 bool User::IsPartyInvitedCharacterID(int nCharacterID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	return m_snPartyInvitedCharacterID.find(nCharacterID) 
 		!= m_snPartyInvitedCharacterID.end();
@@ -2653,13 +2894,13 @@ bool User::IsPartyInvitedCharacterID(int nCharacterID)
 
 void User::RemovePartyInvitedCharacterID(int nCharacterID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	m_snPartyInvitedCharacterID.erase(nCharacterID);
 }
 
 void User::ClearPartyInvitedCharacterID()
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	m_snPartyInvitedCharacterID.clear();
 }
 
@@ -2675,7 +2916,7 @@ int User::GetPartyID() const
 
 void User::PostHPToPartyMembers()
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	if (GetPartyID() == -1)
 		return;
@@ -2724,13 +2965,13 @@ const std::set<int>& User::GetGuildInvitedCharacterID() const
 
 void User::RemoveGuildInvitedCharacterID(int nCharacterID)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	m_snGuildInvitedCharacterID.erase(nCharacterID);
 }
 
 void User::ClearGuildInvitedCharacterID()
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	m_snGuildInvitedCharacterID.clear();
 }
 
@@ -2880,7 +3121,7 @@ void User::SetMiniRoomBalloon(bool bOpen)
 {
 	if (GetField() && m_pMiniRoom)
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 		OutPacket oPacket;
 		oPacket.Encode2(UserSendPacketFlag::UserCommon_OnMiniRoomBalloon);
 		oPacket.Encode4(GetUserID());
@@ -2945,7 +3186,7 @@ void User::OnOpenEntrustedShop(InPacket * iPacket)
 
 void User::OnTrunkResult(InPacket *iPacket)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxUserlock);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	int nResult = iPacket->Decode1();
 	if (nResult != Trunk::TrunkRequest::rq_Trunk_Load && !m_pTrunk)
 		return;

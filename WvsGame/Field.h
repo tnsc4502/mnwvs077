@@ -48,6 +48,8 @@ protected:
 	std::recursive_mutex m_mtxFieldLock;
 	std::map<int, User*> m_mUser; //m_lUser in WvsGame.idb
 	std::map<std::string, FieldRect> m_mAreaRect;
+	std::vector<std::pair<FieldPoint, bool>> m_aSeat;
+	std::map<int, int> m_mUserSeat;
 	int m_nFieldID = 0;
 	LifePool *m_pLifePool;
 	PortalMap *m_pPortalMap;
@@ -68,6 +70,7 @@ protected:
 		m_nJukeBoxItemID; //Juke Box?
 
 	double m_dIncRate_EXP = 1.0, 
+		   m_dRecoveryRate = 1.0,
 		   m_dIncRate_Drop = 1.0,
 			m_dMobRate = 1.0; //¥[­¿?
 
@@ -123,6 +126,8 @@ public:
 	void SetLeftTop(int x, int y);
 	const FieldPoint& GetLeftTop() const;
 	double GetIncEXPRate() const;
+	void SetRecoveryRate(double dRate);
+	double GetRecoveryRate() const;
 
 	void SetFieldSet(FieldSet *pFieldSet);
 	FieldSet *GetFieldSet();
@@ -165,6 +170,7 @@ public:
 	void EffectObject(const std::string& sEffect);
 	void EnablePortal(const std::string& sPortal, bool bEnable);
 	void OnContiMoveState(User *pUser, InPacket *iPacket);
+	bool OnSitRequest(User *pUser, int nSeatID);
 
 	virtual void OnReactorDestroyed(Reactor *pReactor);
 	virtual void Reset(bool bShuffleReactor);

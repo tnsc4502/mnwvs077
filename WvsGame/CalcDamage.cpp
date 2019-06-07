@@ -289,8 +289,11 @@ void CalcDamage::DecInvalidCount()
 void CalcDamage::IncInvalidCount()
 {
 	++m_nInvalidCount;
-	if (m_nInvalidCount >= 10)
+	if (m_nInvalidCount >= 20) 
+	{
+		m_nInvalidCount = 0;
 		m_pUser->SendChatMessage(0, "You have over 10 times of invalid attacking!");
+	}
 }
 
 int CalcDamage::GetInvalidCount() const

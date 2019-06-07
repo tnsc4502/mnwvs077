@@ -110,8 +110,8 @@ public:
 private:
 	static const int MAX_PET_INDEX = 3;
 
-	std::recursive_mutex m_mtxUserlock, m_scriptLock;
-	int m_tLastUpdateTime = 0;
+	std::recursive_mutex m_mtxUserLock, m_scriptLock;
+	int m_tLastUpdateTime = 0, m_tLastBackupTime = 0, m_tLastAliveCheckTime = 0;
 
 	//Network
 	ClientSocket *m_pSocket;
@@ -123,7 +123,10 @@ private:
 	SecondaryStat* m_pSecondaryStat;
 	GW_FuncKeyMapped *m_pFuncKeyMapped;
 	int m_nInvalidDamageMissCount = 0,
-		m_nInvalidDamageCount = 0;
+		m_nInvalidDamageCount = 0,
+		m_nActivePortableChairID = 0,
+		m_tLastRecoveryTime = 0,
+		m_tPortableChairSittingTime = 0;
 	bool m_bDeadlyAttack = false;
 
 	//System
@@ -228,8 +231,10 @@ public:
 	CalcDamage* GetCalcDamage();
 	SecondaryStat* GetSecondaryStat();
 	BasicStat* GetBasicStat();
+	void DecreaseEXP(bool bTown);
 	void ValidateStat(bool bCalledByConstructor = false);
 	void SendCharacterStat(bool bOnExclRequest, long long int liFlag);
+	void SendPortableChairEffect(int nSeatID);
 	void SendTemporaryStatReset(TemporaryStat::TS_Flag& flag);
 	void SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay);
 	void ResetTemporaryStat(int tCur, int nReasonID);
@@ -237,11 +242,15 @@ public:
 	long long int IncMaxHPAndMP(int nFlag, bool bLevelUp);
 	void OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData* pLevel, int tDelay, int nTemplateID, bool bResetBySkill = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
 	void OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx);
+	void OnSitRequest(InPacket *iPacket);
+	void OnPortableChairSitRequest(InPacket *iPacket);
+	void OnChangeStatRequest(InPacket *iPacket);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
 	void OnStatChangeItemCancelRequest(InPacket *iPacket);
 	void OnMobSummonItemUseRequest(InPacket *iPacket);
+	void OnPortalScrollUseRequest(InPacket *iPacket);
 
 	//Message
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);

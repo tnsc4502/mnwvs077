@@ -66,6 +66,7 @@ int main(int argc, char **argv)
 
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
+	FieldMan::GetInstance()->LoadAreaCode();
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
 	CalcDamage::LoadStandardPDD();

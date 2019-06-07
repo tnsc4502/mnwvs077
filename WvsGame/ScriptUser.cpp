@@ -62,6 +62,9 @@ void ScriptUser::Register(lua_State * L)
 		{ "incMHP", TargetIncMHP },
 		{ "incEXP", TargetIncEXP },
 		{ "incMoney", TargetIncMoney },
+		{ "setJob", TargetSetJob },
+		{ "getLevel", TargetGetLevel },
+		{ "getJob", TargetGetJob },
 		{ "getHP", TargetGetHP },
 		{ "getMP", TargetGetMP },
 		{ "getSTR", TargetGetSTR },
@@ -325,6 +328,33 @@ int ScriptUser::TargetIncMoney(lua_State * L)
 	auto liFlag = QWUser::IncMoney(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
 	self->m_pUser->ValidateStat();
+	return 1;
+}
+
+int ScriptUser::TargetSetJob(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nVal = (int)luaL_checkinteger(L, 2);
+
+	auto liFlag = QWUser::SetJob(self->m_pUser, nVal);
+	self->m_pUser->SendCharacterStat(false, liFlag);
+	self->m_pUser->ValidateStat();
+	return 1;
+}
+
+int ScriptUser::TargetGetLevel(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+
+	lua_pushinteger(L, QWUser::GetLevel(self->m_pUser));
+	return 1;
+}
+
+int ScriptUser::TargetGetJob(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+
+	lua_pushinteger(L, QWUser::GetJob(self->m_pUser));
 	return 1;
 }
 

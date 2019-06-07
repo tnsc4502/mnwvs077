@@ -256,7 +256,7 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		}
 
 		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-		newMob->SetHP(1 /*newMob->GetMobTemplate()->m_lnMaxHP*/);
+		newMob->SetHP(/*1*/ newMob->GetMobTemplate()->m_lnMaxHP);
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //й╟кл = 5 ?
@@ -681,9 +681,10 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 			{
 				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably hacking 
 				{
-					pUser->SendChatMessage(0, "Suspicious Attacking.");
-					dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
-					continue;
+					pUser->GetCalcDamage()->IncInvalidCount();
+					//pUser->SendChatMessage(0, "Suspicious Attacking.");
+					//dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
+					//continue;
 				}
 				else //Possible that critial damages were yielded in the client but not in the server. 
 					dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i] = true;

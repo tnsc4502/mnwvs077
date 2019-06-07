@@ -9,6 +9,7 @@ class FieldMan
 {
 private:
 	std::map<int, Field*> m_mField;
+	std::map<int, int> m_mAreaCode;
 	std::map<std::string, FieldSet*> m_mFieldSet;
 
 	FieldMan();
@@ -18,6 +19,8 @@ public:
 	static FieldMan *GetInstance();
 	void RegisterField(int nFieldID);
 	void FieldFactory(int nFieldID);
+	void LoadAreaCode();
+	bool IsConnected(int nFrom, int nTo);
 	void LoadFieldSet();
 	Field* GetField(int nFieldID);
 	FieldSet* GetFieldSet(const std::string& sFieldSetName);

@@ -35,7 +35,10 @@ public:
 	static int TargetIncMHP(lua_State* L); 
 	static int TargetIncEXP(lua_State* L);
 	static int TargetIncMoney(lua_State* L);
+	static int TargetSetJob(lua_State* L);
 
+	static int TargetGetLevel(lua_State* L);
+	static int TargetGetJob(lua_State* L);
 	static int TargetGetHP(lua_State* L);
 	static int TargetGetMP(lua_State* L);
 	static int TargetGetSTR(lua_State* L);

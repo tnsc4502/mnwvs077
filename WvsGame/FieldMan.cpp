@@ -87,6 +87,25 @@ void FieldMan::FieldFactory(int nFieldID)
 	TimerThread::RegisterField(pField);
 }
 
+void FieldMan::LoadAreaCode()
+{
+	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["AreaCode"];
+	for (auto& area : mapWz)
+		m_mAreaCode.insert({ atoi(area.Name().c_str()), (int)area });
+}
+
+bool FieldMan::IsConnected(int nFrom, int nTo)
+{
+	nFrom /= 10000000;
+	nTo /= 10000000;
+	auto iterFrom = m_mAreaCode.find(nFrom);
+	auto iterTo = m_mAreaCode.find(nTo);
+	if (iterFrom == m_mAreaCode.end() || iterTo == m_mAreaCode.end())
+		return false;
+
+	return iterFrom->second == iterTo->second;
+}
+
 void FieldMan::LoadFieldSet()
 {
 	std::string strPath = "./DataSrv/FieldSet";

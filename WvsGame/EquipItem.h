@@ -30,5 +30,7 @@ struct EquipItem
 		nCuttable,
 		//使用此裝備對寵物的影響
 		dwPetAbilityFlag;
+
+	double dRecovery;
 };
 

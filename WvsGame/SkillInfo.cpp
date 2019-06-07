@@ -4,6 +4,8 @@
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
+#include "..\Database\GW_CharacterLevel.h"
 #include "..\Database\GW_SkillRecord.h"
 #include "ItemInfo.h"
 #include "SkillEntry.h"
@@ -704,4 +706,182 @@ int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, Skill
 	if (nSLV)
 		return pEntry->GetLevelData(nSLV)->m_nMastery;
 	return 0;
+}
+
+int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if (nJob / 100 == 1)
+	{
+		nSLV = GetSkillLevel(
+			pCharacter,
+			1000002,
+			&pEntry,
+			0,
+			0,
+			0,
+			0
+		);
+		if (nSLV && pEntry)
+			return pEntry->GetLevelData(nSLV)->m_nTime;
+	}
+	else if (nJob / 100 == 4)
+	{
+		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nTime;
+		}
+		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nTime;
+		}
+	}
+	return 0;
+}
+
+int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if (nJob / 100 == 1)
+	{
+		nSLV = GetSkillLevel(
+			pCharacter,
+			1000000,
+			&pEntry,
+			0,
+			0,
+			0,
+			0
+		);
+		if (nSLV && pEntry)
+			return pEntry->GetLevelData(nSLV)->m_nHp;
+	}
+	else if (nJob / 100 == 4)
+	{
+		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nHp;
+		}
+		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nHp;
+		}
+	}
+	return 0;
+}
+
+int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if(nJob / 100 != 2)
+	{
+		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 111))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				1110000,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 121))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				1210000,
+				&pEntry,
+				0,
+				0,
+				0,
+				0
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+	}
+	return
+		(int) ((double)GetSkillLevel(
+			pCharacter,
+			2000000,
+			&pEntry,
+			0,
+			0,
+			0,
+			0) * (double)pCharacter->mLevel->nLevel * 0.1);
 }
