@@ -134,3 +134,17 @@ void QWUQuestRecord::SetComplete(User * pUser, int nKey)
 	pCharacterData->mQuestComplete.insert({ nKey , pComplete });
 	pUser->SendQuestRecordMessage(nKey, 2, "");
 }
+
+int QWUQuestRecord::GetMobCount(User *pUser, int nKey, int nIndex)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	auto findIter = pUser->GetCharacterData()->mQuestRecord.find(nKey);
+	if (findIter == pUser->GetCharacterData()->mQuestRecord.end() || 
+		findIter->second->aMobRecord.size() == 0)
+		return 0;
+
+	auto pRecord = findIter->second;
+	if (nIndex < 0 || nIndex >= (int)pRecord->aMobRecord.size())
+		return 0;
+	return (int)pRecord->aMobRecord[nIndex];
+}

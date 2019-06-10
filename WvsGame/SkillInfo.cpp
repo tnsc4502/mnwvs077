@@ -468,34 +468,10 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 		++m_nOnLoadingSkills;
 		nSkillID = atoi(skillImg.Name().c_str());
 		LoadSkill(nSkillRootID, nSkillID, (void*)&skillImg);
-		//std::thread t(&SkillInfo::LoadSkill, this, nSkillRootID, nSkillID, (void*)&skillImg);
-		//t.detach();
 		--m_nOnLoadingSkills;
 	}
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount)
-	{
 		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo]技能資訊載入完畢 IterateSkillInfo End.\n");
-		//stWzResMan->ReleaseMemory();
-		//system("pause");
-		//auto pSkill = GetSkillByID(2211010)->GetLevelData(5);
-		//printf("[SkillInfo::IterateSkillInfo]技能資訊載入完畢 IterateSkillInfo End 2 %d.\n", pSkill->m_nMpCon);
-		/*for (auto& p : m_mSkillByRootID)
-		{
-			for (auto& pp : *(p.second))
-			{
-				//if(!pp.second->GetLevelData(1))
-					printf("ID: %d Total : %d\n", pp.second->GetSkillID(), (int)pp.second->GetAllLevelData().size());
-			}
-		}*/
-		/*int nTest = GetSkillByID(1000)->GetMaxLevel();
-		printf("Test 2211010 : %d %d %d %d %d %d\n", 
-			nTest,
-			GetSkillByID(1000)->GetLevelData(3)->m_nMpCon,
-			GetSkillByID(1000)->GetLevelData(3)->m_nDamage,
-			GetSkillByID(1000)->GetLevelData(3)->m_nMobCount,
-			GetSkillByID(1000)->GetLevelData(3)->m_nAttackCount,
-			GetSkillByID(1000)->GetLevelData(3)->m_nTime);*/
-	}
 }
 
 SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
@@ -509,15 +485,7 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 
 	auto& skillCommonImg = skillDataImg["level"];
 	bLevelStructure = true;
-	/*if (skillCommonImg == skillDataImg.end()) //部分初心者技能
-	{
-		bLevelStructure = true;
-		skillCommonImg = skillDataImg["level"];
-	}
-	else
-	{
-		WvsLogger::LogFormat("Not bLevelStructure Found : %d\n", nSkillID);
-	}*/
+
 	auto& skillInfoImg = skillDataImg["info"];
 	auto& skillListImg = skillDataImg["skillList"];
 	auto& skillReqImg = skillDataImg["req"];
@@ -526,6 +494,7 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 	pResult->SetSkillID(nSkillID);
 	pResult->SetMasterLevel(atoi(((std::string)skillDataImg["masterLevel"]).c_str()));
 	pResult->SetMaxLevel(atoi(((std::string)skillCommonImg["maxLevel"]).c_str()));
+	pResult->SetInvisible((int)skillDataImg["invisible"] == 1 ? true : false);
 	if(bLevelStructure)
 		LoadLevelDataByLevelNode(nSkillID, pResult, (void*)&skillCommonImg);
 	

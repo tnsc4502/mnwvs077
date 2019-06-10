@@ -1,5 +1,39 @@
-
 require "./DataSrv/Script/sysDef"
+
+--«i¤h¤§§ø¦è³¡ÂàÂ¾±Ð©x¹ï¸Ü
+function change_warrior()
+{
+    if(math.floor(target->getJob() / 100) != 1
+        or target->getLevel() < 30
+        or qr->get(7500) != "s")
+    {
+        self->say("¹ï¼C¤hÂ¾·~¦³¿³½ìªº¸ÜÀ³¸Ó¥h«i¤h¤§§ø§ä#bªZ³N±Ð½m#k...");
+        return;
+    }
+    
+    if(inventory->itemCount(4031008) >= 1)
+    {
+        nBlack = inventory->itemCount(4031013);
+        if(nBlack > 0)
+        {
+            self->sayNext("¤£¤p¤ß¦b¸Ì­±¦º±¼¤F¶Ü¡H¨SÃö«Y¡A§Ú¥i¥H¦A§â§A°e¦^¥h°V½m¦aÂI¡A¦ý¬O½Ð°È¥²¤p¤ß¡A¸Ì­±ªº©Çª«¥i¤£¹³¥L­Ì¥~ªí¯ë®z¤p...");
+            self->sayNext("¦b¨º¤§«e¡A§A¨­¤Wªº#b¶Â¦â¯]¤l#k¥²¶·¥æ¥X¨Ó¡Aµ¥§A¶i¤J¦a¹Ï­«·s¶}©l«á¡A³Â·Ð¦A¦¸»`¶°#r30#kÁû#b¶Â¦â¯]¤l#kµ¹§Ú¡C");
+            inventory->exchange(0, 4031013, -nBlack);
+        }
+        else
+        {
+            self->sayNext("¶â...³o½T¹ê¬O¨Ó¦Û#bªZ³N±Ð½m#kªº«H«Ê...©Ò¥H§A¬O¨Ó³o¸Ì±µ¨ü¬D¾Ô¨Ã¥B¥´ºâ¦¨¬°¼C¤h¤GÂàªº«_ÀIªÌ¶Ü¡H¦n¡A¨º§Ú·|¸ò§A¤¶²Ð³o­Ó¥ô°Èªº¨Æ±¡¡A§O¤Ó¾á¤ß¡A³o¨Ã¨S¦³³o»ò§xÃø¡C");
+            self->sayNext("¥ô°È¶}©l«á§Ú·|§â§A°e¶i¤@­ÓÁôÂÃ¦a¹Ï¡C§A·|¦b¨ºÃä¬Ý¨ì¦UºØ±`¨£ªº©Çª«¡CÁöµM¬Ý°_¨Ó»P§A¦b¥~ÀY©Ò¨£¨ìªº©Çª««D±`¬Û¦ü¡A¦ý¥L­Ì¨Ã¤£§¹¥þ¬Û¦P¡C¥L­Ì¨Ã¤£·|´£¤É§Aªº¸gÅç­È¤]¤£·|µ¹§A±j¤jªº¸Ë³Æª««~¡C");
+            self->sayNext("¦ý¬O¦b¸Ì­±§A¥i¥HÂÇ¥Ñ¥´±Ñ©Çª«»`¶°¨ì¤@ºØ¥s°µ#b¶Â¦â¯]¤l#kªº¹D¨ã¡A³o¬O¤@ºØ¥Ñ¯S®í§÷½è¥´³yªºª««~¡C¦¬¶°#r30#kÁû#b¶Â¦â¯]¤l#k¨Ã¥B§iª¾¸Ì­±ªº±Ð©x¡A¦p¦¹¤@¨Ó§A´N¥i¥H³q¹L¦ÒÅç¡C");
+            if(self->askYesNo("¤@¥¹§A¶i¤J¸Ì­±°£«D§¹¦¨¥ô°È§_«h³£µLªkÂ÷¶}¡C­Y¤£©¯¦º±¼¡A±N·|³Q¦©°£¸gÅç­È¡A©Ò¥H³Ì¦n¤p¤ßÂÔ·V¤@ÂI¡C©Ò¥H§A½T©w­n¶i¥h¤F¶Ü¡H") != 1)
+                return;
+            self->say("¦n¡A¨º§Ú´N§â§A°e¶i¥h¡A¯¬§A¦n¹B¡C");
+        }
+        target->transferField(108000300 + random(0, 2), "");
+    }
+    else
+        self->say("¦b±µ¨ü¦ÒÅç¤§«e¥²¶·Àò±o#bªZ³N±Ð½m#kªº¦P·N...")    
+}
 
 --Å]ªk´ËªL¥_³¡ÂàÂ¾±Ð©x¹ï¸Ü
 function change_magician()
@@ -23,10 +57,10 @@ function change_magician()
         }
         else
         {
-            self->sayNext("¶â...³o½T¹ê¬O¨Ó¦Û#bº~´µ#kªº«H«Ê...©Ò¥H§A¬O¨Ó³o¸Ì±µ¨ü¬D¾Ô¨Ã¥B¥´ºâ¦¨¬°ªk®v¤GÂàªº«_ÀIŽÍ¶Ü¡H¦n¡A¨º§Ú·|¸ò§A¤¶²Ð³o­Ó¥ô°Èªº¨Æ±¡¡A§O¤Ó¾á¤ß¡A³o¨Ã¨S¦³³o»ò§xÃø¡C");
-            self->sayNext("¥ô°È¶}©l«á§Ú·|§â§A°e¶i¤@­ÓÁôÂÃ¦a¹Ï¡C§A·|¦b¨ºÃä¬Ý¨ì¦UºØ±`¨£ªº©Çª«¡CÁöµM¬Ýþ¨Ó»P§A¦b¥~ÀY©Ò¨£¨ìªº©Çª««D±`¬Û¦ü¡A¦ý¥L­Ì¨Ã¤£§¹¥þ¬Û¦P¡C¥L­Ì¨Ã¤£·|´£¤É§Aªº¸gÅç­È¤]¤£·|µ¹§A±j¤jªº¸Ë³Æª««~¡C");
+            self->sayNext("¶â...³o½T¹ê¬O¨Ó¦Û#bº~´µ#kªº«H«Ê...©Ò¥H§A¬O¨Ó³o¸Ì±µ¨ü¬D¾Ô¨Ã¥B¥´ºâ¦¨¬°ªk®v¤GÂàªº«_ÀIªÌ¶Ü¡H¦n¡A¨º§Ú·|¸ò§A¤¶²Ð³o­Ó¥ô°Èªº¨Æ±¡¡A§O¤Ó¾á¤ß¡A³o¨Ã¨S¦³³o»ò§xÃø¡C");
+            self->sayNext("¥ô°È¶}©l«á§Ú·|§â§A°e¶i¤@­ÓÁôÂÃ¦a¹Ï¡C§A·|¦b¨ºÃä¬Ý¨ì¦UºØ±`¨£ªº©Çª«¡CÁöµM¬Ý°_¨Ó»P§A¦b¥~ÀY©Ò¨£¨ìªº©Çª««D±`¬Û¦ü¡A¦ý¥L­Ì¨Ã¤£§¹¥þ¬Û¦P¡C¥L­Ì¨Ã¤£·|´£¤É§Aªº¸gÅç­È¤]¤£·|µ¹§A±j¤jªº¸Ë³Æª««~¡C");
             self->sayNext("¦ý¬O¦b¸Ì­±§A¥i¥HÂÇ¥Ñ¥´±Ñ©Çª«»`¶°¨ì¤@ºØ¥s°µ#b¶Â¦â¯]¤l#kªº¹D¨ã¡A³o¬O¤@ºØ¥Ñ¯S®í§÷½è¥´³yªºª««~¡C¦¬¶°#r30#kÁû#b¶Â¦â¯]¤l#k¨Ã¥B§iª¾¸Ì­±ªº±Ð©x¡A¦p¦¹¤@¨Ó§A´N¥i¥H³q¹L¦ÒÅç¡C");
-            if(self->askYesNo("¤@¥¹§A¶i¤J¸Ì­±°£«D§¹¦¨¥ô°È§_«hmµLªkÂ÷¶}¡C­Y¤£©¯¦º±¼¡A±N·|³Q¦©°£¸gÅç­È¡A©Ò¥H³Ì¦n¤p¤ßÂÔ·V¤@ÂI¡C©Ò¥H§A½T©w­n¶i¥h¤F¶Ü¡H") != 1)
+            if(self->askYesNo("¤@¥¹§A¶i¤J¸Ì­±°£«D§¹¦¨¥ô°È§_«h³£µLªkÂ÷¶}¡C­Y¤£©¯¦º±¼¡A±N·|³Q¦©°£¸gÅç­È¡A©Ò¥H³Ì¦n¤p¤ßÂÔ·V¤@ÂI¡C©Ò¥H§A½T©w­n¶i¥h¤F¶Ü¡H") != 1)
                 return;
             self->say("¦n¡A¨º§Ú´N§â§A°e¶i¥h¡A¯¬§A¦n¹B¡C");
         }
@@ -34,6 +68,96 @@ function change_magician()
     }
     else
         self->say("¦b±µ¨ü¦ÒÅç¤§«e¥²¶·Àò±o#bº~´µ#kªº¦P·N...")    
+}
+
+--°g®c³q¹DÂàÂ¾±Ð©x¹ï¸Ü
+function change_archer()
+{
+    if(math.floor(target->getJob() / 100) != 3 
+        or target->getLevel() < 30
+        or qr->get(7500) != "s")
+    {
+        self->say("¹ï¤}½b¤âÂ¾·~¦³¿³½ìªº¸ÜÀ³¸Ó¥h¤}½b¤â§ø§ä#b»®ÄR®R#k...");
+        return;
+    }
+    
+    if(inventory->itemCount(4031010) >= 1)
+    {
+        nBlack = inventory->itemCount(4031013);
+        if(nBlack > 0)
+        {
+            self->sayNext("¤£¤p¤ß¦b¸Ì­±¦º±¼¤F¶Ü¡H¨SÃö«Y¡A§Ú¥i¥H¦A§â§A°e¦^¥h°V½m¦aÂI¡A¦ý¬O½Ð°È¥²¤p¤ß¡A¸Ì­±ªº©Çª«¥i¤£¹³¥L­Ì¥~ªí¯ë®z¤p...");
+            self->sayNext("¦b¨º¤§«e¡A§A¨­¤Wªº#b¶Â¦â¯]¤l#k¥²¶·¥æ¥X¨Ó¡Aµ¥§A¶i¤J¦a¹Ï­«·s¶}©l«á¡A³Â·Ð¦A¦¸»`¶°#r30#kÁû#b¶Â¦â¯]¤l#kµ¹§Ú¡C");
+            inventory->exchange(0, 4031013, -nBlack);
+        }
+        else
+        {
+            self->sayNext("¶â...³o½T¹ê¬O¨Ó¦Û#b»®ÄR®R#kªº«H«Ê...©Ò¥H§A¬O¨Ó³o¸Ì±µ¨ü¬D¾Ô¨Ã¥B¥´ºâ¦¨¬°¤}½b¤â¤GÂàªº«_ÀIªÌ¶Ü¡H¦n¡A¨º§Ú·|¸ò§A¤¶²Ð³o­Ó¥ô°Èªº¨Æ±¡¡A§O¤Ó¾á¤ß¡A³o¨Ã¨S¦³³o»ò§xÃø¡C");
+            self->sayNext("¥ô°È¶}©l«á§Ú·|§â§A°e¶i¤@­ÓÁôÂÃ¦a¹Ï¡C§A·|¦b¨ºÃä¬Ý¨ì¦UºØ±`¨£ªº©Çª«¡CÁöµM¬Ý°_¨Ó»P§A¦b¥~ÀY©Ò¨£¨ìªº©Çª««D±`¬Û¦ü¡A¦ý¥L­Ì¨Ã¤£§¹¥þ¬Û¦P¡C¥L­Ì¨Ã¤£·|´£¤É§Aªº¸gÅç­È¤]¤£·|µ¹§A±j¤jªº¸Ë³Æª««~¡C");
+            self->sayNext("¦ý¬O¦b¸Ì­±§A¥i¥HÂÇ¥Ñ¥´±Ñ©Çª«»`¶°¨ì¤@ºØ¥s°µ#b¶Â¦â¯]¤l#kªº¹D¨ã¡A³o¬O¤@ºØ¥Ñ¯S®í§÷½è¥´³yªºª««~¡C¦¬¶°#r30#kÁû#b¶Â¦â¯]¤l#k¨Ã¥B§iª¾¸Ì­±ªº±Ð©x¡A¦p¦¹¤@¨Ó§A´N¥i¥H³q¹L¦ÒÅç¡C");
+            if(self->askYesNo("¤@¥¹§A¶i¤J¸Ì­±°£«D§¹¦¨¥ô°È§_«h³£µLªkÂ÷¶}¡C­Y¤£©¯¦º±¼¡A±N·|³Q¦©°£¸gÅç­È¡A©Ò¥H³Ì¦n¤p¤ßÂÔ·V¤@ÂI¡C©Ò¥H§A½T©w­n¶i¥h¤F¶Ü¡H") != 1)
+                return;
+            self->say("¦n¡A¨º§Ú´N§â§A°e¶i¥h¡A¯¬§A¦n¹B¡C");
+        }
+        target->transferField(108000100 + random(0, 2), "");
+    }
+    else
+        self->say("¦b±µ¨ü¦ÒÅç¤§«e¥²¶·Àò±o#b»®ÄR®R#kªº¦P·N...")    
+}
+
+--°g®c³q¹DÂàÂ¾±Ð©x¹ï¸Ü
+function change_thief()
+{
+    if(math.floor(target->getJob() / 100) != 4 
+        or target->getLevel() < 30
+        or qr->get(7500) != "s")
+    {
+        self->say("¹ï¤}½b¤âÂ¾·~¦³¿³½ìªº¸ÜÀ³¸Ó¥h¼Z¸¨«°¥«§ä#b¹F§J¾|#k...");
+        return;
+    }
+    
+    if(inventory->itemCount(4031011) >= 1)
+    {
+        nBlack = inventory->itemCount(4031013);
+        if(nBlack > 0)
+        {
+            self->sayNext("¤£¤p¤ß¦b¸Ì­±¦º±¼¤F¶Ü¡H¨SÃö«Y¡A§Ú¥i¥H¦A§â§A°e¦^¥h°V½m¦aÂI¡A¦ý¬O½Ð°È¥²¤p¤ß¡A¸Ì­±ªº©Çª«¥i¤£¹³¥L­Ì¥~ªí¯ë®z¤p...");
+            self->sayNext("¦b¨º¤§«e¡A§A¨­¤Wªº#b¶Â¦â¯]¤l#k¥²¶·¥æ¥X¨Ó¡Aµ¥§A¶i¤J¦a¹Ï­«·s¶}©l«á¡A³Â·Ð¦A¦¸»`¶°#r30#kÁû#b¶Â¦â¯]¤l#kµ¹§Ú¡C");
+            inventory->exchange(0, 4031013, -nBlack);
+        }
+        else
+        {
+            self->sayNext("¶â...³o½T¹ê¬O¨Ó¦Û#b¹F§J¾|#kªº«H«Ê...©Ò¥H§A¬O¨Ó³o¸Ì±µ¨ü¬D¾Ô¨Ã¥B¥´ºâ¦¨¬°µs¸é¤GÂàªº«_ÀIªÌ¶Ü¡H¦n¡A¨º§Ú·|¸ò§A¤¶²Ð³o­Ó¥ô°Èªº¨Æ±¡¡A§O¤Ó¾á¤ß¡A³o¨Ã¨S¦³³o»ò§xÃø¡C");
+            self->sayNext("¥ô°È¶}©l«á§Ú·|§â§A°e¶i¤@­ÓÁôÂÃ¦a¹Ï¡C§A·|¦b¨ºÃä¬Ý¨ì¦UºØ±`¨£ªº©Çª«¡CÁöµM¬Ý°_¨Ó»P§A¦b¥~ÀY©Ò¨£¨ìªº©Çª««D±`¬Û¦ü¡A¦ý¥L­Ì¨Ã¤£§¹¥þ¬Û¦P¡C¥L­Ì¨Ã¤£·|´£¤É§Aªº¸gÅç­È¤]¤£·|µ¹§A±j¤jªº¸Ë³Æª««~¡C");
+            self->sayNext("¦ý¬O¦b¸Ì­±§A¥i¥HÂÇ¥Ñ¥´±Ñ©Çª«»`¶°¨ì¤@ºØ¥s°µ#b¶Â¦â¯]¤l#kªº¹D¨ã¡A³o¬O¤@ºØ¥Ñ¯S®í§÷½è¥´³yªºª««~¡C¦¬¶°#r30#kÁû#b¶Â¦â¯]¤l#k¨Ã¥B§iª¾¸Ì­±ªº±Ð©x¡A¦p¦¹¤@¨Ó§A´N¥i¥H³q¹L¦ÒÅç¡C");
+            if(self->askYesNo("¤@¥¹§A¶i¤J¸Ì­±°£«D§¹¦¨¥ô°È§_«h³£µLªkÂ÷¶}¡C­Y¤£©¯¦º±¼¡A±N·|³Q¦©°£¸gÅç­È¡A©Ò¥H³Ì¦n¤p¤ßÂÔ·V¤@ÂI¡C©Ò¥H§A½T©w­n¶i¥h¤F¶Ü¡H") != 1)
+                return;
+            self->say("¦n¡A¨º§Ú´N§â§A°e¶i¥h¡A¯¬§A¦n¹B¡C");
+        }
+        target->transferField(108000400 + random(0, 2), "");
+    }
+    else
+        self->say("¦b±µ¨ü¦ÒÅç¤§«e¥²¶·Àò±o#b¹F§J¾|#kªº¦P·N...")    
+}
+----------------INSIDE----------------
+
+--°V½m³õ¤º³¡ÂàÂ¾±Ð©x¹ï¸Ü
+function inside_warrior()
+{
+    nBlack = inventory->itemCount(4031013);
+    if(nBlack != 30)
+    {
+        self->say("ÁÙ¨S»`¶°¨ì#r30#kÁû#b¶Â¦â¯]¤l#k¶Ü¡H¥ô°È§¹¦¨¤§«e¬OµLªkÂ÷¶}ªº...");
+        return;
+    }
+    self->sayNext("«z¡I§A»`¶°¨ì¤F#r30#kÁû#b¶Â¦â¯]¤l#k¡I¡I¨S·Q¨ì¹ï§A¨Ó»¡³o»ò®e©ö...¤Ó¼F®`¤F¡C¦nªº¡A§A¤w¸g³q¹L¤F³o­Ó¦ÒÅç¡A¨Ã¥B§Ú·|µ¹§A#b#t4031012##k¡C§â¥L±a¦^¥hµ¹«i¤h¤§§øªº#bªZ³N±Ð½m#k¡C")
+    if(inventory->exchange(0, 4031013, -nBlack, 4031012, 1) != 0)
+    {
+        self->say("¶â...§A½T©w¦³¨¬°÷¼Æ¶qªº#b¶Â¦â¯]¤l¶Ü#k¡H¥t¥~¡A½Ð½T«O¨ä¥LÄæ¦ì¦³¨¬°÷ªºªÅ¶¡¥i¥H¦s©ñ#b#t4031012##k¡C");
+        return;
+    }
+    inventory->exchange(0, 4031008, -1);
+    target->transferField(102020300, "");
 }
 
 --°V½m³õ¤º³¡ÂàÂ¾±Ð©x¹ï¸Ü
@@ -48,9 +172,68 @@ function inside_magician()
     self->sayNext("«z¡I§A»`¶°¨ì¤F#r30#kÁû#b¶Â¦â¯]¤l#k¡I¡I¨S·Q¨ì¹ï§A¨Ó»¡³o»ò®e©ö...¤Ó¼F®`¤F¡C¦nªº¡A§A¤w¸g³q¹L¤F³o­Ó¦ÒÅç¡A¨Ã¥B§Ú·|µ¹§A#b#t4031012##k¡C§â¥L±a¦^¥hµ¹Å]ªk´ËªLªº#bº~´µ#k¡C")
     if(inventory->exchange(0, 4031013, -nBlack, 4031012, 1) != 0)
     {
-        self->say("¶â...§A½T©w¦³¨¬°÷¼Æ¶qªº#b¶Â¦â¯]¤l¶Ü¡H¥t¥~¡A½Ð½T«O¨ä¥LÄæ¦ì¦³¨¬°÷ªºªÅ¶¡¥i¥H¦s©ñ#b#t4031012##k¡C");
+        self->say("¶â...§A½T©w¦³¨¬°÷¼Æ¶qªº#b¶Â¦â¯]¤l¶Ü#k¡H¥t¥~¡A½Ð½T«O¨ä¥LÄæ¦ì¦³¨¬°÷ªºªÅ¶¡¥i¥H¦s©ñ#b#t4031012##k¡C");
         return;
     }
     inventory->exchange(0, 4031009, -1);
     target->transferField(101020000, "");
+}
+
+--°V½m³õ¤º³¡ÂàÂ¾±Ð©x¹ï¸Ü
+function inside_archer()
+{
+    nBlack = inventory->itemCount(4031013);
+    if(nBlack != 30)
+    {
+        self->say("ÁÙ¨S»`¶°¨ì#r30#kÁû#b¶Â¦â¯]¤l#k¶Ü¡H¥ô°È§¹¦¨¤§«e¬OµLªkÂ÷¶}ªº...");
+        return;
+    }
+    self->sayNext("«z¡I§A»`¶°¨ì¤F#r30#kÁû#b¶Â¦â¯]¤l#k¡I¡I¨S·Q¨ì¹ï§A¨Ó»¡³o»ò®e©ö...¤Ó¼F®`¤F¡C¦nªº¡A§A¤w¸g³q¹L¤F³o­Ó¦ÒÅç¡A¨Ã¥B§Ú·|µ¹§A#b#t4031012##k¡C§â¥L±a¦^¥hµ¹¤}½b¤â§øªº#b»®ÄR®R#k¡C")
+    if(inventory->exchange(0, 4031013, -nBlack, 4031012, 1) != 0)
+    {
+        self->say("¶â...§A½T©w¦³¨¬°÷¼Æ¶qªº#b¶Â¦â¯]¤l¶Ü#k¡H¥t¥~¡A½Ð½T«O¨ä¥LÄæ¦ì¦³¨¬°÷ªºªÅ¶¡¥i¥H¦s©ñ#b#t4031012##k¡C");
+        return;
+    }
+    inventory->exchange(0, 4031010, -1);
+    target->transferField(100000000, "");
+}
+
+--°V½m³õ¤º³¡ÂàÂ¾±Ð©x¹ï¸Ü
+function inside_thief()
+{
+    nBlack = inventory->itemCount(4031013);
+    if(nBlack != 30)
+    {
+        self->say("ÁÙ¨S»`¶°¨ì#r30#kÁû#b¶Â¦â¯]¤l#k¶Ü¡H¥ô°È§¹¦¨¤§«e¬OµLªkÂ÷¶}ªº...");
+        return;
+    }
+    self->sayNext("«z¡I§A»`¶°¨ì¤F#r30#kÁû#b¶Â¦â¯]¤l#k¡I¡I¨S·Q¨ì¹ï§A¨Ó»¡³o»ò®e©ö...¤Ó¼F®`¤F¡C¦nªº¡A§A¤w¸g³q¹L¤F³o­Ó¦ÒÅç¡A¨Ã¥B§Ú·|µ¹§A#b#t4031012##k¡C§â¥L±a¦^¥hµ¹¼Z¸¨«°¥«ªº#b¹F§J¾|#k¡C")
+    if(inventory->exchange(0, 4031013, -nBlack, 4031012, 1) != 0)
+    {
+        self->say("¶â...§A½T©w¦³¨¬°÷¼Æ¶qªº#b¶Â¦â¯]¤l¶Ü#k¡H¥t¥~¡A½Ð½T«O¨ä¥LÄæ¦ì¦³¨¬°÷ªºªÅ¶¡¥i¥H¦s©ñ#b#t4031012##k¡C");
+        return;
+    }
+    inventory->exchange(0, 4031011, -1);
+    target->transferField(103000000, "");
+}
+
+--°V½m³õ¤º³¡ÂàÂ¾±Ð©x¹ï¸Ü
+function inside_pirate()
+{
+    nItemID = 0;
+    if(qr->getState(2191) == 1) 
+        nItemID = 4031856;
+    else if(qr->getState(2192) == 1)
+        nItemID = 4031857;
+
+    nBlack = inventory->itemCount(nItemID);
+    if(nBlack != 15)
+    {
+        self->say("ÁÙ¨S»`¶°¨ì#r15#k­Ó#b#t" .. nItemID .. "##k¶Ü¡H¥ô°È§¹¦¨¤§«e¬OµLªkÂ÷¶}ªº...");
+        return;
+    }
+    self->sayNext("³á³á¡ã§A¤w¸g§â#r15#k­Ó#b#t" .. nItemID .. "##k³£»`¶°»ô¥þ°Õ¡I¤Ó¼F®`¡I³oÀ³¸Óªá¤F§A¤£¤Ö¤O®ð§a¡I¦n¡ã§Ú­Ì¨ìÄH³½¸¹¦AºCºC²á§a¡I");
+    self->sayNext("³o¨Ç¤ô´¹¬JµM¥u¯à¦b³o¸Ì¨Ï¥Î¡A¨º§Ú§â¥¦­Ì¦A®³¦^¥hÅo¡I");
+
+    target->transferField(120000101, "");
 }

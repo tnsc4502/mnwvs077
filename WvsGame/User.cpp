@@ -71,6 +71,7 @@
 #include "CalcDamage.h"
 #include "MobStat.h"
 #include "MobTemplate.h"
+#include "QWUSkillRecord.h"
 #include "StoreBank.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
@@ -548,6 +549,9 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
 			QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnSkillLearnItemUseRequest:
+			OnSkillLearnItemUseRequest(iPacket);
 			break;
 		case UserRecvPacketFlag::User_OnPortalScrollUseRequest:
 			OnPortalScrollUseRequest(iPacket);
@@ -1531,7 +1535,7 @@ void User::OnHit(InPacket *iPacket)
 			m_nInvalidDamageCount = std::max(0, m_nInvalidDamageCount - 1);
 			return;
 		}
-		else
+		else if(nDamageClient >= nDamageSrv * 1.25)
 			++m_nInvalidDamageCount;
 
 		if (m_nInvalidDamageCount > 10)
@@ -1966,6 +1970,49 @@ void User::OnChangeStatRequest(InPacket *iPacket)
 	}
 }
 
+bool User::IsAbleToLearnSkillByItem(void *pItem, bool &bSucceed, int &nTargetSkill)
+{
+	auto pSLearn = (SkillLearnItem*)pItem;
+	int nItemID = pSLearn->nItemID / 10000;
+	if (nItemID != 228 && nItemID != 229)
+		return false;
+
+	int nUserJob = m_pCharacterData->mStat->nJob;
+	nTargetSkill = 0;
+	bSucceed = false;
+
+	for (auto nSkillID : pSLearn->aSkill)
+	{
+		if (nSkillID / 10000 == nUserJob)
+		{
+			nTargetSkill = nSkillID;
+			break;
+		}
+	}
+	if (!nTargetSkill)
+		return false;
+
+	auto pRecord = m_pCharacterData->GetSkill(nTargetSkill);
+	if (nItemID == 228)
+	{
+		if (pRecord)
+			return false;
+		if (QWUSkillRecord::MakeSkillVisible(this, nTargetSkill, 0, pSLearn->nMasterLevel))
+			bSucceed = true;
+	}
+	else if (nItemID == 229) 
+	{
+		if (!pRecord ||
+			pRecord->nSLV < pSLearn->nReqLevel ||
+			pRecord->nMasterLevel >= pSLearn->nMasterLevel)
+			return false;
+		if ((int)(Rand32::GetInstance()->Random() % 101) <= pSLearn->nSuccessRate &&
+			QWUSkillRecord::MasterLevelChange(this, nTargetSkill, pSLearn->nMasterLevel))
+			bSucceed = true;
+	}
+	return true;
+}
+
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
@@ -2101,6 +2148,69 @@ void User::OnMobSummonItemUseRequest(InPacket * iPacket)
 	}
 	else
 		goto FAILED;
+}
+
+void User::OnSkillLearnItemUseRequest(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(GetLock());
+	int tRequestTime = iPacket->Decode4();
+	int nPOS = iPacket->Decode2();
+	int nItemID = iPacket->Decode4();
+	auto pItem = (GW_ItemSlotBundle*)m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	auto pSkillLearnItem = ItemInfo::GetInstance()->GetSkillLearnItem(nItemID);
+	if (pItem->nItemID != nItemID ||
+		pItem->nNumber <= 0 ||
+		!pSkillLearnItem)
+	{
+		SendCharacterStat(true, 0);
+		return;
+	}
+
+	bool bSucceed = false;
+	int nTargetSkill = 0;
+	if (IsAbleToLearnSkillByItem(pSkillLearnItem, bSucceed, nTargetSkill))
+	{
+		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+		int nDecRet = 0;
+		if (!QWUInventory::RawRemoveItem(
+			this,
+			GW_ItemSlotBase::CONSUME,
+			nPOS,
+			1,
+			&aChangeLog,
+			nDecRet,
+			nullptr
+		))
+		{
+			SendNoticeMessage("Incorrect SkillLearn-item use request.");
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Incorrect SkillLearn-item use request nPOS(%d), nItemID(%d)\n", nPOS, nItemID);
+			return;
+		}
+		QWUInventory::SendInventoryOperation(this, false, aChangeLog);
+		SendCharacterStat(true, 0);
+		SendSkillLearnItemResult(nItemID, nTargetSkill, pSkillLearnItem->nMasterLevel, true, bSucceed);
+	}
+	else
+		SendSkillLearnItemResult(nItemID, nTargetSkill, pSkillLearnItem->nMasterLevel, false, false);
+}
+
+void User::SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLevel, bool bItemUsed, bool bSucceed)
+{
+	if (!nMasterLevel)
+		return;
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSkillLearnItemResult);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(nItemID / 10000 == 229);
+	oPacket.Encode4(nTargetSkill);
+	oPacket.Encode4(nMasterLevel);
+	oPacket.Encode1(bItemUsed ? 1 : 0);
+	oPacket.Encode1(bSucceed ? 1 : 0);
+	if (bItemUsed)
+		m_pField->BroadcastPacket(&oPacket);
+	else
+		SendPacket(&oPacket);
 }
 
 void User::OnPortalScrollUseRequest(InPacket *iPacket)
@@ -2239,6 +2349,8 @@ Script * User::GetScript()
 void User::SetScript(Script * pScript)
 {
 	m_pScript = pScript;
+	if (m_pScript)
+		m_pScript->SetUser(this);
 }
 
 void User::OnSelectNpc(InPacket * iPacket)
@@ -2283,16 +2395,31 @@ void User::OnSelectNpc(InPacket * iPacket)
 		);
 		if (pScript == nullptr) 
 		{
-			SendChatMessage(4, "Npc : " + std::to_string(pNpc->GetTemplateID()) + " has no script.");
+			auto sScriptName = "s_" + pTemplate->GetScriptName();
+			auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
+				"Npc",
+				sScriptName
+			);
+
+			pScript = ScriptMan::GetInstance()->GetScript(
+				sScriptFile,
+				pNpc->GetTemplateID(),
+				pNpc->GetField()
+			);			
+			if (pScript)
+			{
+				SetScript(pScript);
+				pScript->Run(sScriptName);
+			}
+			else
+				SendChatMessage(0, "Failed to invoke built-in script (by calling : [" + sScriptName + "]).");
 			return;
 		}
-		pScript->SetUser(this);
-		SetScript(pScript);
-		
-		pScript->Run();
-		//std::thread* t = new std::thread(&Script::Run, pScript);
-		//pScript->SetThread(t);
-		//t->detach();
+		else
+		{
+			SetScript(pScript);
+			pScript->Run();
+		}
 	}
 }
 
@@ -2461,7 +2588,11 @@ void User::TryQuestStartAct(int nQuestID, int nNpcID, Npc * pNpc)
 	if (!pStartAct)
 		return;
 	QWUQuestRecord::Set(this, nQuestID, pStartAct->sInfo);
-	TryExchange(pStartAct->aActItem);
+	if (!TryExchange(pStartAct->aActItem))
+	{
+		QWUQuestRecord::Remove(this, nQuestID, false);
+		return;
+	}
 
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnQuestResult);
@@ -2477,7 +2608,8 @@ void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
 	auto pCompleteAct = QuestMan::GetInstance()->GetCompleteAct(nQuestID);
 	if (!pCompleteAct)
 		return;
-	TryExchange(pCompleteAct->aActItem);
+	if (!TryExchange(pCompleteAct->aActItem))
+		return;
 
 	long long int liFlag = 0;
 	if (pCompleteAct->nEXP >= 0)
@@ -2488,7 +2620,7 @@ void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
 	SendQuestEndEffect();
 }
 
-void User::TryExchange(const std::vector<ActItem*>& aActItem)
+bool User::TryExchange(const std::vector<ActItem*>& aActItem)
 {
 	std::vector<std::pair<int, int>> randItem;
 	int nRandWeight = 0, nSelectedItemID = 0;
@@ -2510,19 +2642,37 @@ void User::TryExchange(const std::vector<ActItem*>& aActItem)
 				break;
 			}
 	}
+	std::vector<ExchangeElement> aExchange;
+	std::vector<InventoryManipulator::ChangeLog> aAddLog, aRemoveLog;
+	std::vector<BackupItem> aBackup;
+
 	for (auto& pItem : aActItem)
 	{
 		if (!AllowToGetQuestItem(pItem))
 			continue;
-		int nItemID = pItem->nItemID;
-		if (pItem->nProp != 0 && nItemID != nSelectedItemID)
+		if (pItem->nProp != 0 && pItem->nItemID != nSelectedItemID)
 			continue;
-		int nCount = pItem->nCount;
-		if (nCount < 0)
-			QWUInventory::RawRemoveItemByID(this, nItemID, nCount);
-		else
-			QWUInventory::RawAddItemByID(this, nItemID, nCount);
+
+		aExchange.push_back({});
+		aExchange.back().m_nItemID = pItem->nItemID;
+		aExchange.back().m_nCount = pItem->nCount;
 	}
+	int nRet = QWUInventory::Exchange(this, 0, aExchange, &aAddLog, &aRemoveLog, aBackup);
+	switch (nRet)
+	{
+		case InventoryManipulator::ExchangeResult::Exchange_InsufficientSlotCount:
+			SendNoticeMessage("背包欄位不足。");
+			break;
+		case InventoryManipulator::ExchangeResult::Exchange_InsufficientItemCount:
+			SendNoticeMessage("所需的物品數量不足。");
+			break;
+		case InventoryManipulator::ExchangeResult::Exchange_InsufficientMeso:
+			SendNoticeMessage("所需的楓幣數量不足。");
+			break;
+		default:
+			return true;
+	}
+	return false;
 }
 
 bool User::AllowToGetQuestItem(const ActItem * pActionItem)

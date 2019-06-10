@@ -137,6 +137,7 @@ void ItemInfo::IterateEquipItem(void *dataNode)
 
 void ItemInfo::IterateBundleItem()
 {
+#undef max
 	static WZ::Node Img[] = { stWzResMan->GetWz(Wz::Item)["Cash"]
 		, stWzResMan->GetWz(Wz::Item)["Consume"]
 		, stWzResMan->GetWz(Wz::Item)["Etc"]
@@ -157,6 +158,8 @@ void ItemInfo::IterateBundleItem()
 				pNewBundle->nItemID = nItemID;
 				pNewBundle->sItemName = m_mItemString[nItemID];
 				pNewBundle->nMaxPerSlot = infoImg["slotMax"];
+				if (!pNewBundle->nMaxPerSlot)
+					pNewBundle->nMaxPerSlot = 100;
 				pNewBundle->dSellUnitPrice = (double)infoImg["unitPrice"];
 				pNewBundle->nSellPrice = infoImg["price"];
 				pNewBundle->nRequiredLEV = infoImg["reqLevel"];

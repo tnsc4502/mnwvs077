@@ -431,7 +431,7 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 			break;
 		}
 	}
-	if (!self->IsDone()) 
+	if (!self->IsDone() && self->GetUser())
 	{
 		self->GetUser()->SendPacket(&oPacket);
 		self->SetLastConversationInfo(*pInfo);

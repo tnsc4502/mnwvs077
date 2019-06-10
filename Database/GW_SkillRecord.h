@@ -4,7 +4,7 @@ class InPacket;
 
 struct GW_SkillRecord
 {
-	int nSLV, nSkillID, nMasterLevel, nCharacterID;
+	int nSLV = 0, nSkillID = 0, nMasterLevel = 0, nCharacterID = 0;
 
 	long long int tExpired;
 

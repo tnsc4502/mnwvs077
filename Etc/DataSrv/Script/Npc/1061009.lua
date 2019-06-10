@@ -2,11 +2,16 @@
 require "./DataSrv/Script/sysDef"
 
 nJob = target->getJob();
-if((nJob == 210 or nJob == 220 or nJob == 230) and qr->get(7500) == "p1")
+nJobType = math.floor(nJob / 100);
+nJobAdv = (math.floor(nJob / 10) % 10);
+nJobSub = nJob % 10;
+
+if(nJobType != 0 and nJobSub == 0 and nJobAdv != 0 and qr->get(7500) == "p1")
 {
-    fieldSet = FieldSet.get("ThirdJob2");
+    fieldSet = FieldSet.get("ThirdJob" .. nJobType);
     if(fieldSet)
     {
+
         ret = fieldSet->enter(userID);
         if (ret == 5) 
         {

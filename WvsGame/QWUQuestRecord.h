@@ -14,5 +14,6 @@ public:
 	static void SetMobRecord(User *pUser, int nKey, int nMobTempleteID);
 	static void ValidateMobCountRecord(User *pUser);
 	static void SetComplete(User *pUser, int nKey);
+	static int GetMobCount(User *puser, int nKey, int nIndex);
 };
 

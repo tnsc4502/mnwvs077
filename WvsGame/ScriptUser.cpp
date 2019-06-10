@@ -414,10 +414,10 @@ int ScriptUser::TargetGetSP(lua_State * L)
 	lua_pushinteger(L, QWUser::GetSP(
 		self->m_pUser,
 		nJobLevel != -1 ? 
-		nJobLevel :
-		WvsGameConstants::GetJobLevel(
+		nJobLevel : 0
+		/*WvsGameConstants::GetJobLevel(
 			self->m_pUser->GetCharacterData()->mStat->nJob
-		)
+		)*/
 	));
 	return 1;
 }

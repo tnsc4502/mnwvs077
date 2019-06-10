@@ -1,6 +1,7 @@
 #include "QWUser.h"
 #include "User.h"
 #include "SecondaryStat.h"
+#include "QWUSkillRecord.h"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterLevel.h"
@@ -365,6 +366,7 @@ long long int QWUser::SetJob(User *pUser, int nJob)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nJob = nJob;
+	QWUSkillRecord::ValidateMasterLevelForSKills(pUser);
 	return BasicStat::BS_Job;
 }
 

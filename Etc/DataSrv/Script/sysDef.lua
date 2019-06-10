@@ -1,4 +1,4 @@
-math.randomseed(os.time())
+math.randomseed(os.time());
 
 target = User.get(userID);
 if(target) {

@@ -288,7 +288,7 @@ GW_ItemSlotBase * GA_Character::GetItemByID(int nItemID)
 	{
 		if (slot.first < 0) //skip equipped
 			continue;
-		if (slot.first >= mSlotCount->aSlotCount[nTI])
+		if (slot.first > mSlotCount->aSlotCount[nTI])
 			return nullptr;
 		if (slot.second->nItemID == nItemID)
 			return slot.second;

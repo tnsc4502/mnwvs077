@@ -1,8 +1,8 @@
 
 require "./DataSrv/Script/sysDef"
+require "./DataSrv/Script/Npc/job_3rd"
 
 nJob = target->getJob();
-
 if((nJob == 210 or nJob == 220 or nJob == 230) and target->getLevel() >= 70)
 {
     qrVal = qr->get(7500);
@@ -19,15 +19,7 @@ if((nJob == 210 or nJob == 220 or nJob == 230) and target->getLevel() >= 70)
     }
     else if(qrVal == "s" or qrVal == "p1") { self->say("你還沒帶來#b#t4031057##k嗎？這是證明你實力的必要考驗，沒有通過考驗的人是無法獲得更強大的力量的...");}
     else if(qrVal == "p2")
-    {
-        if(inventory->exchange(0, 4031057, -1) == 0)
-        {
-            qr->setState(7500, 1, "end1");
-            self->sayNext("非常好，你完成了第一階段的體能測驗，我就知道你辦的到！接下來你必須接受第二階段的心智測驗。");
-            self->sayNext("這是第二階段測驗的說明。這個測驗將考驗你是否有足夠的智慧可以進行下一階段的轉職。在冰原雪域有個終年積雪的地方叫做#b雪原聖地#k，那個地方就連怪物都無法到達。在那邊有一個巨大的岩石叫做#b神聖的石頭#k，在那邊你必須貢獻出一些特殊物品，接著岩石就會考驗你的智慧。");
-            self->sayNext("你必須誠實的回答每一個問題。如果你答對了所有的問題，聖石會給你#b#t4031058##k。將它帶回來給我，我就會幫助你進入下一個階段。");
-        }
-        else
-            self->say("你確定身上有帶著#b#t4031057##k嗎？如果沒有，請回去與#b漢斯#k談話，看看他是否還會給你機會...");
-    }
+        job3rdMissionFinalStage1(target->getJob(), "漢斯");
+    else if(qrVal == "end1" or qrVal == "end2")
+        job3rdMissionFinalStage2(target->getJob(), "魔法師");
 }

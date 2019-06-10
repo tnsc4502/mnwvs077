@@ -65,6 +65,7 @@ void NpcTemplate::RegisterNpc(int nNpcID, void *pProp)
 	pTemplate->m_nTemplateID = nNpcID;
 	//pTemplate->m_aShopItem = GetInstance()->GetShopItemList(nNpcID);
 	pTemplate->m_nTrunkPut = data["info"]["trunkPut"];
+	pTemplate->m_sScriptName = (std::string)data["info"]["script"]["0"]["script"];
 	pTemplate->LoadShop();
 	m_mNpcTemplates[nNpcID] = pTemplate;
 }
@@ -132,5 +133,10 @@ void NpcTemplate::EncodeShopItem(User *pUser, NpcTemplate::ShopItem* pItem, OutP
 			);
 	}
 	oPacket->Encode2(nMaxPerSlot);
+}
+
+const std::string& NpcTemplate::GetScriptName() const
+{
+	return m_sScriptName;
 }
 

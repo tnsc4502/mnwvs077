@@ -245,11 +245,14 @@ public:
 	void OnSitRequest(InPacket *iPacket);
 	void OnPortableChairSitRequest(InPacket *iPacket);
 	void OnChangeStatRequest(InPacket *iPacket);
+	bool IsAbleToLearnSkillByItem(void *pItem, bool &bSucceed, int &nTargetSkill);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
 	void OnStatChangeItemCancelRequest(InPacket *iPacket);
 	void OnMobSummonItemUseRequest(InPacket *iPacket);
+	void OnSkillLearnItemUseRequest(InPacket *iPacket);
+	void SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLevel, bool bItemUsed, bool bSucceed);
 	void OnPortalScrollUseRequest(InPacket *iPacket);
 
 	//Message
@@ -274,7 +277,7 @@ public:
 	void OnLostQuestItem(InPacket *iPacket, int nQuestID);
 	void TryQuestStartAct(int nQuestID, int nNpcID, Npc *pNpc);
 	void TryQuestCompleteAct(int nQuestID, Npc *pNpc);
-	void TryExchange(const std::vector<ActItem*>& aActItem);
+	bool TryExchange(const std::vector<ActItem*>& aActItem);
 	bool AllowToGetQuestItem(const ActItem* pActionItem);
 	void SendQuestResult(int nResult, int nQuestID, int dwTemplateID);
 

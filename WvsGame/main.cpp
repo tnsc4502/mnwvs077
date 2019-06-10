@@ -18,6 +18,7 @@
 #include "ContinentMan.h"
 #include "Reward.h"
 #include "CalcDamage.h"
+#include "ScriptMan.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
 	CalcDamage::LoadStandardPDD();
+	ScriptMan::GetInstance()->RegisterScriptFuncReflector();
 
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);

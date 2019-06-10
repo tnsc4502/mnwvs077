@@ -50,6 +50,11 @@ void SkillEntry::SetAttackElemAttr(int nAttr)
 	m_nAttackElemAttr = nAttr;
 }
 
+void SkillEntry::SetInvisible(bool bInvisible)
+{
+	m_bInvisible = bInvisible;
+}
+
 int SkillEntry::GetMasterLevel() const
 {
 	return m_nMasterLevel;
@@ -68,4 +73,9 @@ int SkillEntry::GetSkillID() const
 int SkillEntry::GetAttackElemAttr() const
 {
 	return m_nAttackElemAttr;
+}
+
+bool SkillEntry::IsInvisible() const
+{
+	return m_bInvisible;
 }

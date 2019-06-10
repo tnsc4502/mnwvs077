@@ -303,6 +303,11 @@ bool QuestMan::CheckCompleteDemand(int nQuestID, User * pUser)
 	if (!bCheck)
 		return false;
 
+	//Check mount count records.
+	for (int i = 0; i < (int)pDemand->m_aDemandMob.size(); ++i)
+		if (QWUQuestRecord::GetMobCount(pUser, nQuestID, i) < pDemand->m_mDemandMob[pDemand->m_aDemandMob[i]])
+			return false;
+
 	//Check quest req.
 	for (auto& quest : pDemand->m_mDemandQuest)
 		if (QWUQuestRecord::GetState(pUser, quest.first) < quest.second)

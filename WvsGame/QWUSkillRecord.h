@@ -9,8 +9,11 @@ class QWUSkillRecord
 	QWUSkillRecord();
 	~QWUSkillRecord();
 public:
-
+	static void GetSkillRootFromJob(int nJob, std::vector<int> &aRet);
 	static bool SkillUp(User *pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel, std::vector<GW_SkillRecord*> &aChange);
 	static void SendCharacterSkillRecord(User *pUser, std::vector<GW_SkillRecord*> &aChange);
+	static bool MasterLevelChange(User *pUser, int nSkillID, int nMasterLevel);
+	static bool MakeSkillVisible(User *pUser, int nSkillID, int nSkillLevel, int nMasterLevel);
+	static void ValidateMasterLevelForSKills(User *pUser);
 };
 

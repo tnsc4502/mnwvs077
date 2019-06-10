@@ -1,10 +1,10 @@
 #pragma once
 #include <map>
 #include <vector>
-#include "..\WvsLib\Wz\WzResMan.hpp"
+#include <string>
 
-class User;
 struct GW_ItemSlotBase;
+class User;
 class OutPacket;
 
 class NpcTemplate
@@ -36,6 +36,7 @@ private:
 	int m_nTemplateID = 0, m_nTrunkPut = 0;
 	static std::map<int, NpcTemplate*> m_mNpcTemplates;
 	std::vector<ShopItem*> m_aShopItem;
+	std::string m_sScriptName;
 
 public:
 	NpcTemplate();
@@ -51,5 +52,6 @@ public:
 	std::vector<ShopItem*>& GetShopItem();
 	void EncodeShop(User *pUser, OutPacket *oPacket);
 	static void EncodeShopItem(User *pUser, ShopItem* pItem, OutPacket *oPacket);
+	const std::string& GetScriptName() const;
 };
 
