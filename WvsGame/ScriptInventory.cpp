@@ -1,10 +1,13 @@
 #include "ScriptInventory.h"
 #include "QWUInventory.h"
-#include "..\Database\GA_Character.hpp"
 #include "Script.h"
 #include "User.h"
 #include "BackupItem.h"
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterSlotCount.h"
 
+#include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -43,6 +46,7 @@ void ScriptInventory::Register(lua_State * L)
 	luaL_Reg InvMetatable[] = {
 		{ "exchange", InventoryExchange },
 		{ "itemCount", InventoryItemCount },
+		{ "incSlotCount", InventoryIncSlotCount },
 		{ NULL, NULL }
 	};
 
@@ -110,5 +114,29 @@ int ScriptInventory::InventoryItemCount(lua_State * L)
 	int nItemID = (int)luaL_checkinteger(L, 2);
 	int nCount = self->m_pUser->GetCharacterData()->GetItemCount(nItemID / 1000000, nItemID);
 	lua_pushinteger(L, nCount);
+	return 1;
+}
+
+int ScriptInventory::InventoryIncSlotCount(lua_State * L)
+{
+	ScriptInventory* self = luaW_check<ScriptInventory>(L, 1);
+	int nTI = (int)luaL_checkinteger(L, 2);
+	int nCount = (int)luaL_checkinteger(L, 3);
+	std::lock_guard<std::recursive_mutex> lock(self->m_pUser->GetLock());
+
+	if(nTI < 0
+		|| nTI > 5
+		|| self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI] + nCount > 80)
+		lua_pushinteger(L, 0);
+	else 
+	{
+		self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI] += nCount;
+		lua_pushinteger(L, 1);
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnInventoryGrow);
+		oPacket.Encode1(nTI);
+		oPacket.Encode1(self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI]);
+		self->m_pUser->SendPacket(&oPacket);
+	}
 	return 1;
 }

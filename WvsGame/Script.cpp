@@ -63,6 +63,8 @@ Script::Script(const std::string & file, int nTemplateID, Field *pField, const s
 	Register(L);
 	for (auto& f : aReg)
 		f(L);
+
+	PushInteger("templateID", nTemplateID);
 }
 
 int Script::GetID() const
@@ -74,10 +76,7 @@ void Script::SetUser(User * pUser)
 {
 	m_pUser = pUser;
 	if (pUser)
-	{
-		lua_pushinteger(L, pUser->GetUserID());
-		lua_setglobal(L, "userID");
-	}
+		PushInteger("userID", pUser->GetUserID());
 }
 
 User * Script::GetUser()
@@ -141,8 +140,8 @@ Script::NPCConverstaionInfo & Script::GetLastConversationInfo()
 int Script::ScriptSysRandom(lua_State * L)
 {
 	auto liRand = Rand32::GetInstance()->Random();
-	auto liMin = luaL_checkinteger(L, 1);
-	auto liMax = luaL_checkinteger(L, 2);
+	decltype(liRand) liMin = luaL_checkinteger(L, 1);
+	decltype(liRand) liMax = luaL_checkinteger(L, 2);
 	lua_pushinteger(L, (liMin + (liRand % (liMax - liMin))));
 	return 1;
 }

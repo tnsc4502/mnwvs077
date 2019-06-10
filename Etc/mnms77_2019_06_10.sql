@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50051
 File Encoding         : 65001
 
-Date: 2019-05-25 18:34:30
+Date: 2019-06-10 09:50:20
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -27,9 +27,10 @@ CREATE TABLE `account` (
   `MaplePoint` int(11) default '0',
   `NXPoint3` int(11) default '0',
   `RegisterDate` datetime default NULL,
+  `Gender` int(3) default '-1',
   PRIMARY KEY  (`AccountID`,`AccountName`),
   KEY `AccountID` (`AccountID`)
-) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for cashiteminfo
@@ -58,7 +59,7 @@ CREATE TABLE `cashiteminfo` (
   `Opt2` int(11) default '0',
   `Opt3` int(11) default '0',
   PRIMARY KEY  (`SN`,`AccountID`,`CashItemSN`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=52 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=56 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for characteravatar
@@ -156,7 +157,61 @@ CREATE TABLE `characterstat` (
   `Face` int(11) default '0',
   `FaceMark` int(11) default '0',
   PRIMARY KEY  (`SN`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=50 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=53 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for entrustedshop
+-- ----------------------------
+DROP TABLE IF EXISTS `entrustedshop`;
+CREATE TABLE `entrustedshop` (
+  `CharacterID` int(11) NOT NULL,
+  `Money` bigint(22) default '0',
+  PRIMARY KEY  (`CharacterID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for entrustedshop_con
+-- ----------------------------
+DROP TABLE IF EXISTS `entrustedshop_con`;
+CREATE TABLE `entrustedshop_con` (
+  `CharacterID` int(11) NOT NULL,
+  `SN` bigint(21) NOT NULL default '0',
+  `Locked` int(1) default '0',
+  PRIMARY KEY  (`CharacterID`,`SN`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for entrustedshop_eqp
+-- ----------------------------
+DROP TABLE IF EXISTS `entrustedshop_eqp`;
+CREATE TABLE `entrustedshop_eqp` (
+  `CharacterID` int(11) NOT NULL,
+  `SN` bigint(21) NOT NULL default '0',
+  `Locked` int(1) default '0',
+  PRIMARY KEY  (`CharacterID`,`SN`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for entrustedshop_etc
+-- ----------------------------
+DROP TABLE IF EXISTS `entrustedshop_etc`;
+CREATE TABLE `entrustedshop_etc` (
+  `CharacterID` int(11) NOT NULL,
+  `SN` bigint(21) NOT NULL default '0',
+  `Locked` int(1) default '0',
+  PRIMARY KEY  (`CharacterID`,`SN`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for entrustedshop_ins
+-- ----------------------------
+DROP TABLE IF EXISTS `entrustedshop_ins`;
+CREATE TABLE `entrustedshop_ins` (
+  `CharacterID` int(11) NOT NULL,
+  `SN` bigint(21) NOT NULL default '0',
+  `Locked` int(1) default '0',
+  PRIMARY KEY  (`CharacterID`,`SN`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for friend
@@ -228,22 +283,22 @@ CREATE TABLE `guildmember` (
 DROP TABLE IF EXISTS `itemlocker`;
 CREATE TABLE `itemlocker` (
   `SN` int(11) NOT NULL auto_increment,
-  `CashItemSN` int(11) NOT NULL,
-  `AccountID` bigint(21) NOT NULL default '0',
+  `CashItemSN` bigint(21) NOT NULL,
+  `AccountID` int(11) NOT NULL default '0',
   `Type` int(1) default '1',
   `Locked` int(1) default '0',
   PRIMARY KEY  (`SN`,`CashItemSN`,`AccountID`),
   KEY `CashItemSN` (`CashItemSN`)
-) ENGINE=MyISAM AUTO_INCREMENT=50 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=54 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for itemslot_cash
 -- ----------------------------
 DROP TABLE IF EXISTS `itemslot_cash`;
 CREATE TABLE `itemslot_cash` (
-  `SN` int(11) NOT NULL,
-  `CashItemSN` int(11) NOT NULL,
-  `CharacterID` int(11) NOT NULL,
+  `SN` int(11) default NULL,
+  `CashItemSN` bigint(21) NOT NULL,
+  `CharacterID` int(11) default NULL,
   `ItemID` int(11) default '0',
   `Number` int(11) default '1',
   `ExpireDate` bigint(21) default '-1',
@@ -312,7 +367,7 @@ CREATE TABLE `itemslot_eqp` (
 DROP TABLE IF EXISTS `itemslot_etc`;
 CREATE TABLE `itemslot_etc` (
   `SN` int(11) NOT NULL,
-  `ItemSN` int(11) NOT NULL,
+  `ItemSN` bigint(21) NOT NULL,
   `CharacterID` int(11) NOT NULL,
   `ItemID` int(11) default NULL,
   `Number` int(11) default '1',
@@ -329,7 +384,7 @@ CREATE TABLE `itemslot_etc` (
 DROP TABLE IF EXISTS `itemslot_ins`;
 CREATE TABLE `itemslot_ins` (
   `SN` int(11) NOT NULL,
-  `ItemSN` int(11) NOT NULL,
+  `ItemSN` bigint(21) NOT NULL,
   `CharacterID` int(11) NOT NULL,
   `ItemID` int(11) default '0',
   `Number` int(11) default '1',
@@ -396,7 +451,7 @@ CREATE TABLE `questrecord` (
   `StrRecord` varchar(128) default '',
   `MobRecord` varchar(255) default '',
   PRIMARY KEY  (`ID`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=110700 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=125784 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for shop
@@ -451,7 +506,7 @@ CREATE TABLE `trunk` (
 DROP TABLE IF EXISTS `trunk_con`;
 CREATE TABLE `trunk_con` (
   `AccountID` int(11) NOT NULL,
-  `SN` bigint(22) NOT NULL default '0',
+  `SN` bigint(21) NOT NULL default '0',
   PRIMARY KEY  (`AccountID`,`SN`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -461,8 +516,9 @@ CREATE TABLE `trunk_con` (
 DROP TABLE IF EXISTS `trunk_eqp`;
 CREATE TABLE `trunk_eqp` (
   `AccountID` int(11) NOT NULL,
-  `SN` bigint(22) NOT NULL default '0',
-  PRIMARY KEY  (`AccountID`,`SN`)
+  `SN` bigint(21) NOT NULL default '0',
+  PRIMARY KEY  (`AccountID`,`SN`),
+  KEY `eq` (`SN`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- ----------------------------
@@ -471,7 +527,7 @@ CREATE TABLE `trunk_eqp` (
 DROP TABLE IF EXISTS `trunk_etc`;
 CREATE TABLE `trunk_etc` (
   `AccountID` int(11) NOT NULL,
-  `SN` bigint(22) NOT NULL default '0',
+  `SN` bigint(21) NOT NULL default '0',
   PRIMARY KEY  (`AccountID`,`SN`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -481,6 +537,6 @@ CREATE TABLE `trunk_etc` (
 DROP TABLE IF EXISTS `trunk_ins`;
 CREATE TABLE `trunk_ins` (
   `AccountID` int(11) NOT NULL,
-  `SN` bigint(22) NOT NULL default '0',
+  `SN` bigint(21) NOT NULL default '0',
   PRIMARY KEY  (`AccountID`,`SN`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

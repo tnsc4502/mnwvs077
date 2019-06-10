@@ -19,6 +19,11 @@ bool QWUser::TryProcessLevelUp(User *pUser, int nInc, int & refReachMaxLvl)
 	{
 		ref -= WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel];
 		++pUser->GetCharacterData()->mLevel->nLevel;
+		
+		//Could only increase one level no matter how many EXPs are earned.
+		if (ref >= WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
+			ref = WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel] - 1;
+
 		if (pUser->GetCharacterData()->mLevel->nLevel >= 200)
 			refReachMaxLvl = 1;
 		return true;
@@ -227,8 +232,7 @@ long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 			WvsGameConstants::IsCygnusJob(pUser->GetCharacterData()->mStat->nJob) ? 6 : 5,
 			false);
 
-		if(QWUser::GetLevel(pUser) > 10 ||
-			(QWUser::GetLevel(pUser) > 8 && QWUser::GetJob(pUser) != 0))
+		if(QWUser::GetJob(pUser) != 0)
 			nRet |= IncSP(
 				pUser,
 				WvsGameConstants::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),

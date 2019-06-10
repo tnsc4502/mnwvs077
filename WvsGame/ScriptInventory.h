@@ -17,5 +17,6 @@ public:
 	static void Register(lua_State* L);
 	static int InventoryExchange(lua_State* L);
 	static int InventoryItemCount(lua_State* L);
+	static int InventoryIncSlotCount(lua_State* L);
 };
 

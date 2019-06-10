@@ -1,4 +1,4 @@
 
 require "./DataSrv/Script/sysDef"
 
-target->chatMsg(1, "")
+target->chatMsg(3, "")

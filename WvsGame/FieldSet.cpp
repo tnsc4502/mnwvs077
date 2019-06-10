@@ -92,6 +92,9 @@ int FieldSet::Enter(int nCharacterID, int nFieldInfo, bool bJoin)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
 
+	if (!bJoin && m_pFieldSetTimer->IsStarted())
+		return FieldSetEnterResult::res_Invalid_AlreadyRegistered;
+
 	auto pUser = User::FindUser(nCharacterID);
 	std::vector<int> anUser;
 	if (pUser && m_bParty)
@@ -101,13 +104,10 @@ int FieldSet::Enter(int nCharacterID, int nFieldInfo, bool bJoin)
 			return FieldSetEnterResult::res_Invalid_InvalidParty;
 		if (pParty->party.nPartyBossCharacterID != nCharacterID)
 			return FieldSetEnterResult::res_Invalid_NotPartyBoss;
-		if (!bJoin && m_pFieldSetTimer->IsStarted())
-			return FieldSetEnterResult::res_Invalid_AlreadyRegistered;
 		for (int i = 0; i < PartyMan::MAX_PARTY_MEMBER_COUNT; ++i)
 			if (pParty->party.anChannelID[i] == pUser->GetChannelID() &&
 				pParty->party.anFieldID[i] == pUser->GetField()->GetFieldID())
 				anUser.push_back(pParty->party.anCharacterID[i]);
-
 		if (anUser.size() < m_nPartyMemberMin || anUser.size() > m_nPartyMemberMax)
 			return FieldSetEnterResult::res_Invalid_PartyMemberCount;
 	}
