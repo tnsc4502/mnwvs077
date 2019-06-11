@@ -88,6 +88,7 @@ public:
 	void InsertController(User* pUser);
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
+	bool ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChase);
 	bool GiveUpMobController(Controller* pController);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
 	void MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV);
@@ -98,6 +99,7 @@ public:
 	void Update();
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
+	void OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
 	std::recursive_mutex& GetLock();
 	Npc* GetNpc(int nFieldObjID);

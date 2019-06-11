@@ -72,6 +72,10 @@ bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecS
 					)
 				)
 			{
+				nAmount = std::min(
+					nAmount,
+					SkillInfo::GetInstance()->GetSkillByID(nSkillID)->GetMaxLevel() - pSkillRecord->nSLV);
+
 				pSkillRecord->nSLV += nAmount;
 				if(bDecSP)
 					pUser->GetCharacterData()->mStat->aSP[0] -= nAmount;

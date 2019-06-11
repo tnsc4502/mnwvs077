@@ -11,13 +11,15 @@ struct AttackInfo
 		Mob *pMob;
 		const static int MAX_DAMAGE_COUNT = 16;
 		int anDamageClient[MAX_DAMAGE_COUNT] = { 0 },
-			anDamageSrv[MAX_DAMAGE_COUNT] = { 0 };
+			anDamageSrv[MAX_DAMAGE_COUNT] = { 0 },
+			nDamageCount = 0;
 
 		bool abDamageCriticalClient[MAX_DAMAGE_COUNT] = { false },
 			abDamageCriticalSrv[MAX_DAMAGE_COUNT] = { false };
 	};
 
 	std::map<int, DamageInfo> m_mDmgInfo;
+	std::vector<int> anDropID, anMoneyAmount;
 	int m_bAttackInfoFlag;
 	int GetDamagedMobCount();
 	int GetDamageCountPerMob();

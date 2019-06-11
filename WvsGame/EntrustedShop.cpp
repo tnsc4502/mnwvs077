@@ -145,8 +145,6 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 		std::vector<Item*> aRemove;
 		std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 		std::vector<ExchangeElement> aExchange;
-		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-		std::vector<BackupItem> aBackup;
 		OutPacket oCenterPacket;
 
 		for (auto& item : m_aItem)
@@ -158,15 +156,9 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 				item.nNumber = 0;
 				aRemove.push_back(&item);
 			}
+
 		EncodeItemNumberChanged(&oCenterPacket, aRemove);
-		if (QWUInventory::Exchange(
-			pUser,
-			(int)m_liEShopMoney,
-			aExchange,
-			&aChangeLog,
-			nullptr,
-			aBackup
-		))
+		if (QWUInventory::Exchange(pUser, (int)m_liEShopMoney, aExchange))
 		{
 			pUser->SendNoticeMessage("請確保背包欄位足夠。");
 			pUser->SendCharacterStat(true, 0);
@@ -259,8 +251,6 @@ GW_ItemSlotBase* EntrustedShop::MoveItemToShop(GW_ItemSlotBase* pItem, User* pUs
 
 bool EntrustedShop::RestoreItemFromShop(User* pUser, PersonalShop::Item* psItem)
 {
-	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-	std::vector<BackupItem> aBackup;
 	std::vector<ExchangeElement> aExchange;
 	ExchangeElement elem;
 	OutPacket oPacket;
@@ -274,7 +264,7 @@ bool EntrustedShop::RestoreItemFromShop(User* pUser, PersonalShop::Item* psItem)
 	aExchange.push_back(elem);
 	EncodeItemNumberChanged(&oPacket, std::vector<Item*>{ psItem });
 
-	if (QWUInventory::Exchange(pUser, 0, aExchange, &aChangeLog, nullptr, aBackup))
+	if (QWUInventory::Exchange(pUser, 0, aExchange))
 	{
 		if (psItem->pItem->nType != GW_ItemSlotBase::EQUIP)
 			((GW_ItemSlotBundle*)psItem->pItem)->nNumber = nNumber;

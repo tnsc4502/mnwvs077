@@ -1,10 +1,10 @@
 
 require "./DataSrv/Script/sysDef"
 
-field = self->field();
+field = self->getField();
 if(field and field->getID() == 0) 
 {
-    if(self->askYesNo("Åwªï¨Ó¨ì·¬¤§¨¦¥@¬É¡I³o¸Ìªº°V½m©Ò¬O¬°¤F­nÀ°§Uªì¤ßŽÍ¡ã§Ú·|«ØÄ³±z§Q¥Î°V½m©Ò¨Ó¼ô±x¹CÀ¸¡A·íµM±z¤]¥i¥Hª½±µ²¤¹L¨Ã¶}©l«_ÀI¡A¬O§_­n¶i¤J°V½m³õ©O¡H") == 1)
+    if(self->askYesNo("Åwªï¨Ó¨ì·¬¤§¨¦¥@¬É¡I³o¸Ìªº°V½m©Ò¬O¬°¤F­nÀ°§Uªì¤ßªÌ¡ã§Ú·|«ØÄ³±z§Q¥Î°V½m©Ò¨Ó¼ô±x¹CÀ¸¡A·íµM±z¤]¥i¥Hª½±µ²¤¹L¨Ã¶}©l«_ÀI¡A¬O§_­n¶i¤J°V½m³õ©O¡H") == 1)
     {
         self->say("§Ú±N°e±z¶i¤J¡A¦ý¬O¦b¨º¤§«eÁÙ¬O­n´£¿ô±z¡A½Ð°È¥²¿í´`«ü¾É­ûªº«ü¥Ü¡A¯¬±z¦n¹B¡ã");
         target->transferField(1, "");

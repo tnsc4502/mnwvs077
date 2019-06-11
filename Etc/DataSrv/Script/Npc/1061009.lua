@@ -18,7 +18,7 @@ if(nJobType != 0 and nJobSub == 0 and nJobAdv != 0 and qr->get(7500) == "p1")
             self->say("已經有其他冒險家進行中，請稍待片刻。");
             return;
         }
-        fieldSet->setVar("returnField", self->field()->getID());
+        fieldSet->setVar("returnField", self->getField()->getID());
     }
 }
 else

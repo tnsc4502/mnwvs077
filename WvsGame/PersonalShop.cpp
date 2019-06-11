@@ -48,13 +48,10 @@ void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
 
 	auto pItem = pUser->GetCharacterData()->GetItem(nTI, nPOS);
 	if (!pItem ||
-		ItemInfo::GetInstance()->IsTreatSingly(pItem->nItemID, 0) && (nSet != 1 || nNumber != 1))
-	{
-		pUser->SendCharacterStat(true, 0);
-		return;
-	}
-
-	if (nTI != GW_ItemSlotBase::EQUIP && ((GW_ItemSlotBundle*)pItem)->nNumber < nNumber)
+		(ItemInfo::GetInstance()->IsTreatSingly(pItem->nItemID, 0) && (nSet != 1 || nNumber != 1)) ||
+		ItemInfo::GetInstance()->IsTradeBlockItem(pItem->nItemID) || 
+		ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID) ||
+		(nTI != GW_ItemSlotBase::EQUIP && ((GW_ItemSlotBundle*)pItem)->nNumber < nNumber))
 	{
 		pUser->SendCharacterStat(true, 0);
 		return;

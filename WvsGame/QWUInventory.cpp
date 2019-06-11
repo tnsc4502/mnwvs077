@@ -204,30 +204,6 @@ bool QWUInventory::RawRemoveItem(User * pUser, int nTI, int nPOS, int nCount, st
 	return false;
 }
 
-/*
-此處對pUser上鎖
-*/
-bool QWUInventory::RawAddItemByID(User * pUser, int nItemID, int nCount)
-{
-	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
-	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-	int nTotalAdded = 0;
-	while (nTotalAdded < nCount)
-	{
-		int nAddedAtCurrentSlot = 0;
-		
-		InventoryManipulator::RawAddItem(pCharacterData, nItemID / 1000000, nItemID, nCount, &aChangeLog, &nAddedAtCurrentSlot);
-		nTotalAdded += nAddedAtCurrentSlot;
-	}
-
-	OutPacket oPacket;
-	InventoryManipulator::MakeInventoryOperation(&oPacket, true, aChangeLog);
-	pUser->SendPacket(&oPacket);
-	pUser->SendCharacterStat(true, 0);
-	return nTotalAdded == nCount;
-}
-
 bool QWUInventory::RawRechargeItem(User * pUser, int nPOS, std::vector<InventoryManipulator::ChangeLog>* aChangeLog)
 {
 	if (QWUser::GetHP(pUser))
@@ -237,6 +213,14 @@ bool QWUInventory::RawRechargeItem(User * pUser, int nPOS, std::vector<Inventory
 			aChangeLog
 		);
 	return false;
+}
+
+int QWUInventory::Exchange(User *pUser, int nMoney, std::vector<ExchangeElement>& aExchange)
+{
+	std::vector<InventoryManipulator::ChangeLog> aLogAdd, aLogRemove;
+	std::vector<BackupItem> aBackup;
+
+	return Exchange(pUser, nMoney, aExchange, &aLogAdd, &aLogRemove, aBackup);
 }
 
 int QWUInventory::Exchange(User *pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>* aLogAdd, std::vector<InventoryManipulator::ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bSendOperation, bool bReleaseBackupItem)

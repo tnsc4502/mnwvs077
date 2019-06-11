@@ -3,8 +3,8 @@ require "./DataSrv/Script/sysDef"
 math.randomseed(os.time())
 
 quest = FieldSet.get("Party1")
-fieldID = self->field()->getID()
-field = self->field()
+fieldID = self->getField()->getID()
+field = self->getField()
 
 desc_stage2 = "嗨，歡迎來到第二關卡。您會看到在我旁邊有數條繩子，請找出3個正確的繩子並且爬在上面，再讓隊長與我交談，如果全數正確，就能進入下一關卡。注意，爬得太低可能不會被計算。"
 desc_stage3 = "嗨，歡迎來到第三關卡。您會看到在我旁邊有數個木桶，請找出3個正確的木桶並且站在上面，再讓隊長與我交談，如果全數正確，就能進入下一關卡。注意，站的太靠近邊緣可能不會被計算。"

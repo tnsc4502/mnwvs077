@@ -54,7 +54,7 @@ GA_Character::~GA_Character()
 
 void GA_Character::Load(int nCharacterID)
 {
-	LoadAvatar(nCharacterID);
+	LoadCharacter(nCharacterID);
 	mMoney->Load(nCharacterID);
 	mSlotCount->Load(nCharacterID);
 	LoadItemSlot();
@@ -62,14 +62,14 @@ void GA_Character::Load(int nCharacterID)
 	LoadQuestRecord();
 }
 
-void GA_Character::LoadAvatar(int nCharacterID)
+void GA_Character::LoadCharacter(int nCharacterID)
 {
 	mAvatarData->Load(nCharacterID);
 	mStat->Load(nCharacterID);
 	mLevel->Load(nCharacterID);
 
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT * FROM Characters Where CharacterID = " << nCharacterID;
+	queryStatement << "SELECT * FROM `Character` Where CharacterID = " << nCharacterID;
 	Poco::Data::RecordSet recordSet(queryStatement);
 	queryStatement.execute();
 	this->nCharacterID = nCharacterID;
@@ -80,6 +80,7 @@ void GA_Character::LoadAvatar(int nCharacterID)
 	nPartyID = recordSet["PartyID"];
 	nFieldID = recordSet["FieldID"];
 	nFriendMax = recordSet["FriendMaxNum"];
+	nActiveEffectItemID = recordSet["ActiveEffectItemID"];
 	//nGender = recordSet["Gender"];
 }
 
@@ -177,20 +178,17 @@ void GA_Character::Save(bool bIsNewCharacter)
 	{
 		nCharacterID = (int)IncCharacterID();
 		Poco::Data::Statement newRecordStatement(GET_DB_SESSION);
-		newRecordStatement << "INSERT INTO Characters(CharacterID, AccountID, WorldID) VALUES(" << nCharacterID << ", " << nAccountID << ", " << nWorldID << ")";
+		newRecordStatement << "INSERT INTO `Character` (CharacterID, AccountID, WorldID) VALUES(" << nCharacterID << ", " << nAccountID << ", " << nWorldID << ")";
 		newRecordStatement.execute();
 		newRecordStatement.reset(GET_DB_SESSION);
 		//newRecordStatement << "SELECT CharacterID FROM Characters"
 	}
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "UPDATE Characters Set "
-		//<< "WorldID = '" << nWorldID << "', "
-		//<< "Gender = '" << nGender << "', "
+	queryStatement << "UPDATE `Character` Set "
 		<< "CharacterName = '" << strName << "', "
-		//<< "Fame = '" << nFame << "', "
-		//<< "GuildID = '" << nGuildID << "', "
-		//<< "PartyID = '" << nPartyID << "', "
-		<< "FieldID = '" << nFieldID << "' WHERE CharacterID = " << nCharacterID;
+		<< "ActiveEffectItemID = " << nActiveEffectItemID << ", "
+		<< "FieldID = " << nFieldID << " WHERE CharacterID = " << nCharacterID;
+
 	queryStatement.execute();
 	mAvatarData->Save(nCharacterID, bIsNewCharacter);
 	mMoney->Save(nCharacterID, bIsNewCharacter);
@@ -477,16 +475,12 @@ void GA_Character::DecodeCharacterData(InPacket *iPacket, bool bForInternal)
 		iPacket->Decode4();
 		iPacket->Decode4();
 	}
-
 	for (int i = 1; i <= 5; ++i)
 		mSlotCount->aSlotCount[i] = iPacket->Decode1();
 
 	DecodeItemSlot(iPacket, bForInternal);
-
 	if (flag & 0x100)
-	{
 		DecodeSkillRecord(iPacket);
-	}
 
 	if (flag & 0x8000)
 	{
@@ -541,6 +535,12 @@ void GA_Character::DecodeCharacterData(InPacket *iPacket, bool bForInternal)
 			iPacket->Decode4();
 		for (int i = 0; i < 10; ++i)
 			iPacket->Decode4();
+	}
+
+	//ALWAYS PUT THIS AT BELOW
+	if (bForInternal)
+	{
+		nActiveEffectItemID = iPacket->Decode4();
 	}
 }
 
@@ -756,6 +756,11 @@ void GA_Character::EncodeCharacterData(OutPacket *oPacket, bool bForInternal)
 			oPacket->Encode4(0);
 		for (int i = 0; i < 10; ++i)
 			oPacket->Encode4(0);
+	}
+
+	if (bForInternal)
+	{
+		oPacket->Encode4(nActiveEffectItemID);
 	}
 }
 

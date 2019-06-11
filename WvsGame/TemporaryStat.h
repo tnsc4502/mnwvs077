@@ -89,7 +89,7 @@ struct TemporaryStat
 	ADD_TS_FLAG(EnergyCharged, 57);
 	ADD_TS_FLAG(Dash_Speed, 58);
 	ADD_TS_FLAG(Dash_Jump, 59);
-	ADD_TS_FLAG(RideVehicle, 60);
+	ADD_TS_FLAG(RideVehicle, 60); 
 	ADD_TS_FLAG(PartyBooster, 61);
 	ADD_TS_FLAG(GuidedBullet, 62);
 };

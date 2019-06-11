@@ -4,7 +4,7 @@
 void GW_CharacterList::Load(int nAccountID, int nWorldID)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT CharacterID FROM Characters Where AccountID = " << nAccountID << " AND WorldID = " << nWorldID;
+	queryStatement << "SELECT CharacterID FROM `Character` Where AccountID = " << nAccountID << " AND WorldID = " << nWorldID;
 	queryStatement.execute();
 
 	Poco::Data::RecordSet recordSet(queryStatement);

@@ -6,7 +6,7 @@ class LoginSocket :
 	public SocketBase
 {
 private:
-	LoginEntry m_loginEntry;
+	std::shared_ptr<LoginEntry> m_pLoginEntry;
 	void OnClosed();
 
 public:

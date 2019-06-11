@@ -6,7 +6,7 @@
 #include "BasicStat.h"
 #include "TemporaryStat.h"
 
-#define ADD_TEMPORARY(stat) int nLv##stat##_ = 0, n##stat##_ = 0, t##stat##_ = 0, r##stat##_ = 0, b##stat##_ = 0, x##stat##_ = 0, c##stat##_ = 0, y##stat##_ = 0;
+#define ADD_TEMPORARY(stat) int nLv##stat##_ = 0, n##stat##_ = 0, t##stat##_ = 0, r##stat##_ = 0, b##stat##_ = 0, x##stat##_ = 0, y##stat##_ = 0;
 
 class User;
 struct GA_Character;
@@ -108,11 +108,20 @@ public:
 	void SetFrom(GA_Character* pChar, BasicStat* pBS);
 	void EncodeForLocal(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
 	void EncodeForRemote(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
+	void EncodeEnergyCharged(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
+	void EncodeDash_Speed(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
+	void EncodeDash_Jump(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
+	void EncodeRideVehicle(OutPacket *oPacket, TemporaryStat::TS_Flag& flag);
+	void EncodePartyBooster(OutPacket *oPacket, TemporaryStat::TS_Flag& flag); 
+	void EncodeGuidedBullet(OutPacket *oPacket, TemporaryStat::TS_Flag& flag); 
 	bool EnDecode4Byte(TemporaryStat::TS_Flag& flag);
 	void ResetByTime(User* pUser, int tCur);
 	void ResetAll(User* pUser);
 
 	void DecodeInternal(User* pUser, InPacket *iPacket);
 	void EncodeInternal(User* pUser, OutPacket *oPacket);
+
+private:
+	static decltype(&SecondaryStat::EncodeForLocal) ms_aEncoder[];
 };
 

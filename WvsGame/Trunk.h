@@ -17,6 +17,7 @@ public:
 	{
 		rq_Trunk_MoveTrunkToSlot = 0x04,
 		rq_Trunk_MoveSlotToTrunk = 0x05,
+		rq_Trunk_WithdrawMoney = 0x07,
 		rq_Trunk_Close = 0x08,
 		rq_Trunk_Load = 0x15
 	};
@@ -26,6 +27,7 @@ public:
 		res_Trunk_Load = 0x15,
 		res_Trunk_MoveTrunkToSlot = 0x09,
 		res_Trunk_MoveSlotToTrunk = 0x0C,
+		res_Trunk_WithdrawMoney = 0x14,
 	};
 
 	Trunk();
@@ -39,15 +41,16 @@ public:
 	void OnPacket(User *pUser, InPacket *iPacket);
 	void OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket);
 	void OnMoveTrunkToSlotRequest(User *pUser, InPacket *iPacket);
-	void OnPutMoney(User *pUser, InPacket *iPacket);
-	void OnTakeMoney(User *pUser, InPacket *iPacket);
+	void OnWithdrawMoney(User *pUser, InPacket *iPacket);
 
 	void OnLoadDone(User *pUser, InPacket *iPacket);
 	void OnMoveSlotToTrunkDone(User *pUser, InPacket *iPacket);
 	void OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket);
+	void OnWithdrawMoneyDone(User *pUser, InPacket *iPacket);
 
 	//CENTER
 	void MoveSlotToTrunk(int nAccountID, InPacket *iPacket);
 	void MoveTrunkToSlot(int nAccountID, InPacket *iPacket);
+	void WithdrawMoney(int nAccountID, InPacket *iPacket);
 };
 

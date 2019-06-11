@@ -73,6 +73,9 @@
 #include "MobTemplate.h"
 #include "QWUSkillRecord.h"
 #include "StoreBank.h"
+#include "Reward.h"
+#include "DropPool.h"
+#include "WvsPhysicalSpace2D.h"
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: 
@@ -252,38 +255,21 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	oPacket->Encode2((short)UserSendPacketFlag::UserRemote_OnMakeEnterFieldPacket);
 	oPacket->Encode4(m_pCharacterData->nCharacterID);
 	oPacket->EncodeStr(m_pCharacterData->strName);
-
-	//==========Guild Info=========
-	//oPacket->Encode8(0);
 	oPacket->EncodeStr(m_sGuildName);
 	oPacket->Encode2(m_nMarkBg);
 	oPacket->Encode1(m_nMarkBgColor);
 	oPacket->Encode2(m_nMark);
 	oPacket->Encode1(m_nMarkColor);
-
-	//SecondaryStat::EncodeForRemote
 	m_pSecondaryStat->EncodeForRemote(oPacket, m_pSecondaryStat->m_tsFlagSet);
-
 	oPacket->Encode2((short)m_pCharacterData->mStat->nJob);
 	m_pCharacterData->EncodeAvatarLook(oPacket);
-
-	oPacket->Encode4(
-		m_pCharacterData->GetItemCount(
-			GW_ItemSlotBase::CASH,
-			5110000));
-
-	//ItemEffect
-	oPacket->Encode4(0);
-
-	//PortableChair
+	oPacket->Encode4(m_pCharacterData->GetItemCount(GW_ItemSlotBase::CASH, 5110000));
+	oPacket->Encode4(m_pCharacterData->nActiveEffectItemID);
 	oPacket->Encode4(m_nActivePortableChairID);
-
 	oPacket->Encode2(GetPosX());
 	oPacket->Encode2(GetPosY());
 	oPacket->Encode1(GetMoveAction());
 	oPacket->Encode2(GetFh());
-
-	//PetInfo
 	for (int i = 0; i < GetMaxPetIndex(); ++i)
 		if (m_apPet[i])
 			m_apPet[i]->EncodeInitData(oPacket);
@@ -332,26 +318,44 @@ void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
 	{
 		int nObjectID = iPacket->Decode4();
 		auto& ref = pInfo->m_mDmgInfo[nObjectID];
+		ref.nDamageCount = nDamagedCountPerMob;
+
 		iPacket->Decode1();
 		iPacket->Decode1();
 		iPacket->Decode1();
 		iPacket->Decode1();
-		iPacket->Decode2();
 		iPacket->Decode2();
 		iPacket->Decode2();
 		iPacket->Decode2();
 		iPacket->Decode2();
 
-		for (int j = 0; j < nDamagedCountPerMob; ++j)
+		if (pInfo->m_nSkillID == 4211006)
 		{
-			long long int nDmg = iPacket->Decode4();
-			//printf("Monster %d Damage : %d\n", nObjectID, (int)nDmg);
-			ref.anDamageClient[j] = (int)nDmg;
+			ref.nDamageCount = std::min(16, (int)iPacket->Decode1());
+			for (int j = 0; j < ref.nDamageCount; ++j)
+				ref.anDamageClient[j] = (int)iPacket->Decode4();
+		}
+		else
+		{
+			iPacket->Decode2();
+			for (int j = 0; j < nDamagedCountPerMob; ++j)
+			{
+				long long int nDmg = iPacket->Decode4();
+				ref.anDamageClient[j] = (int)nDmg;
+			}
 		}
 	}
-
 	pInfo->m_nX = iPacket->Decode2();
 	pInfo->m_nY = iPacket->Decode2();
+	if (pInfo->m_nSkillID == 4211006)
+	{
+		int nDropCount = iPacket->Decode1();
+		for (int i = 0; i < nDropCount; ++i) 
+		{
+			pInfo->anDropID.push_back(iPacket->Decode4());
+			iPacket->Decode1();
+		}
+	}
 }
 
 AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *iPacket)
@@ -361,15 +365,21 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
 	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
-	pInfo->m_nSLV = SkillInfo::GetInstance()->GetSkillLevel(
-		m_pCharacterData,
-		nSkillID,
-		nullptr,
-		0,
-		0,
-		0,
-		0
-	);
+	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
+	if (!pSkillEntry)
+		return nullptr;
+
+	pInfo->m_nSLV = std::min(
+		pSkillEntry->GetMaxLevel(),
+		SkillInfo::GetInstance()->GetSkillLevel(
+			m_pCharacterData,
+			nSkillID,
+			nullptr,
+			0,
+			0,
+			0,
+			0
+	));
 	if (nSkillID && !pInfo->m_nSLV)
 		return nullptr;
 
@@ -393,20 +403,23 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 		if (pBullet && (ItemInfo::IsRechargable(pBullet->nItemID) || pBullet->nItemID / 10000 == 206))
 			pInfo->m_nBulletItemID = pBullet->nItemID;
 
-		//Try Consume Item.
-		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-		if (!QWUInventory::RawWasteItem(this, pInfo->m_nSlot, 1, aChangeLog)
-			&& !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, 1, &aChangeLog, nDecCount, nullptr))
+		if (!GetSecondaryStat()->nSoulArrow_ && !GetSecondaryStat()->nAttract_)
 		{
-			SendNoticeMessage("Invalid Attack.");
+			auto pLevel = pSkillEntry->GetLevelData(pInfo->m_nSLV);
+			//Try Consume Item.
+			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+			if ((ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, pLevel->m_nBulletCount), aChangeLog))
+				|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, std::max(1, pLevel->m_nBulletCount), &aChangeLog, nDecCount, nullptr)))
+			{
+				SendNoticeMessage("Invalid Attack.");
+			}
+			else
+				QWUInventory::SendInventoryOperation(this, false, aChangeLog);
 		}
-		else
-			QWUInventory::SendInventoryOperation(this, false, aChangeLog);
 
 		pInfo->m_nCsStar = iPacket->Decode2();
 		pInfo->m_nShootRange = iPacket->Decode1();
 	}
-
 	TryParsingDamageData(pInfo, iPacket);
 	return pInfo;
 }
@@ -517,6 +530,9 @@ void User::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
+		case UserRecvPacketFlag::User_OnAliveCheckAck:
+			m_tLastAliveCheckRespondTime = GameDateTime::GetTime();
+			break;
 		case UserRecvPacketFlag::User_OnStatChangeItemUseRequest:
 			OnStatChangeItemUseRequest(iPacket, false);
 			break;
@@ -544,6 +560,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnSitOnPortableChairRequest:
 			OnPortableChairSitRequest(iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnSetActiveEffectItem:
+			OnSetActiveEffectItem(iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnChangeStatRequest:
 			OnChangeStatRequest(iPacket);
 			break;
@@ -568,11 +587,17 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnUserSkillCancelRequest:
 			USkill::OnSkillCancelRequest(this, iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnDropMoneyRequest:
+			OnDropMoneyRequest(iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
 		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
 		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
 		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
 			OnAttack(nType, iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnCharacterInfoRequest:
+			OnCharacterInfoRequest(iPacket);
 			break;
 		case UserRecvPacketFlag::User_OnEmotion:
 			OnEmotion(iPacket);
@@ -732,7 +757,7 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 
 void User::OnPortalScriptRequest(InPacket *iPacket)
 {
-	std::lock_guard<std::mutex> lock(m_pCharacterData->GetCharacterDataLock());
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	if (!m_pField)
 		return;
 
@@ -972,6 +997,16 @@ void User::ValidateStat(bool bCalledByConstructor)
 	{
 		if (liFlag)
 			SendCharacterStat(false, liFlag);
+	}
+	ValidateEffectItem();
+}
+
+void User::ValidateEffectItem()
+{
+	if (m_pCharacterData->nActiveEffectItemID)
+	{
+		if (!m_pCharacterData->GetItemByID(m_pCharacterData->nActiveEffectItemID))
+			m_pCharacterData->nActiveEffectItemID = 0;
 	}
 }
 
@@ -1429,6 +1464,8 @@ void User::OnHit(InPacket *iPacket)
 	{
 		if (m_pCharacterData->mStat->nJob == 412)
 			oPacket.Encode4(4120002);
+		if (m_pCharacterData->mStat->nJob == 422)
+			oPacket.Encode4(4220002);
 		if (m_pCharacterData->mStat->nJob == 122)
 			oPacket.Encode4(1220006);
 		if (m_pCharacterData->mStat->nJob == 112)
@@ -1636,6 +1673,23 @@ void User::Update()
 	{
 		FlushCharacterData();
 		m_tLastBackupTime = tCur;
+	}
+
+	//Send alive check 30s.
+	if (tCur - m_tLastAliveCheckRequestTime > 30 * 1000)
+	{
+		if (m_tLastAliveCheckRespondTime == -1)
+		{
+			WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "Alive check timeouted, User: [%d][%s]\n", GetUserID(), GetName().c_str());
+			m_pSocket->GetSocket().close();
+			return;
+		}
+		m_tLastAliveCheckRespondTime = -1;
+		m_tLastAliveCheckRequestTime = tCur;
+
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnAliveCheckRequest);
+		SendPacket(&oPacket);
 	}
 }
 
@@ -1916,6 +1970,25 @@ void User::OnPortableChairSitRequest(InPacket *iPacket)
 	}
 }
 
+void User::OnSetActiveEffectItem(InPacket * iPacket)
+{
+	if (m_pField)
+	{
+		int nItemID = iPacket->Decode4();
+		if (!nItemID || (nItemID / 10000 == 501 && m_pCharacterData->GetItemByID(nItemID)))
+		{
+			if (nItemID / 1000 != 5011)
+				m_pCharacterData->nActiveEffectItemID = nItemID;
+			
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetActiveEffectItem);
+			oPacket.Encode4(GetUserID());
+			oPacket.Encode4(nItemID);
+			m_pField->SplitSendPacket(&oPacket, nullptr);
+		}
+	}
+}
+
 void User::OnChangeStatRequest(InPacket *iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
@@ -2011,6 +2084,95 @@ bool User::IsAbleToLearnSkillByItem(void *pItem, bool &bSucceed, int &nTargetSki
 			bSucceed = true;
 	}
 	return true;
+}
+
+void User::OnDropMoneyRequest(InPacket * iPacket)
+{
+	int tRequestTime = iPacket->Decode4();
+	int nMoney = iPacket->Decode4();
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	if (m_pField &&
+		nMoney >= 10 && nMoney <= 50000 && 
+		QWUser::GetMoney(this) >= nMoney)
+	{
+		SendCharacterStat(true, QWUser::IncMoney(this, -nMoney, true));
+		int pcy = GetPosY();
+		m_pField->GetSpace2D()->GetFootholdUnderneath(GetPosX(), GetPosY() - 10, &pcy);
+		auto pReward = AllocObj(Reward);
+		pReward->SetItem(nullptr);
+		pReward->SetMoney(nMoney);
+		m_pField->GetDropPool()->Create(
+			pReward,
+			GetUserID(),
+			0,
+			0,
+			0,
+			GetPosX(),
+			GetPosY(),
+			GetPosX(),
+			pcy,
+			0,
+			0,
+			0,
+			false
+		);
+	}
+}
+
+void User::OnCharacterInfoRequest(InPacket *iPacket)
+{
+	int tRequestTime = iPacket->Decode4();
+	int nUserID = iPacket->Decode4();
+	auto pUser = User::FindUser(nUserID);
+	if (!pUser)
+	{
+		SendCharacterStat(true, 0);
+		return;
+	}
+
+	std::lock_guard<std::recursive_mutex> lock(pUser->m_mtxUserLock);
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnCharacterInfo);
+	oPacket.Encode4(pUser->GetUserID());
+	oPacket.Encode1((char)QWUser::GetLevel(pUser));
+	oPacket.Encode2(QWUser::GetJob(pUser));
+	oPacket.Encode2((short)QWUser::GetPOP(pUser));
+	oPacket.Encode1(0); //Marriage
+	oPacket.EncodeStr(pUser->m_sGuildName);
+
+	//PersonalInfo
+	oPacket.EncodeStr("MNMS 077");
+	oPacket.Encode1(0);
+	oPacket.Encode1(0);
+	oPacket.Encode1(0);
+	oPacket.Encode1(0);
+	oPacket.Encode1(0);
+
+	GW_ItemSlotBase *pPetEquip = nullptr;
+	//Encode Pet Info
+	for (int i = 0; i < pUser->GetMaxPetIndex(); ++i)
+		if (pUser->m_apPet[i])
+		{
+			oPacket.Encode1(1);
+			oPacket.Encode4(pUser->m_apPet[i]->m_pPetSlot->nItemID);
+			oPacket.EncodeStr(pUser->m_apPet[i]->m_pPetSlot->strPetName);
+			oPacket.Encode1(pUser->m_apPet[i]->m_pPetSlot->nLevel);
+			oPacket.Encode2(pUser->m_apPet[i]->m_pPetSlot->nTameness);
+			oPacket.Encode1(pUser->m_apPet[i]->m_pPetSlot->nRepleteness);
+			oPacket.Encode2(pUser->m_apPet[i]->m_pPetSlot->usPetSkill);
+
+			pPetEquip = pUser->m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, (-114 - (i * 8)));
+			oPacket.Encode4(pPetEquip ? pPetEquip->nItemID : 0);
+		}
+	oPacket.Encode1(0);
+
+	//Mount Info
+	oPacket.Encode1(0);
+
+	//Wishlist Info
+	oPacket.Encode1(0);
+
+	SendPacket(&oPacket);
 }
 
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
@@ -2355,6 +2517,12 @@ void User::SetScript(Script * pScript)
 
 void User::OnSelectNpc(InPacket * iPacket)
 {
+	if (!CanAttachAdditionalProcess())
+	{
+		SendCharacterStat(false, 0);
+		return;
+	}
+
 	int nLifeNpcID = iPacket->Decode4();
 	auto pNpc = m_pField->GetLifePool()->GetNpc(nLifeNpcID);
 	auto pTemplate = NpcTemplate::GetInstance()->GetNpcTemplate(pNpc->GetTemplateID());
@@ -2557,28 +2725,22 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 	auto& aActItem = pStartAct->aActItem;
 	if (nItemID <= 0)
 		return;
+	std::vector<ExchangeElement> aExchange;
 	for (auto& actItem : aActItem)
 	{
 		int nCount = actItem->nCount - GetCharacterData()->GetItemCount(
 			actItem->nItemID / 1000000, actItem->nItemID);
 		if (nCount > 0)
 		{
-			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-			std::vector<ExchangeElement> aExchange;
-			std::vector<BackupItem> aBackup;
-			ExchangeElement exchange;
-			exchange.m_nItemID = actItem->nItemID;
-			exchange.m_nCount = nCount;
-			aExchange.push_back(exchange);
-			QWUInventory::Exchange(
-				this,
-				0,
-				aExchange,
-				&aChangeLog,
-				&aChangeLog,
-				aBackup
-			);
+			aExchange.push_back({});
+			aExchange.back().m_nItemID = actItem->nItemID;
+			aExchange.back().m_nCount = nCount;
 		}
+	}
+	if (QWUInventory::Exchange(this, 0, aExchange))
+	{
+		SendNoticeMessage("請確保背包有足夠的空間。");
+		SendCharacterStat(false, 0);
 	}
 }
 
@@ -2643,9 +2805,6 @@ bool User::TryExchange(const std::vector<ActItem*>& aActItem)
 			}
 	}
 	std::vector<ExchangeElement> aExchange;
-	std::vector<InventoryManipulator::ChangeLog> aAddLog, aRemoveLog;
-	std::vector<BackupItem> aBackup;
-
 	for (auto& pItem : aActItem)
 	{
 		if (!AllowToGetQuestItem(pItem))
@@ -2657,7 +2816,7 @@ bool User::TryExchange(const std::vector<ActItem*>& aActItem)
 		aExchange.back().m_nItemID = pItem->nItemID;
 		aExchange.back().m_nCount = pItem->nCount;
 	}
-	int nRet = QWUInventory::Exchange(this, 0, aExchange, &aAddLog, &aRemoveLog, aBackup);
+	int nRet = QWUInventory::Exchange(this, 0, aExchange);
 	switch (nRet)
 	{
 		case InventoryManipulator::ExchangeResult::Exchange_InsufficientSlotCount:
@@ -3359,6 +3518,9 @@ void User::OnTrunkResult(InPacket *iPacket)
 		case Trunk::TrunkResult::res_Trunk_MoveTrunkToSlot:
 			m_pTrunk->OnMoveTrunkToSlotDone(this, iPacket);
 			break;
+		case Trunk::TrunkResult::res_Trunk_WithdrawMoney:
+			m_pTrunk->OnWithdrawMoneyDone(this, iPacket);
+			break;
 	}
 }
 
@@ -3487,4 +3649,6 @@ void User::OnMigrateIn()
 	oPacketForFriendLoading.Encode1(FriendMan::FriendRequest::rq_Friend_Load);
 	oPacketForFriendLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);
+
+	m_pCharacterData->nActiveEffectItemID = m_pCharacterData->nActiveEffectItemID;
 }

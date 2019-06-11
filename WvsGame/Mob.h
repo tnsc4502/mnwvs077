@@ -4,11 +4,13 @@
 #include "FieldObj.h"
 
 struct MobSkillLevelData;
+class SkillEntry;
 class MobTemplate;
 class Controller;
 class MobStat;
 class User;
 class AffectedArea;
+class InPacket;
 
 class Mob : public FieldObj
 {
@@ -54,6 +56,7 @@ private:
 		m_nSkillSummoned = 0,
 		m_nSummonType = 0,
 		m_nSummonOption = 0,
+		m_nCtrlPriority = 0,
 		m_nSkillCommand = 0;
 
 	bool m_bNextAttackPossible = false;
@@ -88,10 +91,12 @@ public:
 	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, int tCur);
 	void ResetStatChangeSkill(int nSkillID);
 	void OnMobInAffectedArea(AffectedArea *pArea, int tCur);
+	void OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, int nDamageSum, int tDelay);
 	void SendMobTemporaryStatSet(int nSet, int tDelay);
 	void SendMobTemporaryStatReset(int nSet);
 	void OnMobHit(User* pUser, long long int nDamage, int nAttackType);
 	void OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem);
+	void OnApplyCtrl(User *pUser, InPacket *iPacket);
 	int DistributeExp(int& refOwnType, int& refOwnParyID, int& refLastDamageCharacterID);
 	void GiveExp(const std::vector<PartyDamage>& aPartyDamage);
 	void GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem);
@@ -109,8 +114,6 @@ public:
 
 	DamageLog& GetDamageLog();
 	void Update(int tCur);
-	void UpdatePoison(int tCur);
-	void UpdateVenom(int tCur);
-	void UpdateAmbush(int tCur);
+	void UpdateMobStatChange(int tCur, int nVal, int tVal, int &nLastUpdateTime);
 };
 

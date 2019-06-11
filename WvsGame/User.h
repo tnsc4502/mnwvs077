@@ -126,6 +126,8 @@ private:
 		m_nInvalidDamageCount = 0,
 		m_nActivePortableChairID = 0,
 		m_tLastRecoveryTime = 0,
+		m_tLastAliveCheckRequestTime = 0,
+		m_tLastAliveCheckRespondTime = 0,
 		m_tPortableChairSittingTime = 0;
 	bool m_bDeadlyAttack = false;
 
@@ -233,6 +235,7 @@ public:
 	BasicStat* GetBasicStat();
 	void DecreaseEXP(bool bTown);
 	void ValidateStat(bool bCalledByConstructor = false);
+	void ValidateEffectItem();
 	void SendCharacterStat(bool bOnExclRequest, long long int liFlag);
 	void SendPortableChairEffect(int nSeatID);
 	void SendTemporaryStatReset(TemporaryStat::TS_Flag& flag);
@@ -244,8 +247,11 @@ public:
 	void OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx);
 	void OnSitRequest(InPacket *iPacket);
 	void OnPortableChairSitRequest(InPacket *iPacket);
+	void OnSetActiveEffectItem(InPacket *iPacket);
 	void OnChangeStatRequest(InPacket *iPacket);
 	bool IsAbleToLearnSkillByItem(void *pItem, bool &bSucceed, int &nTargetSkill);
+	void OnDropMoneyRequest(InPacket *iPacket);
+	void OnCharacterInfoRequest(InPacket *iPacket);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);

@@ -43,7 +43,7 @@ std::vector<int> CharacterDBAccessor::PostLoadCharacterListRequest(SocketBase *p
 	for (int i = 0; i < chrList.nCount; ++i)
 	{
 		GA_Character chrEntry;
-		chrEntry.LoadAvatar(chrList.aCharacterList[i]);
+		chrEntry.LoadCharacter(chrList.aCharacterList[i]);
 		chrEntry.EncodeAvatar(&oPacket);
 		oPacket.Encode1(0); //bRanking?
 	}
@@ -146,7 +146,7 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 	oPacket.Encode2((short)CenterSendPacketFlag::CreateCharacterResult);
 	oPacket.Encode4(uLocalSocketSN);
 	oPacket.Encode1(0);
-	chrEntry.LoadAvatar(chrEntry.nCharacterID);
+	chrEntry.LoadCharacter(chrEntry.nCharacterID);
 	chrEntry.EncodeAvatar(&oPacket);
 
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -402,7 +402,7 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 int CharacterDBAccessor::QueryCharacterIDByName(const std::string & strName)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT CharacterID From Characters Where CharacterName = '" << strName << "'";
+	queryStatement << "SELECT CharacterID FROM `Character` Where CharacterName = '" << strName << "'";
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	return recordSet.rowCount() == 0 ? -1 : recordSet["CharacterID"];
@@ -411,7 +411,7 @@ int CharacterDBAccessor::QueryCharacterIDByName(const std::string & strName)
 int CharacterDBAccessor::QueryCharacterFriendMax(int nCharacterID)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT FriendMaxNum From Characters Where CharacterID = " << nCharacterID;
+	queryStatement << "SELECT FriendMaxNum FROM `Character` Where CharacterID = " << nCharacterID;
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	return recordSet.rowCount() == 0 ? -1 : recordSet["FriendMaxNum"];
@@ -420,7 +420,7 @@ int CharacterDBAccessor::QueryCharacterFriendMax(int nCharacterID)
 int CharacterDBAccessor::QueryCharacterAccountID(int nCharacterID)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT AccountID From Characters Where CharacterID = " << nCharacterID;
+	queryStatement << "SELECT AccountID FROM `Character` Where CharacterID = " << nCharacterID;
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	return recordSet.rowCount() == 0 ? -1 : recordSet["AccountID"];

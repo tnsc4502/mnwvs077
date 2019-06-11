@@ -67,7 +67,6 @@ int ScriptInventory::InventoryExchange(lua_State * L)
 	int nMoney = (int)luaL_checkinteger(L, 2), nItemID, nCount;
 	int nArg = lua_gettop(L);
 	std::vector<ExchangeElement> aExchange;
-	std::vector<InventoryManipulator::ChangeLog> aLogAdd, aLogRemove;
 	std::map<int, int> mItemCount;
 	auto iter = mItemCount.end();
 
@@ -93,8 +92,7 @@ int ScriptInventory::InventoryExchange(lua_State * L)
 		e.m_pItem = nullptr;
 		aExchange.push_back(std::move(e));
 	}
-	std::vector<BackupItem> aBackup;
-	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange, &aLogAdd, &aLogRemove, aBackup);
+	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange);
 
 	/*
 	0 = Success

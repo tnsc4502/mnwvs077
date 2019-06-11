@@ -22,7 +22,7 @@ private:
 	std::shared_ptr<std::thread> m_apCenterWorkThread[ServerConstants::kMaxNumberOfCenters];
 
 	std::map<unsigned int, int> m_mSocketIDToAccountID;
-	std::map<int, LoginEntry*> m_mAccountIDToLoginEntry;
+	std::map<int, std::shared_ptr<LoginEntry>> m_mAccountIDToLoginEntry;
 
 	//紀錄Center instance是否正在連線，用於避免重連的異常
 	bool aIsConnecting[ServerConstants::kMaxNumberOfCenters];
@@ -38,7 +38,7 @@ public:
 	void SetConfigLoader(ConfigLoader *pCfg);
 	void InitializeCenter();
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
-	void RegisterLoginEntry(LoginEntry *LoginEntry);
+	void RegisterLoginEntry(std::shared_ptr<LoginEntry> &pLoginEntry);
 	void RemoveLoginEntryByAccountID(int nAccountID);
 	void RemoveLoginEntryByLoginSocketID(unsigned int uLoginSocketSN);
 	LoginEntry* GetLoginEntryByAccountID(int nAccountID);

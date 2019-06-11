@@ -23,14 +23,43 @@
 #include "AffectedArea.h"
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
+#include "Controller.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 
 #undef min
 #undef max
+
+#define REGISTER_MOB_STAT(name, value) \
+nFlagSet |= MobStat::MS_##name; \
+m_pStat->nFlagSet &= ~(MobStat::MS_##name); \
+m_pStat->n##name##_ = bResetBySkill ? 0 : value; \
+m_pStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16); \
+m_pStat->t##name##_ = bResetBySkill ? 0 : GameDateTime::GetTime() + nDuration; \
+if(!bResetBySkill) {\
+	m_pStat->nFlagSet |= (MobStat::MS_##name); \
+}\
+
+#define REGISTER_MOB_STAT_BY_USER(name, value) \
+nFlagSet |= MobStat::MS_##name; \
+m_pStat->nFlagSet &= ~(MobStat::MS_##name); \
+m_pStat->n##name##_ = bResetBySkill ? 0 : value; \
+m_pStat->r##name##_ = bResetBySkill ? 0 : nSkillID; \
+m_pStat->t##name##_ = bResetBySkill ? 0 : GameDateTime::GetTime() + nDuration; \
+if(!bResetBySkill) {\
+	m_pStat->nFlagSet |= (MobStat::MS_##name); \
+}\
+
+#define CLEAR_MOB_STAT(name) \
+nFlagReset |= MobStat::MS_##name; \
+m_pStat->nFlagSet &= ~(MobStat::MS_##name);\
+m_pStat->n##name##_ = 0; \
+m_pStat->r##name##_ = 0; \
+m_pStat->t##name##_ = 0; 
 
 Mob::Mob()
 {
@@ -280,16 +309,6 @@ void Mob::DoSkill_AffectArea(int nSkillID, int nSLV, const MobSkillLevelData * p
 
 void Mob::DoSkill_StateChange(int nSkillID, int nSLV, const MobSkillLevelData * pLevel, int tDelay, bool bResetBySkill)
 {
-#define REGISTER_MOB_STAT(name, value) \
-nFlagSet |= MobStat::MS_##name; \
-m_pStat->nFlagSet &= ~(MobStat::MS_##name); \
-m_pStat->n##name##_ = bResetBySkill ? 0 : value; \
-m_pStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16); \
-m_pStat->t##name##_ = bResetBySkill ? 0 : GameDateTime::GetTime() + nDuration; \
-if(!bResetBySkill) {\
-	m_pStat->nFlagSet |= (MobStat::MS_##name); \
-}\
-
 	int nDuration = tDelay + pLevel->tTime;
 	int nFlagSet = 0;
 	switch (nSkillID)
@@ -548,46 +567,38 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 
 void Mob::ResetStatChangeSkill(int nSkillID)
 {
-
-#define CLEAR_STAT(name) \
-nFlag |= MobStat::MS_##name; \
-m_pStat->nFlagSet &= ~(MobStat::MS_##name);\
-m_pStat->n##name##_ = 0; \
-m_pStat->r##name##_ = 0; \
-m_pStat->t##name##_ = 0; 
-
-	int nFlag = 0;
+	int nFlagReset = 0;
 	switch (nSkillID)
 	{
 	case 140:
-		CLEAR_STAT(PImmune);
+		CLEAR_MOB_STAT(PImmune);
 		break;
 	case 141:
-		CLEAR_STAT(MImmune);
+		CLEAR_MOB_STAT(MImmune);
 		break;
 	case 150:
-		CLEAR_STAT(PAD);
+		CLEAR_MOB_STAT(PAD);
 		break;
 	case 151:
-		CLEAR_STAT(MAD);
+		CLEAR_MOB_STAT(MAD);
 		break;
 	case 152:
-		CLEAR_STAT(PDD);
+		CLEAR_MOB_STAT(PDD);
 		break;
 	case 153:
-		CLEAR_STAT(MDD);
+		CLEAR_MOB_STAT(MDD);
 		break;
 	case 154:
-		CLEAR_STAT(ACC);
+		CLEAR_MOB_STAT(ACC);
 		break;
 	case 155:
-		CLEAR_STAT(EVA);
+		CLEAR_MOB_STAT(EVA);
 		break;
 	case 156:
-		CLEAR_STAT(Speed);
+		CLEAR_MOB_STAT(Speed);
 		break;
 	}
-	SendMobTemporaryStatReset(nFlag);
+	SendMobTemporaryStatReset(nFlagReset);
 }
 
 void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
@@ -611,6 +622,192 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
 			SendMobTemporaryStatSet(MobStat::MS_Poison, tCur);
 		}
 	}
+}
+
+void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, int nDamageSum, int tDelay)
+{
+	auto pLevel = pSkill->GetLevelData(nSLV);
+	int nProp = pLevel->m_nProp;
+	if (!nProp || pSkill->GetSkillID() == 4121008)
+		nProp = 100;
+
+	if ((int)(Rand32::GetInstance()->Random() % 100) >= nProp)
+		return;
+
+	int nX = pLevel->m_nX,
+		nY = pLevel->m_nY,
+		tCur = GameDateTime::GetTime(),
+		nDuration = pLevel->m_nTime + tDelay,
+		nSkillID = pSkill->GetSkillID(),
+		nFlagSet = 0,
+		nFlagReset = 0;
+
+	bool bResetBySkill = false, bReset = false;
+	switch (pSkill->GetSkillID())
+	{
+		case 1111007:
+			CLEAR_MOB_STAT(PGuardUp);
+			bReset = true;
+			break;
+		case 1201006:
+		case 4001002:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(PAD, nX);
+			REGISTER_MOB_STAT_BY_USER(PDD, nY);
+			break;
+		case 1211006:
+		case 1211002:
+			if (GetMobTemplate()->m_bIsBoss ||
+				!pUser->GetSecondaryStat()->nWeaponCharge_ ||
+				pUser->GetSecondaryStat()->nWeaponCharge_ == 1211005 ||
+				pUser->GetSecondaryStat()->nWeaponCharge_ == 1211006)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Freeze, (int)(Rand32::GetInstance()->Random() % 100) < pLevel->m_nProp ? 1 : 0);
+			m_pStat->tFreeze_ = tCur + tDelay + 3000;
+			break;
+		case 1211009:
+			CLEAR_MOB_STAT(MGuardUp);
+			bReset = true;
+			break;
+		case 1311007:
+			CLEAR_MOB_STAT(PowerUp);
+			bReset = true;
+			break;
+		case 2101003:
+		case 2201003:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Speed, nX);
+			break;
+		case 2101005:
+		case 2111006:
+			if (GetMobTemplate()->m_bIsBoss ||
+				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
+				return;
+
+			if (m_pStat->nPoison_ > 0 &&
+				(m_pStat->rPoison_ == 2121003 || m_pStat->rPoison_ == 2221003))
+			{
+				
+			}
+			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			m_tLastUpdatePoison = tCur;
+			break;
+		case 2121003:
+		case 2221003:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+
+			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			m_tLastUpdatePoison = tCur;
+
+			if (m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2)
+				return;
+
+			REGISTER_MOB_STAT_BY_USER(Freeze, 1);
+			m_pStat->tFreeze_ = tCur + tDelay + nX * 1000;
+			break;
+		case 2111004:
+		case 2211004:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Seal, 1);
+			break;
+		case 2311001:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			CLEAR_MOB_STAT(PowerUp);
+			CLEAR_MOB_STAT(MagicUp);
+			if (m_pStat->nShowdown == 0)
+			{
+				CLEAR_MOB_STAT(PGuardUp);
+				CLEAR_MOB_STAT(MGuardUp);
+			}
+			CLEAR_MOB_STAT(HardSkin);
+			bReset = true;
+			break;
+		case 2311005:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Doom, 1);
+			break;
+		case 3121007:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Speed, nX);
+			m_pStat->tSpeed_ = tCur + 1000 * nY;
+			break;
+		case 1111008:
+		case 1120005:
+		case 1220006:
+		case 2121006:
+		case 3101005:
+		case 4121008:
+		case 4211002:
+		case 4221001:
+		case 4221007:
+			if (!GetMobTemplate()->m_bIsBoss
+				&& (nSkillID != 3101005 || /*nDamageSum >=*/ (int)(Rand32::GetInstance()->Random() % 3) == 0))
+				REGISTER_MOB_STAT_BY_USER(Stun, 1);
+			break;
+		case 2121005:
+		case 2221007:
+		case 3221005:
+		case 3211003:
+		case 2201004:
+		case 2211002:
+			if (GetMobTemplate()->m_bIsBoss ||
+				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
+				return;
+			REGISTER_MOB_STAT_BY_USER(Freeze, 1);
+			if (nSkillID == 3221005 || nSkillID == 2121005)
+				m_pStat->tFreeze_ = tDelay + tCur + nX * 1000;
+			break;
+		case 3221006:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Blind, nX);
+			break;
+		case 4111003:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(Web, (int)(GetMobTemplate()->m_lnMaxHP / (50 - nSLV)));
+			break;
+		case 4120005:
+		case 4220005: 
+		{
+			if (GetMobTemplate()->m_bIsBoss ||
+				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
+				return;
+			int nUserStat = std::max(1, pUser->GetBasicStat()->nSTR + pUser->GetBasicStat()->nLUK);
+			int nSet = (int)((double)nUserStat * 0.8) + ((int)Rand32::GetInstance()->Random() % nUserStat);
+			nSet = pLevel->m_nDamage * (pUser->GetBasicStat()->nDEX + 5 * nSet) / 49;
+			if (m_pStat->nVenom_ <= nSet)
+			{
+				REGISTER_MOB_STAT_BY_USER(Venom, nSet);
+				m_tLastUpdateVenom = tCur;
+			}
+			break;
+		}
+		case 4121004:
+		case 4221004:
+			if (GetMobTemplate()->m_bIsBoss)
+				return;
+			REGISTER_MOB_STAT_BY_USER(
+				Ambush, 
+				(nSLV + 30) 
+				* pLevel->m_nDamage 
+				* (pUser->GetBasicStat()->nSTR + pUser->GetBasicStat()->nDEX) / 2000
+			);
+
+			m_tLastUpdateAmbush = tCur;
+			break;
+	}
+	if (nFlagReset)
+		SendMobTemporaryStatReset(nFlagReset);
+	if (nFlagSet)
+		SendMobTemporaryStatSet(nFlagSet, tDelay);
 }
 
 void Mob::SendMobTemporaryStatSet(int nSet, int tDelay)
@@ -661,14 +858,33 @@ void Mob::OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem)
 	m_pField->AddCP(nLastDamageCharacterID, m_pMobTemplate->m_nGetCP);
 	GiveReward(
 		nOwnerID,
-		nOwnType,
 		nOwnPartyID,
+		nOwnType,
 		nHitX,
 		nHitY,
 		0,
 		nMesoUp,
 		nMesoUpByItem
 	);
+}
+
+void Mob::OnApplyCtrl(User *pUser, InPacket *iPacket)
+{
+	int nCharacterID = pUser->GetUserID();
+	int nPriority = iPacket->Decode4();
+
+	auto *pGen = (LifePool::MobGen*)m_pMobGen;
+	if (pGen && 
+		pGen->nTeamForMCarnival >= 0 &&
+		pGen->nTeamForMCarnival == pUser->GetMCarnivalTeam())
+			nPriority = 1000;
+	
+	auto pController = (m_pController ? m_pController->GetUser() : nullptr);
+	if ((pController == pUser) ||
+		(!m_bNextAttackPossible &&
+			m_nCtrlPriority - 20 > nPriority &&
+			m_pField->GetLifePool()->ChangeMobController(nCharacterID, this, false)))
+		m_nCtrlPriority = nPriority;
 }
 
 int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamageCharacterID)
@@ -690,6 +906,13 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 			nHighestDamageUser = dmg.second.nCharacterID;
 			nHighestDamageRecord = dmg.second.nDamage;
 		}
+	}
+
+	auto pPartyForHighestUser = PartyMan::GetInstance()->GetPartyByCharID(nHighestDamageUser);
+	if (pPartyForHighestUser)
+	{
+		refOwnType = 1;
+		refOwnParyID = pPartyForHighestUser->nPartyID;
 	}
 
 	for (auto& info : m_damageLog.mInfo)
@@ -897,7 +1120,7 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 			GetPosX(),
 			GetPosY(),
 			nXOffset,
-			0,
+			GetPosY() - 100,
 			0,
 			0,
 			0,
@@ -965,7 +1188,10 @@ Mob::DamageLog& Mob::GetDamageLog()
 
 void Mob::Update(int tCur)
 {
-	UpdatePoison(tCur);
+	UpdateMobStatChange(tCur, m_pStat->nPoison_, m_pStat->tPoison_, m_tLastUpdatePoison);
+	UpdateMobStatChange(tCur, m_pStat->nVenom_, m_pStat->tVenom_, m_tLastUpdateVenom);
+	UpdateMobStatChange(tCur, m_pStat->nAmbush_, m_pStat->tAmbush_, m_tLastUpdateAmbush);
+
 	auto nFlag = m_pStat->ResetTemporary(tCur);
 	if (nFlag)
 		SendMobTemporaryStatReset(nFlag);
@@ -974,17 +1200,23 @@ void Mob::Update(int tCur)
 	);
 	if (pAffectedArea)
 		OnMobInAffectedArea(pAffectedArea, tCur);
+
+	if (tCur - m_tLastMove > 5000)
+	{
+		m_pField->GetLifePool()->ChangeMobController(0, this, false);
+		m_tLastMove = tCur;
+	}
 }
 
-void Mob::UpdatePoison(int tCur)
+void Mob::UpdateMobStatChange(int tCur, int nVal, int tVal, int & nLastUpdateTime)
 {
 	int tTime = tCur;
-	if (m_pStat->nPoison_ > 0)
+	if (nVal > 0)
 	{
-		if (tTime < m_pStat->tPoison_)
-			tTime = m_pStat->tPoison_;
-		int nTimes = (tTime - m_tLastUpdatePoison) / 1000;
-		int nDamage = m_pStat->nPoison_;
+		if (tTime < tVal)
+			tTime = tVal;
+		int nTimes = (tTime - nLastUpdateTime) / 1000;
+		int nDamage = nVal;
 		if (m_pMobTemplate->m_nFixedDamage)
 			nDamage = m_pMobTemplate->m_nFixedDamage;
 		if (m_pMobTemplate->m_bOnlyNormalAttack)
@@ -997,13 +1229,7 @@ void Mob::UpdatePoison(int tCur)
 		oPacket.Encode4(GetFieldObjectID());
 		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
 		m_pField->BroadcastPacket(&oPacket);
+
+		nLastUpdateTime += 1000 * nTimes;
 	}
-}
-
-void Mob::UpdateVenom(int tCur)
-{
-}
-
-void Mob::UpdateAmbush(int tCur)
-{
 }

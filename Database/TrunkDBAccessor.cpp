@@ -17,6 +17,19 @@ std::pair<int, int> TrunkDBAccessor::LoadTrunk(int nAccountID)
 	return std::pair<int, int> { recordSet["SlotCount"], recordSet["Money"] };
 }
 
+void TrunkDBAccessor::UpdateTrunk(int nAccountID, int nMoney, int nSlotCount)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "INSERT INTO Trunk VALUES("
+		<< nAccountID << ", "
+		<< nSlotCount << ", "
+		<< nMoney << ") ON DUPLICATE KEY UPDATE "
+		<< "SlotCount = " << nSlotCount << ", "
+		<< "Money = " << nMoney;
+
+	queryStatement.execute();
+}
+
 std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkEquip(int nAccountID)
 {
 	std::vector<GW_ItemSlotBase*> aRet;

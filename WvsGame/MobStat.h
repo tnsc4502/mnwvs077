@@ -53,8 +53,10 @@ public:
 		nMDD = 0,
 		nACC = 0,
 		nEVA = 0,
+		nShowdown = 0,
 		nSpeed = 0,
 		nLevel = 0;
+
 	double dFs = 0;
 	bool bInvincible = false;
 	int aDamagedElemAttr[MobTemplate::MAX_DAMAGED_ELEM_ATTR] = { 0 };

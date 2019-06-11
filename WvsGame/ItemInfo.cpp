@@ -835,30 +835,23 @@ void ItemInfo::LoadIncrementStat(BasicIncrementStat & refStat, void * pProp)
 void ItemInfo::LoadAbilityStat(BasicAbilityStat & refStat, void * pProp)
 {
 	auto& infoImg = (*((WZ::Node*)pProp));	
-	refStat.nAttribute = (int)infoImg["bagType"];
-	if (((int)infoImg["notSale"]) == 1)
-		refStat.nAttribute |= ItemAttribute::eNotSale;
-	if (((int)infoImg["expireOnLogout"]) == 1)
-		refStat.nAttribute |= ItemAttribute::eExpireOnLogout;
-	if (((int)infoImg["pickUpBlock"] == 1))
-		refStat.nAttribute |= ItemAttribute::ePickUpBlock;
-	if (((int)infoImg["equipTradeBlock"] == 1))
-		refStat.nAttribute |= ItemAttribute::eTradeBlockAfterEquip;
-	if (((int)infoImg["only"]) == 1)
-		refStat.nAttribute |= ItemAttribute::eOnly;
-	if (((int)infoImg["accountSharable"] == 1))
-		refStat.nAttribute |= ItemAttribute::eAccountSharable;
-	if (((int)infoImg["quest"]) == 1)
-		refStat.nAttribute |= ItemAttribute::eQuest;
-	if (((int)infoImg["tradeBlock"]) == 1)
-		refStat.nAttribute |= ItemAttribute::eTradeBlock;
-	if (((int)infoImg["accountShareTag"] == 1))
-		refStat.nAttribute |= ItemAttribute::eAccountShareTag;
-	if (((int)infoImg["mobHP"] == 1) && (int)infoImg["mobHP"] < 100)
+	refStat.nAttribute = atoi(((std::string)infoImg["bagType"]).c_str());
+	refStat.nAttribute |= atoi(((std::string)infoImg["notSale"]).c_str()) * ItemAttribute::eNotSale;
+	refStat.nAttribute |= atoi(((std::string)infoImg["expireOnLogout"]).c_str()) * ItemAttribute::eExpireOnLogout;
+	refStat.nAttribute |= atoi(((std::string)infoImg["pickUpBlock"]).c_str()) * ItemAttribute::ePickUpBlock;
+	refStat.nAttribute |= atoi(((std::string)infoImg["equipTradeBlock"]).c_str()) * ItemAttribute::eTradeBlockAfterEquip;
+	refStat.nAttribute |= atoi(((std::string)infoImg["only"]).c_str()) * ItemAttribute::eOnly;
+	refStat.nAttribute |= atoi(((std::string)infoImg["accountSharable"]).c_str()) * ItemAttribute::eAccountSharable;
+	refStat.nAttribute |= atoi(((std::string)infoImg["quest"]).c_str()) * ItemAttribute::eQuest;
+	refStat.nAttribute |= atoi(((std::string)infoImg["tradeBlock"]).c_str()) * ItemAttribute::eTradeBlock;
+	refStat.nAttribute |= atoi(((std::string)infoImg["accountShareTag"]).c_str()) * ItemAttribute::eAccountShareTag;
+	
+	int nMobHP = atoi(((std::string)infoImg["mobHP"]).c_str());
+	if(nMobHP && nMobHP < 0100)
 		refStat.nAttribute |= ItemAttribute::eMobHP;
 
-	refStat.bCash = ((int)infoImg["cash"]) == 1;
-	refStat.bTimeLimited = ((int)infoImg["timeLimited"]) == 1;
+	refStat.bCash = (atoi(((std::string)infoImg["cash"]).c_str())) == 1;
+	refStat.bTimeLimited = (atoi(((std::string)infoImg["timeLimited"]).c_str())) == 1;
 }
 
 GW_ItemSlotBase * ItemInfo::GetItemSlot(int nItemID, ItemVariationOption enOption)

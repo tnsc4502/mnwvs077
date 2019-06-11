@@ -25,6 +25,13 @@ DropPool::~DropPool()
 {
 }
 
+const Drop * DropPool::GetDrop(int nDropID)
+{
+	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
+	auto findIter = m_mDrop.find(nDropID);
+	return findIter == m_mDrop.end() ? nullptr : findIter->second;
+}
+
 void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int tDelay, int bAdmin, int nPos, bool bByPet)
 {
 	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
@@ -96,6 +103,7 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 {
 	iPacket->Decode4();
 	iPacket->Decode1();
+	int tCur = GameDateTime::GetTime();
 	int nX = iPacket->Decode2();
 	int nY = iPacket->Decode2();
 	int nObjectID = iPacket->Decode4();
@@ -106,6 +114,20 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 	{
 		auto pDrop = findIter->second;
 		int nItemID = 0, nCount = 0;
+
+		//Check owner
+		if(!pDrop->m_nOwnType &&
+			pDrop->m_dwOwnerID &&
+			pDrop->m_dwOwnerID != pUser->GetUserID() && 
+			tCur - pDrop->m_tCreateTime < 10 * 1000)
+			pUser->SendDropPickUpResultPacket(false, false, 0, 0, false);
+
+		//Check own party.
+		if (pDrop->m_nOwnType &&
+			pDrop->m_dwOwnPartyID != pUser->GetPartyID() &&
+			tCur - pDrop->m_tCreateTime < 10 * 1000)
+			pUser->SendDropPickUpResultPacket(false, false, 0, 0, false);
+
 		if (pDrop->m_bIsMoney)
 		{
 			nCount = pDrop->m_nMoney;
@@ -139,14 +161,11 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 			OutPacket oPacket;
 			pDrop->MakeLeaveFieldPacket(&oPacket, 2, pUser->GetUserID());
 			m_pField->SplitSendPacket(&oPacket, nullptr);
-			//delete pDrop->m_pItem;
 			FreeObj(pDrop);
 			m_mDrop.erase(nObjectID);
 		}
 	}
 }
-
-#include "..\WvsLib\Logger\WvsLogger.h"
 
 std::vector<Drop*> DropPool::FindDropInRect(const FieldRect & rc, int tTimeAfter)
 {
@@ -155,7 +174,6 @@ std::vector<Drop*> DropPool::FindDropInRect(const FieldRect & rc, int tTimeAfter
 	int tCur = GameDateTime::GetTime();
 	for (auto& prDrop : m_mDrop)
 	{
-		WvsLogger::LogFormat("Drop POS = %d, %d, Remained Time = %d\n", prDrop.second->GetPosX(), prDrop.second->GetPosY(), tCur - prDrop.second->m_tCreateTime);
 		if (tCur - prDrop.second->m_tCreateTime >= tTimeAfter &&
 			rc.PtInRect({ prDrop.second->GetPosX(), prDrop.second->GetPosY() }))
 			aRet.push_back(prDrop.second);

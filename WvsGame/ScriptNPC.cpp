@@ -46,7 +46,7 @@ void ScriptNPC::Register(lua_State * L)
 		{ "askMenu", SelfAskMenu },
 		{ "sayNext", SelfSayNext },
 		{ "say", SelfSay },
-		{ "field", SelfGetField },
+		{ "getField", SelfGetField },
 		{ "debug", Debug },
 		{ NULL, NULL }
 	};

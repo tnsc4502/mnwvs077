@@ -19,8 +19,11 @@ void SkillEntry::AddLevelData(SkillLevelData * pLevelData)
 
 const SkillLevelData * SkillEntry::GetLevelData(int nLevel) const
 {
-	if (nLevel < 0 || nLevel >= (int)m_aLevelData.size())
+	if (nLevel < 0)
 		return nullptr;
+	if (nLevel >= (int)m_aLevelData.size())
+		return m_aLevelData.back();
+
 	return m_aLevelData[nLevel];
 }
 

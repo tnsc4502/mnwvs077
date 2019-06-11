@@ -41,7 +41,7 @@ private:
 public:
 
 	bool bOnTrading = false;
-	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax, nMoneyTrading = 0;
+	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax, nMoneyTrading = 0, nActiveEffectItemID = 0;
 	std::string strName;
 
 	GW_Avatar *mAvatarData = nullptr;
@@ -61,7 +61,7 @@ public:
 	std::set<long long int> mItemRemovedRecord[6];
 
 	void Load(int nCharacterID);
-	void LoadAvatar(int nCharacterID);
+	void LoadCharacter(int nCharacterID);
 	void Save(bool isNewCharacter = false);
 	void SaveInventoryRemovedRecord();
 
@@ -69,14 +69,12 @@ public:
 	void DecodeCharacterData(InPacket *iPacket, bool bForInternal);
 	void DecodeItemSlot(InPacket *iPacket, bool bForInternal);
 	void DecodeInventoryRemovedRecord(InPacket *iPacket);
-
 	void DecodeAvatarLook(InPacket* iPacket);
 	void DecodeSkillRecord(InPacket* iPacket);
 
 	void EncodeCharacterData(OutPacket *oPacket, bool bForInternal);
 	void EncodeItemSlot(OutPacket *oPacket, bool bForInternal);
 	void EncodeInventoryRemovedRecord(OutPacket *oPacket);
-
 	void EncodeAvatar(OutPacket *oPacket);
 	void EncodeAvatarLook(OutPacket *oPacket);
 	void EncodeStat(OutPacket *oPacket);

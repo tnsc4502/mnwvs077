@@ -25,7 +25,7 @@ void Drop::MakeEnterFieldPacket(OutPacket * oPacket, int nEnterType, int tDelay)
 	oPacket->Encode4(m_dwDropID);
 	oPacket->Encode1(m_bIsMoney);
 	oPacket->Encode4(m_pItem != nullptr ? m_pItem->nItemID : m_nMoney);
-	oPacket->Encode4(m_dwOwnerID);
+	oPacket->Encode4(m_nOwnType ? m_dwOwnPartyID : m_dwOwnerID);
 	oPacket->Encode1(m_nOwnType);
 	oPacket->Encode2(m_pt2.x);
 	oPacket->Encode2(m_pt2.y);
@@ -52,11 +52,9 @@ void Drop::MakeLeaveFieldPacket(OutPacket * oPacket, int nLeaveType, int nOption
 	oPacket->Encode1((char)nLeaveType);
 	oPacket->Encode4(m_dwDropID);
 	if (nLeaveType >= 2 && nLeaveType != 4)
-	{
 		oPacket->Encode4(nOption);
-	}
 	else if (nLeaveType == 4)
-		oPacket->Encode2(0);
+		oPacket->Encode2(nOption);
 }
 
 bool Drop::IsShowTo(User * pUser)
@@ -105,4 +103,9 @@ int Drop::GetDropInfo() const
 	if (m_pItem)
 		return m_pItem->nItemID;
 	return 0;
+}
+
+int Drop::GetMoney() const
+{
+	return m_nMoney;
 }

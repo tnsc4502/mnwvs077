@@ -32,6 +32,7 @@ void Script::Register(lua_State * L)
 	luaL_Reg SysTable[] = {
 		{ "random", ScriptSysRandom },
 		{ "getTime", ScriptSysTime },
+		{ "getDateTime", ScriptSysDateTime },
 		{ NULL, NULL }
 	};
 
@@ -149,6 +150,12 @@ int Script::ScriptSysRandom(lua_State * L)
 int Script::ScriptSysTime(lua_State * L)
 {
 	lua_pushinteger(L, GameDateTime::GetTime());
+	return 1;
+}
+
+int Script::ScriptSysDateTime(lua_State * L)
+{
+	lua_pushinteger(L, GameDateTime::GetCurrentDate());
 	return 1;
 }
 

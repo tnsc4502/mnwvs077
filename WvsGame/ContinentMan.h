@@ -35,6 +35,7 @@ public:
 		long long int m_tTerm = 0,
 			m_tMobGen = 0,
 			m_tBoarding = 0,
+			m_tBoardingTime = 0,
 			m_tWait = 0,
 			m_tEvent = 0,
 			m_tRequired = 0,
@@ -73,6 +74,8 @@ public:
 	void MoveField(int nFieldFrom, int nFieldTo);
 	void SetReactorState(int nFieldID, const std::string& sName, int nState);
 	int FindContiMove(int nFieldID);
+	void OnAllSummonedMobRemoved(int nFieldID);
 	int GetInfo(int nFieldID, int nFlag);
+	long long int GetBoardingTime(int nFieldID);
 };
 

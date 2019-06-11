@@ -760,15 +760,15 @@ void LocalServer::OnTrunkRequest(InPacket * iPacket)
 			break;
 		}
 		case Trunk::TrunkRequest::rq_Trunk_MoveSlotToTrunk:
-		{
 			pTrunk->MoveSlotToTrunk(nAccountID, iPacket);
 			break;
-		}
 		case Trunk::TrunkRequest::rq_Trunk_MoveTrunkToSlot:
-		{
 			pTrunk->MoveTrunkToSlot(nAccountID, iPacket);
 			break;
-		}
+		case Trunk::TrunkRequest::rq_Trunk_WithdrawMoney:
+			pTrunk->WithdrawMoney(nAccountID, iPacket);
+			break;
+		
 	}
 	FreeObj(pTrunk);
 }

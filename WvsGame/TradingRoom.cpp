@@ -4,6 +4,7 @@
 #include "BackupItem.h"
 #include "User.h"
 #include "QWUser.h"
+#include "ItemInfo.h"
 #include <algorithm>
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotBundle.h"
@@ -63,6 +64,13 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 	auto pItem = pUser->GetCharacterData()->GetItem(nTI, nPOS);
 	if (pItem)
 	{
+		if (ItemInfo::GetInstance()->IsTradeBlockItem(pItem->nItemID)
+			|| ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID))
+		{
+			pUser->SendNoticeMessage("無法交易的物品。");
+			pUser->SendCharacterStat(true, 0);
+			return;
+		}
 		GW_ItemSlotBase* pItemCopyed = nullptr;
 		QWUInventory::MoveItemToTemp(pUser, &pItemCopyed, nTI, nPOS, nNumber);
 

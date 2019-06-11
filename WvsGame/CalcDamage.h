@@ -31,5 +31,6 @@ public:
 	bool CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck);
 	int PDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand);
 	void PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage);
+	void MesoExplosionDamage(MobStat *ms, int *anMoneyAmount, int nDropCount, int *aDamage);
 };
 

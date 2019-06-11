@@ -1,5 +1,6 @@
 #include "LoginSocket.h"
 #include "WvsLogin.h"
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\Database\LoginDBAccessor.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -10,7 +11,8 @@
 LoginSocket::LoginSocket(asio::io_service& serverService)
 	: SocketBase(serverService)
 {
-	m_loginEntry.Initialize();
+	m_pLoginEntry.reset(AllocObj(LoginEntry), [](LoginEntry* p) { FreeObj(p); });
+	m_pLoginEntry->Initialize();
 }
 
 LoginSocket::~LoginSocket()
@@ -84,10 +86,10 @@ void LoginSocket::OnLoginBackgroundRequest()
 
 void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 {
-	if (m_loginEntry.nLoginState != LoginState::LS_Connection_Established)
+	if (m_pLoginEntry->nLoginState != LoginState::LS_Connection_Established)
 		return;
 
-	m_loginEntry.Initialize();
+	m_pLoginEntry->Initialize();
 	auto sID = iPacket->DecodeStr();
 	auto sPasswd = iPacket->DecodeStr();
 	int nCheckResult = LoginDBAccessor::CheckPassword(
@@ -95,17 +97,17 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 		sPasswd,
 		0,
 		7,
-		m_loginEntry.nAccountID,
-		m_loginEntry.nGender
+		m_pLoginEntry->nAccountID,
+		m_pLoginEntry->nGender
 	);
 
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketFlag::Client_CheckPasswordResponse);
-	LoginEntry* pEntry = nullptr;
+	const LoginEntry* pEntry = nullptr;
 
 	if (nCheckResult == LoginResult::res_PasswdCheck_Success)
 	{
-		if ((pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByAccountID(m_loginEntry.nAccountID)))
+		if ((pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByAccountID(m_pLoginEntry->nAccountID)))
 		{
 			nCheckResult = LoginResult::res_LoginStatus_Account_AlreadyLoggedIn;
 			if (!WvsBase::GetInstance<WvsLogin>()->GetSocket(pEntry->uLoginSocketSN))
@@ -113,14 +115,14 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 				if (pEntry->nWorldID == -1)
 				{
 					nCheckResult = LoginResult::res_PasswdCheck_Success;
-					WvsBase::GetInstance<WvsLogin>()->RemoveLoginEntryByAccountID(m_loginEntry.nAccountID);
+					WvsBase::GetInstance<WvsLogin>()->RemoveLoginEntryByAccountID(m_pLoginEntry->nAccountID);
 					goto LOGIN_SUCCESS;
 				}
 				//To ensure the consistency of specific login state between WvsLogin and WvsCenter.
 				OutPacket oPacket;
 				oPacket.Encode2(LoginSendPacketFlag::Center_RequestLoginAuth);
 				oPacket.Encode1(LoginAuthRequest::rq_LoginAuth_RefreshLoginState);
-				oPacket.Encode4(m_loginEntry.nAccountID);
+				oPacket.Encode4(m_pLoginEntry->nAccountID);
 				WvsBase::GetInstance<WvsLogin>()->GetCenter(pEntry->nWorldID)->SendPacket(&oPacket);
 			}
 			goto REPORT_FAILED_REASON;
@@ -133,12 +135,12 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 
 	LOGIN_SUCCESS:
 		oPacket.Encode1(nCheckResult);
-		m_loginEntry.uLoginSocketSN = GetSocketID();
-		m_loginEntry.strAccountName = sID;
-		m_loginEntry.nLoginState = LoginState::LS_PasswdCheck_Authenticated;
-		WvsBase::GetInstance<WvsLogin>()->RegisterLoginEntry(&m_loginEntry);
-		oPacket.Encode4(m_loginEntry.nAccountID); //Account ID
-		oPacket.Encode1(m_loginEntry.nGender); //Gender
+		m_pLoginEntry->uLoginSocketSN = GetSocketID();
+		m_pLoginEntry->strAccountName = sID;
+		m_pLoginEntry->nLoginState = LoginState::LS_PasswdCheck_Authenticated;
+		WvsBase::GetInstance<WvsLogin>()->RegisterLoginEntry(m_pLoginEntry);
+		oPacket.Encode4(m_pLoginEntry->nAccountID); //Account ID
+		oPacket.Encode1(m_pLoginEntry->nGender); //Gender
 		oPacket.Encode1(0); //GM
 		oPacket.EncodeStr(sID);
 		oPacket.Encode4(0);
@@ -153,7 +155,7 @@ REPORT_FAILED_REASON:
 	if (nCheckResult)
 	{
 		oPacket.Encode1(nCheckResult);
-		m_loginEntry.Initialize();
+		m_pLoginEntry->Initialize();
 		SendPacket(&oPacket);
 	}
 }
@@ -229,16 +231,16 @@ void LoginSocket::OnClientSelectWorld(InPacket *iPacket)
 
 	if (pCenter->CheckSocketStatus(SocketBase::SocketStatus::eConnected))
 	{
-		m_loginEntry.nLoginState = LoginState::LS_Stage_SelectWorld;
+		m_pLoginEntry->nLoginState = LoginState::LS_Stage_SelectWorld;
 
 		OutPacket oPacket;
 		oPacket.Encode2(LoginSendPacketFlag::Center_RequestCharacterList);
 		oPacket.Encode4(GetSocketID());
-		oPacket.Encode4(m_loginEntry.nAccountID);
+		oPacket.Encode4(m_pLoginEntry->nAccountID);
 		oPacket.Encode1(nChannelIndex);
 		pCenter->SendPacket(&oPacket);
-		m_loginEntry.nChannelID = nChannelIndex;
-		m_loginEntry.nWorldID = nWorldIndex;
+		m_pLoginEntry->nChannelID = nChannelIndex;
+		m_pLoginEntry->nWorldID = nWorldIndex;
 	}
 	else
 		WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][LoginSocket::OnClientSelectWorld][錯誤]客戶端嘗試連線至不存在的Center Server。\n");
@@ -267,26 +269,26 @@ void LoginSocket::OnClientCheckDuplicatedID(InPacket *iPacket)
 
 void LoginSocket::OnClientCreateNewCharacter(InPacket *iPacket)
 {
-	m_loginEntry.nLoginState = LoginState::LS_Stage_CreateNewCharacter;
+	m_pLoginEntry->nLoginState = LoginState::LS_Stage_CreateNewCharacter;
 
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketFlag::Center_RequestCreateNewCharacter);
 	oPacket.Encode4(GetSocketID());
-	oPacket.Encode4(m_loginEntry.nAccountID);
+	oPacket.Encode4(m_pLoginEntry->nAccountID);
 	oPacket.EncodeBuffer(iPacket->GetPacket() + 2, iPacket->GetPacketSize() - 2); //SKIP OPCODE
-	WvsBase::GetInstance<WvsLogin>()->GetCenter(m_loginEntry.nWorldID)->SendPacket(&oPacket);
+	WvsBase::GetInstance<WvsLogin>()->GetCenter(m_pLoginEntry->nWorldID)->SendPacket(&oPacket);
 }
 
 void LoginSocket::OnClientSelectCharacter(InPacket *iPacket)
 {
-	m_loginEntry.nLoginState = LoginState::LS_Stage_SelectCharacter;
+	m_pLoginEntry->nLoginState = LoginState::LS_Stage_SelectCharacter;
 
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketFlag::Center_RequestGameServerInfo);
 	oPacket.Encode4(GetSocketID());
-	oPacket.Encode4(m_loginEntry.nAccountID);
-	oPacket.Encode4(m_loginEntry.nWorldID);
-	oPacket.Encode4(m_loginEntry.nChannelID);
+	oPacket.Encode4(m_pLoginEntry->nAccountID);
+	oPacket.Encode4(m_pLoginEntry->nWorldID);
+	oPacket.Encode4(m_pLoginEntry->nChannelID);
 	oPacket.EncodeBuffer(iPacket->GetPacket() + 2, iPacket->GetPacketSize() - 2);
-	WvsBase::GetInstance<WvsLogin>()->GetCenter(m_loginEntry.nWorldID)->SendPacket(&oPacket);
+	WvsBase::GetInstance<WvsLogin>()->GetCenter(m_pLoginEntry->nWorldID)->SendPacket(&oPacket);
 }

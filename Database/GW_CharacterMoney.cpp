@@ -22,7 +22,7 @@ void GW_CharacterMoney::Save(int nCharacterID, bool bIsNewCharacter)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	if (bIsNewCharacter)
-		queryStatement << "INSERT INTO CharacterMoney(CharacterID, Money) VALUES(" 
+		queryStatement << "INSERT INTO CharacterMoney (CharacterID, Money) VALUES(" 
 		<< nCharacterID << ","
 		<< nMoney << ")";
 	else

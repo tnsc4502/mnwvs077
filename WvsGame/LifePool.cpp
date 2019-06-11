@@ -28,6 +28,10 @@
 #include "SkillInfo.h"
 #include "MobSkillEntry.h"
 #include "MobSkillLevelData.h"
+#include "DropPool.h"
+#include "Drop.h"
+#include "CalcDamage.h"
+#include "ContinentMan.h"
 #include <cmath>
 
 LifePool::LifePool()
@@ -314,6 +318,9 @@ void LifePool::RemoveMob(Mob* pMob)
 	m_pField->SplitSendPacket(&oPacket, nullptr);
 	m_mMob.erase(pMob->GetFieldObjectID());
 	FreeObj( pMob );
+
+	if(m_mMob.size() == 0)
+		ContinentMan::GetInstance()->OnAllSummonedMobRemoved(m_pField->GetFieldID());
 }
 
 void LifePool::RemoveAllMob(bool bExceptMobDamagedByMob)
@@ -459,10 +466,52 @@ void LifePool::UpdateCtrlHeap(Controller * pController)
 	//找到pUser對應的iterator
 	auto& iter = m_mController.find(pUser->GetUserID());
 
-
 	//從hCtrl中移除此controller，並重新插入 [新的數量為key]
 	m_hCtrl.erase(iter->second);
 	m_mController[pUser->GetUserID()] = m_hCtrl.insert({ pController->GetTotalControlledCount(), pController });
+}
+
+bool LifePool::ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChase)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	auto pUser = User::FindUser(nCharacterID);
+	if (!pUser || //Invalid user
+		!pMobWanted ||  //Invalid mob
+		pMobWanted->GetTemplateID() == 9999999)
+		return false;
+
+	auto pController = pMobWanted->GetController();
+	decltype(pController) pNextController = nullptr;
+	if (nCharacterID)
+	{
+		auto findIter = m_mController.find(nCharacterID);
+		if (findIter == m_mController.end() ||
+			(pNextController = findIter->second->second) == pController)
+			return false;
+	}
+	else
+		for (auto iter = m_hCtrl.rbegin(); iter != m_hCtrl.rend(); ++iter)
+			if (iter->second->GetNpcCtrlCount() + iter->second->GetMobCtrlCount() < 50)
+			{
+				pNextController = iter->second;
+				break;
+			}
+
+	if (!pNextController)
+		return false;
+
+	auto& aControlledMob = pController->GetMobCtrlList();
+	aControlledMob.erase(
+		std::find(aControlledMob.begin(), aControlledMob.end(), pMobWanted)
+	);
+
+	pMobWanted->SetController(pNextController);
+	pNextController->GetMobCtrlList().push_back(pMobWanted);
+	UpdateCtrlHeap(pNextController);
+
+	pMobWanted->SendChangeControllerPacket(pController->GetUser(), 0);
+	pMobWanted->SendChangeControllerPacket(pUser, (bChase != 0 ? 1 : 0) + 1);
+	return true;
 }
 
 bool LifePool::GiveUpMobController(Controller * pController)
@@ -620,11 +669,34 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 		OnNpcPacket(pUser, nType, iPacket);
 }
 
-#include "CalcDamage.h"
-
-void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo *pInfo)
+void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo)
 {
+#undef min
+
 	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
+
+	//Prepare Meso Explosion Drops
+	if (pInfo->anDropID.size() > 0)
+	{
+		FieldPoint pt, ptUser;
+		ptUser.x = pUser->GetPosX();
+		ptUser.y = pUser->GetPosY();
+		for (auto nID : pInfo->anDropID)
+		{
+			auto pDrop = m_pField->GetDropPool()->GetDrop(nID);
+			if (!pDrop || pDrop->GetMoney() <= 0)
+				continue;
+			pt.x = pDrop->GetPosX();
+			pt.y = pDrop->GetPosY();
+			if (pt.Range(ptUser) > 500)
+			{
+				pUser->SendChatMessage(0, "Invalid range of meso explosion drop (too far : > 500).");
+				continue;
+			}
+			pInfo->anMoneyAmount.push_back(pDrop->GetMoney());
+			m_pField->GetDropPool()->Remove(nID, 653);
+		}
+	}
 	for (auto& iterDmgInfo : pInfo->m_mDmgInfo)
 	{
 		auto& dmgInfo = iterDmgInfo.second;
@@ -632,59 +704,76 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 		if (mobIter == m_mMob.end())
 			continue;
 		auto pMob = mobIter->second;
-
 		dmgInfo.pMob = pMob;
-		if (pInfo->m_nAttackType == 2)
-			pUser->GetCalcDamage()->MDamage(
-				pMob,
-				pMob->GetMobStat(),
-				pInfo->GetDamageCountPerMob(),
-				pInfo->m_nWeaponItemID,
-				pInfo->m_nAction,
-				pSkill,
-				pInfo->m_nSLV,
-				dmgInfo.anDamageSrv,
-				dmgInfo.abDamageCriticalSrv,
-				pInfo->GetDamagedMobCount(),
-				pInfo->m_tKeyDown
-			);
-		else
-			pUser->GetCalcDamage()->PDamage(
-				pMob,
-				pMob->GetMobStat(),
-				pInfo->GetDamageCountPerMob(),
-				pInfo->m_nWeaponItemID,
-				pInfo->m_nBulletItemID,
-				pInfo->m_nSkillID == 0 ? 0 : pInfo->m_nAttackType,
-				pInfo->m_nAction,
-				false,
-				pSkill,
-				pInfo->m_nSLV,
-				dmgInfo.anDamageSrv,
-				dmgInfo.abDamageCriticalSrv,
-				pInfo->m_tKeyDown,
-				0,
-				0
-			);
-		/*for (int i = 0; i < 8; ++i)
-			WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
-				i, dmgInfo.anDamageSrv[i], 0, dmgInfo.abDamageCriticalSrv[i]);*/
 
+		//Calc Meso Explosion Damages.
+		if (pInfo->m_nSkillID == 4211006)
+		{
+			if (dmgInfo.nDamageCount > (int)pInfo->anDropID.size())
+			{
+				pUser->SendChatMessage(0, "Incorrect meso explosion drop count.");
+				continue;
+			}
+			pUser->GetCalcDamage()->MesoExplosionDamage(
+				pMob->GetMobStat(),
+				pInfo->anMoneyAmount.data(),
+				std::min(dmgInfo.nDamageCount, (int)pInfo->anMoneyAmount.size()),
+				dmgInfo.anDamageSrv
+			);
+			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
+				WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
+					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);
+		}
+		else //Calc Normal Skill Damages
+		{
+			if (pInfo->m_nAttackType == 2) //Magic Damages
+				pUser->GetCalcDamage()->MDamage(
+					pMob,
+					pMob->GetMobStat(),
+					dmgInfo.nDamageCount,
+					pInfo->m_nWeaponItemID,
+					pInfo->m_nAction,
+					pSkill,
+					pInfo->m_nSLV,
+					dmgInfo.anDamageSrv,
+					dmgInfo.abDamageCriticalSrv,
+					pInfo->GetDamagedMobCount(),
+					pInfo->m_tKeyDown
+				);
+			else //Physical Damages
+				pUser->GetCalcDamage()->PDamage(
+					pMob,
+					pMob->GetMobStat(),
+					dmgInfo.nDamageCount,
+					pInfo->m_nWeaponItemID,
+					pInfo->m_nBulletItemID,
+					pInfo->m_nSkillID == 0 ? 0 : pInfo->m_nAttackType,
+					pInfo->m_nAction,
+					false,
+					pSkill,
+					pInfo->m_nSLV,
+					dmgInfo.anDamageSrv,
+					dmgInfo.abDamageCriticalSrv,
+					pInfo->m_tKeyDown,
+					0,
+					0
+				);
+		}
+
+		//Inspect Damage Values Between Server and Client
 		long long int liTotalDmgClient = 0, liTotalDmgSrv = 0;
-		//Inspection
-		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
+		for (int i = 0; i < dmgInfo.nDamageCount; ++i) 
 		{
 			liTotalDmgClient += dmgInfo.anDamageClient[i];
 			liTotalDmgSrv += dmgInfo.anDamageSrv[i];
 
 			if ((double)dmgInfo.anDamageClient[i] >= (double)dmgInfo.anDamageSrv[i] * 1.3)
 			{
-				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably hacking 
+				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably be hacking 
 				{
 					pUser->GetCalcDamage()->IncInvalidCount();
-					//pUser->SendChatMessage(0, "Suspicious Attacking.");
-					//dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
-					//continue;
+					if(dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 6)
+						dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
 				}
 				else //Possible that critial damages were yielded in the client but not in the server. 
 					dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i] = true;
@@ -693,7 +782,6 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 			else if(dmgInfo.anDamageClient[i] > (double)dmgInfo.anDamageSrv[i]
 				|| dmgInfo.anDamageSrv[i] >= (double)dmgInfo.anDamageClient[i] * 1.4)
 				dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i];
-
 			dmgInfo.anDamageSrv[i] = dmgInfo.anDamageClient[i];
 		}
 
@@ -702,17 +790,24 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 		else
 			pUser->GetCalcDamage()->DecInvalidCount();
 	}
+
+	//Send Attack Packet and Apply Damages to Monsters
 	OutPacket attackPacket;
 	EncodeAttackInfo(pUser, pInfo, &attackPacket);
 	m_pField->SplitSendPacket(&attackPacket, nullptr);
-
-	//Apply damages to the monster
-	for (auto& iter : pInfo->m_mDmgInfo) 
+	for (auto& iter : pInfo->m_mDmgInfo) //Apply damages to the monster
 	{
 		auto& dmgInfo = iter.second;
-		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
+		for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 		{
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
+			OnMobStatChangeSkill(
+				pUser, 
+				dmgInfo.pMob->GetFieldObjectID(), 
+				SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID), 
+				pInfo->m_nSLV, 
+				0
+			);
 			if (dmgInfo.pMob->GetHP() <= 0)
 			{
 				dmgInfo.pMob->OnMobDead(
@@ -727,6 +822,13 @@ void LifePool::OnUserAttack(User * pUser, const SkillEntry * pSkill, AttackInfo 
 			}
 		}
 	}
+}
+
+void LifePool::OnMobStatChangeSkill(User * pUser, int nMobID, const SkillEntry * pSkill, int nSLV, int tDelay)
+{
+	auto pMob = GetMob(nMobID);
+	if (pMob)
+		pMob->OnMobStatChangeSkill(pUser, pSkill, nSLV, 0, tDelay);
 }
 
 
@@ -753,11 +855,9 @@ void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oP
 		oPacket->Encode4(dmgInfo.first);
 		oPacket->Encode1(7);
 		if (pInfo->m_nSkillID == 4211006)
-			oPacket->Encode1((char)pInfo->GetDamageCountPerMob());
-		for (int i = 0; i < pInfo->GetDamageCountPerMob(); ++i)
-			oPacket->Encode4(
-			(int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31)
-			);
+			oPacket->Encode1(dmgInfo.second.nDamageCount);
+		for (int i = 0; i < dmgInfo.second.nDamageCount; ++i)
+			oPacket->Encode4((int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31));
 	}
 
 	if (pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)
@@ -803,9 +903,12 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 	if (mobIter != m_mMob.end()) {
 		switch (nType)
 		{
-		case MobRecvPacketFlag::Mob_OnMove:
-			m_pField->OnMobMove(pUser, mobIter->second, iPacket);
-			break;
+			case MobRecvPacketFlag::Mob_OnMove:
+				m_pField->OnMobMove(pUser, mobIter->second, iPacket);
+				break;
+			case MobRecvPacketFlag::Mob_OnApplyControl:
+				mobIter->second->OnApplyCtrl(pUser, iPacket);
+				break;
 		}
 	}
 	else {

@@ -3,6 +3,7 @@
 #include "LifePool.h"
 #include "ReactorPool.h"
 #include "FieldMan.h"
+#include "ItemInfo.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Wz\ImgAccessor.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
@@ -34,6 +35,7 @@ void ContinentMan::Init()
 	{
 		contiObj.Load(&conti);
 		contiObj.m_tBoarding = GameDateTime::GetCurrentDate() + 600 * 1000 * 1000;
+		contiObj.m_tBoardingTime = contiObj.m_tBoarding + contiObj.m_tWait / 10;
 		m_aContiMove.push_back(contiObj);
 	}
 	m_pTimer->Start();
@@ -114,6 +116,13 @@ int ContinentMan::FindContiMove(int nFieldID)
 	return -1;
 }
 
+void ContinentMan::OnAllSummonedMobRemoved(int nFieldID)
+{
+	for (int i = 0; i < (int)m_aContiMove.size(); ++i)
+		if (m_aContiMove[i].m_nFieldIDMove == nFieldID)
+			SendContiPacket(nFieldID, 10, ContiMov::ContiState::e_Conti_OnMobDestroyed);
+}
+
 int ContinentMan::GetInfo(int nFieldID, int nFlag)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
@@ -127,15 +136,25 @@ int ContinentMan::GetInfo(int nFieldID, int nFlag)
 	return m_aContiMove[nIdx].m_nState;
 }
 
+long long int ContinentMan::GetBoardingTime(int nFieldID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	int nIdx = FindContiMove(nFieldID);
+	if (nIdx < 0)
+		return 0;
+
+	return m_aContiMove[nIdx].m_tBoardingTime;
+}
+
 void ContinentMan::ContiMov::ResetEvent()
 {
 	m_bEvent = (m_nMobItemID) && ((int)(Rand32::GetInstance()->Random() % 100) <= 30);
 	m_bEventDoing = false;
-	int tMobGen = 0;
-	if (m_tRequired == 5)
+	int tMobGen = 0, tRequired = (int)(m_tRequired / (long long int)(600 * 1000 * 1000));
+	if (tRequired == 5)
 		tMobGen = (int)(Rand32::GetInstance()->Random() % 5);
-	else if (m_tRequired > 5)
-		tMobGen = (int)(Rand32::GetInstance()->Random() % (m_tRequired - 5));
+	else if (tRequired > 5)
+		tMobGen = (int)(Rand32::GetInstance()->Random() % (tRequired - 5));
 
 	m_tMobGen = m_tBoarding + 600 * 1000 * 1000 * tMobGen;
 }
@@ -175,8 +194,11 @@ int ContinentMan::ContiMov::GetState()
 	long long tCur = GameDateTime::GetCurrentDate();
 	if (m_nState == e_Conti_OnWaitingClock)
 	{
-		if (tCur > m_tBoarding)
+		if (tCur > m_tBoarding) 
+		{
 			m_nState = e_Conti_OnBoarding;
+			m_tBoardingTime = tCur + m_tWait / 10;
+		}
 		return m_nState;
 	}
 
@@ -221,6 +243,15 @@ void ContinentMan::ContiMov::SummonMob()
 	auto pField = FieldMan::GetInstance()->GetField(m_nFieldIDMove);
 	if (pField)
 	{
+		std::lock_guard<std::recursive_mutex> lock(pField->GetFieldLock());
+		auto pSummonItem = ItemInfo::GetInstance()->GetMobSummonItem(m_nMobItemID);
+		if(pSummonItem)
+			pField->GetLifePool()->OnMobSummonItemUseRequest(
+				m_nMobPosition_x,
+				m_nMobPosition_y,
+				pSummonItem,
+				false
+			);
 	}
 }
 

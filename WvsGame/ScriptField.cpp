@@ -8,6 +8,7 @@
 #include "MobTemplate.h"
 #include "StaticFoothold.h"
 #include "WvsPhysicalSpace2D.h"
+#include "ContinentMan.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 
@@ -48,6 +49,7 @@ void ScriptField::Register(lua_State * L)
 		{ "summonMob", FieldSummonMob },
 		{ "summonNpc", FieldSummonNpc },
 		{ "broadcast", FieldBroadcastPacket },
+		{ "getUserCount", FieldGetUserCount },
 		{ "countUserInArea", FieldCountUserInArea },
 		{ "reset", FieldReset },
 		{ "effectSound", FieldEffectSound },
@@ -55,6 +57,8 @@ void ScriptField::Register(lua_State * L)
 		{ "effectObject", FieldEffectObject },
 		{ "transferAll", FieldTransferAll },
 		{ "enablePortal", FieldEnablePortal },
+		{ "getContiState", FieldGetContiState },
+		{ "getContiBoardingTime", FieldGetContiBoardingTime },
 		{ NULL, NULL }
 	};
 
@@ -117,6 +121,13 @@ int ScriptField::FieldBroadcastPacket(lua_State * L)
 	return 1;
 }
 
+int ScriptField::FieldGetUserCount(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	lua_pushinteger(L, (int)self->m_pField->GetUsers().size());
+	return 1;
+}
+
 int ScriptField::FieldCountUserInArea(lua_State * L)
 {
 	ScriptField* self = luaW_check<ScriptField>(L, 1);
@@ -171,5 +182,19 @@ int ScriptField::FieldEnablePortal(lua_State * L)
 	const char* sPortal = luaL_checkstring(L, 2);
 	int bEnable = (int)luaL_checkinteger(L, 3);
 	self->m_pField->EnablePortal(sPortal, bEnable == 1);
+	return 1;
+}
+
+int ScriptField::FieldGetContiState(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	lua_pushinteger(L, ContinentMan::GetInstance()->GetInfo(self->m_pField->GetFieldID(), 1));
+	return 1;
+}
+
+int ScriptField::FieldGetContiBoardingTime(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	lua_pushinteger(L, ContinentMan::GetInstance()->GetBoardingTime(self->m_pField->GetFieldID()));
 	return 1;
 }

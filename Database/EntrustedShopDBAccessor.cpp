@@ -74,6 +74,9 @@ long long int EntrustedShopDBAccessor::QueryEntrustedShopMoney(int nCharacterID)
 void EntrustedShopDBAccessor::UpdateEntrustedShopMoney(int nCharacterID, int nMoney)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "UPDATE EntrustedShop Set Money = " << nMoney << " WHERE CharacterID = " << nCharacterID;
+	queryStatement << "INSERT INTO EntrustedShop VALUES("
+		<< nCharacterID << ", "
+		<< nMoney << ") ON DUPLICATE KEY UPDATE "
+		<< "Money = " << nMoney;
 	queryStatement.execute();
 }

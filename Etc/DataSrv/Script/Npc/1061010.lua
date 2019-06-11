@@ -1,7 +1,7 @@
 
 require "./DataSrv/Script/sysDef"
 
-fieldID = self->field()->getID();
+fieldID = self->getField()->getID();
 returnField = 0;
 if(fieldID == 108010301)
     returnField = 102000000;

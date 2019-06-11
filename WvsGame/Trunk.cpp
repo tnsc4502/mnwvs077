@@ -2,6 +2,7 @@
 
 #ifdef _WVSGAME
 #include "User.h"
+#include "BasicStat.h"
 #include "BackupItem.h"
 #include "QWUInventory.h"
 #include "WvsGame.h"
@@ -89,6 +90,9 @@ void Trunk::OnPacket(User *pUser, InPacket *iPacket)
 		case TrunkRequest::rq_Trunk_Close:
 			pUser->SetTrunk(nullptr);
 			break;
+		case TrunkRequest::rq_Trunk_WithdrawMoney:
+			OnWithdrawMoney(pUser, iPacket);
+			break;
 	}
 }
 
@@ -98,7 +102,7 @@ void Trunk::OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket)
 	int nItemID = iPacket->Decode4();
 	int nNumber = iPacket->Decode2();
 	int nTI = nItemID / 1000000;
-	
+
 	auto pItem = pUser->GetCharacterData()->GetItem(nTI, nPOS);
 	if ((nTI == GW_ItemSlotBase::EQUIP && nNumber != 1) ||
 		!pItem ||
@@ -178,6 +182,7 @@ void Trunk::OnMoveSlotToTrunkDone(User *pUser, InPacket *iPacket)
 	int nDecRet;
 	std::vector<InventoryManipulator::ChangeLog> aLog;
 	GW_ItemSlotBase* pItem = nullptr;
+
 	InventoryManipulator::RawRemoveItem(pUser->GetCharacterData(), nTI, nPOS, nNumber, &aLog, &nDecRet, &pItem, nullptr);
 	QWUInventory::SendInventoryOperation(pUser, true, aLog);
 	m_aaItemSlot[nTI].push_back(pItem);
@@ -192,9 +197,10 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 {
 	int nTI = iPacket->Decode1();
 	int nPOS = iPacket->Decode1();
-	auto pItem = m_aaItemSlot[nTI][nPOS];
 	std::vector<InventoryManipulator::ChangeLog> aLog;
 	std::vector<BackupItem> aBackup;
+
+	auto pItem = m_aaItemSlot[nTI][nPOS];
 	int nInc = 0;
 	bool bAdd = InventoryManipulator::RawAddItem(pUser->GetCharacterData(), nTI, pItem, &aLog, &nInc, true, &aBackup);
 	if (!bAdd)
@@ -228,15 +234,46 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 	}
 }
 
+void Trunk::OnWithdrawMoneyDone(User *pUser, InPacket *iPacket)
+{
+	int nResult = iPacket->Decode1();
+	if (nResult != 1)
+		pUser->SendNoticeMessage("發生異常。");
+	else 
+	{
+		m_nSlotCount = iPacket->Decode1();
+		m_nMoney = iPacket->Decode4();
+
+		OutPacket oPacket;
+		oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
+		oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveSlotToTrunk);
+		Encode(2, &oPacket);
+		pUser->SendPacket(&oPacket);
+	}
+	pUser->SendCharacterStat(true, BasicStat::BS_Meso);
+}
+
+void Trunk::OnWithdrawMoney(User *pUser, InPacket *iPacket)
+{
+	int nMoney = iPacket->Decode4();
+	if (nMoney <= m_nMoney)
+	{
+		if (QWUInventory::Exchange(pUser, nMoney, std::vector<ExchangeElement>{}))
+			pUser->SendNoticeMessage("交易失敗，可能是楓幣不足或已滿。");
+		else
+			m_nMoney += (-nMoney);
+
+		OutPacket oPacket;
+		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode1(TrunkRequest::rq_Trunk_WithdrawMoney);
+		oPacket.Encode4(pUser->GetAccountID());
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(m_nSlotCount);
+		oPacket.Encode4(m_nMoney);
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
 #endif
-
-void Trunk::OnPutMoney(User *pUser, InPacket *iPacket)
-{
-}
-
-void Trunk::OnTakeMoney(User *pUser, InPacket *iPacket)
-{
-}
 
 //CENTER
 #ifdef _WVSCENTER
@@ -328,6 +365,28 @@ void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)
 	oPacket.Encode1(TrunkResult::res_Trunk_MoveTrunkToSlot);
 	oPacket.Encode1(nTI);
 	oPacket.Encode1(nPOS);
+
+	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+	if (pwUser)
+		pwUser->SendPacket(&oPacket);
+}
+
+void Trunk::WithdrawMoney(int nAccountID, InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nSlotCount = iPacket->Decode1();
+	int nMoney = iPacket->Decode4();
+
+	TrunkDBAccessor::UpdateTrunk(nAccountID, nMoney, nSlotCount);
+	auto prTrunk = TrunkDBAccessor::LoadTrunk(nAccountID);
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode1(TrunkResult::res_Trunk_WithdrawMoney);
+	oPacket.Encode1(1);
+	oPacket.Encode1(prTrunk.first);
+	oPacket.Encode4(prTrunk.second);
 
 	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	if (pwUser)

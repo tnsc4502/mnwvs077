@@ -27,34 +27,22 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 	if (nPOS >= 0 && nPOS < aItemList.size())
 	{
 		auto pItem = aItemList[nPOS];
-
 		if (nCount > 0 && pItem && pItem->nPrice)
 		{
 			int nPrice = pItem->nPrice * (ItemInfo::IsRechargable(nItemID) ? 1 : nCount);
-			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
-			std::vector<BackupItem> aBackup;
 			nCount *= pItem->nQuantity;
 			if (pItem->nTokenPrice > 0)
 			{
-				ExchangeElement token;
-				token.m_nItemID = pItem->nTokenItemID;
-				token.m_nCount = -(pItem->nTokenPrice);
-				aExchange.push_back(token);
+				aExchange.push_back({});
+				aExchange.back().m_nItemID = pItem->nTokenItemID;
+				aExchange.back().m_nCount = -(pItem->nTokenPrice);
 			}
-			ExchangeElement shopItem;
-			shopItem.m_nItemID = pItem->nItemID;
-			shopItem.m_nCount = nCount;
-			aExchange.push_back(shopItem);
+			aExchange.push_back({});
+			aExchange.back().m_nItemID = pItem->nItemID;
+			aExchange.back().m_nCount = nCount;
 
-			auto nResult = QWUInventory::Exchange(
-				pUser,
-				-nPrice,
-				aExchange,
-				&aChangeLog,
-				&aChangeLog,
-				aBackup
-			);
+			auto nResult = QWUInventory::Exchange(pUser, -nPrice, aExchange);
 			switch (nResult)
 			{
 				case InventoryManipulator::Exchange_InsufficientMeso:
@@ -117,24 +105,12 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 		}
 		if (nCount > 0)
 		{
-			//auto pSoldItem = pItem->MakeClone();
-			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 			std::vector<ExchangeElement> aExchange;
-			std::vector<BackupItem> aBackup;
+			aExchange.push_back({});
+			aExchange.back().m_pItem = pItem;
+			aExchange.back().m_nCount = -nCount;
+			auto nResult = QWUInventory::Exchange(pUser, nPrice, aExchange);
 
-			ExchangeElement shopItem;
-			shopItem.m_pItem = pItem;
-			shopItem.m_nCount = -nCount;
-			aExchange.push_back(shopItem);
-
-			auto nResult = QWUInventory::Exchange(
-				pUser,
-				nPrice,
-				aExchange,
-				nullptr,
-				&aChangeLog,
-				aBackup
-			);
 			OutPacket oPacket;
 			MakeShopResult(pUser, pItem, &oPacket, 0, -1);
 			pUser->SendPacket(&oPacket);

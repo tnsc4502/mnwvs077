@@ -5,7 +5,7 @@ require "./DataSrv/Script/sysDef"
 
 
 --self->endx()
-self->say("heii"..self->field()->getID())
+self->say("heii"..self->getField()->getID())
 self->endx()
 self->askAvatar("選擇一個您喜歡的髮型a : ", 4031249, {30030
 ,30020

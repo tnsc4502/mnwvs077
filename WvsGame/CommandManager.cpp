@@ -118,11 +118,12 @@ int CmdFuncMaxSkill(User *pUser, PARAM_TYPE aInput)
 
 int CmdFuncTransfer(User *pUser, PARAM_TYPE aInput)
 {
-	int nFieldID = GetInt(aInput, 1, 100000000);
-	pUser->TryTransferField(
-		nFieldID,
-		""
-	);
+	auto pTarget = User::FindUserByName(Get(aInput, 1, ""));
+	if (!pTarget || !pUser->TryTransferField(pTarget->GetField()->GetFieldID(), ""))
+	{
+		int nFieldID = GetInt(aInput, 1, 100000000);
+		pUser->TryTransferField(nFieldID, "");
+	}
 	return 1;
 }
 

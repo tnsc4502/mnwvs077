@@ -28,17 +28,13 @@ Please define this in the beginning section of every DoActiveSkill_XXX
 */
 #define REGISTER_USE_SKILL_SECTION \
 nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);\
-auto pSkillLVLData = pSkill->GetLevelData(nSLV);\
+auto pSkillLVLData = pSkill->GetLevelData(bResetBySkill ? 1 : nSLV);\
 auto tsFlag = TemporaryStat::TS_Flag::GetDefault();\
+auto pSS = pUser->GetSecondaryStat();\
 std::pair<long long int, std::vector<int*>>* pRef = nullptr;\
 std::pair<long long int, std::vector<int>>* pRefIndie = nullptr;\
-auto pSS = pUser->GetSecondaryStat();\
-int nSkillID = pSkill->GetSkillID();\
-int tDelay = 0;\
-int nDuration = pSkillLVLData->m_nTime;\
-	if (nDuration == 0)\
-		nDuration = INT_MAX;
-
+int nSkillID = pSkill->GetSkillID(), tDelay = 0;\
+int nDuration = pSkillLVLData->m_nTime ? pSkillLVLData->m_nTime : (INT_MAX) ;\
 
 /*
 此MACRO作為註冊TemporaryStat(TS)用。
@@ -379,6 +375,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.COMBO, Integer.valueOf(1)));
 			break;
 		case 1004: // monster riding 
+			REGISTER_TS(RideVehicle, 1);
 			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.MONSTER_RIDING, Integer.valueOf(1)));
 			break;
 		case 5221006: // 4th Job - Pirate riding 
@@ -389,26 +386,6 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			break;
 		case 1311008: // dragon blood
 			REGISTER_TS(DragonBlood, pSkillLVLData->m_nX);
-			break;
-		case 1121000: // maple warrior, all classes
-		case 1221000:
-		case 1321000:
-		case 2121000:
-		case 2221000:
-		case 2321000:
-		case 3121000:
-		case 3221000:
-		case 4121000:
-		case 4221000:
-		case 5121000:
-		case 5221000:
-			REGISTER_TS(BasicStatUp, pSkillLVLData->m_nX);
-			break;
-		case 3121002: // sharp eyes bow master
-		case 3221002: // sharp eyes marksmen
-					  // hack much (TODO is the order correct?)
-			REGISTER_TS(SharpEyes, ((pSkillLVLData->m_nX << 8) | pSkillLVLData->m_nY));
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SHARP_EYES, Integer.valueOf(ret.x << 8 | ret.y)));
 			break;
 		case 1321007: // Beholder
 		case 2221005: // ifrit
@@ -642,6 +619,27 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 		{
 			REGISTER_TS(PAD, pSkillLVLData->m_nSpeed);
 		}
+		switch (nSkillID)
+		{
+			case 1121000:
+			case 1221000:
+			case 1321000:
+			case 2121000:
+			case 2221000:
+			case 2321000:
+			case 3121000:
+			case 3221000:
+			case 4121000:
+			case 4221000:
+			case 5121000:
+			case 5221000:
+				REGISTER_TS(BasicStatUp, pSkillLVLData->m_nX);
+				break;
+			case 3121002: 
+			case 3221002: 
+				REGISTER_TS(SharpEyes, ((pSkillLVLData->m_nX << 8) | pSkillLVLData->m_nY));
+				break;
+		}
 
 		if (pSkillLVLData->m_nHp)
 		{
@@ -662,6 +660,8 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 			pMember->SendTemporaryStatSet(tsFlag, tDelay);
 			if (pMember != pUser)
 				pMember->SendUseSkillEffectByParty(nSkillID, nSLV);
+			else
+				pMember->SendUseSkillEffect(nSkillID, nSLV);
 		}
 	}
 }

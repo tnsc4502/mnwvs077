@@ -34,6 +34,15 @@ oPacket->Encode2(n##name##_);\
 oPacket->Encode4(r##name##_); \
 oPacket->Encode4(t##name##_); }
 
+decltype(&SecondaryStat::EncodeForLocal) SecondaryStat::ms_aEncoder[] =
+{
+	&SecondaryStat::EncodeEnergyCharged,
+	&SecondaryStat::EncodeDash_Speed,
+	&SecondaryStat::EncodeDash_Jump,
+	&SecondaryStat::EncodeRideVehicle,
+	&SecondaryStat::EncodePartyBooster,
+	&SecondaryStat::EncodeGuidedBullet
+};
 
 SecondaryStat::SecondaryStat()
 {
@@ -77,6 +86,11 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 			break;
 		if (pEquip->nPOS == -11)
 			pWeapon = pEquip;
+
+		if (pEquip->nPOS == -18)
+			xRideVehicle_ = pEquip->nItemID;
+		if (pEquip->nPOS == -118)
+			yRideVehicle_ = pEquip->nItemID;
 
 		nPDD += pEquip->nPDD;
 		nPAD += pEquip->nPAD;
@@ -185,16 +199,10 @@ void SecondaryStat::EncodeForLocal(OutPacket * oPacket, TemporaryStat::TS_Flag &
 	oPacket->Encode1((int)nDefenseState_);
 	//oPacket->Encode1((int)nPVPDamage);
 
-
 	for (int i = 0; i < 6; ++i)
 	{
 		if (flag & TemporaryStat::TS_Flag(TemporaryStat::TS_EnergyCharged + i))
-		{
-			oPacket->Encode4(0);
-			oPacket->Encode4(0);
-			oPacket->Encode1(0);
-			oPacket->Encode4(0);
-		}
+			(this->*ms_aEncoder[i])(oPacket, flag);
 	}
 
 	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "Encode Local TS : \n");
@@ -228,7 +236,40 @@ void SecondaryStat::EncodeForRemote(OutPacket * oPacket, TemporaryStat::TS_Flag 
 
 	oPacket->Encode1((char)nDefenseAtt_);
 	oPacket->Encode1((char)nDefenseState_);
+
+	for (int i = 0; i < 6; ++i)
+	{
+		if (flag & TemporaryStat::TS_Flag(TemporaryStat::TS_EnergyCharged + i))
+			(this->*ms_aEncoder[i])(oPacket, flag);
+	}
 	//RideVechicle
+}
+
+void SecondaryStat::EncodeEnergyCharged(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
+}
+
+void SecondaryStat::EncodeDash_Speed(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
+}
+
+void SecondaryStat::EncodeDash_Jump(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
+}
+
+void SecondaryStat::EncodeRideVehicle(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
+	oPacket->Encode4(yRideVehicle_ && xRideVehicle_ ? yRideVehicle_ : xRideVehicle_);
+	oPacket->Encode4(rRideVehicle_);
+	oPacket->Encode4(0);
+}
+
+void SecondaryStat::EncodePartyBooster(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
+}
+
+void SecondaryStat::EncodeGuidedBullet(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
+{
 }
 
 bool SecondaryStat::EnDecode4Byte(TemporaryStat::TS_Flag & flag)

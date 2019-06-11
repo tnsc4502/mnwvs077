@@ -989,3 +989,45 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 		}
 	}
 }
+
+void CalcDamage::MesoExplosionDamage(MobStat * ms, int * anMoneyAmount, int nDropCount, int *aDamage)
+{
+	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
+	auto ss = m_pUser->GetSecondaryStat();
+	auto bs = m_pUser->GetBasicStat();
+	auto cd = m_pUser->GetCharacterData();
+
+	SkillEntry *pEntry;
+	int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
+		cd,
+		4211006,
+		&pEntry,
+		0,
+		0,
+		0,
+		0
+	);
+	auto pLevel = pEntry->GetLevelData(nSLV);
+	for (auto& nRnd : aRandom)
+		nRnd = (unsigned int)m_pRndGen->Random();
+
+	double dRatio = 0;
+	for (int i = 0; i < nDropCount; ++i)
+	{
+		aDamage[i] = 0;
+		NEXT_RAND;
+		if (ms->bInvincible)
+			continue;
+		else if (ms->nPImmune_)
+			aDamage[i] = 1;
+		else
+		{
+			if (anMoneyAmount[i] <= 1000)
+				dRatio = ((double)anMoneyAmount[i] * 0.82 + 28.0) * 0.0001886792452830189;
+			else
+				dRatio = (double)anMoneyAmount[i] / ((double)anMoneyAmount[i] + 5250);
+			dRatio *= ((double)(nRnd % 10000000) * 0.0000000500000050000005 + 0.5);
+			aDamage[i] = (int)((double)(50 * pLevel->m_nX) * dRatio);
+		}
+	}
+}

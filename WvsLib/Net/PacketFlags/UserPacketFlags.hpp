@@ -13,6 +13,7 @@ MAKE_FLAG_COLLECTION_BODY(UserSendPacketFlag)
 //¹ïÀ³ClientªºWvsContext::OnPacket
 
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnTransferChannel, 8);
+MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnAliveCheckRequest, 9);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnInventoryOperation, 22);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnInventoryGrow, 23);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnStatChanged, 24);
@@ -121,6 +122,7 @@ FLAG_COLLECTION_BODY_END
 
 //Start Recv
 MAKE_FLAG_COLLECTION_BODY(UserRecvPacketFlag)
+MAKE_USER_RECV_PACKET_FLAG(User_OnAliveCheckAck, 0x0A);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserTransferFieldRequest, 0x19);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserTransferChannelRequest, 0x1A);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserMigrateToCashShopRequest, 0x1B);
@@ -135,7 +137,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnHit, 0x23);
 MAKE_USER_RECV_PACKET_FLAG(User_OnUserChat, 0x24);
 MAKE_USER_RECV_PACKET_FLAG(User_OnCloseChatBallon, 0x25);
 MAKE_USER_RECV_PACKET_FLAG(User_OnEmotion, 0x26);
-MAKE_USER_RECV_PACKET_FLAG(User_OnItemEffect, 0x27);
+MAKE_USER_RECV_PACKET_FLAG(User_OnSetActiveEffectItem, 0x27);
 MAKE_USER_RECV_PACKET_FLAG(User_OnSelectNpc, 0x2C);
 MAKE_USER_RECV_PACKET_FLAG(User_OnScriptMessageAnswer, 0x2D);
 MAKE_USER_RECV_PACKET_FLAG(User_OnShopRequest, 0x2E);

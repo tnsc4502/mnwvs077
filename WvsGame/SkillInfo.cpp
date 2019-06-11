@@ -634,29 +634,37 @@ bool SkillInfo::IsPartyStatChangeSkill(int nSkillID)
 {
 	switch (nSkillID)
 	{
-		case 1101006:
+		//BasicStatUp
 		case 1121000:
 		case 1221000:
-		case 1301006:
-		case 1301007:
 		case 1321000:
-		case 2101001:
 		case 2121000:
 		case 2221000:
+		case 2321000:
+		case 3121000:
+		case 3221000:
+		case 4121000:
+		case 4221000:
+		case 5121000:
+		case 5221000:
+
+		//SharpEyes
+		case 3121002:
+		case 3221002:
+
+		case 1101006:
+		case 1301006:
+		case 1301007:
+		case 2101001:
 		case 2201001:
 		case 2301002:
 		case 2311003:
 		case 2311001:
-		case 2321000:
 		case 2321005:
 		case 2321006:
-		case 3121000:
-		case 3121002:
 		case 4101004:
 		case 4111001:
-		case 4121000:
 		case 4201003:
-		case 4221000:
 			return true;
 	}
 	return false;

@@ -48,7 +48,7 @@ void ScriptUser::Register(lua_State * L)
 		{ "inventory", TargetInventory }, 
 		{ "questRecord", TargetQuestRecord },
 		{ "questEndEffect", TargetQuestEndEffect },
-		{ "field", TargetField },
+		{ "getField", TargetField },
 		{ "transferField", TargetRegisterTransferField },
 		{ "incHP", TargetIncHP },
 		{ "incMP", TargetIncMP },

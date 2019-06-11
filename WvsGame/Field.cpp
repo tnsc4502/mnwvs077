@@ -472,7 +472,6 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 	ctrlAckPacket.Encode2((int)pMob->GetMP());
 	ctrlAckPacket.Encode1(nSkillCommand);
 	ctrlAckPacket.Encode1(nSLV);
-	
 
 	//Encode Move Packet
 	OutPacket movePacket;
@@ -483,12 +482,8 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 
 	//dwData
 	movePacket.Encode4(nData);
-	/*movePacket.Encode1(nSkillCommand);
-	movePacket.Encode1(nSLV);
-	movePacket.Encode2(nSkillEffect);*/
 
 	std::lock_guard<std::recursive_mutex> lifeGuard(m_pLifePool->GetLock());
-	//for (auto& elem : movePath.m_lElem)
 	auto& elem = *(movePath.m_lElem.rbegin());
 	{
 		elem.y += -1;
@@ -496,14 +491,9 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 		pMob->SetPosX(elem.x);
 		pMob->SetPosY(elem.y);
 		pMob->SetMoveAction(elem.bMoveAction);
-		//if(elem.fh != 0)
 		pMob->SetFh(elem.fh);
 	}
-	//movePacket.Encode2(pMob->GetPosX());
-	//movePacket.Encode2(pMob->GetPosY());
 	movePath.Encode(&movePacket);
-
-	//pCtrl->SendPacket(&ctrlAckPacket);
 	pCtrl->SendPacket(&ctrlAckPacket);
 	SplitSendPacket(&movePacket, pCtrl);
 }

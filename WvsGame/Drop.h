@@ -49,5 +49,6 @@ public:
 	void Init(unsigned int dwDropID, Reward *reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int bByPet);
 	GW_ItemSlotBase* GetItem();
 	int GetDropInfo() const;
+	int GetMoney() const;
 };
 

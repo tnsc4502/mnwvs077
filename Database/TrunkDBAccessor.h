@@ -7,6 +7,7 @@ class TrunkDBAccessor
 {
 public:
 	static std::pair<int, int> LoadTrunk(int nAccountID);
+	static void UpdateTrunk(int nAccountID, int nMoney, int nSlotCount);
 	static std::vector<GW_ItemSlotBase*> LoadTrunkEquip(int nAccountID);
 	static std::vector<GW_ItemSlotBase*> LoadTrunkEtc(int nAccountID); 
 	static std::vector<GW_ItemSlotBase*> LoadTrunkInstall(int nAccountID);
