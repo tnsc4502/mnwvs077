@@ -51,6 +51,7 @@ MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnSetWeekEventMessage, 60);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnSetPotionDiscountRate, 61);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnImitatedNPCResult, 63);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnImitatedNPCData, 64);
+MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnGuildBBSResult, 68);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnAvatarMegaPacket, 73);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnMacroSysDataInit, 76);
 //WvsContext::OnPacket 已知部分結束
@@ -186,6 +187,7 @@ MAKE_USER_RECV_PACKET_FLAG(User_OnFriendRequest, 0x66);
 
 
 MAKE_USER_RECV_PACKET_FLAG(User_OnFuncKeyMappedModified, 0x6B);
+MAKE_USER_RECV_PACKET_FLAG(User_OnGuildBBSRequest, 0x71);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPetMove, 0x7B);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPetAction, 0x7C);
 MAKE_USER_RECV_PACKET_FLAG(User_OnPetActionSpeak, 0x7D);

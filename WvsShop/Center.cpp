@@ -4,19 +4,18 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-
 #include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-
+#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
+#include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 
 #include "User.h"
 #include "WvsShop.h"
-
-#include "..\WvsLib\Logger\WvsLogger.h"
 
 Center::Center(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -52,7 +51,7 @@ void Center::OnConnected()
 	oPacket.Encode2(WvsBase::GetInstance<WvsShop>()->GetExternalPort());
 
 	//Encode Existing Users.
-	std::lock_guard<std::mutex> lock(WvsBase::GetInstance<WvsShop>()->GetUserLock());
+	std::lock_guard<std::recursive_mutex> lock(WvsBase::GetInstance<WvsShop>()->GetUserLock());
 	auto& mConnectedUser = WvsBase::GetInstance<WvsShop>()->GetConnectedUser();
 	oPacket.Encode4((int)mConnectedUser.size());
 	for (auto& prUser : mConnectedUser) 
@@ -100,6 +99,9 @@ void Center::OnPacket(InPacket *iPacket)
 				pUser->OnCenterCashItemResult((unsigned short)iPacket->Decode2(), iPacket);
 		}
 		break;
+		case CenterSendPacketFlag::CheckMigrationState:
+			OnCheckMigrationState(iPacket);
+			break;
 	}
 }
 
@@ -126,8 +128,15 @@ void Center::OnNotifyCenterDisconnected(SocketBase * pSocket)
 void Center::OnCenterMigrateInResult(InPacket *iPacket)
 {
 	unsigned int nClientSocketID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	bool bValid = iPacket->Decode1() == 1 ? 1 : 0;
 	auto pSocket = WvsBase::GetInstance<WvsShop>()->GetSocket(nClientSocketID);
-
+	if (!bValid || !pSocket)
+	{
+		if (pSocket)
+			pSocket->GetSocket().close();
+		WvsBase::GetInstance<WvsShop>()->RemoveMigratingUser(nCharacterID);
+	}
 
 	auto deleter = [](User* p) { FreeObj(p); };
 	std::shared_ptr<User> pUser{ AllocObjCtor( User )((ClientSocket*)pSocket, iPacket), deleter };
@@ -156,4 +165,39 @@ void Center::OnCenterMigrateOutResult(InPacket * iPacket)
 		oPacket.EncodeBuffer(iPacket->GetPacket() + 7, iPacket->GetPacketSize() - 7);
 	}
 	pSocket->SendPacket(&oPacket);
+}
+
+void Center::OnCheckMigrationState(InPacket *iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::CheckMigrationState);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode4(-1);
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+		oPacket.Encode1(1); //already migrated in.
+	else
+	{
+		auto& prMigrating = WvsBase::GetInstance<WvsShop>()->GetMigratingUser(nCharacterID);
+		if (prMigrating.first == 0)
+			oPacket.Encode1(0); //Not yet migrated in.
+		else
+		{
+			int tMigrateTime = prMigrating.second;
+
+			//Check migrating time out.
+			if (GameDateTime::GetTime() - tMigrateTime > 60 * 1000)
+			{
+				auto pSocket = WvsBase::GetInstance<WvsShop>()->GetSocket(prMigrating.first);
+				if (pSocket)
+					pSocket->GetSocket().close();
+				WvsBase::GetInstance<WvsShop>()->RemoveMigratingUser(nCharacterID);
+				oPacket.Encode1(0);
+			}
+			else
+				oPacket.Encode1(1); //Migration request had been sent, but haven't received the character data.
+		}
+	}
+	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 }

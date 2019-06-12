@@ -11,6 +11,7 @@ void UMiniRoom::OnMiniRoom(User *pUser, InPacket *iPacket)
 		switch (nType)
 		{
 			case MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MRInviteResult:
+				OnMRInviteResult(pUser, iPacket);
 				break;
 			case MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MREnter:
 				OnMREnter(pUser, iPacket);
@@ -41,6 +42,13 @@ void UMiniRoom::OnMREnter(User *pUser, InPacket *iPacket)
 	int nSN = iPacket->Decode4();
 	if (nSN)
 		MiniRoomBase::Enter(pUser, nSN, iPacket, false);
+}
+
+void UMiniRoom::OnMRInviteResult(User *pUser, InPacket *iPacket)
+{
+	int nSN = iPacket->Decode4();
+	if (nSN)
+		MiniRoomBase::InviteResult(pUser, nSN, iPacket->Decode1());
 }
 
 void UMiniRoom::OnMRForward(User *pUser, int nType, InPacket *iPacket)

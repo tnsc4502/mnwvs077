@@ -136,6 +136,7 @@
     <ClInclude Include="DateTime\GameDateTime.h" />
     <ClInclude Include="Evaluator\Evaluator.h" />
     <ClInclude Include="Evaluator\exprtk.hpp" />
+    <ClInclude Include="Exception\WvsException.h" />
     <ClInclude Include="Logger\WvsLogger.h" />
     <ClInclude Include="Memory\Arena.h" />
     <ClInclude Include="Memory\ArenaVector.h" />
@@ -218,6 +219,7 @@
     <ClCompile Include="Crypto\WvsCrypto.cpp" />
     <ClCompile Include="DateTime\GameDateTime.cpp" />
     <ClCompile Include="Evaluator\Evaluator.cpp" />
+    <ClCompile Include="Exception\WvsException.cpp" />
     <ClCompile Include="Logger\WvsLogger.cpp" />
     <ClCompile Include="Memory\Arena.cpp" />
     <ClCompile Include="Memory\BufferPool.cpp" />

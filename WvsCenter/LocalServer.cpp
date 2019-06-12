@@ -17,6 +17,7 @@
 #include "AuthEntry.h"
 #include "UserTransferStatus.h"
 #include "EntrustedShopMan.h"
+#include "GuildBBSMan.h"
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
@@ -43,6 +44,8 @@ void LocalServer::OnClosed()
 void LocalServer::InsertConnectedUser(int nUserID)
 {
 	std::lock_guard<std::mutex> lock(m_mtxUserLock);
+	InPacket iPacket((unsigned char*)&nUserID, 4);
+	GuildMan::GetInstance()->LoadGuild(&iPacket, nullptr);
 	m_sUser.insert(nUserID);
 }
 
@@ -52,10 +55,33 @@ void LocalServer::RemoveConnectedUser(int nUserID)
 	m_sUser.erase(nUserID);
 }
 
+int ProcessLocalServerPacket(LocalServer* pSrv, InPacket *iPacket)
+{
+	int nType = ((short*)iPacket->GetPacket())[0];
+	bool bExcpetionOccurred = false;
+	__try
+	{
+		pSrv->ProcessPacket(iPacket);
+	}
+	__except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION)
+	{
+		bExcpetionOccurred = true;
+	}
+	return bExcpetionOccurred ? nType : -1;
+}
+
 void LocalServer::OnPacket(InPacket *iPacket)
 {
 	WvsLogger::LogRaw("[WvsCenter][LocalServer::OnPacket]«Ê¥]±µ¦¬¡G");
 	iPacket->Print();
+	int nResult = ProcessLocalServerPacket(this, iPacket);
+
+	if (nResult != -1)
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Unhandled System-Level Excpetion Has Been Caught: Packet Type = %d\n", nResult);
+}
+
+void LocalServer::ProcessPacket(InPacket * iPacket)
+{
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
@@ -109,6 +135,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 		case GameSrvSendPacketFlag::GuildRequest:
 			OnGuildRequest(iPacket);
 			break;
+		case GameSrvSendPacketFlag::GuildBBSRequest:
+			OnGuildBBSRequest(iPacket);
+			break;
 		case GameSrvSendPacketFlag::FriendRequest:
 			OnFriendRequest(iPacket);
 			break;
@@ -129,6 +158,9 @@ void LocalServer::OnPacket(InPacket *iPacket)
 			break;
 		case GameSrvSendPacketFlag::GameClientDisconnected:
 			OnGameClientDisconnected(iPacket);
+			break;
+		case GameSrvSendPacketFlag::CheckMigrationState:
+			OnCheckMigrationStateAck(iPacket);
 			break;
 	}
 }
@@ -186,24 +218,7 @@ void LocalServer::OnRequestCharacterList(InPacket *iPacket)
 	int nAccountID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode1();
 	if (WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) != nullptr) 
-	{
-		auto aID = CharacterDBAccessor::GetInstance()->PostLoadCharacterListRequest(this, nLoginSocketID, nAccountID, WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
-		/*for (auto nID : aID)
-		{
-			auto pUser = WvsWorld::GetInstance()->GetUser(nID);
-			if (!pUser) 
-			{
-				pUser = AllocObj(WvsWorld::WorldUser);
-				pUser->m_nCharacterID = nID;
-				pUser->m_nAccountID = nAccountID;
-				WvsWorld::GetInstance()->SetUser(nID, pUser);
-			}
-			pUser->m_bLoggedIn = true;
-			pUser->m_nChannelID = nChannelID;
-			pUser->m_nLocalSrvIdx = 0; //
-			pUser->m_nLocalSocketSN = nLoginSocketID;
-		}*/
-	}
+		CharacterDBAccessor::GetInstance()->PostLoadCharacterListRequest(this, nLoginSocketID, nAccountID, WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 }
 
 void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
@@ -377,6 +392,7 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	OutPacket oPacket;
 	oPacket.Encode2(CenterSendPacketFlag::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
+	oPacket.Encode4(nCharacterID);
 	CharacterDBAccessor::GetInstance()->PostCharacterDataRequest(this, nClientSocketID, nCharacterID, &oPacket); // for WvsGame
 	auto pUserTransferStatus = WvsWorld::GetInstance()->GetUserTransferStatus(nCharacterID);
 
@@ -398,11 +414,11 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode4();
+	RemoveConnectedUser(nCharacterID);
 
 	CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
 	char nGameEndType = iPacket->Decode1();
 	WvsLogger::LogFormat("OnRequestMigrateOut code = %d\n", (int)nGameEndType);
-	m_sUser.erase(nCharacterID);
 
 	if (nGameEndType == 1) //Transfer to another game server or to the shop.
 	{
@@ -417,8 +433,6 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 		WvsWorld::GetInstance()->RemoveUser(nCharacterID, nChannelID, nClientSocketID, false);
 	}
 	// nGameEndType = 2 : From shop to game server
-
-	RemoveConnectedUser(nCharacterID);
 }
 
 void LocalServer::OnRequestTransferChannel(InPacket * iPacket)
@@ -472,13 +486,30 @@ void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
 	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, WvsWorld::CHANNELID_SHOP);
 }
 
-void LocalServer::OnGameClientDisconnected(InPacket* iPacket)
+void LocalServer::OnGameClientDisconnected(InPacket *iPacket)
 {
 	iPacket->Decode4();
 	WvsWorld::GetInstance()->RemoveAuthEntry(iPacket->Decode4());
 }
 
-void LocalServer::OnRequestBuyCashItem(InPacket* iPacket)
+void LocalServer::OnCheckMigrationStateAck(InPacket *iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(WvsWorld::GetInstance()->GetLock());
+	int nCharacterID = iPacket->Decode4();
+	int nChannelID = iPacket->Decode4();
+	bool bMigratedIn = iPacket->Decode1() ? 1 : 0;
+
+	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+	if (pwUser && pwUser->m_nChannelID != nChannelID) //Already transfered to other channels.
+		WvsWorld::GetInstance()->SendMigrationStateCheck(pwUser);
+	else if (pwUser && !bMigratedIn)
+	{
+		WvsWorld::GetInstance()->RemoveUser(nCharacterID, 0, 0, 0);
+		WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
+	}
+}
+
+void LocalServer::OnRequestBuyCashItem(InPacket *iPacket)
 {
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
@@ -590,7 +621,17 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 		SendPacket(&oPacket);
 }
 
-void LocalServer::OnFriendRequest(InPacket * iPacket)
+void LocalServer::OnGuildBBSRequest(InPacket *iPacket)
+{
+	int nGuildID = iPacket->Decode4();
+	auto pGuild = GuildMan::GetInstance()->GetGuild(nGuildID);
+	if (!pGuild)
+		return;
+	
+	GuildBBSMan::GetInstance()->OnGuildBBSRequest(pGuild, iPacket);
+}
+
+void LocalServer::OnFriendRequest(InPacket *iPacket)
 {
 	int nRequest = iPacket->Decode1();
 	OutPacket oPacket;

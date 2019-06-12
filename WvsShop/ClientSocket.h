@@ -8,6 +8,8 @@ class ClientSocket :
 {
 	void OnClosed();
 	User *pUser = nullptr;
+	int m_nCharacterID = 0;
+
 public:
 	ClientSocket(asio::io_service& serverService);
 	~ClientSocket();
@@ -17,5 +19,6 @@ public:
 
 	void OnPacket(InPacket *iPacket);
 	void OnMigrateIn(InPacket *iPacket);
+	void OnSocketDisconnected();
 };
 

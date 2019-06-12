@@ -76,10 +76,11 @@ void GA_Character::LoadCharacter(int nCharacterID)
 	nAccountID = recordSet["AccountID"];
 	nWorldID = recordSet["WorldID"];
 	strName = recordSet["CharacterName"].toString();
-	nGuildID = recordSet["GuildID"];
-	nPartyID = recordSet["PartyID"];
+	//nGuildID = recordSet["GuildID"];
+	//nPartyID = recordSet["PartyID"];
 	nFieldID = recordSet["FieldID"];
 	nFriendMax = recordSet["FriendMaxNum"];
+	nGradeCode = recordSet["GradeCode"];
 	nActiveEffectItemID = recordSet["ActiveEffectItemID"];
 	//nGender = recordSet["Gender"];
 }
@@ -537,11 +538,15 @@ void GA_Character::DecodeCharacterData(InPacket *iPacket, bool bForInternal)
 			iPacket->Decode4();
 	}
 
-	//ALWAYS PUT THIS AT BELOW
+	//ALWAYS PUT AT DOWNMOST PLACE.
 	if (bForInternal)
-	{
-		nActiveEffectItemID = iPacket->Decode4();
-	}
+		DecodeInternalData(iPacket);
+}
+
+void GA_Character::DecodeInternalData(InPacket * iPacket)
+{
+	nGradeCode = iPacket->Decode1();
+	nActiveEffectItemID = iPacket->Decode4();
 }
 
 void GA_Character::DecodeStat(InPacket *iPacket)
@@ -758,10 +763,15 @@ void GA_Character::EncodeCharacterData(OutPacket *oPacket, bool bForInternal)
 			oPacket->Encode4(0);
 	}
 
+	//ALWAYS PUT AT DOWNMOST PLACE.
 	if (bForInternal)
-	{
-		oPacket->Encode4(nActiveEffectItemID);
-	}
+		EncodeInternalData(oPacket);
+}
+
+void GA_Character::EncodeInternalData(OutPacket *oPacket)
+{
+	oPacket->Encode1(nGradeCode);
+	oPacket->Encode4(nActiveEffectItemID);
 }
 
 void GA_Character::EncodeItemSlot(OutPacket *oPacket, bool bForInternal)

@@ -23,6 +23,8 @@ MAKE_GAME_SRV_PACKET_FLAG(WhisperMessage, 0x6009);
 MAKE_GAME_SRV_PACKET_FLAG(TrunkRequest, 0x600A);
 MAKE_GAME_SRV_PACKET_FLAG(EntrustedShopRequest, 0x600B);
 MAKE_GAME_SRV_PACKET_FLAG(GameClientDisconnected, 0x600C);
+MAKE_GAME_SRV_PACKET_FLAG(CheckMigrationState, 0x600D);
+MAKE_GAME_SRV_PACKET_FLAG(GuildBBSRequest, 0x600E);
 
 
 //Flags to Game

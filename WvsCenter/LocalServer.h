@@ -10,14 +10,15 @@ private:
 	std::mutex m_mtxUserLock;
 
 	void OnClosed();
-	void InsertConnectedUser(int nUserID);
 	void RemoveConnectedUser(int nUserID);
 
 public:
 	LocalServer(asio::io_service& serverService);
 	~LocalServer();
 
+	void InsertConnectedUser(int nUserID);
 	void OnPacket(InPacket *iPacket);
+	void ProcessPacket(InPacket *iPacket);
 	void OnRegisterCenterRequest(InPacket *iPacket);
 	void OnRequestCharacterList(InPacket *iPacket);
 	void OnRequestCreateNewCharacter(InPacket *iPacket);
@@ -28,6 +29,7 @@ public:
 	void OnRequestTransferChannel(InPacket *iPacket);
 	void OnRequestMigrateCashShop(InPacket *iPacket);
 	void OnGameClientDisconnected(InPacket *iPacket);
+	void OnCheckMigrationStateAck(InPacket *iPacket);
 	
 	//Cash Shop
 	void OnRequestBuyCashItem(InPacket *iPacket);
@@ -39,6 +41,7 @@ public:
 	//World System
 	void OnPartyRequest(InPacket *iPacket);
 	void OnGuildRequest(InPacket *iPacket);
+	void OnGuildBBSRequest(InPacket *iPacket);
 	void OnFriendRequest(InPacket *iPacket);
 	void OnGroupMessage(InPacket *iPacket);
 	void OnWhisperMessage(InPacket *iPacket);

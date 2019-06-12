@@ -9,6 +9,7 @@
 #include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "WvsGame.h"
 #include "User.h"
+#include "Script.h"
 
 #include "..\WvsLib\Logger\WvsLogger.h"
 
@@ -23,6 +24,42 @@ ClientSocket::~ClientSocket()
 
 void ClientSocket::OnClosed()
 {
+}
+
+int ProcessUserPacket(User *pUser, InPacket *iPacket)
+{
+	int nType = ((short*)iPacket->GetPacket())[0];
+	bool bExcpetionOccurred = false;
+	__try
+	{
+		pUser->OnPacket(iPacket);
+	}
+	__except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION)
+	{
+		bExcpetionOccurred = true;
+		switch (nType)
+		{
+			case UserRecvPacketFlag::User_OnSelectNpc:
+			case UserRecvPacketFlag::User_OnScriptMessageAnswer:
+				if(pUser->GetScript())
+					pUser->GetScript()->Abort();
+				pUser->SetScript(nullptr);
+				break;
+			case UserRecvPacketFlag::User_OnMiniRoomRequest:
+				pUser->SetMiniRoom(nullptr);
+				break;
+			case UserRecvPacketFlag::User_OnStoreBankRequest:
+				pUser->SetStoreBank(nullptr);
+				break;
+			case UserRecvPacketFlag::User_OnTrunkRequest:
+				pUser->SetTrunk(nullptr);
+				break;
+			case UserRecvPacketFlag::User_OnShopRequest:
+				pUser->SetTradingNpc(0);
+				break;
+		}
+	}
+	return bExcpetionOccurred ? nType : -1;
 }
 
 void ClientSocket::OnPacket(InPacket *iPacket)
@@ -43,7 +80,9 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]«Ê¥]±µ¦¬¡G");
 				iPacket->Print();
 			}
-			pUser->OnPacket(iPacket);
+			nType = ProcessUserPacket(pUser, iPacket);
+			if(nType != -1)
+				WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Unhandled System-Level Excpetion Has Been Caught: UserID = %d, Packet Type = %d\n", pUser->GetUserID(), nType);
 		}
 	}
 }
@@ -52,6 +91,7 @@ void ClientSocket::OnMigrateIn(InPacket *iPacket)
 {
 	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
 	m_nCharacterID = iPacket->Decode4();
+	WvsBase::GetInstance<WvsGame>()->OnUserMigrating(m_nCharacterID, GetSocketID());
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateIn);
 	oPacket.Encode4(GetSocketID());
@@ -63,6 +103,7 @@ void ClientSocket::OnMigrateIn(InPacket *iPacket)
 void ClientSocket::OnSocketDisconnected()
 {
 	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
+	WvsBase::GetInstance<WvsGame>()->RemoveMigratingUser(m_nCharacterID);
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::GameClientDisconnected);
 	oPacket.Encode4(GetSocketID());

@@ -1,7 +1,13 @@
 #include "GuildMan.h"
+
+#ifdef _WVSGAME
 #include "WvsGame.h"
 #include "User.h"
+#include "BasicStat.h"
 #include "QWUser.h"
+#include "PartyMan.h"
+#endif
+
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
@@ -153,13 +159,32 @@ void GuildMan::OnPacket(InPacket * iPacket)
 	}
 }
 
-void GuildMan::OnGuildRequest(User * pUser, InPacket * iPacket)
+void GuildMan::OnGuildBBSRequest(User *pUser, InPacket *iPacket)
+{
+	int nGuildID = GetGuildIDByCharID(pUser->GetUserID());
+	if (nGuildID == -1)
+		return;
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::GuildBBSRequest);
+	oPacket.Encode4(nGuildID);
+	oPacket.Encode4(pUser->GetUserID());
+	oPacket.EncodeBuffer(
+		iPacket->GetPacket() + iPacket->GetReadCount(),
+		iPacket->GetPacketSize() - iPacket->GetReadCount()
+	);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+}
+
+void GuildMan::OnGuildRequest(User *pUser, InPacket *iPacket)
 {
 	int nRequest = iPacket->Decode1();
 	switch (nRequest)
 	{
 		case GuildMan::GuildRequest::rq_Guild_Invite:
 			OnGuildInviteRequest(pUser, iPacket);
+			break;
+		case GuildMan::GuildRequest::rq_Guild_Create:
+			TryCreateNewGuild(pUser, iPacket);
 			break;
 		case GuildMan::GuildRequest::rq_Guild_Join:
 			OnJoinGuildReqest(pUser, iPacket);
@@ -237,14 +262,19 @@ void GuildMan::OnGuildLoadDone(InPacket * iPacket)
 void GuildMan::OnCreateNewGuildDone(InPacket * iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
+	User* pRequestUser = nullptr;
 	int nRet = iPacket->Decode1();
 	if (!nRet)
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
-
+		if ((pRequestUser = User::FindUser(nCharacterID))) 
+		{
+			pRequestUser->SendNoticeMessage("公會建立成功。");
+			pRequestUser->SendCharacterStat(true, BasicStat::BS_Meso);
+		}
 		auto pGuild = AllocObj(GuildData);
 		pGuild->Decode(iPacket);
-		for (int i = 0; i < pGuild->anCharacterID.size(); ++i) 
+		for (int i = 0; i < pGuild->anCharacterID.size(); ++i)
 		{
 			auto pUser = User::FindUser(pGuild->anCharacterID[i]);
 			if (pUser)
@@ -273,11 +303,14 @@ void GuildMan::OnCreateNewGuildDone(InPacket * iPacket)
 		for (int i = 0; i < pGuild->anCharacterID.size(); ++i)
 		{
 			auto pUser = User::FindUser(pGuild->anCharacterID[i]);
-			if (pUser) 
-			{
+			if (pUser)
 				pUser->SendPacket(&oPacket);
-			}
 		}
+	}
+	else if (pRequestUser = User::FindUser(nCharacterID))
+	{
+		pRequestUser->SendNoticeMessage("創建失敗。可能名稱已經被使用或者名稱不正確，請稍後重試。");
+		QWUser::IncMoney(pRequestUser, CREATE_GUILD_COST, true);
 	}
 }
 
@@ -314,8 +347,63 @@ void GuildMan::OnGuildInviteRequest(User * pUser, InPacket * iPacket)
 	}
 }
 
-void GuildMan::OnRemoveGuildRequest(User * pUser)
+void GuildMan::TryCreateNewGuild(User *pUser, InPacket *iPacket)
 {
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	if (QWUser::GetMoney(pUser) < CREATE_GUILD_COST)
+	{
+		pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(CREATE_GUILD_COST) + "楓幣才可以建立公會。");
+		pUser->SendCharacterStat(true, 0);
+		return;
+	}
+
+	std::string sGuildName = iPacket->DecodeStr();
+	if (sGuildName.size() < 4 || sGuildName.size() > 10)
+	{
+		pUser->SendNoticeMessage("公會名稱不正確。");
+		pUser->SendCharacterStat(true, 0);
+		return;
+	}
+
+	std::vector<std::pair<int, MemberData>> aMember;
+	aMember.push_back({ pUser->GetUserID(), {} });
+	aMember.back().second.Set(
+		pUser->GetName(),
+		QWUser::GetLevel(pUser),
+		QWUser::GetJob(pUser),
+		true
+	);
+	int anCharacterID[PartyMan::MAX_PARTY_MEMBER_COUNT] = { 0 };
+	PartyMan::GetInstance()->GetSnapshot(
+		PartyMan::GetInstance()->GetPartyIDByCharID(pUser->GetUserID()),
+		anCharacterID
+	);
+
+	for (auto nID : anCharacterID)
+		if (nID == pUser->GetUserID())
+			continue;
+		else
+		{
+			auto pMember = User::FindUser(nID);
+			if (pMember)
+			{
+				aMember.push_back({ pMember->GetUserID(),{} });
+				aMember.back().second.Set(
+					pMember->GetName(),
+					QWUser::GetLevel(pMember),
+					QWUser::GetJob(pMember),
+					true
+				);
+			}
+		}
+
+	QWUser::IncMoney(pUser, -CREATE_GUILD_COST, true);
+	OnCreateNewGuildRequest(pUser, sGuildName, aMember);
+}
+
+void GuildMan::OnRemoveGuildRequest(User *pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto pGuild = GetGuildByCharID(pUser->GetUserID());
 	if (pGuild && IsGuildMaster(pGuild->nGuildID, pUser->GetUserID()))
 	{
@@ -327,6 +415,7 @@ void GuildMan::OnRemoveGuildRequest(User * pUser)
 		oPacket.Encode4(pUser->GetUserID());
 		oPacket.Encode1(0); //bKicked
 
+		QWUser::IncMoney(pUser, -REMOVE_GUILD_COST, true);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	}
 }
@@ -421,6 +510,12 @@ void GuildMan::OnWithdrawGuildDone(InPacket * iPacket)
 
 			m_mGuild.erase(nGuildID);
 			FreeObj(pGuild);
+			
+			if (pTarget) 
+			{
+				pTarget->SendCharacterStat(true, BasicStat::BS_Meso);
+				pTarget->SendChatMessage(0, "公會已經解散。");
+			}
 		}
 		else
 		{
@@ -437,8 +532,7 @@ void GuildMan::OnWithdrawGuildDone(InPacket * iPacket)
 		}
 	}
 	else if ((pMaster = User::FindUser(nMasterID)))
-	{
-	}
+		pMaster->SendChatMessage(0, "發生異常，無法解散公會，請稍後再試。");
 }
 
 void GuildMan::OnSetGradeNameRequest(User * pUser, InPacket * iPacket)
@@ -604,8 +698,9 @@ void GuildMan::OnAskGuildMark(User * pUser)
 	}
 }
 
-void GuildMan::OnSetMarkRequest(User * pUser, InPacket * iPacket)
+void GuildMan::OnSetMarkRequest(User *pUser, InPacket * iPacket)
 {
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	auto pGuild = GetGuildByCharID(pUser->GetUserID());
 	if (pGuild && IsGuildMaster(pGuild->nGuildID, pUser->GetUserID()))
 	{
@@ -625,7 +720,13 @@ void GuildMan::OnSetMarkRequest(User * pUser, InPacket * iPacket)
 		oPacket.Encode1(nMarkBgColor);
 		oPacket.Encode2(nMark);
 		oPacket.Encode1(nMarkColor);
-
+		int nCost = (nMark ? SET_MARK_COST : REMOVE_GUILD_COST);
+		if (QWUser::GetMoney(pUser) < nCost)
+		{
+			pUser->SendCharacterStat(true, 0);
+			return;
+		}
+		QWUser::IncMoney(pUser, -nCost, true);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	}
 }
@@ -666,6 +767,10 @@ void GuildMan::OnSetMarkDone(InPacket * iPacket)
 					pGuild->nMarkColor
 				);
 		}
+
+		pUser = User::FindUser(nMasterID);
+		if (pUser)
+			pUser->SendCharacterStat(true, BasicStat::BS_Meso);
 	}
 	else
 	{
@@ -758,13 +863,15 @@ void GuildMan::OnNotifyLoginOrLogout(InPacket *iPacket)
 	}
 }
 
-void GuildMan::OnIncMaxMemberNumRequest(User *pUser, int nInc)
+void GuildMan::OnIncMaxMemberNumRequest(User *pUser, int nInc, int nCost)
 {
 	auto pGuild = GetGuildByCharID(pUser->GetUserID());
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	std::lock_guard<std::recursive_mutex> userLock(pUser->GetLock());
 	if (pGuild && 
 		IsGuildMaster(pGuild->nGuildID, pUser->GetUserID()) &&
+		QWUser::GetMoney(pUser) >= nCost &&
 		pGuild->nMaxMemberNum + nInc <= 100) 
 	{
 		OutPacket oPacket;
@@ -774,6 +881,7 @@ void GuildMan::OnIncMaxMemberNumRequest(User *pUser, int nInc)
 		oPacket.Encode4(pUser->GetUserID());
 		oPacket.Encode1((char)nInc);
 
+		QWUser::IncMoney(pUser, -nCost, true);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	}
 }
@@ -795,6 +903,12 @@ void GuildMan::OnIncMaxMemberNum(InPacket *iPacket)
 		oPacket.Encode1((char)pGuild->nMaxMemberNum);
 
 		Broadcast(&oPacket, pGuild->anCharacterID, 0);
+		auto pUser = User::FindUser(nCharacterID);
+		if (pUser)
+		{
+			pUser->SendCharacterStat(true, BasicStat::BS_Meso);
+			pUser->SendChatMessage(0, "公會人數增加至: " + std::to_string(pGuild->nMaxMemberNum) + "人。");
+		}
 	}
 	else
 	{
@@ -984,14 +1098,18 @@ void GuildMan::SendToAll(GuildData * pGuild, OutPacket * oPacket)
 	}
 }
 
-void GuildMan::LoadGuild(InPacket *iPacket, OutPacket * oPacket)
+void GuildMan::LoadGuild(InPacket *iPacket, OutPacket *oPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	GuildData* pGuild = GetGuildByCharID(nCharacterID);
-	oPacket->Encode2(CenterSendPacketFlag::GuildResult);
-	oPacket->Encode1(GuildMan::GuildResult::res_Guild_Load);
-	oPacket->Encode4(nCharacterID);
 
+	//oPacket = nullptr when restoring connected users.
+	if (oPacket)
+	{
+		oPacket->Encode2(CenterSendPacketFlag::GuildResult);
+		oPacket->Encode1(GuildMan::GuildResult::res_Guild_Load);
+		oPacket->Encode4(nCharacterID);
+	}
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
 
 	//Existed
@@ -1014,12 +1132,12 @@ void GuildMan::LoadGuild(InPacket *iPacket, OutPacket * oPacket)
 		}
 	}
 
-	if (pGuild)
+	if (pGuild && oPacket)
 	{
 		oPacket->Encode4(pGuild->nGuildID);
 		pGuild->Encode(oPacket);
 	}
-	else
+	else if(oPacket)
 		oPacket->Encode4(-1);
 }
 
@@ -1059,7 +1177,7 @@ void GuildMan::CreateNewGuild(InPacket *iPacket, OutPacket *oPacket)
 
 		pGuild->nGuildID = ++m_atiGuildIDCounter;
 		for (auto& nID : aMemberID)
-			if(WvsWorld::GetInstance()->GetUser(nID))
+			if (WvsWorld::GetInstance()->GetUser(nID))
 				m_mCharIDToGuildID[nID] = pGuild->nGuildID;
 
 		pGuild->anCharacterID = std::move(aMemberID);
@@ -1082,6 +1200,8 @@ void GuildMan::CreateNewGuild(InPacket *iPacket, OutPacket *oPacket)
 			pGuild,
 			WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 	}
+	else
+		oPacket->Encode1(1);
 }
 
 void GuildMan::JoinGuild(InPacket * iPacket, OutPacket * oPacket)
@@ -1489,6 +1609,7 @@ void GuildMan::NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn)
 	}
 }
 #endif
+
 
 void GuildMan::MemberData::Set(const std::string & strName, int nLevel, int nJob, bool bOnline)
 {

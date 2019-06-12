@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50051
 File Encoding         : 65001
 
-Date: 2019-06-10 09:50:20
+Date: 2019-06-12 22:43:20
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -31,6 +31,38 @@ CREATE TABLE `account` (
   PRIMARY KEY  (`AccountID`,`AccountName`),
   KEY `AccountID` (`AccountID`)
 ) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for bbscomment
+-- ----------------------------
+DROP TABLE IF EXISTS `bbscomment`;
+CREATE TABLE `bbscomment` (
+  `WorldID` int(11) NOT NULL,
+  `GuildID` int(11) NOT NULL default '0',
+  `EntryID` int(11) NOT NULL default '0',
+  `SN` int(11) NOT NULL,
+  `Comment` varchar(255) default '',
+  `Date` bigint(21) default '0',
+  `CharacterID` int(11) default '0',
+  PRIMARY KEY  (`GuildID`,`EntryID`,`SN`,`WorldID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for bbsentry
+-- ----------------------------
+DROP TABLE IF EXISTS `bbsentry`;
+CREATE TABLE `bbsentry` (
+  `WorldID` int(11) NOT NULL default '0',
+  `GuildID` int(11) NOT NULL default '0',
+  `EntryID` int(11) NOT NULL default '0',
+  `Emoticon` int(11) default '0',
+  `CharacterID` int(11) default '0',
+  `Title` varchar(64) default '',
+  `Text` varchar(255) default '',
+  `Date` bigint(21) default '0',
+  `IsNotice` int(5) default '0',
+  PRIMARY KEY  (`GuildID`,`EntryID`,`WorldID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for cashiteminfo
@@ -59,7 +91,24 @@ CREATE TABLE `cashiteminfo` (
   `Opt2` int(11) default '0',
   `Opt3` int(11) default '0',
   PRIMARY KEY  (`SN`,`AccountID`,`CashItemSN`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=56 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=58 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Table structure for character
+-- ----------------------------
+DROP TABLE IF EXISTS `character`;
+CREATE TABLE `character` (
+  `CharacterID` int(11) NOT NULL auto_increment,
+  `AccountID` int(11) default NULL,
+  `WorldID` int(11) default NULL,
+  `CharacterName` varchar(15) character set big5 NOT NULL default '',
+  `GuildID` int(11) default '0',
+  `FieldID` int(11) default '0',
+  `FriendMaxNum` int(11) default '25',
+  `ActiveEffectItemID` int(11) default '0',
+  `GradeCode` int(3) default '0',
+  PRIMARY KEY  (`CharacterID`,`CharacterName`)
+) ENGINE=MyISAM AUTO_INCREMENT=2049 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for characteravatar
@@ -93,22 +142,6 @@ CREATE TABLE `charactermoney` (
   `Money` int(11) default '0',
   PRIMARY KEY  (`CharacterID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Table structure for characters
--- ----------------------------
-DROP TABLE IF EXISTS `characters`;
-CREATE TABLE `characters` (
-  `CharacterID` int(11) NOT NULL auto_increment,
-  `AccountID` int(11) default NULL,
-  `WorldID` int(11) default NULL,
-  `CharacterName` varchar(15) character set big5 NOT NULL default '',
-  `GuildID` int(11) default '0',
-  `PartyID` int(11) default '0',
-  `FieldID` int(11) default '0',
-  `FriendMaxNum` int(11) default '25',
-  PRIMARY KEY  (`CharacterID`,`CharacterName`)
-) ENGINE=MyISAM AUTO_INCREMENT=2049 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for characterslotcount
@@ -157,7 +190,7 @@ CREATE TABLE `characterstat` (
   `Face` int(11) default '0',
   `FaceMark` int(11) default '0',
   PRIMARY KEY  (`SN`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=53 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=55 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for entrustedshop
@@ -289,7 +322,7 @@ CREATE TABLE `itemlocker` (
   `Locked` int(1) default '0',
   PRIMARY KEY  (`SN`,`CashItemSN`,`AccountID`),
   KEY `CashItemSN` (`CashItemSN`)
-) ENGINE=MyISAM AUTO_INCREMENT=54 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=56 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for itemslot_cash
@@ -451,7 +484,7 @@ CREATE TABLE `questrecord` (
   `StrRecord` varchar(128) default '',
   `MobRecord` varchar(255) default '',
   PRIMARY KEY  (`ID`,`CharacterID`)
-) ENGINE=MyISAM AUTO_INCREMENT=125784 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=141251 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Table structure for shop

@@ -44,17 +44,26 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 
 void ClientSocket::OnMigrateIn(InPacket *iPacket)
 {
-	//printf("OnMigrateIn\n");
-	//iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
+	m_nCharacterID = iPacket->Decode4();
 	auto pCenter = WvsBase::GetInstance<WvsShop>()->GetCenter();
+	WvsBase::GetInstance<WvsShop>()->OnUserMigrating(m_nCharacterID, GetSocketID());
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateIn);
 	oPacket.Encode4(GetSocketID());
-	oPacket.Encode4(nCharacterID);
+	oPacket.Encode4(m_nCharacterID);
 	oPacket.Encode4(-1); //Shop
 	pCenter->SendPacket(&oPacket);
-	//printf("OnMigrateOut\n");
+}
+
+void ClientSocket::OnSocketDisconnected()
+{
+	auto pCenter = WvsBase::GetInstance<WvsShop>()->GetCenter();
+	WvsBase::GetInstance<WvsShop>()->RemoveMigratingUser(m_nCharacterID);
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::GameClientDisconnected);
+	oPacket.Encode4(GetSocketID());
+	oPacket.Encode4(m_nCharacterID);
+	pCenter->SendPacket(&oPacket);
 }
 
 void ClientSocket::SetUser(User *_pUser)

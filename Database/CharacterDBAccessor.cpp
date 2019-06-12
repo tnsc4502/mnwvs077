@@ -176,9 +176,15 @@ void CharacterDBAccessor::GetDefaultCharacterStat(int *aStat)
 
 void CharacterDBAccessor::PostCharacterDataRequest(SocketBase *pSrv, int nClientSocketID, int nCharacterID, void *oPacket_)
 {
+	OutPacket *oPacket = (OutPacket*)oPacket_;
+	if (QueryCharacterAccountID(nCharacterID) == -1)
+	{
+		oPacket->Encode1(0);
+		return;
+	}
+	oPacket->Encode1(1); //Valid
 	GA_Character chrEntry;
 	chrEntry.Load(nCharacterID);
-	OutPacket *oPacket = (OutPacket*)oPacket_;
 	oPacket->Encode4(chrEntry.nAccountID);
 	chrEntry.EncodeCharacterData(oPacket, true);
 	GW_FuncKeyMapped funcKeyMapped(chrEntry.nCharacterID);

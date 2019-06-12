@@ -633,6 +633,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnGuildRequest:
 			GuildMan::GetInstance()->OnGuildRequest(this, iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnGuildBBSRequest:
+			GuildMan::GetInstance()->OnGuildBBSRequest(this, iPacket);
+			break;
 		case UserRecvPacketFlag::User_OnFriendRequest:
 			FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
 			break;
@@ -729,25 +732,29 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 	Field *pTargetField = FieldMan::GetInstance()->GetField(nFieldID);
 	if (pTargetField != nullptr)
 	{
-		Portal* pPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
-		Portal* pTargetPortal = 
-			pPortal == nullptr ? pTargetField->GetPortalMap()->GetRandStartPoint() : pPortal;
+		Portal* pTargetPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
+		if(!pTargetPortal)
+			pTargetPortal = pTargetField->GetPortalMap()->GetRandStartPoint();
 
+		if (pTargetPortal)
+		{
+			SetPosX(pTargetPortal->GetX());
+			SetPosY(pTargetPortal->GetY());
+		}
+
+		//Process Leaving
 		LeaveField();
 		if (GetFieldSet() && GetFieldSet() != pTargetField->GetFieldSet())
 			GetFieldSet()->OnLeaveFieldSet(GetUserID());
 
+		//Process Entering
 		m_pField = pTargetField;
 		PostTransferField(m_pField->GetFieldID(), pTargetPortal, false);
 		m_pField->OnEnter(this);
 		m_pCharacterData->nFieldID = m_pField->GetFieldID();
 		SetTransferStatus(TransferStatus::eOnTransferNone);
 
-		int nMaxPetIndex = GetMaxPetIndex();
-		for (int i = 0; i < nMaxPetIndex; ++i)
-			if (m_apPet[i] != nullptr)
-				m_apPet[i]->OnEnterField(m_pField);
-
+		ReregisterPet();
 		ReregisterSummoned();
 		return true;
 	}
@@ -1529,8 +1536,11 @@ void User::OnHit(InPacket *iPacket)
 			if ((int)(Rand32::GetInstance()->Random() % 100) < pMob->GetMobStat()->nBlind_)
 				bCheckMiss = true;
 
-			if (!bCheckMiss && ++m_nInvalidDamageMissCount > 10)
+			if (!bCheckMiss && ++m_nInvalidDamageMissCount > 10) 
+			{
+				m_nInvalidDamageMissCount = 0;
 				SendChatMessage(0, "Suspicious Hacking for Damage Miss Check.");
+			}
 			else
 				m_nInvalidDamageMissCount = std::max(0, m_nInvalidDamageMissCount - 1);
 		}
@@ -2175,6 +2185,11 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 	SendPacket(&oPacket);
 }
 
+unsigned char User::GetGradeCode() const
+{
+	return m_nGradeCode;
+}
+
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
@@ -2517,6 +2532,7 @@ void User::SetScript(Script * pScript)
 
 void User::OnSelectNpc(InPacket * iPacket)
 {
+	std::lock_guard<std::recursive_mutex> lcok(m_mtxUserLock);
 	if (!CanAttachAdditionalProcess())
 	{
 		SendCharacterStat(false, 0);
@@ -2591,8 +2607,9 @@ void User::OnSelectNpc(InPacket * iPacket)
 	}
 }
 
-void User::OnScriptMessageAnswer(InPacket * iPacket)
+void User::OnScriptMessageAnswer(InPacket *iPacket)
 {
+	std::lock_guard<std::recursive_mutex> lcok(m_mtxUserLock);
 	if (GetScript() != nullptr)
 		m_pScript->OnPacket(iPacket);
 }
@@ -2609,6 +2626,8 @@ Npc * User::GetTradingNpc()
 
 void User::OnQuestRequest(InPacket * iPacket)
 {
+	std::lock_guard<std::recursive_mutex> lcok(m_mtxUserLock);
+
 	char nAction = iPacket->Decode1();
 	int nQuestID = iPacket->Decode2(), nNpcID; 
 	NpcTemplate* pNpcTemplate = nullptr;
@@ -3131,6 +3150,14 @@ void User::OnActivatePetRequest(InPacket * iPacket)
 	ActivatePet(nPos, 0, 0);
 }
 
+void User::ReregisterPet()
+{
+	int nMaxPetIndex = GetMaxPetIndex();
+	for (int i = 0; i < nMaxPetIndex; ++i)
+		if (m_apPet[i] != nullptr)
+			m_apPet[i]->OnEnterField(m_pField);
+}
+
 void User::OnSummonedPacket(InPacket * iPacket)
 {
 	int nType = iPacket->Decode2();
@@ -3650,5 +3677,6 @@ void User::OnMigrateIn()
 	oPacketForFriendLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);
 
-	m_pCharacterData->nActiveEffectItemID = m_pCharacterData->nActiveEffectItemID;
+	m_nGradeCode = m_pCharacterData->nGradeCode;
+	m_tMigrateTime = GameDateTime::GetTime();
 }

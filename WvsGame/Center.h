@@ -25,6 +25,8 @@ public:
 	void OnRemoteBroadcasting(InPacket *iPacket);
 	void OnTrunkResult(InPacket *iPacket);
 	void OnEntrustedShopResult(InPacket *iPacket);
+	void OnCheckMigrationState(InPacket *iPacket);
+	void OnGuildBBSResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

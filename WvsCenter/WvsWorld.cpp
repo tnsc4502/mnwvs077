@@ -6,6 +6,7 @@
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsGame\FriendMan.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
@@ -108,7 +109,6 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 int WvsWorld::RefreshLoginState(int nAccountID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
-
 	if (GetAuthEntryByAccountID(nAccountID))
 		return 1; //On auth.
 
@@ -123,7 +123,23 @@ int WvsWorld::RefreshLoginState(int nAccountID)
 		m_mAccountToUser.erase(nAccountID);
 		return 0;
 	}
+	if (GameDateTime::GetTime() - pwUser->m_tMigrateTime > 10 * 1000)
+		SendMigrationStateCheck(pwUser);
+
 	return 1; //Migrated in
+}
+
+void WvsWorld::SendMigrationStateCheck(WorldUser *pwUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto pSrvEntry = WvsBase::GetInstance<WvsCenter>()->GetChannel(pwUser->m_nChannelID);
+	if (pSrvEntry)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(CenterSendPacketFlag::CheckMigrationState);
+		oPacket.Encode4(pwUser->m_nCharacterID);
+		pSrvEntry->GetLocalSocket()->SendPacket(&oPacket);
+	}
 }
 
 void WvsWorld::SetUser(int nUserID, WorldUser* pWorldUser)

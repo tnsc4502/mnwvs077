@@ -52,6 +52,9 @@
     <ClCompile Include="EntrustedShopMan.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="GuildBBSMan.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsCenter.h">
@@ -88,6 +91,9 @@
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="AuthEntry.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="GuildBBSMan.h">
       <Filter>World</Filter>
     </ClInclude>
   </ItemGroup>

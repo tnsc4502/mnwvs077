@@ -67,33 +67,6 @@ public:
 		eItemProtectExpireMessage = 0x0F,
 		eItemExpireReplaceMessage = 0x10,
 		eItemAbilityTimeLimitedExpireMessage = 0x11,
-		eSkillExpireMessage = 0x12,
-		eIncNonCombatStatEXPMessage = 0x13,
-		eLimitNonCombatStatEXPMessage = 0x14,
-		//0x15
-		eAndroidMachineHeartAlsetMessage = 0x16,
-		eIncFatigueByRestMessage = 0x17,
-		eIncPvPPointMessage = 0x18,
-		ePvPItemUseMessage = 0x19,
-		eWeddingPortalError = 0x1A,
-		eIncHardCoreExpMessage = 0x1B,
-		eNoticeAutoLineChanged = 0x1C,
-		eEntryRecordMessage = 0x1D,
-		eEvolvingSystemMessage = 0x1E,
-		eEvolvingSystemMessageWithName = 0x1F,
-		eCoreInvenOperationMessage = 0x20,
-		eNxRecordMessage = 0x21,
-		eBlockedBehaviorMessage = 0x22,
-		eIncWPMessage = 0x23,
-		eMaxWPMessage = 0x24,
-		eStylishKillMessage = 0x25,
-		eExpiredCashItemResultMessage = 0x26,
-		eCollectionRecordMessage = 0x27,
-		//0x28
-		eQuestExpired = 0x29,
-		eWriteMessageInGame = 0x2A,
-		eFishSystemBonus = 0x2B,
-		eWriteGreenMessageInGame = 0x2C
 	};
 
 	enum Effect : unsigned char
@@ -107,11 +80,22 @@ public:
 		eEffect_IncDecHpEffect = 0x0A,
 	};
 
+	enum UserGrade : unsigned char
+	{
+		eGrade_None = 0,
+		eGrade_GM = 1,
+		eGrade_SuperGM = eGrade_GM | 2,
+		eGrade_SrvAdmin = eGrade_SuperGM | 4
+	};
+
 private:
 	static const int MAX_PET_INDEX = 3;
-
 	std::recursive_mutex m_mtxUserLock, m_scriptLock;
-	int m_tLastUpdateTime = 0, m_tLastBackupTime = 0, m_tLastAliveCheckTime = 0;
+
+	int m_tMigrateTime = 0, 
+		m_tLastUpdateTime = 0,
+		m_tLastBackupTime = 0, 
+		m_tLastAliveCheckTime = 0;
 
 	//Network
 	ClientSocket *m_pSocket;
@@ -129,6 +113,7 @@ private:
 		m_tLastAliveCheckRequestTime = 0,
 		m_tLastAliveCheckRespondTime = 0,
 		m_tPortableChairSittingTime = 0;
+	unsigned char m_nGradeCode = UserGrade::eGrade_None;
 	bool m_bDeadlyAttack = false;
 
 	//System
@@ -136,9 +121,9 @@ private:
 	Script* m_pScript = nullptr;
 	StoreBank* m_pStoreBank = nullptr;
 	Npc *m_pTradingNpc = nullptr;
-	int m_nTrunkTemplateID = 0, m_nStoreBankTemplateID = 0;
 	Trunk *m_pTrunk = nullptr;
 	CalcDamage* m_pCalcDamage = nullptr;
+	int m_nTrunkTemplateID = 0, m_nStoreBankTemplateID = 0;
 
 	//Pet
 	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
@@ -169,7 +154,6 @@ private:
 	AttackInfo* TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
 public:
-
 	static User* FindUser(int nUserID);
 	static User* FindUserByName(const std::string& strName);
 
@@ -252,6 +236,7 @@ public:
 	bool IsAbleToLearnSkillByItem(void *pItem, bool &bSucceed, int &nTargetSkill);
 	void OnDropMoneyRequest(InPacket *iPacket);
 	void OnCharacterInfoRequest(InPacket *iPacket);
+	unsigned char GetGradeCode() const;
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
@@ -307,6 +292,7 @@ public:
 	void ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize);
 	int GetMaxPetIndex();
 	void OnActivatePetRequest(InPacket *iPacket);
+	void ReregisterPet();
 
 	//Summoned
 	void OnSummonedPacket(InPacket *iPacket);

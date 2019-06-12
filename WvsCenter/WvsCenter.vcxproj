@@ -133,11 +133,12 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_WVSCENTER;NDEBUG;_CONSOLE;ASIO_STANDALONE;ASIO_MSVC=_MSC_VER;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Common\;..\Library\boost_1_63_0\;..\Library\poco-1.7.8-all\Data\include</AdditionalIncludeDirectories>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,6 +159,7 @@
     <ClCompile Include="..\WvsGame\PartyMan.cpp" />
     <ClCompile Include="..\WvsGame\Trunk.cpp" />
     <ClCompile Include="EntrustedShopMan.cpp" />
+    <ClCompile Include="GuildBBSMan.cpp" />
     <ClCompile Include="LocalServerEntry.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UserTransferStatus.cpp" />
@@ -173,6 +175,7 @@
     <ClInclude Include="..\WvsGame\Trunk.h" />
     <ClInclude Include="EntrustedShopMan.h" />
     <ClInclude Include="AuthEntry.h" />
+    <ClInclude Include="GuildBBSMan.h" />
     <ClInclude Include="LocalServerEntry.h" />
     <ClInclude Include="UserTransferStatus.h" />
     <ClInclude Include="WvsCenter.h" />

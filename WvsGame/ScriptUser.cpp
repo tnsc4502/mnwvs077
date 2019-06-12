@@ -6,6 +6,10 @@
 #include "User.h"
 #include "QWUser.h"
 #include "PartyMan.h"
+#include "GuildMan.h"
+#include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Net\InPacket.h"
+#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GW_CharacterStat.h"
@@ -80,10 +84,19 @@ void ScriptUser::Register(lua_State * L)
 		{ "isWearing", TargetIsWearing },
 		{ "getPosX", TargetGetPosX },
 		{ "getPosY", TargetGetPosY },
+		{ "isGuildMember", TargetIsGuildMember },
+		{ "isGuildMaster", TargetIsGuildMaster },
+		{ "getGuildCountMax", TargetGetGuildCountMax },
 		{ "isPartyBoss", TargetIsPartyBoss },
 		{ "getPartyID", TargetGetPartyID },
 		{ "getMCTeam", TargetGetMCTeam },
 		{ "getName", TargetGetName },
+		{ "createNewGuild", TargetCreateNewGuild },
+		{ "removeGuild", TargetRemoveGuild },
+		{ "setGuildMark", TargetSetGuildMark },
+		{ "removeGuildMark", TargetRemoveGuildMark },
+		{ "isGuildMarkExist", TargetIsGuildMarkExist },
+		{ "incGuildCountMax", TargetIncGuildCountMax },
 		{ NULL, NULL }
 	};
 
@@ -478,6 +491,30 @@ int ScriptUser::TargetQuestEndEffect(lua_State * L)
 	return 1;
 }
 
+int ScriptUser::TargetIsGuildMember(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nGuildID = GuildMan::GetInstance()->GetGuildIDByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, nGuildID != -1 ? 1 : 0);
+	return 1;
+}
+
+int ScriptUser::TargetIsGuildMaster(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nGuildID = GuildMan::GetInstance()->GetGuildIDByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, GuildMan::GetInstance()->IsGuildMaster(nGuildID, self->m_pUser->GetUserID()) ? 1 : 0);
+	return 1;
+}
+
+int ScriptUser::TargetGetGuildCountMax(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, pGuild ? pGuild->nMaxMemberNum : 0);
+	return 1;
+}
+
 int ScriptUser::TargetIsPartyBoss(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
@@ -511,5 +548,122 @@ int ScriptUser::TargetGetName(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 	lua_pushstring(L, self->m_pUser->GetName().c_str());
+	return 1;
+}
+
+int ScriptUser::TargetCreateNewGuild(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	if (QWUser::GetMoney(self->m_pUser) < GuildMan::CREATE_GUILD_COST)
+	{
+		self->m_pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(GuildMan::CREATE_GUILD_COST) + "楓幣才可以建立公會。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+	oPacket.Encode1(GuildMan::GuildResult::res_Guild_Create);
+	self->m_pUser->SendPacket(&oPacket);
+	return 0; //Force terminate
+}
+
+int ScriptUser::TargetRemoveGuild(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	if (QWUser::GetMoney(self->m_pUser) < GuildMan::CREATE_GUILD_COST)
+	{
+		self->m_pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(GuildMan::REMOVE_GUILD_COST) + "楓幣才可以解散公會。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	if (!pGuild || !GuildMan::GetInstance()->IsGuildMaster(pGuild->nGuildID, self->m_pUser->GetUserID()))
+	{
+		self->m_pUser->SendNoticeMessage("只有會長才可以解散公會。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	GuildMan::GetInstance()->OnRemoveGuildRequest(self->m_pUser);
+	return 0;
+}
+
+int ScriptUser::TargetSetGuildMark(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	if (QWUser::GetMoney(self->m_pUser) < GuildMan::CREATE_GUILD_COST)
+	{
+		self->m_pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(GuildMan::SET_MARK_COST) + "楓幣才可以設定徽章。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	if (!pGuild || !GuildMan::GetInstance()->IsGuildMaster(pGuild->nGuildID, self->m_pUser->GetUserID()))
+	{
+		self->m_pUser->SendNoticeMessage("只有會長才可以設定徽章。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+	oPacket.Encode1(GuildMan::GuildResult::res_Guild_AskMark);
+	self->m_pUser->SendPacket(&oPacket);
+	return 0;
+}
+
+int ScriptUser::TargetRemoveGuildMark(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	if (QWUser::GetMoney(self->m_pUser) < GuildMan::CREATE_GUILD_COST)
+	{
+		self->m_pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(GuildMan::REMOVE_MARK_COST) + "楓幣才可以移除徽章。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	if (!pGuild || !GuildMan::GetInstance()->IsGuildMaster(pGuild->nGuildID, self->m_pUser->GetUserID()))
+	{
+		self->m_pUser->SendNoticeMessage("只有會長才可以移除徽章。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+	unsigned char aMark[] = { 0, 0, 0, 0, 0, 0 };
+	InPacket iPacket(aMark, 6);
+	GuildMan::GetInstance()->OnSetMarkRequest(self->m_pUser, &iPacket);
+	return 0;
+}
+
+int ScriptUser::TargetIsGuildMarkExist(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, pGuild ? (pGuild->nMark != 0 ? 1 : 0) : 0);
+	return 1;
+}
+
+int ScriptUser::TargetIncGuildCountMax(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nInc = (int)luaL_checkinteger(L, 2);
+	int nCost = (int)luaL_checkinteger(L, 3);
+	if (QWUser::GetMoney(self->m_pUser) < nCost)
+	{
+		self->m_pUser->SendNoticeMessage("楓幣不足，需要" + std::to_string(nCost) + "楓幣才可以增加公會人數。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	if (!pGuild || !GuildMan::GetInstance()->IsGuildMaster(pGuild->nGuildID, self->m_pUser->GetUserID()))
+	{
+		self->m_pUser->SendNoticeMessage("只有會長才可以增加公會人數。");
+		self->m_pUser->SendCharacterStat(true, 0);
+		return 0; //Force terminate
+	}
+
+	GuildMan::GetInstance()->OnIncMaxMemberNumRequest(self->m_pUser, nInc, nCost);
 	return 1;
 }

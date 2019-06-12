@@ -41,9 +41,18 @@ private:
 public:
 
 	bool bOnTrading = false;
-	int nWorldID, nAccountID, nGuildID, nPartyID, nFieldID, nCharacterID, nFriendMax, nMoneyTrading = 0, nActiveEffectItemID = 0;
-	std::string strName;
+	int nWorldID, 
+		nAccountID, 
+		nGuildID, 
+		nPartyID, 
+		nFieldID, 
+		nCharacterID, 
+		nFriendMax, 
+		nMoneyTrading = 0, 
+		nGradeCode = 0,
+		nActiveEffectItemID = 0;
 
+	std::string strName;
 	GW_Avatar *mAvatarData = nullptr;
 	GW_CharacterStat *mStat = nullptr;
 	GW_CharacterLevel *mLevel = nullptr;
@@ -54,7 +63,6 @@ public:
 	std::map<int, GW_QuestRecord*> mQuestRecord;
 	std::map<int, GW_QuestRecord*> mQuestComplete;
 	std::map<int, GW_ItemSlotBase*> mItemSlot[6];
-
 	std::map<int, int> mItemTrading[6];
 
 	//For recording the liItemSN of the item which was dropped or removed.
@@ -67,12 +75,14 @@ public:
 
 	void DecodeStat(InPacket *iPacket);
 	void DecodeCharacterData(InPacket *iPacket, bool bForInternal);
+	void DecodeInternalData(InPacket *iPacket);
 	void DecodeItemSlot(InPacket *iPacket, bool bForInternal);
 	void DecodeInventoryRemovedRecord(InPacket *iPacket);
 	void DecodeAvatarLook(InPacket* iPacket);
 	void DecodeSkillRecord(InPacket* iPacket);
 
 	void EncodeCharacterData(OutPacket *oPacket, bool bForInternal);
+	void EncodeInternalData(OutPacket *oPacket);
 	void EncodeItemSlot(OutPacket *oPacket, bool bForInternal);
 	void EncodeInventoryRemovedRecord(OutPacket *oPacket);
 	void EncodeAvatar(OutPacket *oPacket);
@@ -100,9 +110,11 @@ public:
 	GW_SkillRecord* GetSkill(int nSkillID);
 	void ObtainSkillRecord(GW_SkillRecord* pRecord);
 
+	//QuestRecord
 	void SetQuest(int nKey, const std::string& sInfo);
 	void RemoveQuest(int nKey);
 
+	//Trading
 	bool SetTrading(bool bTrade);
 	void ClearTradeInfo();
 	int GetTradingCount(int nTI, int nPOS);

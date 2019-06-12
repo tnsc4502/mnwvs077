@@ -62,7 +62,6 @@ void SocketBase::Init()
 
 void SocketBase::OnDisconnect()
 {
-	//printf("[SocketBase::OnDisconnect]\n");
 	m_eSocketStatus = SocketStatus::eClosed;
 	ReleaseSocketID(GetSocketID());
 	m_fSocketDisconnectedCallBack(this);
@@ -228,16 +227,12 @@ void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
 
 void SocketBase::OnSendPacketFinished(const std::error_code &ec, std::size_t bytes_transferred, unsigned char *buffer, void *pPacket)
 {
-	//WvsLogger::LogFormat("SocketBase::OnSendPacketFinished, size = %d\n", (int)bytes_transferred);
-	//if (((OutPacket::SharedPacket*)pPacket)->IsBroadcasting())
-	//	FreeArray(buffer, ((OutPacket::SharedPacket*)pPacket)->);
 	((OutPacket::SharedPacket*)pPacket)->DecRefCount();
 }
 
 void SocketBase::OnWaitingPacket()
 {
 	auto buffer = AllocArray(unsigned char, 4);
-	//aRecivedPacket.reset((unsigned char*)MSMemoryPoolMan::GetInstance()->AllocateArray(4));
 	asio::async_read(mSocket,
 		asio::buffer(buffer, 4),
 		std::bind(&SocketBase::OnReceive,
@@ -249,19 +244,13 @@ void SocketBase::OnReceive(const std::error_code &ec, std::size_t bytes_transfer
 	if (!ec)
 	{
 		unsigned short nPacketLen = WvsCrypto::get_packet_length(buffer);
-		//printf("[SocketBase::OnReceive] Packet Size = %d\n", nPacketLen);
-		if (nPacketLen < 2)
+		if (nPacketLen < 2 || (!bIsLocalServer && nPacketLen > (768)))
 		{
 			OnDisconnect();
 			return;
 		}
-
-		//delete[] buffer;
 		FreeArray(buffer, 4);
 		buffer = AllocArray(unsigned char, nPacketLen);
-		//buffer = new unsigned char[nPacketLen];
-		//aRecivedPacket.reset((unsigned char*)MSMemoryPoolMan::GetInstance()->AllocateArray(nPacketLen));
-
 		asio::async_read(mSocket,
 			asio::buffer(buffer, nPacketLen),
 			std::bind(&SocketBase::ProcessPacket,
@@ -280,16 +269,17 @@ void SocketBase::ProcessPacket(const std::error_code &ec, std::size_t bytes_tran
 		if (!bIsLocalServer)
 			WvsCrypto::decrypt(buffer, aRecvIV, nBytes);
 		InPacket iPacket(buffer, nBytes);
-		try {
+		try 
+		{
 			this->OnPacket(&iPacket);
 		}
-		catch (std::exception& ex) {
+		catch (std::exception& ex) 
+		{
 			iPacket.RestorePacket();
-			WvsLogger::LogFormat("解析封包時發生錯誤，OPCode : %d, 異常訊息 : %s\n", (int)iPacket.Decode2(), ex.what());
+			WvsLogger::LogFormat("Exceptions Occurred When Processing Packet (nType = : %d), Excpetion Message: %s\nPacket Dump:\n", (int)iPacket.Decode2(), ex.what());
 			iPacket.Print();
 		}
 		FreeArray(buffer, nPacketLen);
-		//delete[] buffer;
 		OnWaitingPacket();
 	}
 }

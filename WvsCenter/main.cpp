@@ -3,11 +3,14 @@
 
 #include <iostream>
 #include <thread>
+
 #include "LocalServer.h"
 #include "WvsCenter.h"
 #include "WvsWorld.h"
-#include "..\WvsLib\Common\ConfigLoader.hpp"
+
 #include "..\Database\WvsUnified.h"
+#include "..\WvsLib\Common\ConfigLoader.hpp"
+#include "..\WvsLib\Exception\WvsException.h"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -18,6 +21,7 @@ void ConnectionAcceptorThread(short nPort)
 
 int main(int argc, char **argv)
 {
+	WvsException::RegisterUnhandledExceptionFilter("WvsCenter", nullptr);
 	ConfigLoader* pConfigLoader = nullptr;
 	if (argc > 1)
 		pConfigLoader = ConfigLoader::Get(argv[1]);

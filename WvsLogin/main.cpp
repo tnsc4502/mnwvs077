@@ -11,6 +11,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\Database\WvsUnified.h"
+#include "..\WvsLib\Exception\WvsException.h"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -21,6 +22,7 @@ void ConnectionAcceptorThread(short nPort)
 
 int main(int argc, char** argv)
 {
+	WvsException::RegisterUnhandledExceptionFilter("WvsLogin", nullptr);
 	WvsLogin *pLoginServer = WvsBase::GetInstance<WvsLogin>();
 	ConfigLoader* pConfigLoader = nullptr;
 
@@ -41,9 +43,7 @@ int main(int argc, char** argv)
 	// start the i/o work
 
 	asio::io_service &io = WvsBase::GetInstance<WvsLogin>()->GetIOService();
-
 	asio::io_service::work work(io);
-
 	for (;;)
 	{
 		std::error_code ec;

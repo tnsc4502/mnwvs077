@@ -60,6 +60,13 @@ public:
 		rq_MiniRoom_BalloonBase = 0x0B,
 	};
 
+	enum MiniRoomEnterResult
+	{
+		res_Enter_AlreadyIn = 0x08,
+		res_Enter_NoEmptySlot = 0x02,
+		res_Enter_UnableToProcess = 0x03,
+	};
+
 	enum MiniRoomCreateResult
 	{
 		res_Create_Success = 0x00,
@@ -114,6 +121,7 @@ public:
 	void OnChat(User *pUser, InPacket *iPacket, int nMessageCode);
 	unsigned char OnCreateBase(User *pUser, InPacket *iPacket, int nRound);
 	void OnInviteBase(User *pUser, InPacket *iPacket);
+	void OnInviteResult(User *pUser, int nResult);
 	void OnLeaveBase(User *pUser, InPacket *iPacket);
 	void OnBalloonBase(User *pUser, InPacket *iPacket);
 	virtual void OnLeave(User *pUser, int nLeaveType);
@@ -132,6 +140,7 @@ public:
 
 	//Static
 	static void Enter(User *pUser, int nSN, InPacket *iPacket, bool bTournament);
+	static void InviteResult(User *pUser, int nSN, int nResult);
 	static MiniRoomBase* Create(User *pUser, int nMiniRoomType, InPacket *iPacket, bool bTournament, int nRound);
 	static MiniRoomBase* MiniRoomFactory(int nMiniRoomType, InPacket *iPacket, bool bTournament);
 	static MiniRoomBase* GetMiniRoom(int nSN);

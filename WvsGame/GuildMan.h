@@ -12,10 +12,15 @@ class User;
 class GuildMan
 {
 public:
+	static const int CREATE_GUILD_COST = 1500000;
+	static const int REMOVE_GUILD_COST = 200000;
+	static const int SET_MARK_COST = 5000000;
+	static const int REMOVE_MARK_COST = 1000000;
+
 	enum GuildRequest
 	{
 		rq_Guild_Load = 0x00,
-		rq_Guild_Create = 0x01,
+		rq_Guild_Create = 0x02,
 		rq_Guild_Invite = 0x05,
 		rq_Guild_Join = 0x06,
 		rq_Guild_Withdraw = 0x07,
@@ -113,6 +118,7 @@ public:
 	void OnLeave(User *pUser);
 	void Broadcast(OutPacket *oPacket, const std::vector<int>& anMemberID, int nPlusOne);
 	void OnPacket(InPacket *iPacket);
+	void OnGuildBBSRequest(User *pUser, InPacket *iPacket);
 	void OnGuildRequest(User *pUser, InPacket *iPacket);
 	void OnGuildLoadDone(InPacket *iPacket);
 	void OnCreateNewGuildDone(InPacket *iPacket);
@@ -124,6 +130,7 @@ public:
 	void RemoveUser(GuildData *pGuild, int nCharacterID);
 
 	void OnGuildInviteRequest(User *pUser, InPacket *iPacket);
+	void TryCreateNewGuild(User *pUser, InPacket *iPacket);
 	void OnCreateNewGuildRequest(User *pUser, const std::string& strGuildName, const std::vector<std::pair<int, MemberData>>& aMember);
 
 	void OnRemoveGuildRequest(User *pUser);
@@ -141,7 +148,7 @@ public:
 	void OnSetMarkRequest(User *pUser, InPacket *iPacket);
 	void OnSetMarkDone(InPacket *iPacket);
 	void OnNotifyLoginOrLogout(InPacket *iPacket);
-	void OnIncMaxMemberNumRequest(User *pUser, int nInc);
+	void OnIncMaxMemberNumRequest(User *pUser, int nInc, int nCost);
 	void OnIncMaxMemberNum(InPacket *iPacket);
 	void OnIncPointRequest(int nGuildID, int nInc);
 	void OnIncPoint(InPacket *iPacket);

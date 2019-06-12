@@ -40,6 +40,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{a1af38c5-999e-4c01-84ff-3653c7bd56f7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Exception">
+      <UniqueIdentifier>{c0ac25b8-30a9-47cf-9a6f-78720cdd52d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Memory\Arena.h">
@@ -303,6 +306,9 @@
     <ClInclude Include="Net\PacketFlags\GameSrvPacketFlags.hpp">
       <Filter>Net\PacketFlags</Filter>
     </ClInclude>
+    <ClInclude Include="Exception\WvsException.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Memory\Arena.cpp">
@@ -544,6 +550,9 @@
     </ClCompile>
     <ClCompile Include="Net\PacketFlags\GameSrvPacketFlags.cpp">
       <Filter>Net\PacketFlags</Filter>
+    </ClCompile>
+    <ClCompile Include="Exception\WvsException.cpp">
+      <Filter>Exception</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

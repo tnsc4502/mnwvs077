@@ -21,7 +21,7 @@ public:
 
 	void RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
 	void RegisterCashShop(std::shared_ptr<SocketBase> &pServer, InPacket *iPacket);
-	void RestoreConnectedUser(int nChannelID, InPacket *iPacket);
+	void RestoreConnectedUser(std::shared_ptr<SocketBase> &pServer, int nChannelID, InPacket *iPacket);
 	void RegisterLoginServer(std::shared_ptr<SocketBase> &pServer);
 	void SetShop(LocalServerEntry* pEntry);
 	void SetLoginServer(LocalServerEntry* pEntry);

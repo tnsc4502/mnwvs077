@@ -262,7 +262,7 @@ void MiniRoomBase::OnInviteBase(User *pUser, InPacket *iPacket)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	if (!pToInvite || pToInvite == pUser)
 		nFailedReason = MiniRoomInviteResult::res_Invite_InvalidUser;
-	else if (!pToInvite || m_nCurUsers == m_nMaxUsers)
+	else if (!pToInvite || !pToInvite ->CanAttachAdditionalProcess() || m_nCurUsers == m_nMaxUsers)
 		nFailedReason = MiniRoomInviteResult::res_Invite_UnableToProcess;
 
 	OutPacket oPacket;
@@ -282,6 +282,23 @@ void MiniRoomBase::OnInviteBase(User *pUser, InPacket *iPacket)
 		oPacket.EncodeStr(pUser->GetName());
 		oPacket.Encode4(m_nMiniRoomSN);
 		pToInvite->SendPacket(&oPacket);
+	}
+}
+
+void MiniRoomBase::OnInviteResult(User * pUser, int nResult)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	if (m_apUser[0])
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRInviteResult);
+		oPacket.Encode1(nResult);
+		oPacket.EncodeStr(pUser->GetName());
+		m_apUser[0]->SendPacket(&oPacket);
+
+		CloseRequest(m_apUser[0], nResult, nResult);
+		ProcessLeaveRequest();
 	}
 }
 
@@ -383,12 +400,12 @@ unsigned char MiniRoomBase::OnEnterBase(User *pUser, InPacket *iPacket)
 	auto pFind = FindUser(pUser);
 
 	if (pFind)
-		return 8;
+		return MiniRoomEnterResult::res_Enter_AlreadyIn;
 	else if (nIdx == -1)
-		return 2;
+		return MiniRoomEnterResult::res_Enter_NoEmptySlot;
 	
 	if (!pUser->CanAttachAdditionalProcess())
-		return 3;
+		return MiniRoomEnterResult::res_Enter_UnableToProcess;
 
 	pUser->SetMiniRoom(this);
 	int nFailedReason = IsAdmitted(pUser, iPacket, false);
@@ -467,7 +484,8 @@ int MiniRoomBase::IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate)
 
 	if (!bOnCreate)
 	{
-		if (!m_bOpened)
+		if ((m_nType == MiniRoomType::e_MiniRoom_PersonalShop || m_nType == MiniRoomType::e_MiniRoom_EntrustedShop) 
+			&& !m_bOpened)
 			return MiniRoomAdmissionResult::res_Admission_InvalidShopStatus;
 
 		if (iPacket->Decode1())
@@ -570,6 +588,13 @@ void MiniRoomBase::Enter(User *pUser, int nSN, InPacket *iPacket, bool bTourname
 	}
 }
 
+void MiniRoomBase::InviteResult(User *pUser, int nSN, int nResult)
+{
+	auto pMiniRoom = GetMiniRoom(nSN);
+	if (pMiniRoom)
+		pMiniRoom->OnInviteResult(pUser, nResult);
+}
+
 MiniRoomBase* MiniRoomBase::Create(User *pUser, int nMiniRoomType, InPacket *iPacket, bool bTournament, int nRound)
 {
 	auto pMiniRoom = MiniRoomFactory(nMiniRoomType, iPacket, bTournament);
@@ -583,7 +608,6 @@ MiniRoomBase* MiniRoomBase::Create(User *pUser, int nMiniRoomType, InPacket *iPa
 	try 
 	{
 		char nResult = pMiniRoom->OnCreateBase(pUser, iPacket, nRound);
-
 		if (nResult)
 		{
 			oPacket.Encode1(0);

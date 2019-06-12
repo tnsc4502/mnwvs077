@@ -78,7 +78,7 @@ void Center::OnConnected()
 	oPacket.Encode2(WvsBase::GetInstance<WvsGame>()->GetExternalPort());
 
 	//Encode Existing Users.
-	std::lock_guard<std::mutex> lock(WvsBase::GetInstance<WvsGame>()->GetUserLock());
+	std::lock_guard<std::recursive_mutex> lock(WvsBase::GetInstance<WvsGame>()->GetUserLock());
 	auto& mConnectedUser = WvsBase::GetInstance<WvsGame>()->GetConnectedUser();
 	oPacket.Encode4((int)mConnectedUser.size());
 	for (auto& prUser : mConnectedUser) 
@@ -149,6 +149,12 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterSendPacketFlag::EntrustedShopResult:
 			OnEntrustedShopResult(iPacket);
 			break;
+		case CenterSendPacketFlag::CheckMigrationState:
+			OnCheckMigrationState(iPacket);
+			break;
+		case CenterSendPacketFlag::GuildBBSResult:
+			OnGuildBBSResult(iPacket);
+			break;
 	}
 }
 
@@ -165,7 +171,16 @@ void Center::OnConnectFailed()
 void Center::OnCenterMigrateInResult(InPacket *iPacket)
 {
 	unsigned int nClientSocketID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	bool bValid = iPacket->Decode1() ? 1 : 0;
 	auto pSocket = WvsBase::GetInstance<WvsGame>()->GetSocket(nClientSocketID);
+	if (!bValid || !pSocket)
+	{
+		if(pSocket)
+			pSocket->GetSocket().close();
+		WvsBase::GetInstance<WvsGame>()->RemoveMigratingUser(nCharacterID);
+		return;
+	}
 
 	auto deleter = [](User* p) { FreeObj(p); };
 	std::shared_ptr <User> pUser{ 
@@ -231,5 +246,56 @@ void Center::OnEntrustedShopResult(InPacket *iPacket)
 	auto pUser = User::FindUser(iPacket->Decode4());
 	if (pUser)
 		pUser->GetStoreBank()->OnPacket(iPacket);
+}
+
+void Center::OnCheckMigrationState(InPacket *iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::CheckMigrationState);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+		oPacket.Encode1(1); //already migrated in.
+	else
+	{
+		auto& prMigrating = WvsBase::GetInstance<WvsGame>()->GetMigratingUser(nCharacterID);
+		if (prMigrating.first == 0)
+			oPacket.Encode1(0); //Not yet migrated in.
+		else
+		{
+			int tMigrateTime = prMigrating.second;
+
+			//Check migrating time out.
+			if (GameDateTime::GetTime() - tMigrateTime > 60 * 1000)
+			{
+				auto pSocket = WvsBase::GetInstance<WvsGame>()->GetSocket(prMigrating.first);
+				if (pSocket)
+					pSocket->GetSocket().close();
+				WvsBase::GetInstance<WvsGame>()->RemoveMigratingUser(nCharacterID);
+				oPacket.Encode1(0);
+			}
+			else
+				oPacket.Encode1(1); //Migration request had been sent, but haven't received the character data.
+		}
+	}
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+}
+
+void Center::OnGuildBBSResult(InPacket *iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildBBSResult);
+		oPacket.EncodeBuffer(
+			iPacket->GetPacket() + iPacket->GetReadCount(),
+			iPacket->GetPacketSize() - iPacket->GetReadCount()
+		);
+		pUser->SendPacket(&oPacket);
+	}
 }
 

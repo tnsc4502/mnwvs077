@@ -141,6 +141,7 @@
     <ClInclude Include="CharacterDBAccessor.h" />
     <ClInclude Include="EntrustedShopDBAccessor.h" />
     <ClInclude Include="GA_Character.hpp" />
+    <ClInclude Include="GuildBBSDBAccessor.h" />
     <ClInclude Include="GuildDBAccessor.h" />
     <ClInclude Include="GW_Account.h" />
     <ClInclude Include="GW_Avatar.hpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="CharacterDBAccessor.cpp" />
     <ClCompile Include="EntrustedShopDBAccessor.cpp" />
     <ClCompile Include="GA_Character.cpp" />
+    <ClCompile Include="GuildBBSDBAccessor.cpp" />
     <ClCompile Include="GuildDBAccessor.cpp" />
     <ClCompile Include="GW_Account.cpp" />
     <ClCompile Include="GW_Avatar.cpp" />

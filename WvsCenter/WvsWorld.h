@@ -31,6 +31,7 @@ public:
 			m_nLocalSrvIdx = 0, 
 			m_nChannelID = 0, 
 			m_nLocalSocketSN = 0,
+			m_tMigrateTime = 0,
 			m_nAccountID = 0;
 
 		void SendPacket(OutPacket *oPacket);
@@ -61,6 +62,7 @@ public:
 	void UserMigrateIn(int nCharacterID, int nChannelID);
 	void RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate);
 	int RefreshLoginState(int nAccountID);
+	void SendMigrationStateCheck(WorldUser *pwUser);
 	void SetUser(int nUserID, WorldUser *pWorldUser);
 	void SetUserTransfering(int nUserID, bool bTransfering);
 	bool IsUserTransfering(int nUserID);

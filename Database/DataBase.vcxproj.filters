@@ -28,6 +28,7 @@
     <ClInclude Include="TrunkDBAccessor.h" />
     <ClInclude Include="LoginDBAccessor.h" />
     <ClInclude Include="EntrustedShopDBAccessor.h" />
+    <ClInclude Include="GuildBBSDBAccessor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -54,5 +55,6 @@
     <ClCompile Include="TrunkDBAccessor.cpp" />
     <ClCompile Include="LoginDBAccessor.cpp" />
     <ClCompile Include="EntrustedShopDBAccessor.cpp" />
+    <ClCompile Include="GuildBBSDBAccessor.cpp" />
   </ItemGroup>
 </Project>

@@ -41,8 +41,10 @@ void WvsCenter::OnNotifySocketDisconnected(SocketBase *pSocket)
 	}
 }
 
-LocalServerEntry * WvsCenter::GetChannel(int nIdx)
+LocalServerEntry* WvsCenter::GetChannel(int nIdx)
 {
+	if (nIdx < 0)
+		return GetShop();
 	auto findIter = m_mChannel.find(nIdx);
 	return findIter == m_mChannel.end() ? nullptr : findIter->second;
 }
@@ -111,7 +113,7 @@ void WvsCenter::RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pSe
 		printf("%d ", (int)((char*)&ip)[i]);
 	printf("\n Port = %d\n", pEntry->GetExternalPort());
 	m_mChannel.insert({ nChannelID, pEntry });
-	RestoreConnectedUser(nChannelID, iPacket);
+	RestoreConnectedUser(pServer, nChannelID, iPacket);
 }
 
 void WvsCenter::RegisterCashShop(std::shared_ptr<SocketBase>& pServer, InPacket * iPacket)
@@ -124,10 +126,10 @@ void WvsCenter::RegisterCashShop(std::shared_ptr<SocketBase>& pServer, InPacket 
 	printf("[WvsCenter][WvsCenter::RegisterCashShop]新的商城伺服器[WvsShop]註冊成功。\n");
 
 	SetShop(pEntry);
-	RestoreConnectedUser(WvsWorld::CHANNELID_SHOP, iPacket);
+	RestoreConnectedUser(pServer, WvsWorld::CHANNELID_SHOP, iPacket);
 }
 
-void WvsCenter::RestoreConnectedUser(int nChannelID, InPacket * iPacket)
+void WvsCenter::RestoreConnectedUser(std::shared_ptr<SocketBase> &pServer, int nChannelID, InPacket * iPacket)
 {
 	int nConnectedUserCount = iPacket->Decode4(), nUserID = 0;
 	for (int i = 0; i < nConnectedUserCount; ++i)
@@ -143,6 +145,7 @@ void WvsCenter::RestoreConnectedUser(int nChannelID, InPacket * iPacket)
 		WvsWorld::GetInstance()->SetUser(
 			nUserID, pwUser
 		);
+		((LocalServer*)(pServer.get()))->InsertConnectedUser(nUserID);
 	}
 }
 

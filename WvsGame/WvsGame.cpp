@@ -3,6 +3,7 @@
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "ClientSocket.h"
 #include "User.h"
 
@@ -21,7 +22,7 @@ std::shared_ptr<Center>& WvsGame::GetCenter()
 	return m_pCenterInstance;
 }
 
-std::mutex & WvsGame::GetUserLock()
+std::recursive_mutex & WvsGame::GetUserLock()
 {
 	return m_mUserLock;
 }
@@ -59,6 +60,18 @@ void WvsGame::SetConfigLoader(ConfigLoader * pCfg)
 	m_pCfgLoader = pCfg;
 }
 
+void WvsGame::OnUserMigrating(int nUserID, int nSocketID)
+{
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	m_mMigratingUser.insert({ nUserID, { nSocketID, GameDateTime::GetTime()} });
+}
+
+void WvsGame::RemoveMigratingUser(int nUserID)
+{
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	m_mMigratingUser.erase(nUserID);
+}
+
 void WvsGame::InitializeCenter()
 {
 	m_nChannelID = m_pCfgLoader->IntValue("ChannelID");
@@ -82,14 +95,14 @@ void WvsGame::InitializeCenter()
 
 void WvsGame::OnUserConnected(std::shared_ptr<User> &pUser)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	m_mUserMap[pUser->GetUserID()] = pUser;
 	m_mUserNameMap[pUser->GetName()] = pUser;
 }
 
 void WvsGame::OnNotifySocketDisconnected(SocketBase *pSocket)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto pClient = (ClientSocket*)pSocket;
 	pClient->OnSocketDisconnected();
 	if (pClient->GetUser())
@@ -107,7 +120,7 @@ int WvsGame::GetChannelID() const
 
 User * WvsGame::FindUser(int nUserID)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserMap.find(nUserID);
 	if (findIter == m_mUserMap.end())
 		return nullptr;
@@ -116,16 +129,24 @@ User * WvsGame::FindUser(int nUserID)
 
 User * WvsGame::FindUserByName(const std::string & strName)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserNameMap.find(strName);
 	if (findIter == m_mUserNameMap.end())
 		return nullptr;
 	return findIter->second.get();
 }
 
+const std::pair<unsigned int, int>& WvsGame::GetMigratingUser(int nUserID)
+{
+	static std::pair<unsigned int, int> prEmpty = { 0, 0 };
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	auto findIter = m_mMigratingUser.find(nUserID);
+	return findIter == m_mMigratingUser.end() ? prEmpty : findIter->second;
+}
+
 void WvsGame::ShutdownService()
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	for (auto& prUser : m_mUserMap)
 		prUser.second->OnMigrateOut();
 }

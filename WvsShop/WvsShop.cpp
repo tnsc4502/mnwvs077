@@ -9,6 +9,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 
 WvsShop::WvsShop()
 {
@@ -19,7 +20,7 @@ WvsShop::~WvsShop()
 {
 }
 
-std::mutex& WvsShop::GetUserLock()
+std::recursive_mutex& WvsShop::GetUserLock()
 {
 	return m_mUserLock;
 }
@@ -85,24 +86,49 @@ void WvsShop::InitializeCenter()
 
 User * WvsShop::FindUser(int nUserID)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserMap.find(nUserID);
 	return (findIter == m_mUserMap.end() ? nullptr : findIter->second.get());
 }
 
+const std::pair<unsigned int, int>& WvsShop::GetMigratingUser(int nUserID)
+{
+	static std::pair<unsigned int, int> prEmpty = { 0, 0 };
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	auto findIter = m_mMigratingUser.find(nUserID);
+	return findIter == m_mMigratingUser.end() ? prEmpty : findIter->second;
+}
+
+void WvsShop::OnUserMigrating(int nUserID, int nSocketID)
+{
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	m_mMigratingUser.insert({ nUserID,{ nSocketID, GameDateTime::GetTime() } });
+}
+
+void WvsShop::RemoveMigratingUser(int nUserID)
+{
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
+	m_mMigratingUser.erase(nUserID);
+}
+
 void WvsShop::OnUserConnected(std::shared_ptr<User>& pUser)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	m_mUserMap[pUser->GetUserID()] = pUser;
 }
 
 void WvsShop::OnNotifySocketDisconnected(SocketBase * pSocket)
 {
-	std::lock_guard<std::mutex> lockGuard(m_mUserLock);
+	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto pClient = (ClientSocket*)pSocket;
+	pClient->OnSocketDisconnected();
 	if (pClient->GetUser())
 	{
 		m_mUserMap.erase(pClient->GetUser()->GetUserID());
 		pClient->SetUser(nullptr);
 	}
+}
+
+void WvsShop::ShutdownService()
+{
 }

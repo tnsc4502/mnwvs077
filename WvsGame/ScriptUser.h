@@ -53,9 +53,18 @@ public:
 	static int TargetGetMoney(lua_State* L);
 	static int TargetIsWearing(lua_State* L);
 	static int TargetQuestEndEffect(lua_State* L);
+	static int TargetIsGuildMember(lua_State* L);
+	static int TargetIsGuildMaster(lua_State* L);
+	static int TargetGetGuildCountMax(lua_State* L);
 	static int TargetIsPartyBoss(lua_State* L);
 	static int TargetGetPartyID(lua_State* L);
 	static int TargetGetMCTeam(lua_State* L);
 	static int TargetGetName(lua_State* L);
+	static int TargetCreateNewGuild(lua_State* L);
+	static int TargetRemoveGuild(lua_State* L);
+	static int TargetSetGuildMark(lua_State* L);
+	static int TargetRemoveGuildMark(lua_State* L);
+	static int TargetIsGuildMarkExist(lua_State* L);
+	static int TargetIncGuildCountMax(lua_State* L);
 };
 

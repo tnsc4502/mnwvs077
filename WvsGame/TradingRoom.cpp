@@ -55,7 +55,7 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 	int nTradingPOS = iPacket->Decode1();
 
 	int nIdx = FindUserSlot(pUser);
-	if (nIdx == -1 || (nTradingPOS < 1 || nTradingPOS > 9))
+	if (nIdx == -1 || (nTradingPOS < 1 || nTradingPOS > 9 || m_nCurUsers < 2))
 	{
 		pUser->SendCharacterStat(true, 0);
 		return;

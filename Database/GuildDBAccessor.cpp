@@ -5,6 +5,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsGame\GuildMan.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 
 int GuildDBAccessor::GetGuildIDCounter()
 {
@@ -99,7 +100,6 @@ void GuildDBAccessor::UpdateGuildMember(void *pMemberData_, int nCharacterID, in
 		<< " AND GuildID = " << nGuildID 
 		<< " AND WorldID = " << nWorldID;
 
-	WvsLogger::LogFormat("Update GuildMember : %s\n", queryStatement.toString().c_str());
 	queryStatement.execute();
 }
 
@@ -178,7 +178,7 @@ void * GuildDBAccessor::LoadGuild(int nGuildID)
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT * From GuildInfo Where GuildID = " << nGuildID;
 	queryStatement.execute();
-	Poco::Data::RecordSet recordSet(queryStatement); (queryStatement);
+	Poco::Data::RecordSet recordSet(queryStatement);
 
 	pGuild->nGuildID = recordSet["GuildID"];
 	pGuild->sGuildName = recordSet["GuildName"].toString();

@@ -16,8 +16,9 @@ class WvsShop : public WvsBase
 	asio::io_service* m_pCenterServerService;
 	std::thread* m_pCenterWorkThread;
 
-	std::mutex m_mUserLock;
+	std::recursive_mutex m_mUserLock;
 	std::map<int, std::shared_ptr<User>> m_mUserMap;
+	std::map<int, std::pair<unsigned int, int>> m_mMigratingUser;
 
 	void ConnectToCenter();
 	void CenterAliveMonitor();
@@ -25,16 +26,19 @@ class WvsShop : public WvsBase
 public:
 	WvsShop();
 	~WvsShop();
-	std::mutex& GetUserLock();
+	std::recursive_mutex& GetUserLock();
 	const std::map<int, std::shared_ptr<User>>& GetConnectedUser();
-
 	std::shared_ptr<Center>& GetCenter();
+
 	void SetConfigLoader(ConfigLoader* pCfg);
 	void InitializeCenter(); 
 
 	User* FindUser(int nUserID);
-
+	const std::pair<unsigned int, int>& GetMigratingUser(int nUserID);
+	void OnUserMigrating(int nUserID, int nSocketID);
+	void RemoveMigratingUser(int nUserID);
 	void OnUserConnected(std::shared_ptr<User> &pUser);
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
+	void ShutdownService();
 };
 

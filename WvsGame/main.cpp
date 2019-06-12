@@ -3,10 +3,9 @@
 
 #include <iostream>
 #include <thread>
-
-#include "QuestMan.h"
 #include <functional>
 
+#include "QuestMan.h"
 #include "ClientSocket.h"
 #include "WvsGame.h"
 #include "ItemInfo.h"
@@ -26,6 +25,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Exception\WvsException.h"
 
 BOOL WINAPI ConsoleHandler(DWORD CEvent)
 {
@@ -49,8 +49,14 @@ void ConnectionAcceptorThread(short nPort)
 	gameServer->BeginAccept<ClientSocket>();
 }
 
+void UnhandledExcpetionHandler()
+{
+	WvsBase::GetInstance<WvsGame>()->ShutdownService();
+}
+
 int main(int argc, char **argv)
 {
+	WvsException::RegisterUnhandledExceptionFilter("WvsGame", UnhandledExcpetionHandler);
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	TimerThread::RegisterTimerPool(50, 1000);
 	QuestMan::GetInstance()->LoadAct();
@@ -64,7 +70,6 @@ int main(int argc, char **argv)
 	SkillInfo::GetInstance()->LoadMCSkill();
 	SkillInfo::GetInstance()->LoadMCGuardian();
 	SkillInfo::GetInstance()->IterateSkillInfo();
-
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
 	FieldMan::GetInstance()->LoadAreaCode();
