@@ -11,6 +11,7 @@
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\String\StringUtility.h"
 
 ItemInfo::ItemInfo()
 {
@@ -48,7 +49,7 @@ void ItemInfo::Initialize()
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
 	RegisterSetHalloweenItem();
-	//stWzResMan->ReleaseMemory();
+	stWzResMan->ReleaseMemory();
 	//WvsLogger::LogRaw("[ItemInfo::Initialize]釋放ItemInfo所有Wz記憶體[ReleaseMemory Done]....\n");
 }
 
@@ -75,7 +76,7 @@ void ItemInfo::IterateMapString(void *dataNode)
 			if (!isdigit(img.Name()[0]) || atoi(img.Name().c_str()) < 1000)
 				IterateMapString((void*)&img);
 			else
-				m_mMapString[atoi(img.Name().c_str())] = img["mapName"];
+				m_mMapString[atoi(img.Name().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["mapName"]).c_str());
 		}
 	}
 }
@@ -100,8 +101,9 @@ void ItemInfo::IterateItemString(void *dataNode)
 		{
 			if (!isdigit(img.Name()[0]) || atoi(img.Name().c_str()) < 1000)
 				IterateItemString((void*)&img);
+
 			else
-				m_mItemString[atoi(img.Name().c_str())] = img["name"];
+				m_mItemString[atoi(img.Name().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["name"]).c_str());
 		}
 	}
 }
@@ -917,6 +919,7 @@ GW_ItemSlotBase * ItemInfo::GetItemSlot(int nItemID, ItemVariationOption enOptio
 				((GW_ItemSlotPet*)ret)->nLevel = 1;
 				((GW_ItemSlotPet*)ret)->strPetName = GetItemName(nItemID);
 				ret->bIsCash = ret->bIsPet = true;
+				ret->liExpireDate = GameDateTime::GetDateExpireFromPeriod(90);
 			}
 		}
 		else

@@ -116,7 +116,7 @@ void GW_FuncKeyMapped::Save(bool bNewCharacter)
 		if (keyMapped.first != lastRecord.first)
 			queryStatement << ", ";
 	}
-	queryStatement << " ON DUPLICATE KEY UPDATE `Character` ID = VALUES (CharacterID), "
+	queryStatement << " ON DUPLICATE KEY UPDATE CharacterID = VALUES (CharacterID), "
 		<< "`Key`=VALUES(`Key`),"
 		<< "`Type`=VALUES(`Type`),"
 		<< "`Value`=VALUES(`Value`)";

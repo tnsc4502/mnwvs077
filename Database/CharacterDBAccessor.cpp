@@ -229,10 +229,9 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		pItem->DecodeInventoryPosition(iPacket);
 		pItem->Decode(iPacket, false);
 		pItem->nCharacterID = nCharacterID;
-		//pItem->liCashItemSN = GW_ItemSlotBase::IncItemSN(GW_ItemSlotBase::GW_ItemSlotType::CASH);
+		pItem->liCashItemSN = GW_ItemSlotBase::IncItemSN(GW_ItemSlotBase::GW_ItemSlotType::CASH);
 		pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
 		pItem->liItemSN = -1;
-		pItem->Save(nCharacterID);
 
 		GW_CashItemInfo cashItemInfo;
 		cashItemInfo.Decode(iPacket);
@@ -241,10 +240,12 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		cashItemInfo.bLocked = true;
 		cashItemInfo.nGWItemSlotInstanceType = pItem->nInstanceType;
 		cashItemInfo.Save(true);
+		pItem->Save(nCharacterID);
 
 		oPacket.Encode4(account.QueryCash(1));
 		oPacket.Encode4(account.QueryCash(2));
 		cashItemInfo.Encode(&oPacket);
+		pItem->Release();
 	}
 	else
 		oPacket.Encode2(ShopInternalPacketFlag::OnCenterResBuyFailed);

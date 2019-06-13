@@ -80,7 +80,7 @@ void WvsLogger::LogFormat(const std::string format, ...)
 	while (1)
 	{
 		if (formatted)
-			FreeArray(formatted, nOldSz);
+			FreeArray(formatted);
 		nOldSz = n;
 		formatted = AllocArray(char, n);
 		va_start(ap, format);
@@ -95,7 +95,7 @@ void WvsLogger::LogFormat(const std::string format, ...)
 	WvsLogData* pLogData = AllocObj(WvsLogData);
 	pLogData->m_nConsoleColor = LEVEL_NORMAL;
 	pLogData->m_strData = formatted;
-	FreeArray(formatted, n);
+	FreeArray(formatted);
 	m_cv.notify_all();
 	g_qMsgQueue.push(pLogData);
 }
@@ -109,7 +109,7 @@ void WvsLogger::LogFormat(int nConsoleColor, const std::string format, ...)
 	while (1)
 	{
 		if (formatted)
-			FreeArray(formatted, nOldSz);
+			FreeArray(formatted);
 		nOldSz = n;
 
 		formatted = AllocArray(char, n);
@@ -126,7 +126,7 @@ void WvsLogger::LogFormat(int nConsoleColor, const std::string format, ...)
 	WvsLogData* pLogData = AllocObj(WvsLogData);
 	pLogData->m_nConsoleColor = nConsoleColor;
 	pLogData->m_strData = formatted;
-	FreeArray(formatted, n);
+	FreeArray(formatted);
 	m_cv.notify_all();
 	g_qMsgQueue.push(pLogData);
 }

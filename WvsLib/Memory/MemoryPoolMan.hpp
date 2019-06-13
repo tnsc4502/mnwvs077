@@ -16,13 +16,12 @@ for object allocation
 
 //#define AllocObj(instance_type) new instance_type()
 //#define FreeObj(pointer) delete pointer
-#define AllocObj(instance_type) WvsSingleObjectAllocator<instance_type, (sizeof(instance_type) > 512)>::GetInstance()->Allocate(sizeof(instance_type))
-#define AllocObjCtor(instance_type) WvsSingleObjectAllocator<instance_type, (sizeof(instance_type) > 512)>::AllocateWithCtor
-#define FreeObj(pointer) WvsSingleObjectAllocator<std::remove_reference<decltype(*pointer)>::type, (sizeof(*pointer) > 512)>::GetInstance()->Free(pointer, (sizeof(*pointer)))
-#define FreeObj_T(T, pointer) WvsSingleObjectAllocator<T, (sizeof(T) > 512)>::GetInstance()->Free(pointer, sizeof(T))
+#define AllocObj(instance_type) WvsSingleObjectAllocator<instance_type>::GetInstance()->Allocate()
+#define AllocObjCtor(instance_type) WvsSingleObjectAllocator<instance_type>::AllocateWithCtor
+#define FreeObj(pointer) WvsSingleObjectAllocator<std::remove_reference<decltype(*pointer)>::type>::GetInstance()->Free(pointer)
 
-#define AllocArray(instance_type, nSize) (instance_type*)WvsArrayAllocator::GetInstance()->Allocate<char>(nSize * sizeof(instance_type))
-#define FreeArray(pointer, nSize) WvsArrayAllocator::GetInstance()->Free<char>(pointer, nSize * sizeof(*pointer))
+#define AllocArray(instance_type, nSize) (instance_type*)WvsArrayAllocator::GetInstance()->Allocate<char>(nSize)
+#define FreeArray(pointer) WvsArrayAllocator::GetInstance()->Free<char>(pointer)
 
 class WzMemoryPoolMan
 {

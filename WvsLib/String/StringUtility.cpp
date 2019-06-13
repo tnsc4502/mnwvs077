@@ -1,4 +1,6 @@
 #include "StringUtility.h"
+#include "..\Memory\MemoryPoolMan.hpp"
+#include <Windows.h>
 
 void StringUtility::Split(const std::string & str, std::vector<std::string>& result, const std::string & delimeter)
 {
@@ -45,4 +47,19 @@ std::string StringUtility::RightPadding(std::string result, int totalSize, char 
 	while ((int)result.size() < totalSize)
 		result += paddingChar;
 	return result;
+}
+
+std::string StringUtility::ConvertUTF8ToSystemEncoding(const char * pStrUTF8)
+{
+#undef min
+	wchar_t wBuffer[1024] = { 0 };
+	int nStrLen = std::min(MultiByteToWideChar(CP_UTF8, 0, pStrUTF8, -1, NULL, 0), 1023);
+	memset(wBuffer, 0, nStrLen + 1);
+	MultiByteToWideChar(CP_UTF8, 0, pStrUTF8, -1, wBuffer, nStrLen);
+
+	int nStrLen_ = std::min(WideCharToMultiByte(CP_ACP, 0, wBuffer, -1, NULL, 0, NULL, NULL), 1023);
+	char cBuffer[1024] = { 0 };
+	memset(cBuffer, 0, nStrLen_ + 1);
+	WideCharToMultiByte(CP_ACP, 0, wBuffer, -1, cBuffer, nStrLen_, NULL, NULL);
+	return cBuffer;
 }

@@ -185,6 +185,7 @@ void Load(string name) {
 }
 
 void Init(bool lazy) {
+	Version = 0;
     GenKeys();
     Lazy = lazy;
     for (path p : Paths) {

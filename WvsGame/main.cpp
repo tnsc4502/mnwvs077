@@ -65,6 +65,11 @@ int main(int argc, char **argv)
 	Reward::LoadReward();
 	ReactorTemplate::Load();
 	NpcTemplate::GetInstance()->Load();
+	FieldMan::GetInstance()->LoadAreaCode();
+	FieldMan::GetInstance()->LoadFieldSet();
+	ContinentMan::GetInstance()->Init();
+	CalcDamage::LoadStandardPDD();
+	ScriptMan::GetInstance()->RegisterScriptFuncReflector();
 
 	SkillInfo::GetInstance()->LoadMobSkill();
 	SkillInfo::GetInstance()->LoadMCSkill();
@@ -72,11 +77,6 @@ int main(int argc, char **argv)
 	SkillInfo::GetInstance()->IterateSkillInfo();
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
-	FieldMan::GetInstance()->LoadAreaCode();
-	FieldMan::GetInstance()->LoadFieldSet();
-	ContinentMan::GetInstance()->Init();
-	CalcDamage::LoadStandardPDD();
-	ScriptMan::GetInstance()->RegisterScriptFuncReflector();
 
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);

@@ -96,12 +96,7 @@ GW_CashItemInfo * ShopInfo::GetCashItemInfo(const CSCommodity * pCS) const
 	pRet->nNumber = pCS->nCount;
 	pRet->nCommodityID = pCS->nSN;
 	if (pCS->nPeriod)
-	{
-		if (ItemInfo::IsPet(pCS->nItemID))
-			pRet->cashItemOption.ftExpireDate = GameDateTime::GetDateExpireFromPeriod(pCS->nPeriod);
-		else
-			pRet->liDateExpire = GameDateTime::GetDateExpireFromPeriod(pCS->nPeriod);
-	}
+		pRet->liDateExpire = GameDateTime::GetDateExpireFromPeriod(pCS->nPeriod);
 	return pRet;
 }
 

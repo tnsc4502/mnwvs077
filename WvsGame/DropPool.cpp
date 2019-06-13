@@ -93,13 +93,13 @@ void DropPool::OnEnter(User * pUser)
 	}
 }
 
-void DropPool::OnPacket(User * pUser, int nType, InPacket * iPacket)
+void DropPool::OnPacket(User *pUser, int nType, InPacket *iPacket)
 {
 	if(nType == UserRecvPacketFlag::User_OnUserPickupRequest)
-		OnPickUpRequest(pUser, iPacket);
+		OnPickUpRequest(pUser, iPacket, nullptr);
 }
 
-void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
+void DropPool::OnPickUpRequest(User *pUser, InPacket *iPacket, Pet *pPet)
 {
 	iPacket->Decode4();
 	iPacket->Decode1();
@@ -120,13 +120,13 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 			pDrop->m_dwOwnerID &&
 			pDrop->m_dwOwnerID != pUser->GetUserID() && 
 			tCur - pDrop->m_tCreateTime < 10 * 1000)
-			pUser->SendDropPickUpResultPacket(false, false, 0, 0, false);
+			pUser->SendDropPickUpResultPacket(false, false, 0, 0, !pPet);
 
 		//Check own party.
 		if (pDrop->m_nOwnType &&
 			pDrop->m_dwOwnPartyID != pUser->GetPartyID() &&
 			tCur - pDrop->m_tCreateTime < 10 * 1000)
-			pUser->SendDropPickUpResultPacket(false, false, 0, 0, false);
+			pUser->SendDropPickUpResultPacket(false, false, 0, 0, !pPet);
 
 		if (pDrop->m_bIsMoney)
 		{
@@ -153,13 +153,13 @@ void DropPool::OnPickUpRequest(User * pUser, InPacket * iPacket)
 			pDrop->m_bIsMoney,
 			nItemID,
 			nCount,
-			false
+			!pPet
 		);
 
 		if (!bDropRemained)
 		{
 			OutPacket oPacket;
-			pDrop->MakeLeaveFieldPacket(&oPacket, 2, pUser->GetUserID());
+			pDrop->MakeLeaveFieldPacket(&oPacket, pPet ? 5 : 2, pUser->GetUserID(), pPet);
 			m_pField->SplitSendPacket(&oPacket, nullptr);
 			FreeObj(pDrop);
 			m_mDrop.erase(nObjectID);
@@ -190,7 +190,7 @@ void DropPool::Remove(int nID, int tDelay)
 	auto pDrop = findIter->second;
 	m_mDrop.erase(findIter);
 	OutPacket oPacket;
-	pDrop->MakeLeaveFieldPacket(&oPacket, tDelay ? 4 : 0, tDelay);
+	pDrop->MakeLeaveFieldPacket(&oPacket, tDelay ? 4 : 0, tDelay, nullptr);
 	m_pField->BroadcastPacket(&oPacket);
 	if (pDrop->GetItem() != nullptr)
 		pDrop->GetItem()->Release();
@@ -210,7 +210,7 @@ void DropPool::TryExpire(bool bRemoveAll)
 				(bRemoveAll || (tCur - prDrop.second->m_tCreateTime >= 180000)))
 			{
 				OutPacket oPacket;
-				prDrop.second->MakeLeaveFieldPacket(&oPacket, 0, 0);
+				prDrop.second->MakeLeaveFieldPacket(&oPacket, 0, 0, nullptr);
 				m_pField->SplitSendPacket(&oPacket, nullptr);
 				if (prDrop.second->GetItem() != nullptr)
 					prDrop.second->GetItem()->Release();

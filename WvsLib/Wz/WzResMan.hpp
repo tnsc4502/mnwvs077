@@ -52,6 +52,7 @@ private:
 
 	void Init()
 	{
+		WZ::Base = WZ::Node();
 		WZ::Init(true);
 		MAPPING_WZ_NAME(Base);
 		MAPPING_WZ_NAME(Character);

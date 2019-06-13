@@ -840,12 +840,25 @@ void GA_Character::LoadItemSlot()
 	queryStatement << "SELECT ItemSN FROM ItemSlot_EQP Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
+	GW_ItemSlotBase* pItem = nullptr;
 
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
-		GW_ItemSlotEquip *eqp = AllocObj(GW_ItemSlotEquip);
-		eqp->Load(recordSet["ItemSN"]);
-		mItemSlot[1][eqp->nPOS] = eqp;
+		pItem = AllocObj(GW_ItemSlotEquip);
+		pItem->Load(recordSet["ItemSN"]);
+		mItemSlot[1][pItem->nPOS] = pItem;
+	}
+
+	queryStatement.reset(GET_DB_SESSION);
+	queryStatement << "SELECT CashItemSN FROM CashItem_EQP Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement.execute();
+	recordSet.reset(queryStatement);
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+	{
+		pItem = AllocObj(GW_ItemSlotEquip);
+		pItem->bIsCash = true;
+		pItem->Load(recordSet["CashItemSN"]);
+		mItemSlot[1][pItem->nPOS] = pItem;
 	}
 
 	queryStatement.reset(GET_DB_SESSION);
@@ -853,10 +866,10 @@ void GA_Character::LoadItemSlot()
 	queryStatement.execute();
 	recordSet.reset(queryStatement);
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext()) {
-		GW_ItemSlotBundle *eqp = AllocObj(GW_ItemSlotBundle);
-		eqp->nType = GW_ItemSlotBase::GW_ItemSlotType::CONSUME;
-		eqp->Load(recordSet["ItemSN"]);
-		mItemSlot[2][eqp->nPOS] = eqp;
+		pItem = AllocObj(GW_ItemSlotBundle);
+		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CONSUME;
+		pItem->Load(recordSet["ItemSN"]);
+		mItemSlot[2][pItem->nPOS] = pItem;
 	}
 
 	queryStatement.reset(GET_DB_SESSION);
@@ -865,10 +878,10 @@ void GA_Character::LoadItemSlot()
 	recordSet.reset(queryStatement);
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
-		GW_ItemSlotBundle *eqp = AllocObj(GW_ItemSlotBundle);
-		eqp->nType = GW_ItemSlotBase::GW_ItemSlotType::INSTALL;
-		eqp->Load(recordSet["ItemSN"]);
-		mItemSlot[3][eqp->nPOS] = eqp;
+		pItem = AllocObj(GW_ItemSlotBundle);
+		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::INSTALL;
+		pItem->Load(recordSet["ItemSN"]);
+		mItemSlot[3][pItem->nPOS] = pItem;
 	}
 
 	queryStatement.reset(GET_DB_SESSION);
@@ -877,33 +890,33 @@ void GA_Character::LoadItemSlot()
 	recordSet.reset(queryStatement);
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
-		GW_ItemSlotBundle *eqp = AllocObj(GW_ItemSlotBundle);
-		eqp->nType = GW_ItemSlotBase::GW_ItemSlotType::ETC;
-		eqp->Load(recordSet["ItemSN"]);
-		mItemSlot[4][eqp->nPOS] = eqp;
+		pItem = AllocObj(GW_ItemSlotBundle);
+		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::ETC;
+		pItem->Load(recordSet["ItemSN"]);
+		mItemSlot[4][pItem->nPOS] = pItem;
 	}
 
 	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT CashItemSN FROM ItemSlot_Cash Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement << "SELECT CashItemSN FROM CashItem_Bundle Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
 	queryStatement.execute();
 	recordSet.reset(queryStatement);
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
-		GW_ItemSlotBundle *eqp = AllocObj(GW_ItemSlotBundle);
-		eqp->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
-		eqp->Load(recordSet["CashItemSN"]);
-		mItemSlot[5][eqp->nPOS] = eqp;
+		pItem = AllocObj(GW_ItemSlotBundle);
+		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
+		pItem->Load(recordSet["CashItemSN"]);
+		mItemSlot[5][pItem->nPOS] = pItem;
 	}
 
 	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT CashItemSN FROM ItemSlot_Pet Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement << "SELECT CashItemSN FROM CashItem_Pet Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
 	queryStatement.execute();
 	recordSet.reset(queryStatement);
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
-		GW_ItemSlotPet *pet = AllocObj(GW_ItemSlotPet);
-		pet->Load(recordSet["CashItemSN"]);
-		mItemSlot[5][pet->nPOS] = pet;
+		pItem = AllocObj(GW_ItemSlotPet);
+		pItem->Load(recordSet["CashItemSN"]);
+		mItemSlot[5][pItem->nPOS] = pItem;
 	}
 }
 

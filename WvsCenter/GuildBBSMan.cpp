@@ -68,11 +68,12 @@ void GuildBBSMan::RegisterEntry(void *pGuild_, int nCharacterID, InPacket * iPac
 	}
 	std::string sTitle = iPacket->DecodeStr();
 	std::string sText = iPacket->DecodeStr();
-	int nEmoticon = iPacket->Decode4();
+	int nEmoticon = iPacket->Decode4(),
+		nWorldID = WvsWorld::GetInstance()->GetWorldInfo().nWorldID;
+
 	if (bUpdate)
-	{
 		GuildBBSDBAccessor::ModifyEntry(
-			WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
+			nWorldID,
 			pGuild->nGuildID,
 			nEntryID,
 			nCharacterID,
@@ -81,11 +82,9 @@ void GuildBBSMan::RegisterEntry(void *pGuild_, int nCharacterID, InPacket * iPac
 			nEmoticon,
 			GuildMan::GetInstance()->GetMemberGrade(pGuild->nGuildID, nCharacterID) <= 2
 		);
-		ViewEntry(pGuild, nCharacterID, nEntryID);
-	}
-	else
-		GuildBBSDBAccessor::RegisterEntry(
-			WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
+	else if(GuildBBSDBAccessor::QueryEntryCount(nWorldID, pGuild->nGuildID) < 100)
+		nEntryID = GuildBBSDBAccessor::RegisterEntry(
+			nWorldID,
 			pGuild->nGuildID,
 			nCharacterID,
 			sTitle,
@@ -93,6 +92,7 @@ void GuildBBSMan::RegisterEntry(void *pGuild_, int nCharacterID, InPacket * iPac
 			nEmoticon,
 			bNotice
 		);
+	ViewEntry(pGuild, nCharacterID, nEntryID);
 }
 
 void GuildBBSMan::DeleteEntry(void *pGuild_, int nCharacterID, InPacket *iPacket)
@@ -196,13 +196,15 @@ void GuildBBSMan::RegisterComment(void *pGuild_, int nCharacterID, InPacket *iPa
 	auto pGuild = (GuildMan::GuildData*)pGuild_;
 	int nEntryID = iPacket->Decode4();
 	std::string sComment = iPacket->DecodeStr();
-	GuildBBSDBAccessor::RegisterComment(
-		WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
-		pGuild->nGuildID,
-		nEntryID,
-		nCharacterID,
-		sComment
-	);
+	int nWorldID = WvsWorld::GetInstance()->GetWorldInfo().nWorldID;
+	if(GuildBBSDBAccessor::QueryCommentCount(nWorldID, pGuild->nGuildID, nEntryID) < 20)
+		GuildBBSDBAccessor::RegisterComment(
+			nWorldID,
+			pGuild->nGuildID,
+			nEntryID,
+			nCharacterID,
+			sComment
+		);
 	ViewEntry(pGuild, nCharacterID, nEntryID);
 }
 

@@ -5,6 +5,7 @@
 
 struct GW_ItemSlotBase;
 class User;
+class Pet;
 class Reward;
 class DropPoo;
 
@@ -41,7 +42,7 @@ public:
 	void MakeEnterFieldPacket(OutPacket *oPacket, int nEnterType, int tDelay);
 
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
-	void MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption);
+	void MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption, Pet *pPet);
 	/*
 	此Drop是否可以被user看見，例如某些任務進行中才會獲得的物品，需要額外檢查
 	*/

@@ -3,6 +3,7 @@
 #include "..\WvsLib\Net\PacketFlags\DropPacketFlags.hpp"
 #include "Reward.h"
 #include "User.h"
+#include "Pet.h"
 
 Drop::Drop()
 {
@@ -36,23 +37,27 @@ void Drop::MakeEnterFieldPacket(OutPacket * oPacket, int nEnterType, int tDelay)
 		oPacket->Encode2(m_pt1.y);
 		oPacket->Encode2(tDelay);
 	}
-	oPacket->Encode2(0);
-	oPacket->Encode8(0);
-	oPacket->Encode2(0);
+	if(!m_bIsMoney)
+		oPacket->Encode8(m_pItem->liExpireDate);
+	oPacket->Encode1(m_bByPet);
 }
 
-void Drop::MakeLeaveFieldPacket(OutPacket * oPacket)
+void Drop::MakeLeaveFieldPacket(OutPacket *oPacket)
 {
-	MakeLeaveFieldPacket(oPacket, 1, 0);
+	MakeLeaveFieldPacket(oPacket, 1, 0, nullptr);
 }
 
-void Drop::MakeLeaveFieldPacket(OutPacket * oPacket, int nLeaveType, int nOption)
+void Drop::MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption, Pet *pPet)
 {
 	oPacket->Encode2((short)DropSendPacketFlag::Drop_OnMakeLeaveFieldPacket);
 	oPacket->Encode1((char)nLeaveType);
 	oPacket->Encode4(m_dwDropID);
-	if (nLeaveType >= 2 && nLeaveType != 4)
+	if (nLeaveType >= 2 && nLeaveType != 4) 
+	{
 		oPacket->Encode4(nOption);
+		if (nLeaveType == 5 && pPet)
+			oPacket->Encode1(pPet->GetIndex());
+	}
 	else if (nLeaveType == 4)
 		oPacket->Encode2(nOption);
 }

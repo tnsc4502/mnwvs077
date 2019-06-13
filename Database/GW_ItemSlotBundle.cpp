@@ -1,7 +1,8 @@
 #include "GW_ItemSlotBundle.h"
 #include "WvsUnified.h"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "Poco\Data\MySQL\MySQLException.h"
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\Logger\WvsLogger.h"
 
 GW_ItemSlotBundle::GW_ItemSlotBundle()
 {
@@ -25,7 +26,7 @@ void GW_ItemSlotBundle::Load(ATOMIC_COUNT_TYPE SN)
 	else if (nType == GW_ItemSlotType::INSTALL)
 		strTableName = "ItemSlot_INS";
 	else if (nType == GW_ItemSlotType::CASH)
-		strTableName = "ItemSlot_CASH";
+		strTableName = "CashItem_Bundle";
 	else
 		throw std::runtime_error("Invalid Item Slot Type.");
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -54,7 +55,9 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 {
 
 	std::string strTableName = "",
-		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN");
+		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN"),
+		sQuery = "";
+
 	if (nType == GW_ItemSlotType::CONSUME)
 		strTableName = "ItemSlot_CON";
 	else if (nType == GW_ItemSlotType::ETC)
@@ -62,19 +65,12 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 	else if (nType == GW_ItemSlotType::INSTALL)
 		strTableName = "ItemSlot_INS";
 	else if (nType == GW_ItemSlotType::CASH)
-		strTableName = "ItemSlot_CASH";
+		strTableName = "CashItem_Bundle";
 	else
 		throw std::runtime_error("Invalid Item Slot Type.");
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	try 
 	{
-		//Note That When Status = DROPPED, It Means That Item Have Been Cousuming Out Or Dropped.
-		/*if (nStatus == GW_ItemSlotStatus::DROPPED)
-		{
-			queryStatement << "DELETE FROM " << strTableName << " Where ItemSN = " << liItemSN;
-			queryStatement.execute();
-			return;
-		}*/
 		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
 			liItemSN *= -1;
@@ -85,10 +81,7 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 			return;
 		}
 		else
-		/*if ((nType == GW_ItemSlotType::CASH && liCashItemSN == -1) ||
-			(nType != GW_ItemSlotType::CASH && liItemSN < 0))*/
 		{
-			//liItemSN = IncItemSN(nType);
 			if (liItemSN <= 0)
 				liItemSN = IncItemSN(nType);
 			if (nType == GW_ItemSlotType::CASH && liCashItemSN == -1)
@@ -110,22 +103,12 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 				<< "Number = '" << nNumber << "'";
 				//<< "' WHERE " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
 		}
-		/*else
-		{
-			queryStatement << "UPDATE " << strTableName << " Set "
-				<< "ItemID = '" << nItemID << "', "
-				<< "CharacterID = '" << nCharacterID << "', "
-				<< "ExpireDate = '" << liExpireDate << "', "
-				<< "Attribute = '" << nAttribute << "', "
-				<< "POS ='" << nPOS << "', "
-				<< "Number = '" << nNumber
-				<< "' WHERE " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
-		}*/
+		sQuery = queryStatement.toString();
 		queryStatement.execute();
 	}
-	catch (Poco::Data::MySQL::StatementException &) 
+	catch (Poco::Data::MySQL::StatementException &se) 
 	{
-		printf("SQL Exception : %s\n", queryStatement.toString().c_str());
+		WvsLogger::LogFormat("SQL Exception Occurred: %s\nRaw Query = %s\n", se.message().c_str(), sQuery.c_str());
 	}
 }
 

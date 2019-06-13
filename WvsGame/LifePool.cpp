@@ -801,13 +801,14 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 		for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 		{
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
-			OnMobStatChangeSkill(
-				pUser, 
-				dmgInfo.pMob->GetFieldObjectID(), 
-				SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID), 
-				pInfo->m_nSLV, 
-				0
-			);
+			if(pSkill)
+				OnMobStatChangeSkill(
+					pUser, 
+					dmgInfo.pMob->GetFieldObjectID(), 
+					SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID), 
+					pInfo->m_nSLV, 
+					0
+				);
 			if (dmgInfo.pMob->GetHP() <= 0)
 			{
 				dmgInfo.pMob->OnMobDead(

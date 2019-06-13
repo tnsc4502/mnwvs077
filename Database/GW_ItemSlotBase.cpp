@@ -33,14 +33,14 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::InitItemSN(GW_ItemSlotType t
 	else if (type == GW_ItemSlotType::ETC)
 		strTableName = "ItemSlot_ETC";
 	else if (type == GW_ItemSlotType::CASH) 
-		strTableName = "ItemSlot_CASH";
+		strTableName = "CashItem_Bundle";
 
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	ATOMIC_COUNT_TYPE result = 0;
 
 	if (type == GW_ItemSlotType::CASH)
 	{
-		queryStatement << "SELECT MAX(CashItemSN) FROM ItemSlot_Cash UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Pet UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Eqp";
+		queryStatement << "SELECT MAX(CashItemSN) FROM CashItem_Bundle UNION ALL SELECT MAX(CashItemSN) FROM CashItem_Pet UNION ALL SELECT MAX(CashItemSN) FROM CashItem_EQP";
 		queryStatement.execute();
 		Poco::Data::RecordSet recordSet(queryStatement);
 		for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
@@ -78,14 +78,14 @@ GW_ItemSlotBase::ATOMIC_COUNT_TYPE GW_ItemSlotBase::GetInitItemSN(GW_ItemSlotTyp
 	else if (type == GW_ItemSlotType::ETC)
 		strTableName = "ItemSlot_ETC";
 	else if (type == GW_ItemSlotType::CASH)
-		strTableName = "ItemSlot_CASH";
+		strTableName = "CashItem_Bundle";
 
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	ATOMIC_COUNT_TYPE result = 0;
 
 	if (type == GW_ItemSlotType::CASH)
 	{
-		queryStatement << "SELECT MAX(CashItemSN) FROM ItemSlot_Cash UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Pet UNION ALL SELECT MAX(CashItemSN) FROM ItemSlot_Eqp";
+		queryStatement << "SELECT MAX(CashItemSN) FROM CashItem_Bundle UNION ALL SELECT MAX(CashItemSN) FROM CashItem_Pet UNION ALL SELECT MAX(CashItemSN) FROM CashItem_EQP";
 		queryStatement.execute();
 		Poco::Data::RecordSet recordSet(queryStatement);
 		for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())

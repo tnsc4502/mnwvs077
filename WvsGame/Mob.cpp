@@ -1124,7 +1124,7 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 			0,
 			0,
 			0,
-			0);
+			true);
 		nXOffset += GetMobTemplate()->m_bIsExplosiveDrop ? 40 : 20;
 	}
 }

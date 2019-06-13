@@ -20,15 +20,15 @@ SocketBase::SocketBase(asio::io_service& serverService, bool isLocalServer)
 	mResolver(serverService),
 	bIsLocalServer(isLocalServer),
 	nSocketID(SocketBase::DesignateSocketID()),
-	aRecvIV((unsigned char*)AllocObj(char[16])),
-	aSendIV((unsigned char*)AllocObj(char[16]))
+	aRecvIV((unsigned char*)AllocArray(char, 16)),
+	aSendIV((unsigned char*)AllocArray(char, 16))
 {
 }
 
 SocketBase::~SocketBase()
 {
-	FreeObj_T(char[16], aRecvIV);
-	FreeObj_T(char[16], aSendIV);
+	FreeArray(aRecvIV);
+	FreeArray(aSendIV);
 }
 
 void SocketBase::SetSocketDisconnectedCallBack(const std::function<void(SocketBase *)>& fObject)
@@ -249,7 +249,7 @@ void SocketBase::OnReceive(const std::error_code &ec, std::size_t bytes_transfer
 			OnDisconnect();
 			return;
 		}
-		FreeArray(buffer, 4);
+		FreeArray(buffer);
 		buffer = AllocArray(unsigned char, nPacketLen);
 		asio::async_read(mSocket,
 			asio::buffer(buffer, nPacketLen),
@@ -279,7 +279,7 @@ void SocketBase::ProcessPacket(const std::error_code &ec, std::size_t bytes_tran
 			WvsLogger::LogFormat("Exceptions Occurred When Processing Packet (nType = : %d), Excpetion Message: %s\nPacket Dump:\n", (int)iPacket.Decode2(), ex.what());
 			iPacket.Print();
 		}
-		FreeArray(buffer, nPacketLen);
+		FreeArray(buffer);
 		OnWaitingPacket();
 	}
 }

@@ -54,7 +54,7 @@ struct GW_ItemSlotBase
 
 public:
 	GW_ItemSlotBase();
-	~GW_ItemSlotBase();
+	virtual ~GW_ItemSlotBase();
 
 	bool IsProtectedItem() const;
 	virtual void Encode(OutPacket *oPacket, bool bForInternal) const = 0;

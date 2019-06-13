@@ -470,8 +470,11 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 		LoadSkill(nSkillRootID, nSkillID, (void*)&skillImg);
 		--m_nOnLoadingSkills;
 	}
-	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount)
+	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
+	{
+		stWzResMan->ReleaseMemory();
 		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo]技能資訊載入完畢 IterateSkillInfo End.\n");
+	}
 }
 
 SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)

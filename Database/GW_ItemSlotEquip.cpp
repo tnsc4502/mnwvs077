@@ -2,9 +2,9 @@
 #include "WvsUnified.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 #include "Poco\Data\MySQL\MySQLException.h"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 #define ADD_EQUIP_FLAG(name, container)\
 if(n##name != 0) {\
@@ -38,17 +38,23 @@ GW_ItemSlotEquip::~GW_ItemSlotEquip()
 
 void GW_ItemSlotEquip::Load(ATOMIC_COUNT_TYPE SN)
 {
-	std::string sColumnName = "ItemSN";
-	if (bIsCash)
+	std::string sColumnName = "ItemSN", sTableName = "ItemSlot_EQP";
+	if (bIsCash) 
+	{
 		sColumnName = "CashItemSN";
+		sTableName = "CashItem_EQP";
+	}
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT * FROM ItemSlot_EQP Where " + sColumnName + " = " << SN;
+	queryStatement << "SELECT * FROM " << sTableName << " Where " + sColumnName + " = " << SN;
 	queryStatement.execute();
-
 	Poco::Data::RecordSet recordSet(queryStatement);
 	nCharacterID = recordSet["CharacterID"];
-	liItemSN = recordSet["ItemSN"];
-	liCashItemSN = recordSet["CashItemSN"];
+
+	if(bIsCash)
+		liCashItemSN = recordSet["CashItemSN"];
+	else
+		liItemSN = recordSet["ItemSN"];
+
 	nItemID = recordSet["ItemID"];
 	liExpireDate = recordSet["ExpireDate"];
 	nAttribute = recordSet["Attribute"];
@@ -82,6 +88,8 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 	if (nType != GW_ItemSlotType::EQUIP)
 		throw std::runtime_error("Invalid Equip Type.");
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	std::string sQuery = "";
+
 	try 
 	{
 		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
@@ -99,9 +107,12 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 				liItemSN = IncItemSN(GW_ItemSlotType::EQUIP);
 			if (bIsCash && liCashItemSN == -1)
 				liCashItemSN = IncItemSN(GW_ItemSlotType::CASH);
-			queryStatement << "INSERT INTO ItemSlot_EQP (ItemSN, CashItemSN, ItemID, CharacterID, ExpireDate, Attribute, POS, RUC, CUC, Cuttable, I_STR, I_DEX, I_INT, I_LUK, I_MaxHP, I_MaxMP, I_PAD, I_MAD, I_PDD, I_MDD, I_ACC, I_EVA, I_Speed, I_Craft, I_Jump) VALUES("
-				<< liItemSN << ", "
-				<< liCashItemSN << ", "
+
+			std::string sTableName = (bIsCash ? "CashItem_EQP" : "ItemSlot_EQP");
+			std::string sColumnName = (bIsCash ? "CashItemSN" : "ItemSN");
+
+			queryStatement << "INSERT INTO " << sTableName << " (" << sColumnName <<", ItemID, CharacterID, ExpireDate, Attribute, POS, RUC, CUC, Cuttable, I_STR, I_DEX, I_INT, I_LUK, I_MaxHP, I_MaxMP, I_PAD, I_MAD, I_PDD, I_MDD, I_ACC, I_EVA, I_Speed, I_Craft, I_Jump) VALUES("
+				<< (bIsCash ? liCashItemSN : liItemSN) << ", "
 				<< nItemID << ", "
 				<< nCharacterID << ", "
 				<< liExpireDate << ", "
@@ -126,9 +137,8 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 				<< nCraft << ", "
 				<< nJump << ")";
 
-			queryStatement << " ON DUPLICATE KEY UPDATE "
-				<< "CashItemSN = " << liCashItemSN << ", "
-				<< "ItemID = " << nItemID << ", "
+			queryStatement << " ON DUPLICATE KEY UPDATE " 
+				<< sColumnName << " = " << (bIsCash ? liCashItemSN : liItemSN) << ", "
 				<< "CharacterID = " << nCharacterID << ", "
 				<< "ExpireDate = '" << liExpireDate << "', "
 				<< "Attribute = " << nAttribute << ", "
@@ -152,43 +162,12 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 				<< "I_Speed = " << nSpeed << ", "
 				<< "I_Craft = " << nCraft << ", "
 				<< "I_Jump = '" << nJump << "'";
-			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Insert SQL = %s\n", queryStatement.toString().c_str());
-
 		}
-		/*else
-		{
-			queryStatement << "UPDATE ItemSlot_EQP Set "
-				<< "CashItemSN = " << liCashItemSN << ", "
-				<< "ItemID = " << nItemID << ", "
-				<< "CharacterID = " << nCharacterID << ", "
-				<< "ExpireDate = '" << liExpireDate << "', "
-				<< "Attribute = " << nAttribute << ", "
-				<< "POS = " << nPOS << ", "
-				<< "Title = '" << sTitle << "', "
-				<< "RUC = '" << (unsigned short)nRUC << "', "
-				<< "CUC = '" << (unsigned short)nCUC << "', "
-				<< "Cuttable = '" << (unsigned short)nCuttable << "', "
-				<< "I_STR = " << nSTR << ", "
-				<< "I_DEX = " << nDEX << ", "
-				<< "I_INT = " << nINT << ", "
-				<< "I_LUK = " << nLUK << ", "
-				<< "I_MaxHP = " << nMaxHP << ", "
-				<< "I_MaxMP = " << nMaxMP << ", "
-				<< "I_PAD = " << nPAD << ", "
-				<< "I_MAD = " << nMAD << ", "
-				<< "I_PDD = " << nPDD << ", "
-				<< "I_MDD = " << nMDD << ", "
-				<< "I_ACC = " << nACC << ", "
-				<< "I_EVA = " << nEVA << ", "
-				<< "I_Speed = " << nSpeed << ", "
-				<< "I_Craft = " << nCraft << ", "
-				<< "I_Jump = '" << nJump << "' WHERE ItemSN = " << liItemSN;
-			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Update SQL = %s\n", queryStatement.toString().c_str());
-		}*/
 		queryStatement.execute();
 	}
-	catch (Poco::Data::MySQL::StatementException &) {
-		printf("SQL Exception : %s\n", queryStatement.toString().c_str());
+	catch (Poco::Data::MySQL::StatementException & se) 
+	{
+		WvsLogger::LogFormat("SQL Exception Occurred: %s\nRaw Query = %s\n", se.message(), sQuery.c_str());
 	}
 }
 

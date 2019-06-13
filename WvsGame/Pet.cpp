@@ -4,6 +4,7 @@
 #include "MovePath.h"
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
+#include "DropPool.h"
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -38,7 +39,7 @@ void Pet::Init(User * pUser)
 	OnEnterField(pUser->GetField());
 }
 
-void Pet::OnPacket(InPacket * iPacket, int nType)
+void Pet::OnPacket(InPacket *iPacket, int nType)
 {
 	switch (nType)
 	{
@@ -47,6 +48,9 @@ void Pet::OnPacket(InPacket * iPacket, int nType)
 			break;
 		case UserRecvPacketFlag::User_OnPetActionSpeak:
 		case UserRecvPacketFlag::User_OnPetAction:
+			break;
+		case UserRecvPacketFlag::User_OnPetDropPickupRequest:
+			m_pField->GetDropPool()->OnPickUpRequest(m_pOwner, iPacket, this);
 			break;
 	}
 }

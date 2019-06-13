@@ -7,7 +7,7 @@ void OutPacket::ExtendSize(int nExtendRate = 2)
 {
 	decltype(m_pSharedPacket->aBuff) newBuff = AllocArray(unsigned char, (m_pSharedPacket->nBuffSize * nExtendRate));
 	memcpy(newBuff, m_pSharedPacket->aBuff, m_pSharedPacket->nBuffSize);
-	FreeArray(m_pSharedPacket->aBuff, m_pSharedPacket->nBuffSize);
+	FreeArray(m_pSharedPacket->aBuff);
 	m_pSharedPacket->nBuffSize *= nExtendRate;
 	m_pSharedPacket->aBuff = newBuff;
 }
@@ -89,7 +89,7 @@ void OutPacket::EncodeStr(const std::string &str)
 
 void OutPacket::Release()
 {
-	FreeArray(m_pSharedPacket->aBuff, m_pSharedPacket->nBuffSize);
+	FreeArray(m_pSharedPacket->aBuff);
 	//delete[] m_pSharedPacket->aBuff;
 }
 
@@ -167,9 +167,9 @@ void OutPacket::SharedPacket::DecRefCount()
 {
 	if (--nRefCount <= 0)
 	{
-		FreeArray(aBuff, nBuffSize);
+		FreeArray(aBuff);
 		for (auto p : aBroadcasted) 
-			FreeArray((unsigned char*)p, nPacketSize - THIS_PTR_OFFSET);
+			FreeArray((unsigned char*)p);
 		//delete[] aBuff;
 		//MSMemoryPoolMan::GetInstance()->DestructArray(aBuff);
 		//delete this;

@@ -301,7 +301,7 @@ void Reactor::DoAction(void *pInfo_, int tDelay, int nDropIdx)
 						tDelay,
 						0,
 						0,
-						1
+						true
 					);
 					nDropIdx += 20;
 					tDelay += 200;

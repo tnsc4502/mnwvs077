@@ -366,10 +366,10 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
 	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
-	if (!pSkillEntry)
+	if (nSkillID && !pSkillEntry)
 		return nullptr;
 
-	pInfo->m_nSLV = std::min(
+	pInfo->m_nSLV = !nSkillID ? 0 : std::min(
 		pSkillEntry->GetMaxLevel(),
 		SkillInfo::GetInstance()->GetSkillLevel(
 			m_pCharacterData,
@@ -405,11 +405,12 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 
 		if (!GetSecondaryStat()->nSoulArrow_ && !GetSecondaryStat()->nAttract_)
 		{
-			auto pLevel = pSkillEntry->GetLevelData(pInfo->m_nSLV);
+			auto pLevel = pSkillEntry ? pSkillEntry->GetLevelData(pInfo->m_nSLV) : nullptr;
+			int nBulletConsume = pLevel ? pLevel->m_nBulletCount : 1;
 			//Try Consume Item.
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-			if ((ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, pLevel->m_nBulletCount), aChangeLog))
-				|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, std::max(1, pLevel->m_nBulletCount), &aChangeLog, nDecCount, nullptr)))
+			if ((ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, nBulletConsume), aChangeLog))
+				|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, std::max(1, nBulletConsume), &aChangeLog, nDecCount, nullptr)))
 			{
 				SendNoticeMessage("Invalid Attack.");
 			}
@@ -672,7 +673,7 @@ void User::OnPacket(InPacket *iPacket)
 			iPacket->RestorePacket();
 			//Pet Packet
 			if (nType >= UserRecvPacketFlag::User_OnPetMove
-				&& nType <= UserRecvPacketFlag::User_OnPetActionSpeak)
+				&& nType <= UserRecvPacketFlag::User_OnPetDropPickupRequest)
 				OnPetPacket(iPacket);
 			//Summoned Packet
 			else if (nType >= FlagMin(SummonedRecvPacketFlag)
@@ -2480,6 +2481,7 @@ User* User::FindUserByName(const std::string & strName)
 
 void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest)
 {
+	SendCharacterStat(bOnExcelRequest, 0);
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnMessage);
 	oPacket.Encode1((char)Message::eDropPickUpMessage);

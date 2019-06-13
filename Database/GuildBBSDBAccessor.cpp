@@ -6,7 +6,7 @@
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 
-void GuildBBSDBAccessor::RegisterEntry(int nWorldID, int nGuildID, int nCharacterID, const std::string& sTitle, const std::string& sText, int nEmoticon, bool bNotice)
+int GuildBBSDBAccessor::RegisterEntry(int nWorldID, int nGuildID, int nCharacterID, const std::string& sTitle, const std::string& sText, int nEmoticon, bool bNotice)
 {
 	int nNextEntryID = bNotice ? 0 : GetNextEntryID(nWorldID, nGuildID);
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -20,8 +20,8 @@ void GuildBBSDBAccessor::RegisterEntry(int nWorldID, int nGuildID, int nCharacte
 		<< "'" << sText << "', "
 		<< (bNotice ? 1 : 0) << ", "
 		<< GameDateTime::GetCurrentDate() << ")";
-	WvsLogger::LogFormat("Query = %s\n", queryStatement.toString().c_str());
 	queryStatement.execute();
+	return nNextEntryID;
 }
 
 int GuildBBSDBAccessor::QueryEntryOwner(int nWorldID, int nGuildID, int nEntryID)
@@ -177,6 +177,26 @@ int GuildBBSDBAccessor::GetNextCommentSN(int nWorldID, int nGuildID, int nEntryI
 
 	int result = (int)recordSet["MAX(SN)"] + 1;
 	return result;
+}
+
+int GuildBBSDBAccessor::QueryEntryCount(int nWorldID, int nGuildID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT Count(EntryID) From BBSEntry Where WorldID = " << nWorldID << " AND GuildID = " << nGuildID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+
+	return recordSet["Count(EntryID)"];
+}
+
+int GuildBBSDBAccessor::QueryCommentCount(int nWorldID, int nGuildID, int nEntryID)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT Count(SN) From BBSComment Where WorldID = " << nWorldID << " AND GuildID = " << nGuildID << " AND EntryID = " << nEntryID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+
+	return recordSet["Count(SN)"];
 }
 
 bool GuildBBSDBAccessor::IsNoticeExist(int nWorldID, int nGuildID)
