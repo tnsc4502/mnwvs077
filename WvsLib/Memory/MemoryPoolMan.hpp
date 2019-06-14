@@ -17,7 +17,7 @@ for object allocation
 //#define AllocObj(instance_type) new instance_type()
 //#define FreeObj(pointer) delete pointer
 #define AllocObj(instance_type) WvsSingleObjectAllocator<instance_type>::GetInstance()->Allocate()
-#define AllocObjCtor(instance_type) WvsSingleObjectAllocator<instance_type>::AllocateWithCtor
+#define AllocObjCtor(instance_type) WvsSingleObjectAllocator<instance_type>::GetInstance()->AllocateWithCtor
 #define FreeObj(pointer) WvsSingleObjectAllocator<std::remove_reference<decltype(*pointer)>::type>::GetInstance()->Free(pointer)
 
 #define AllocArray(instance_type, nSize) (instance_type*)WvsArrayAllocator::GetInstance()->Allocate<char>(nSize)

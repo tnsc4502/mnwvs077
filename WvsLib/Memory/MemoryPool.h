@@ -104,38 +104,41 @@ private:
 #include "MemoryPool.tcc"
 #include <type_traits>
 
-#define BIND_ALLOCATOR(n, sz, n1) if(sz < n1) pRet = __gsg##n.newElement(); else
-#define BIND_ALLOCATOR_CTOR(n, sz, n1) if(sz < n1) pRet = __gsg##n.newElementCtor<T>(std::forward<Args>(args)...); else
-#define BIND_DEALLOCATOR(n, sz, n1)  if(sz < n1) __gsg##n.deallocate((decltype(__gsg##n)::pointer)pDel); else
+#define BIND_ALLOCATOR(n, sz, n1) if(sz < n1) pRet = WVS_ALLOCATOR::__gsg##n.newElement(); else
+#define BIND_ALLOCATOR_CTOR(n, sz, n1) if(sz < n1) pRet = WVS_ALLOCATOR::__gsg##n.newElementCtor<T>(std::forward<Args>(args)...); else
+#define BIND_DEALLOCATOR(n, sz, n1)  if(sz < n1) WVS_ALLOCATOR::__gsg##n.deallocate((decltype(WVS_ALLOCATOR::__gsg##n)::pointer)pDel); else
 
-static MemoryPool<char[32]>  __gsg0 { 32 * 2048 };
-static MemoryPool<char[64]>  __gsg1 { 64 * 1024 };
-static MemoryPool<char[128]> __gsg2{ 128 * 512 };
-static MemoryPool<char[256]> __gsg3{ 256 * 512 };
-static MemoryPool<char[512]> __gsg4{ 512 * 512 };
-static MemoryPool<char[1024]> __gsg5{ 1024 * 512 };
-static MemoryPool<char[2048]> __gsg6{ 2048 * 512 };
-static MemoryPool<char[4096]> __gsg7{ 4096 * 512 };
-static MemoryPool<char[8192]> __gsg8{ 8192 * 512 };
-static MemoryPool<char[8192 * 2]> __gsg9{ 8192 * 2 * 512 };
-static MemoryPool<char[8192 * 4]> __gsg10{ 8192 * 4 * 512 };
-static MemoryPool<char[8192 * 8]> __gsg11{ 8192 * 8 * 512 };
-
-static void* apAllocator[12] = 
+namespace WVS_ALLOCATOR
 {
-	&__gsg0, &__gsg1, &__gsg2, &__gsg3, 
-	&__gsg4, &__gsg5, &__gsg6, &__gsg7,
-	&__gsg8, &__gsg9, &__gsg10, &__gsg11
-};
+	//For object allocations.
+	static MemoryPool<char[32]>  __gsg0{ 32 * 2048 };
+	static MemoryPool<char[64]>  __gsg1{ 64 * 1024 };
+	static MemoryPool<char[128]> __gsg2{ 128 * 512 };
+	static MemoryPool<char[256]> __gsg3{ 256 * 512 };
+	static MemoryPool<char[512]> __gsg4{ 512 * 512 };
+	static MemoryPool<char[1024]> __gsg5{ 1024 * 512 };
+	static MemoryPool<char[2048]> __gsg6{ 2048 * 512 };
+	static MemoryPool<char[4096]> __gsg7{ 4096 * 512 };
+	static MemoryPool<char[8192]> __gsg8{ 8192 * 512 };
+	static MemoryPool<char[8192 * 2]> __gsg9{ 8192 * 2 * 512 };
+	static MemoryPool<char[8192 * 4]> __gsg10{ 8192 * 4 * 512 };
+	static MemoryPool<char[8192 * 8]> __gsg11{ 8192 * 8 * 512 };
 
-constexpr size_t c_log2(size_t n)
-{
-	return ((n<2) ? 0 : 1 + c_log2(n / 2));
-}
+	//For array allocations.
+	static MemoryPool<char[32]> __gMemPool32{ 32 * 2048 };
+	static MemoryPool<char[64]> __gMemPool64{ 64 * 1024 };
+	static MemoryPool<char[128]> __gMemPool128{ 128 * 512 };
+	static MemoryPool<char[256]> __gMemPool256{ 256 * 512 };
+	static MemoryPool<char[512]> __gMemPool512{ 512 * 512 };
+	static MemoryPool<char[1024]> __gMemPool1024{ 1024 * 512 };
+	static MemoryPool<char[2048]> __gMemPool2048{ 2048 * 512 };
 
-constexpr size_t c_max(const int a, const int b)
-{
-	return a > b ? a : b;
+	static void* apAllocator[12] =
+	{
+		&__gsg0, &__gsg1, &__gsg2, &__gsg3,
+		&__gsg4, &__gsg5, &__gsg6, &__gsg7,
+		&__gsg8, &__gsg9, &__gsg10, &__gsg11
+	};
 }
 
 template<typename T>
@@ -254,9 +257,9 @@ public:
 	}
 
 	template<class... Args>
-	inline static T* AllocateWithCtor(Args&&... args)
+	inline T* AllocateWithCtor(Args&&... args)
 	{
-		//std::lock_guard<std::mutex> lock__(m_mtxLock);
+		std::lock_guard<std::mutex> lock__(m_mtxLock);
 		void *pRet = nullptr;
 		const int SIZE = sizeof(T) + 4;
 
@@ -286,14 +289,6 @@ public:
 	}
 };
 
-static MemoryPool<char[32]> __gMemPool32 { 32 * 2048 };
-static MemoryPool<char[64]> __gMemPool64 { 64 * 1024 };
-static MemoryPool<char[128]> __gMemPool128 { 128 * 512 };
-static MemoryPool<char[256]> __gMemPool256 { 256 * 512 };
-static MemoryPool<char[512]> __gMemPool512 { 512 * 512 };
-static MemoryPool<char[1024]> __gMemPool1024{ 1024 * 512 };
-static MemoryPool<char[2048]> __gMemPool2048{ 2048 * 512 };
-
 
 //This allocator won't call constructor to initliaze every element.
 class WvsArrayAllocator
@@ -310,19 +305,19 @@ private:
 		if (allocate)
 		{
 			if (N <= 32)
-				pRet = __gMemPool32.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool32.newElement();
 			else if (N > 32 && N <= 64)
-				pRet = __gMemPool64.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool64.newElement();
 			else if (N > 64 && N <= 128)
-				pRet = __gMemPool128.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool128.newElement();
 			else if (N > 128 && N <= 256)
-				pRet = __gMemPool256.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool256.newElement();
 			else if (N > 256 && N <= 512)
-				pRet = __gMemPool512.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool512.newElement();
 			else if (N > 512 && N <= 1024)
-				pRet = __gMemPool1024.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool1024.newElement();
 			else if (N > 1024 && N <= 2048)
-				pRet = __gMemPool2048.newElement();
+				pRet = WVS_ALLOCATOR::__gMemPool2048.newElement();
 			else
 				pRet = new char[N];
 
@@ -335,19 +330,19 @@ private:
 		else
 		{
 			if (N <= 32)
-				__gMemPool32.deallocate((decltype(__gMemPool32)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool32.deallocate((decltype(WVS_ALLOCATOR::__gMemPool32)::pointer)pDel);
 			else if (N > 32 && N <= 64)
-				__gMemPool64.deallocate((decltype(__gMemPool64)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool64.deallocate((decltype(WVS_ALLOCATOR::__gMemPool64)::pointer)pDel);
 			else if (N > 64 && N <= 128)
-				__gMemPool128.deallocate((decltype(__gMemPool128)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool128.deallocate((decltype(WVS_ALLOCATOR::__gMemPool128)::pointer)pDel);
 			else if (N > 128 && N <= 256)
-				__gMemPool256.deallocate((decltype(__gMemPool256)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool256.deallocate((decltype(WVS_ALLOCATOR::__gMemPool256)::pointer)pDel);
 			else if (N > 256 && N <= 512)
-				__gMemPool512.deallocate((decltype(__gMemPool512)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool512.deallocate((decltype(WVS_ALLOCATOR::__gMemPool512)::pointer)pDel);
 			else if (N > 512 && N <= 1024)
-				__gMemPool1024.deallocate((decltype(__gMemPool1024)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool1024.deallocate((decltype(WVS_ALLOCATOR::__gMemPool1024)::pointer)pDel);
 			else if (N > 1024 && N <= 2048)
-				__gMemPool2048.deallocate((decltype(__gMemPool2048)::pointer)pDel);
+				WVS_ALLOCATOR::__gMemPool2048.deallocate((decltype(WVS_ALLOCATOR::__gMemPool2048)::pointer)pDel);
 			else
 				::operator delete[] ((unsigned char*)pDel);
 		}
