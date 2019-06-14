@@ -61,10 +61,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 		pDrop->MakeEnterFieldPacket(&oPacket, 3, tDelay);
 		if (!dwOwnerID)
 		{
-			if (pItem->nType == GW_ItemSlotBase::EQUIP)
-				FreeObj((GW_ItemSlotEquip*)(pItem));
-			else
-				FreeObj((GW_ItemSlotBundle*)(pItem));
+			pItem->Release();
 			pDrop->m_pItem = nullptr;
 		}
 		m_pField->BroadcastPacket(&oPacket);
@@ -80,6 +77,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 	}
 	pDrop->m_tCreateTime = GameDateTime::GetTime();
 	m_mDrop[pDrop->m_dwDropID] = pDrop;
+	FreeObj(reward);
 }
 
 void DropPool::OnEnter(User * pUser)
@@ -203,22 +201,21 @@ void DropPool::TryExpire(bool bRemoveAll)
 	int tCur = GameDateTime::GetTime();
 	if (bRemoveAll || tCur - m_tLastExpire >= 10000)
 	{
-		std::vector<int> aRemove;
-		for (auto& prDrop : m_mDrop)
+		for (auto iter = m_mDrop.begin(); iter != m_mDrop.end();)
 		{
-			if (!prDrop.second->m_bEverlasting && 
-				(bRemoveAll || (tCur - prDrop.second->m_tCreateTime >= 180000)))
+			if (!iter->second->m_bEverlasting &&
+				(bRemoveAll || (tCur - iter->second->m_tCreateTime >= 180000)))
 			{
 				OutPacket oPacket;
-				prDrop.second->MakeLeaveFieldPacket(&oPacket, 0, 0, nullptr);
+				iter->second->MakeLeaveFieldPacket(&oPacket, 0, 0, nullptr);
 				m_pField->SplitSendPacket(&oPacket, nullptr);
-				if (prDrop.second->GetItem() != nullptr)
-					prDrop.second->GetItem()->Release();
-				FreeObj(prDrop.second);
-				aRemove.push_back(prDrop.first);
+				if (iter->second->GetItem() != nullptr)
+					iter->second->GetItem()->Release();
+				FreeObj(iter->second);
+				iter = m_mDrop.erase(iter);
 			}
+			else
+				++iter;
 		}
-		for (auto& nRemoveID : aRemove)
-			m_mDrop.erase(nRemoveID);
 	}
 }

@@ -89,6 +89,7 @@ public:
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
 	bool ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChase);
+	void TryKillingAllMobs(User* pUser);
 	bool GiveUpMobController(Controller* pController);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
 	void MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV);

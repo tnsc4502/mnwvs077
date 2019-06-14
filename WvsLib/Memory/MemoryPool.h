@@ -349,7 +349,7 @@ private:
 			else if (N > 1024 && N <= 2048)
 				__gMemPool2048.deallocate((decltype(__gMemPool2048)::pointer)pDel);
 			else
-				::operator delete[] ((char*)pDel);
+				::operator delete[] ((unsigned char*)pDel);
 		}
 		return pRet;
 	}

@@ -1097,7 +1097,6 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 	auto& aReward = m_pMobTemplate->GetMobReward();
 
 	Reward* pDrop = nullptr;
-	std::vector<Reward*> apDrop;
 	User* pOwner = User::FindUser(dwOwnerID);
 
 	auto aRewardDrop = Reward::Create(

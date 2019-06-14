@@ -145,6 +145,7 @@
     <ClInclude Include="Memory\MemoryPool.h" />
     <ClInclude Include="Memory\MemoryPoolMan.hpp" />
     <ClInclude Include="Memory\stdinc.h" />
+    <ClInclude Include="Memory\ZMemory.h" />
     <ClInclude Include="Net\asio.hpp" />
     <ClInclude Include="Net\InPacket.h" />
     <ClInclude Include="Net\OutPacket.h" />

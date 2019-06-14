@@ -242,6 +242,13 @@ CommandManager::CommandManager()
 		pUser->SendCharacterStat(false, liFlag);
 		return 1;
 	});
+
+	m_mCmdInvoke["#killall"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		pUser->GetField()->GetLifePool()->TryKillingAllMobs(pUser);
+		return 1;
+	});
 }
 
 CommandManager::~CommandManager()

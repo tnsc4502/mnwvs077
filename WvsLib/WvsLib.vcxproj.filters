@@ -309,6 +309,9 @@
     <ClInclude Include="Exception\WvsException.h">
       <Filter>Exception</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\ZMemory.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Memory\Arena.cpp">

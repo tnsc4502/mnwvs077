@@ -14,6 +14,7 @@
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Exception\WvsException.h"
 #include "..\WvsGame\ItemInfo.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -24,6 +25,8 @@ void ConnectionAcceptorThread(short nPort)
 
 int main(int argc, char** argv)
 {
+	auto p = ZUniquePtr<int>(ZAllocateArray<int>(5));
+	//ZReleaseArray(p);
 	WvsException::RegisterUnhandledExceptionFilter("WvsShop", []() { WvsBase::GetInstance<WvsShop>()->ShutdownService(); });
 	WvsShop *pShopServer = WvsBase::GetInstance<WvsShop>();
 	ItemInfo::GetInstance()->Initialize();

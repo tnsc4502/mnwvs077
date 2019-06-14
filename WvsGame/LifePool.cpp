@@ -500,11 +500,7 @@ bool LifePool::ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChas
 	if (!pNextController)
 		return false;
 
-	auto& aControlledMob = pController->GetMobCtrlList();
-	aControlledMob.erase(
-		std::find(aControlledMob.begin(), aControlledMob.end(), pMobWanted)
-	);
-
+	pController->RemoveCtrlMob(pMobWanted);
 	pMobWanted->SetController(pNextController);
 	pNextController->GetMobCtrlList().push_back(pMobWanted);
 	UpdateCtrlHeap(pNextController);
@@ -512,6 +508,22 @@ bool LifePool::ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChas
 	pMobWanted->SendChangeControllerPacket(pController->GetUser(), 0);
 	pMobWanted->SendChangeControllerPacket(pUser, (bChase != 0 ? 1 : 0) + 1);
 	return true;
+}
+
+void LifePool::TryKillingAllMobs(User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	while (m_mMob.empty() == false) 
+	{
+		m_mMob.begin()->second->OnMobHit(
+			pUser, m_mMob.begin()->second->GetMobTemplate()->m_lnMaxHP, 1
+		);
+		m_mMob.begin()->second->OnMobDead(
+			m_mMob.begin()->second->GetPosX(), m_mMob.begin()->second->GetPosY(), 0, 0
+		);
+		RemoveMob(m_mMob.begin()->second);
+	}
+	m_pField->GetDropPool()->TryExpire(true);
 }
 
 bool LifePool::GiveUpMobController(Controller * pController)
