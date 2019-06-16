@@ -17,7 +17,7 @@ class SecondaryStat : public BasicStat
 {
 public:
 	//m[TS Flag, [tDuration, a[nValue, rValue, tValue, nSLV]]]
-	std::map<int, std::pair<long long int, std::vector<int*>>> m_mSetByTS;
+	std::map<unsigned int, std::pair<long long int, std::vector<int*>>> m_mSetByTS;
 	TemporaryStat::TS_Flag m_tsFlagSet;
 	std::recursive_mutex m_mtxLock;
 
