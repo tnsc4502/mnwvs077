@@ -88,7 +88,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	_pSocket->SetUser(this);
 	m_pCharacterData->nAccountID = iPacket->Decode4();
 	m_pCharacterData->DecodeCharacterData(iPacket, true);
-	m_pFuncKeyMapped = AllocObjCtor(GW_FuncKeyMapped)(m_pCharacterData->nCharacterID);
+	m_pFuncKeyMapped.reset(MakeUnique<GW_FuncKeyMapped>(m_pCharacterData->nCharacterID));
 	m_pFuncKeyMapped->Decode(iPacket);
 
 	m_pField = (FieldMan::GetInstance()->GetField(m_pCharacterData->nFieldID));
@@ -144,9 +144,7 @@ void User::FlushCharacterData()
 User::~User()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
-
-	auto bindT = std::bind(&User::Update, this);
-	m_pUpdateTimer->Abort();
+	m_pUpdateTimer->Pause();
 
 	if (m_pMiniRoom) 
 		m_pMiniRoom->OnPacketBase(this, MiniRoomBase::MiniRoomRequest::rq_MiniRoom_LeaveBase, nullptr);
@@ -168,44 +166,17 @@ User::~User()
 	else
 		oPacket.Encode1(0); //bGameEnd, Dont decode and save the secondarystat info.
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
-
-	//m_pField->OnLeave(this);
 	RemoveSummoned(0, 0, -1);
 	LeaveField();
 	PartyMan::GetInstance()->OnLeave(this, false);
 	GuildMan::GetInstance()->OnLeave(this);
 	FriendMan::GetInstance()->OnLeave(this);
-
 	try 
 	{
 		if (GetScript()) 
-		{
-			auto pScript = GetScript();
-			pScript->Abort();
-			FreeObj(pScript);
-		}
+			GetScript()->Abort();
 	}
 	catch (...) {}
-
-	if (m_pTrunk)
-		FreeObj(m_pTrunk);
-
-	if (m_pStoreBank)
-		FreeObj(m_pStoreBank);
-
-	FreeObj(m_pCharacterData);
-	FreeObj(m_pBasicStat);
-	FreeObj(m_pSecondaryStat);
-	FreeObj(m_pCalcDamage);
-	FreeObj(m_pFuncKeyMapped);
-
-	m_pUpdateTimer->Pause();
-	FreeObj(m_pUpdateTimer);
-
-	int nMaxPetIndex = GetMaxPetIndex();
-	for (int i = 0; i < nMaxPetIndex; ++i)
-		if (m_apPet[i])
-			FreeObj(m_apPet[i]);
 }
 
 int User::GetUserID() const
@@ -233,7 +204,7 @@ void User::SendPacket(OutPacket *oPacket)
 	m_pSocket->SendPacket(oPacket);
 }
 
-GA_Character * User::GetCharacterData()
+ZUniquePtr<GA_Character>& User::GetCharacterData()
 {
 	return m_pCharacterData;
 }
@@ -399,7 +370,7 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	{
 		pInfo->m_nSlot = iPacket->Decode2();
 		int nDecCount = 0;
-		auto pBullet = m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, pInfo->m_nSlot);
+		auto& pBullet = m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, pInfo->m_nSlot);
 		if (pBullet && (ItemInfo::IsRechargable(pBullet->nItemID) || pBullet->nItemID / 10000 == 206))
 			pInfo->m_nBulletItemID = pBullet->nItemID;
 
@@ -775,14 +746,34 @@ void User::OnPortalScriptRequest(InPacket *iPacket)
 	if (pPortal)
 	{
 		/*Doing some checks here, let's see*/
-		auto pScript = ScriptMan::GetInstance()->GetScript(
+		auto pScript = ScriptMan::GetInstance()->CreateScript(
 			"./DataSrv/Script/Portal/" + pPortal->GetPortalScriptName() + ".lua",
-			0,
-			m_pField
+			{ 0, m_pField }
 		);
-		if (pScript) 
+		if (!pScript)
 		{
-			pScript->SetUser(this);
+			auto sScriptName = "s_" + pPortal->GetPortalScriptName();
+			auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
+				"Portal",
+				sScriptName
+			);
+
+			pScript = ScriptMan::GetInstance()->CreateScript(
+				sScriptFile,
+				{ 0, m_pField }
+			);
+
+			if (pScript)
+			{
+				SetScript(pScript);
+				pScript->Run(sScriptName);
+			}
+			else 
+				SendChatMessage(0, "Unable to execute portal script: [" + sScriptName + "].");
+		}
+		else if (pScript) 
+		{
+			SetScript(pScript);
 			pScript->Run();
 		}
 	}
@@ -1173,8 +1164,8 @@ void User::OnAttack(int nType, InPacket * iPacket)
 	{
 		auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(pResult->m_nSkillID);
 		auto pLevel = !pSkillEntry ? nullptr : pSkillEntry->GetLevelData(pResult->m_nSLV);
-		int tCur = GameDateTime::GetTime();
-		auto pWeapon = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -11);
+		unsigned int tCur = GameDateTime::GetTime();
+		auto& pWeapon = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -11);
 		pResult->m_nWeaponItemID = pWeapon ? pWeapon->nItemID : 0;
 		m_pField->GetLifePool()->OnUserAttack(
 			this,
@@ -1186,10 +1177,10 @@ void User::OnAttack(int nType, InPacket * iPacket)
 		{
 			FieldRect rect = pLevel->m_rc;
 			rect.OffsetRect(GetPosX(), GetPosY());
-			int tStart = tCur + 700;
+			unsigned int tStart = tCur + 700;
 			//if (pResult->m_bAttackInfoFlag >> 4)
 			//	tStart = pResult->tDelay;
-			int tEnd = tCur + 700 + pLevel->m_nTime;
+			unsigned int tEnd = tCur + 700 + pLevel->m_nTime;
 			m_pField->GetAffectedAreaPool()->InsertAffectedArea(
 				false,
 				GetUserID(),
@@ -1502,7 +1493,7 @@ void User::OnHit(InPacket *iPacket)
 			if (m_pCharacterData->mStat->nJob == 112 ||
 				m_pCharacterData->mStat->nJob == 112)
 			{
-				auto pShield = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -10);
+				auto& pShield = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -10);
 				int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 					m_pCharacterData,
 					m_pCharacterData->mStat->nJob == 112 ? 1220006 : 1120005,
@@ -1621,17 +1612,17 @@ void User::OnEmotion(InPacket *iPacket)
 	}
 }
 
-CalcDamage* User::GetCalcDamage()
+ZUniquePtr<CalcDamage>& User::GetCalcDamage()
 {
 	return m_pCalcDamage;
 }
 
-SecondaryStat * User::GetSecondaryStat()
+ZUniquePtr<SecondaryStat>& User::GetSecondaryStat()
 {
 	return this->m_pSecondaryStat;
 }
 
-BasicStat * User::GetBasicStat()
+ZUniquePtr<BasicStat>& User::GetBasicStat()
 {
 	return this->m_pBasicStat;
 }
@@ -1677,7 +1668,7 @@ std::recursive_mutex & User::GetLock()
 
 void User::Update()
 {
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
 
 	if (tCur - m_tLastBackupTime >= 2 * 60 * 1000)
@@ -2003,7 +1994,7 @@ void User::OnSetActiveEffectItem(InPacket * iPacket)
 void User::OnChangeStatRequest(InPacket *iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 
 	if (m_pField && tCur - m_tLastRecoveryTime >= 8000)
 	{
@@ -2020,7 +2011,7 @@ void User::OnChangeStatRequest(InPacket *iPacket)
 			pChair = ItemInfo::GetInstance()->GetPortableChairItem(m_nActivePortableChairID);
 		}
 
-		auto pEquip = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -5);
+		auto& pEquip = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -5);
 		if (pEquip)
 			dRate *= ItemInfo::GetInstance()->GetEquipItem(pEquip->nItemID)->dRecovery;
 
@@ -2109,7 +2100,7 @@ void User::OnDropMoneyRequest(InPacket * iPacket)
 		SendCharacterStat(true, QWUser::IncMoney(this, -nMoney, true));
 		int pcy = GetPosY();
 		m_pField->GetSpace2D()->GetFootholdUnderneath(GetPosX(), GetPosY() - 10, &pcy);
-		auto pReward = AllocObj(Reward);
+		ZUniquePtr<Reward> pReward = AllocObj(Reward);
 		pReward->SetItem(nullptr);
 		pReward->SetMoney(nMoney);
 		m_pField->GetDropPool()->Create(
@@ -2165,14 +2156,14 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 		if (pUser->m_apPet[i])
 		{
 			oPacket.Encode1(1);
-			oPacket.Encode4(pUser->m_apPet[i]->m_pPetSlot->nItemID);
-			oPacket.EncodeStr(pUser->m_apPet[i]->m_pPetSlot->strPetName);
-			oPacket.Encode1(pUser->m_apPet[i]->m_pPetSlot->nLevel);
-			oPacket.Encode2(pUser->m_apPet[i]->m_pPetSlot->nTameness);
-			oPacket.Encode1(pUser->m_apPet[i]->m_pPetSlot->nRepleteness);
-			oPacket.Encode2(pUser->m_apPet[i]->m_pPetSlot->usPetSkill);
+			oPacket.Encode4(pUser->m_apPet[i]->GetItemSlot()->nItemID);
+			oPacket.EncodeStr(pUser->m_apPet[i]->GetItemSlot()->strPetName);
+			oPacket.Encode1(pUser->m_apPet[i]->GetItemSlot()->nLevel);
+			oPacket.Encode2(pUser->m_apPet[i]->GetItemSlot()->nTameness);
+			oPacket.Encode1(pUser->m_apPet[i]->GetItemSlot()->nRepleteness);
+			oPacket.Encode2(pUser->m_apPet[i]->GetItemSlot()->usPetSkill);
 
-			pPetEquip = pUser->m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, (-114 - (i * 8)));
+			pPetEquip = (GW_ItemSlotBase*)pUser->m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, (-114 - (i * 8)));
 			oPacket.Encode4(pPetEquip ? pPetEquip->nItemID : 0);
 		}
 	oPacket.Encode1(0);
@@ -2258,7 +2249,7 @@ void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
 	short nTI = iPacket->Decode2();
 	int nItemID = iPacket->Decode4();
 
-	auto pItem = m_pCharacterData->GetItem(2, nTI);
+	auto &pItem = m_pCharacterData->GetItem(2, nTI);
 	auto pItemInfo = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
 	if (pItem == nullptr || pItem->nItemID != nItemID || pItemInfo == nullptr)
 	{
@@ -2310,7 +2301,7 @@ void User::OnMobSummonItemUseRequest(InPacket * iPacket)
 	int nTI = GW_ItemSlotBase::CONSUME;
 	int nPOS = iPacket->Decode2();
 	int nItemID = iPacket->Decode4();
-	auto pItem = m_pCharacterData->GetItem(nTI, nPOS);
+	auto &pItem = m_pCharacterData->GetItem(nTI, nPOS);
 	auto pMobSummonItem = ItemInfo::GetInstance()->GetMobSummonItem(nItemID);
 
 	if (!pItem || !pMobSummonItem || pItem->nItemID != nItemID)
@@ -2397,7 +2388,7 @@ void User::OnPortalScrollUseRequest(InPacket *iPacket)
 	int tRequestTime = iPacket->Decode4();
 	int nPOS = iPacket->Decode2();
 	int nItemID = iPacket->Decode4();
-	GW_ItemSlotBundle* pItem = (GW_ItemSlotBundle*)m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+	auto pItem = (GW_ItemSlotBundle*)m_pCharacterData->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
 	auto pScroll = ItemInfo::GetInstance()->GetPortalScrollItem(nItemID);
 	if (!pItem ||
 		!pScroll ||
@@ -2469,12 +2460,12 @@ User::TransferStatus User::GetTransferStatus() const
 	return m_nTransferStatus;
 }
 
-User* User::FindUser(int nUserID)
+ZSharedPtr<User> User::FindUser(int nUserID)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUser(nUserID);
 }
 
-User* User::FindUserByName(const std::string & strName)
+ZSharedPtr<User> User::FindUserByName(const std::string & strName)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUserByName(strName);
 }
@@ -2527,7 +2518,13 @@ Script * User::GetScript()
 
 void User::SetScript(Script * pScript)
 {
-	m_pScript = pScript;
+	if (m_pScript)
+	{
+		//Special..
+		m_pScript->~Script();
+		WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(m_pScript);
+	}
+	m_pScript = (pScript);
 	if (m_pScript)
 		m_pScript->SetUser(this);
 }
@@ -2535,14 +2532,14 @@ void User::SetScript(Script * pScript)
 void User::OnSelectNpc(InPacket * iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lcok(m_mtxUserLock);
-	if (!CanAttachAdditionalProcess())
+	int nLifeNpcID = iPacket->Decode4();
+	auto &pNpc = m_pField->GetLifePool()->GetNpc(nLifeNpcID);
+	if (!CanAttachAdditionalProcess() || !pNpc)
 	{
 		SendCharacterStat(false, 0);
 		return;
 	}
 
-	int nLifeNpcID = iPacket->Decode4();
-	auto pNpc = m_pField->GetLifePool()->GetNpc(nLifeNpcID);
 	auto pTemplate = NpcTemplate::GetInstance()->GetNpcTemplate(pNpc->GetTemplateID());
 	if (pTemplate && pTemplate->GetTrunkCost())
 	{
@@ -2572,12 +2569,12 @@ void User::OnSelectNpc(InPacket * iPacket)
 		SendPacket(&oPacket);
 		return;
 	}
+
 	if (pNpc != nullptr && GetScript() == nullptr)
 	{
-		auto pScript = ScriptMan::GetInstance()->GetScript(
-			"./DataSrv/Script/Npc/" + std::to_string(pNpc->GetTemplateID()) + ".lua", 
-			pNpc->GetTemplateID(),
-			pNpc->GetField()
+		auto pScript = ScriptMan::GetInstance()->CreateScript(
+			"./DataSrv/Script/Npc/" + std::to_string(pNpc->GetTemplateID()) + ".lua",
+			{ pNpc->GetTemplateID(), pNpc->GetField() }
 		);
 		if (pScript == nullptr) 
 		{
@@ -2587,18 +2584,18 @@ void User::OnSelectNpc(InPacket * iPacket)
 				sScriptName
 			);
 
-			pScript = ScriptMan::GetInstance()->GetScript(
+			pScript = ScriptMan::GetInstance()->CreateScript(
 				sScriptFile,
-				pNpc->GetTemplateID(),
-				pNpc->GetField()
-			);			
+				{ pNpc->GetTemplateID(), pNpc->GetField() }
+			);
 			if (pScript)
 			{
 				SetScript(pScript);
 				pScript->Run(sScriptName);
 			}
 			else
-				SendChatMessage(0, "Failed to invoke built-in script (by calling : [" + sScriptName + "]).");
+				SendChatMessage(0, 
+					"Failed to invoke built-in script (template id = : ["  + std::to_string(pNpc->GetTemplateID()) + "] by calling : [" + sScriptName + "]).");
 			return;
 		}
 		else
@@ -2612,8 +2609,9 @@ void User::OnSelectNpc(InPacket * iPacket)
 void User::OnScriptMessageAnswer(InPacket *iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lcok(m_mtxUserLock);
-	if (GetScript() != nullptr)
-		m_pScript->OnPacket(iPacket);
+	if (!GetScript())
+		return;
+	m_pScript->OnPacket(iPacket);
 }
 
 void User::SetTradingNpc(Npc * pNpc)
@@ -2633,12 +2631,14 @@ void User::OnQuestRequest(InPacket * iPacket)
 	char nAction = iPacket->Decode1();
 	int nQuestID = iPacket->Decode2(), nNpcID; 
 	NpcTemplate* pNpcTemplate = nullptr;
-	Npc* pNpc = nullptr;
+	Npc* pNpc;
 	if (nAction != 0 && nAction != 3)
 	{
 		nNpcID = iPacket->Decode4();
-		pNpc = m_pField->GetLifePool()->GetNpc(nNpcID);
+		auto& pUniqueNpc = m_pField->GetLifePool()->GetNpc(nNpcID);
 		pNpcTemplate = NpcTemplate::GetInstance()->GetNpcTemplate(nNpcID);
+		if (pUniqueNpc)
+			pNpc = (Npc*)pUniqueNpc;
 		
 		//if (pNpcTemplate == nullptr) // Invalid NPC Template
 		//	return;
@@ -2683,17 +2683,36 @@ void User::OnQuestRequest(InPacket * iPacket)
 		case 4:
 		case 5:
 			{
-				auto pScript = ScriptMan::GetInstance()->GetScript(
+				auto pScript = ScriptMan::GetInstance()->CreateScript(
 					"./DataSrv/Script/Quest/" + std::to_string(nQuestID) + ".lua",
-					nNpcID,
-					m_pField
+					{ nNpcID, m_pField }
 				);
 				if (pScript == nullptr)
 				{
-					SendChatMessage(0, "Quest : " + std::to_string(nQuestID) + " has no script.");
+					auto pAct = nAction == 4 ? 
+						QuestMan::GetInstance()->GetStartAct(nQuestID) :
+						QuestMan::GetInstance()->GetCompleteAct(nQuestID);
+
+					auto sScriptName = pAct ? "s_" + pAct->sScriptName : "";
+					auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
+						"Portal",
+						sScriptName
+					);
+
+					pScript = ScriptMan::GetInstance()->CreateScript(
+						sScriptFile,
+						{ 0, m_pField }
+					);
+
+					if (pScript)
+					{
+						SetScript(pScript);
+						pScript->Run(sScriptName);
+					}
+					else
+						SendChatMessage(0, "Unable to execute quest script: quest id = [" + std::to_string(nQuestID) + "], default script name = ["+ sScriptName + "].");
 					return;
 				}
-				pScript->SetUser(this);
 				SetScript(pScript);
 				pScript->PushInteger("questID", nQuestID);
 
@@ -3091,9 +3110,8 @@ void User::OnPetPacket(InPacket * iPacket)
 	if (nIndex < 0)
 		return;
 
-	auto pPet = m_apPet[nIndex];
-	if (pPet != nullptr)
-		pPet->OnPacket(iPacket, nType);
+	if (m_apPet[nIndex] != nullptr)
+		m_apPet[nIndex]->OnPacket(iPacket, nType);
 }
 
 void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
@@ -3101,16 +3119,18 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 	int nAvailableIdx = -1;
 	int nMaxIndex = GetMaxPetIndex();
-	GW_ItemSlotPet *pPetSlot = nullptr;
 	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	ZSharedPtr<GW_ItemSlotBase> pItem = (GetCharacterData()->GetItem(GW_ItemSlotBase::CASH, nPos));
+
+	if (!pItem || pItem->bIsPet == false)
+		return;
+
 	for (int i = 0; i < nMaxIndex; ++i)
-		if (m_apPet[i] && m_apPet[i]->m_pPetSlot->nPOS == nPos)
+		if (pItem && m_apPet[i] && m_apPet[i]->m_pPetSlot->nPOS == nPos)
 		{
-			pPetSlot = m_apPet[i]->m_pPetSlot;
-			pPetSlot->nActiveState = 0;
+			((GW_ItemSlotPet*)pItem)->nActiveState = 0;
 			m_apPet[i]->OnLeaveField();
-			FreeObj(m_apPet[i]);
-			m_apPet[i] = nullptr;
+			m_apPet[i].reset(nullptr);
 			nAvailableIdx = -1;
 			break;
 		}
@@ -3118,14 +3138,10 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 			nAvailableIdx = i;
 	if (nAvailableIdx >= 0 && nPos > 0)
 	{
-		auto pItem = GetCharacterData()->GetItem(GW_ItemSlotBase::CASH, nPos);
-		if (!pItem || pItem->bIsPet == false)
-			return;
-		pPetSlot = (GW_ItemSlotPet*)pItem;
 		if (nAvailableIdx != -1)
 		{
-			m_apPet[nAvailableIdx] = AllocObjCtor(Pet)(pPetSlot);
-			pPetSlot->nActiveState = 1;
+			m_apPet[nAvailableIdx].reset(MakeUnique<Pet>(pItem));
+			((GW_ItemSlotPet*)pItem)->nActiveState = 1;
 			m_apPet[nAvailableIdx]->SetIndex(nAvailableIdx);
 			m_apPet[nAvailableIdx]->Init(this);
 			m_apPet[nAvailableIdx]->OnEnterField(m_pField);
@@ -3133,7 +3149,7 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 			SendCharacterStat(false, BasicStat::BS_Pet);
 		}
 		else
-			pPetSlot->nActiveState = 0;
+			((GW_ItemSlotPet*)pItem)->nActiveState = 0;
 	}
 	SendCharacterStat(true, 0);
 }
@@ -3533,7 +3549,7 @@ void User::OnTrunkResult(InPacket *iPacket)
 	{
 		case Trunk::TrunkResult::res_Trunk_Load:
 		{
-			m_pTrunk = AllocObj(Trunk);
+			m_pTrunk.reset(MakeUnique<Trunk>());
 			m_pTrunk->Decode(iPacket);
 			m_pTrunk->m_nTrunkTemplateID = m_nTrunkTemplateID;
 			m_pTrunk->m_nTrunkCost = NpcTemplate::GetInstance()->GetNpcTemplate(m_nTrunkTemplateID)->GetTrunkCost();
@@ -3555,21 +3571,17 @@ void User::OnTrunkResult(InPacket *iPacket)
 
 void User::SetTrunk(Trunk *pTrunk)
 {
-	if (m_pTrunk)
-		FreeObj(m_pTrunk);
-	m_pTrunk = pTrunk;
+	m_pTrunk.reset(pTrunk);
 }
 
-StoreBank* User::GetStoreBank()
+ZUniquePtr<StoreBank>& User::GetStoreBank()
 {
 	return m_pStoreBank;
 }
 
 void User::SetStoreBank(StoreBank *pStoreBank)
 {
-	if (m_pStoreBank)
-		FreeObj(m_pStoreBank);
-	m_pStoreBank = pStoreBank;
+	m_pStoreBank.reset(pStoreBank);
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
@@ -3637,9 +3649,8 @@ void User::OnMigrateIn()
 	SendFuncKeyMapped();
 	m_pField->OnEnter(this);
 	auto bindT = std::bind(&User::Update, this);
-	auto pUpdateTimer = AsyncScheduler::CreateTask(bindT, 2000, true);
-	m_pUpdateTimer = pUpdateTimer;
-	pUpdateTimer->Start();
+	m_pUpdateTimer.reset(AsyncScheduler::CreateTask(bindT, 2000, true));
+	m_pUpdateTimer->Start();
 	SetTransferStatus(TransferStatus::eOnTransferNone);
 	QWUQuestRecord::ValidateMobCountRecord(this);
 

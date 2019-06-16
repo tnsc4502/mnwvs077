@@ -5,6 +5,7 @@
 #include <atomic>
 #include <mutex>
 #include "..\WvsLib\Wz\WzResMan.hpp"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct AttackInfo;
 struct MobSummonItem;
@@ -29,10 +30,10 @@ public:
 	struct MobGen
 	{
 		Mob mob;
-		int nRegenAfter = 0, 
-			nRegenInterval = 0, 
+		int nRegenInterval = 0, 
 			nTeamForMCarnival = -1,
 			nMobCount = 0;
+		unsigned int nRegenAfter = 0;
 	};
 
 private:
@@ -40,10 +41,10 @@ private:
 	std::recursive_mutex m_lifePoolMutex;
 
 	std::vector<Npc> m_lNpc;
-	std::vector<MobGen*> m_aMobGen, m_aMCMobGen;
-	std::map<int, Mob*> m_mMob;
-	std::map<int, Npc*> m_mNpc;
-	std::map<int, Employee*> m_mEmployee;
+	std::vector<ZUniquePtr<MobGen>> m_aMobGen, m_aMCMobGen;
+	std::map<int, ZSharedPtr<Mob>> m_mMob;
+	std::map<int, ZUniquePtr<Npc>> m_mNpc;
+	std::map<int, ZUniquePtr<Employee>> m_mEmployee;
 	std::multimap<int, Controller*> m_hCtrl;
 	Controller* m_pCtrlNull;
 	std::map<int, decltype(m_hCtrl)::iterator> m_mController;
@@ -88,13 +89,13 @@ public:
 	void InsertController(User* pUser);
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
-	bool ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChase);
+	bool ChangeMobController(int nCharacterID, Mob* pMobWanted, bool bChase);
 	void TryKillingAllMobs(User* pUser);
 	bool GiveUpMobController(Controller* pController);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
 	void MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV);
 	void MobStatResetByGuardian(int nTeam, int nSkillID, int nSLV);
-	std::vector<Mob*> FindAffectedMobInRect(FieldRect& rc, Mob* pExcept);
+	std::vector<ZSharedPtr<Mob>> FindAffectedMobInRect(FieldRect& rc, const ZSharedPtr<Mob>& pExcept);
 
 	void RedistributeLife();
 	void Update();
@@ -103,8 +104,8 @@ public:
 	void OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
 	std::recursive_mutex& GetLock();
-	Npc* GetNpc(int nFieldObjID);
-	Mob* GetMob(int nFieldObjID);
+	const ZUniquePtr<Npc>& GetNpc(int nFieldObjID);
+	ZSharedPtr<Mob> GetMob(int nFieldObjID);
 	void UpdateMobSplit(User* pUser);
 };
 

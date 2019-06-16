@@ -22,6 +22,7 @@ public:
 	void OnRegisterCenterRequest(InPacket *iPacket);
 	void OnRequestCharacterList(InPacket *iPacket);
 	void OnRequestCreateNewCharacter(InPacket *iPacket);
+	void OnRequestCheckDuplicatedID(InPacket *iPacket);
 	void OnRequestGameServerInfo(InPacket *iPacket);
 	void OnRequestLoginAuth(InPacket *iPacket);
 	void OnRequestMigrateIn(InPacket *iPacket);

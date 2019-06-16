@@ -1,4 +1,5 @@
 #pragma once
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class ClientSocket;
 class OutPacket;
@@ -78,9 +79,9 @@ class User
 
 	int m_nChannelID, nNexonCash = 0, nMaplePoint = 0;
 	ClientSocket *m_pSocket;
-	GA_Character *m_pCharacterData;
-	GW_FuncKeyMapped *m_pFuncKeyMapped;
-	AsyncScheduler *m_pUpdateTimer;
+	ZUniquePtr<GA_Character> m_pCharacterData;
+	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;
+	ZUniquePtr<AsyncScheduler> m_pUpdateTimer;
 
 public:
 	User(ClientSocket *pSocket, InPacket *iPacket);
@@ -88,7 +89,7 @@ public:
 	int GetUserID() const;
 	int GetAccountID() const;
 	static User * FindUser(int nUserID);
-	GA_Character* GetCharacterData();
+	ZUniquePtr<GA_Character>& GetCharacterData();
 	void SendPacket(OutPacket *oPacket);
 	void OnPacket(InPacket *iPacket);
 	void OnMigrateOutCashShop();

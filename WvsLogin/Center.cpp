@@ -75,6 +75,9 @@ void Center::OnPacket(InPacket *iPacket)
 	case CenterSendPacketFlag::LoginAuthResult:
 		OnLoginAuthResult(iPacket);
 		break;
+	case CenterSendPacketFlag::CheckDuplicatedIDResult:
+		OnCheckDuplicatedIDResult(iPacket);
+		break;
 	}
 }
 
@@ -140,7 +143,7 @@ void Center::OnGameServerInfoResponse(InPacket *iPacket)
 	//Auth
 	if (!iPacket->Decode1())
 	{
-		pEntry->nLoginState = LoginState::LS_Stage_SelectWorld;
+		pEntry->nLoginState = LoginState::LS_Stage_SelectedWorld;
 		pSocket->GetSocket().close();
 		return;
 	}
@@ -156,10 +159,16 @@ void Center::OnCreateCharacterResult(InPacket * iPacket)
 {
 	unsigned int nLoginSocketID = iPacket->Decode4();
 	auto pSocket = WvsBase::GetInstance<WvsLogin>()->GetSocket(nLoginSocketID);
-	OutPacket oPacket;
-	oPacket.Encode2((short)LoginSendPacketFlag::Client_ClientCreateCharacterResult);
-	oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
-	pSocket->SendPacket(&oPacket);
+	auto pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByLoginSocketSN(nLoginSocketID);
+
+	if (pEntry && pSocket)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2((short)LoginSendPacketFlag::Client_ClientCreateCharacterResult);
+		oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
+		pSocket->SendPacket(&oPacket);
+		pEntry->nLoginState = LoginState::LS_Stage_SelectedWorld; //Reset
+	}
 }
 
 void Center::OnLoginAuthResult(InPacket * iPacket)
@@ -175,6 +184,24 @@ void Center::OnLoginAuthResult(InPacket * iPacket)
 				!iPacket->Decode1())
 				WvsBase::GetInstance<WvsLogin>()->RemoveLoginEntryByAccountID(nAccountID);
 		}
+	}
+}
+
+void Center::OnCheckDuplicatedIDResult(InPacket *iPacket)
+{
+	unsigned int nLoginSocketID = iPacket->Decode4();
+	auto pEntry = WvsBase::GetInstance<WvsLogin>()->GetLoginEntryByLoginSocketSN(nLoginSocketID);
+	auto pSocket = WvsBase::GetInstance<WvsLogin>()->GetSocket(nLoginSocketID);
+	if (pSocket &&
+		pEntry &&
+		pEntry->nAccountID == iPacket->Decode4() &&
+		pEntry->nLoginState == LoginState::LS_Stage_CheckDuplicatedID)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(LoginSendPacketFlag::Client_ClientCheckDuplicatedIDResult);
+		oPacket.EncodeStr(iPacket->DecodeStr());
+		oPacket.Encode1(iPacket->Decode1());
+		pSocket->SendPacket(&oPacket);
 	}
 }
 

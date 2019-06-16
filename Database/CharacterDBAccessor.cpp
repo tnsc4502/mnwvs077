@@ -14,10 +14,10 @@
 #include "..\WvsLib\Net\SocketBase.h"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 #include "GW_CharacterList.hpp"
 #include "GA_Character.hpp"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "GW_FuncKeyMapped.h"
 
 //WvsUnified CharacterDBAccessor::mDBUnified;
@@ -52,108 +52,117 @@ std::vector<int> CharacterDBAccessor::PostLoadCharacterListRequest(SocketBase *p
 	return chrList.aCharacterList;
 }
 
+void CharacterDBAccessor::PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, const std::string & sCharacterName)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(CenterSendPacketFlag::CheckDuplicatedIDResult);
+	oPacket.Encode4(uLocalSocketSN);
+	oPacket.Encode4(nAccountID);
+	oPacket.EncodeStr(sCharacterName);
+	oPacket.Encode1(QueryCharacterIDByName(sCharacterName) == -1 ? 0 : 1);
+	pSrv->SendPacket(&oPacket);
+}
+
 void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID, const std::string& strName, int nGender, int nFace, int nHair, int nSkin, const int* aBody, const int* aStat)
 {
+	OutPacket oPacket;
+	oPacket.Encode2((short)CenterSendPacketFlag::CreateCharacterResult);
+	oPacket.Encode4(uLocalSocketSN);
+
 	GA_Character chrEntry;
 	chrEntry.nAccountID = nAccountID;
 	chrEntry.nWorldID = nWorldID;
 	chrEntry.strName = strName;
-	chrEntry.mStat->nGender = nGender;
+	if (QueryCharacterIDByName(strName) == -1)
+	{
+		chrEntry.mStat->nGender = nGender;
 
-	chrEntry.nFieldID = 0;
-	chrEntry.nGuildID = chrEntry.nPartyID = chrEntry.mStat->nFame = 0;
+		chrEntry.nFieldID = 0;
+		chrEntry.nGuildID = chrEntry.nPartyID = chrEntry.mStat->nFame = 0;
 
-	chrEntry.mStat->nFace = nFace;
-	chrEntry.mStat->nHair = nHair;
-	chrEntry.mStat->nSkin = nSkin;
+		chrEntry.mStat->nFace = nFace;
+		chrEntry.mStat->nHair = nHair;
+		chrEntry.mStat->nSkin = nSkin;
 
-	chrEntry.mStat->nStr = aStat[STAT_Str];
-	chrEntry.mStat->nDex = aStat[STAT_Dex];
-	chrEntry.mStat->nInt = aStat[STAT_Int];
-	chrEntry.mStat->nLuk = aStat[STAT_Luk];
-	chrEntry.mStat->nHP = aStat[STAT_HP];
-	chrEntry.mStat->nMP = aStat[STAT_MP];
-	chrEntry.mStat->nMaxHP = aStat[STAT_MaxHP];
-	chrEntry.mStat->nMaxMP = aStat[STAT_MaxMP];
-	chrEntry.mStat->nJob = aStat[STAT_Job];
-	chrEntry.mStat->nSubJob = aStat[STAT_SubJob];
-	chrEntry.mLevel->nLevel = aStat[STAT_Level];
-	chrEntry.mStat->nAP = aStat[STAT_AP];
+		chrEntry.mStat->nStr = aStat[STAT_Str];
+		chrEntry.mStat->nDex = aStat[STAT_Dex];
+		chrEntry.mStat->nInt = aStat[STAT_Int];
+		chrEntry.mStat->nLuk = aStat[STAT_Luk];
+		chrEntry.mStat->nHP = aStat[STAT_HP];
+		chrEntry.mStat->nMP = aStat[STAT_MP];
+		chrEntry.mStat->nMaxHP = aStat[STAT_MaxHP];
+		chrEntry.mStat->nMaxMP = aStat[STAT_MaxMP];
+		chrEntry.mStat->nJob = aStat[STAT_Job];
+		chrEntry.mStat->nSubJob = aStat[STAT_SubJob];
+		chrEntry.mLevel->nLevel = aStat[STAT_Level];
+		chrEntry.mStat->nAP = aStat[STAT_AP];
 
-	chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::EQUIP] = 40;
-	chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CONSUME] = 40;
-	chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::ETC] = 40;
-	chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::INSTALL] = 40;
-	chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CASH] = 40;
+		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::EQUIP] = 40;
+		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CONSUME] = 40;
+		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::ETC] = 40;
+		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::INSTALL] = 40;
+		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CASH] = 40;
 
-	GW_ItemSlotEquip gwCapEquip;
-	gwCapEquip.nItemID = aBody[EQP_ID_CapEquip];
-	gwCapEquip.nPOS = EQP_POS_Cap;
+		GW_ItemSlotEquip gwCapEquip;
+		gwCapEquip.nItemID = aBody[EQP_ID_CapEquip];
+		gwCapEquip.nPOS = EQP_POS_Cap;
 
-	GW_ItemSlotEquip gwCoatEquip;
-	gwCoatEquip.nItemID = aBody[EQP_ID_CoatEquip];
-	gwCoatEquip.nPOS = EQP_POS_Coat;
+		GW_ItemSlotEquip gwCoatEquip;
+		gwCoatEquip.nItemID = aBody[EQP_ID_CoatEquip];
+		gwCoatEquip.nPOS = EQP_POS_Coat;
 
-	GW_ItemSlotEquip gwPantsEquip;
-	gwPantsEquip.nItemID = aBody[EQP_ID_PantsEquip];
-	gwPantsEquip.nPOS = EQP_POS_Pants;
+		GW_ItemSlotEquip gwPantsEquip;
+		gwPantsEquip.nItemID = aBody[EQP_ID_PantsEquip];
+		gwPantsEquip.nPOS = EQP_POS_Pants;
 
-	GW_ItemSlotEquip gwWeaponEquip;
-	gwWeaponEquip.nItemID = aBody[EQP_ID_WeaponEquip];
-	gwWeaponEquip.nPOS = EQP_POS_Weapon;
-	gwWeaponEquip.nPAD = 3;
+		GW_ItemSlotEquip gwWeaponEquip;
+		gwWeaponEquip.nItemID = aBody[EQP_ID_WeaponEquip];
+		gwWeaponEquip.nPOS = EQP_POS_Weapon;
+		gwWeaponEquip.nPAD = 3;
 
-	GW_ItemSlotEquip gwShoesEquip;
-	gwShoesEquip.nItemID = aBody[EQP_ID_ShoesEquip];
-	gwShoesEquip.nPOS = EQP_POS_Shoes;
+		GW_ItemSlotEquip gwShoesEquip;
+		gwShoesEquip.nItemID = aBody[EQP_ID_ShoesEquip];
+		gwShoesEquip.nPOS = EQP_POS_Shoes;
 
-	GW_ItemSlotEquip gwCapeEquip;
-	gwCapeEquip.nItemID = aBody[EQP_ID_CapeEquip];
-	gwCapeEquip.nPOS = EQP_POS_Cape;
+		GW_ItemSlotEquip gwCapeEquip;
+		gwCapeEquip.nItemID = aBody[EQP_ID_CapeEquip];
+		gwCapeEquip.nPOS = EQP_POS_Cape;
 
-	GW_ItemSlotEquip gwShieldEquip;
-	gwShieldEquip.nItemID = aBody[EQP_ID_ShieldEquip];
-	gwShieldEquip.nPOS = EQP_POS_Shield;
+		GW_ItemSlotEquip gwShieldEquip;
+		gwShieldEquip.nItemID = aBody[EQP_ID_ShieldEquip];
+		gwShieldEquip.nPOS = EQP_POS_Shield;
 
-	GW_ItemSlotEquip* equips[EQP_ID_FLAG_END] = {
-		&gwCapEquip,
-		&gwCoatEquip,
-		&gwPantsEquip,
-		&gwWeaponEquip,
-		&gwShoesEquip,
-		&gwCapeEquip,
-		&gwShieldEquip
-	};
-	int nEquipCount = sizeof(equips) / sizeof(GW_ItemSlotBase*);
-	for (int i = 0; i < nEquipCount; ++i)
-		if (equips[i]->nItemID > 0)
-		{
-			equips[i]->nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
-			chrEntry.mItemSlot[1].insert({ equips[i]->nPOS, equips[i] });
-		}
-	chrEntry.Save(true);
+		GW_ItemSlotEquip* equips[EQP_ID_FLAG_END] = {
+			&gwCapEquip,
+			&gwCoatEquip,
+			&gwPantsEquip,
+			&gwWeaponEquip,
+			&gwShoesEquip,
+			&gwCapeEquip,
+			&gwShieldEquip
+		};
+		int nEquipCount = sizeof(equips) / sizeof(GW_ItemSlotBase*);
+		for (int i = 0; i < nEquipCount; ++i)
+			if (equips[i]->nItemID > 0)
+			{
+				equips[i]->nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
+				chrEntry.mItemSlot[1].insert({ equips[i]->nPOS, equips[i] });
+			}
+		chrEntry.Save(true);
 
-	//Since items here are auto-var, they will destruct automatically
-	//Prevent GA_Character from deleting those items.
-	for (int i = 0; i < nEquipCount; ++i)
-		if (equips[i]->nItemID > 0)
-			chrEntry.mItemSlot[1].erase(equips[i]->nPOS);
-	GW_FuncKeyMapped funcKeyMapped(chrEntry.nCharacterID);
-	funcKeyMapped.Save(true);
-
-
-	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CreateCharacterResult);
-	oPacket.Encode4(uLocalSocketSN);
-	oPacket.Encode1(0);
-	chrEntry.LoadCharacter(chrEntry.nCharacterID);
-	chrEntry.EncodeAvatar(&oPacket);
-
-	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "INSERT INTO Trunk VALUES (" << nAccountID << ", 4, 0) ";	
-	queryStatement << " ON DUPLICATE KEY UPDATE SlotCount = VALUES (SlotCount), "
-		<< "`Money`=VALUES(`Money`)";
-	queryStatement.execute();
+		//Since items here are auto-var, they will destruct automatically
+		//Prevent GA_Character from deleting those items.
+		for (int i = 0; i < nEquipCount; ++i)
+			if (equips[i]->nItemID > 0)
+				chrEntry.mItemSlot[1].erase(equips[i]->nPOS);
+		GW_FuncKeyMapped funcKeyMapped(chrEntry.nCharacterID);
+		funcKeyMapped.Save(true);
+		oPacket.Encode1(0);
+		chrEntry.LoadCharacter(chrEntry.nCharacterID);
+		chrEntry.EncodeAvatar(&oPacket);
+	}
+	else
+		oPacket.Encode1(1);
 
 	pSrv->SendPacket(&oPacket);
 }
@@ -213,13 +222,13 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		oPacket.Encode2(ShopInternalPacketFlag::OnCenterResBuyDone);
 		account.UpdateCash(nChargeType, -nPrice);
 
-		GW_ItemSlotBase* pItem = nullptr;
+		ZSharedPtr<GW_ItemSlotBase> pItem;
 		if (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP)
-			pItem = AllocObj(GW_ItemSlotEquip);
+			pItem = MakeShared<GW_ItemSlotEquip>();
 		else if (bIsPet)
-			pItem = AllocObj(GW_ItemSlotPet);
+			pItem = MakeShared<GW_ItemSlotPet>();
 		else
-			pItem = AllocObj(GW_ItemSlotBundle);
+			pItem = MakeShared<GW_ItemSlotBundle>();
 
 		pItem->nType = (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP ?
 			GW_ItemSlotBase::GW_ItemSlotType::EQUIP
@@ -245,7 +254,6 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		oPacket.Encode4(account.QueryCash(1));
 		oPacket.Encode4(account.QueryCash(2));
 		cashItemInfo.Encode(&oPacket);
-		pItem->Release();
 	}
 	else
 		oPacket.Encode2(ShopInternalPacketFlag::OnCenterResBuyFailed);
@@ -324,23 +332,14 @@ void CharacterDBAccessor::PostMoveSlotToLockerRequest(SocketBase * pSrv, int uCl
 	cashItemInfo.Load(liCashItemSN);
 	cashItemInfo.bLocked = true;
 	cashItemInfo.Save();
-	GW_ItemSlotBase *pItem = nullptr;
 
-	if (cashItemInfo.nGWItemSlotInstanceType == GW_ItemSlotBase::GW_ItemSlotEquip_Type)
-		pItem = AllocObj(GW_ItemSlotEquip);
-	else if (cashItemInfo.nGWItemSlotInstanceType == GW_ItemSlotBase::GW_ItemSlotPet_Type)
-		pItem = AllocObj(GW_ItemSlotPet);
-	else
-	{
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
-	}
-
+	ZSharedPtr<GW_ItemSlotBase> pItem;
+	pItem.reset(GW_ItemSlotBase::CreateItem(cashItemInfo.nGWItemSlotInstanceType));
+	pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
 	pItem->bIsCash = true;
 	pItem->Load(liCashItemSN);
 	pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
 	pItem->Save(nCharacterID);
-	pItem->Release();
 
 	OutPacket oPacket;
 	oPacket.Encode2((short)CenterSendPacketFlag::CashItemResult);
@@ -367,20 +366,12 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 
 	GW_CashItemInfo cashItemInfo;
 	cashItemInfo.Load(liCashItemSN);
-	GW_ItemSlotBase *pItem = nullptr;
 	GA_Character characterData;
 	characterData.Load(nCharacterID);
 
-	if (cashItemInfo.nGWItemSlotInstanceType == GW_ItemSlotBase::GW_ItemSlotEquip_Type)
-		pItem = AllocObj(GW_ItemSlotEquip);
-	else if (cashItemInfo.nGWItemSlotInstanceType == GW_ItemSlotBase::GW_ItemSlotPet_Type)
-		pItem = AllocObj(GW_ItemSlotPet);
-	else
-	{
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
-	}
-
+	ZSharedPtr<GW_ItemSlotBase> pItem;
+	pItem.reset(GW_ItemSlotBase::CreateItem(cashItemInfo.nGWItemSlotInstanceType));
+	pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
 	pItem->bIsCash = true;
 	pItem->Load(liCashItemSN);
 	auto nPOS = characterData.FindEmptySlotPosition((int)pItem->nType);
@@ -402,7 +393,6 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 	pItem->RawEncode(&oPacket);
 	oPacket.Encode4(0);
 	oPacket.Encode4(0);
-	pItem->Release();
 	pSrv->SendPacket(&oPacket);
 }
 

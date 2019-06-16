@@ -17,6 +17,37 @@ GW_ItemSlotPet::~GW_ItemSlotPet()
 {
 }
 
+void GW_ItemSlotPet::LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT * FROM CashItem_Pet Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+	{
+		auto pItem = MakeShared<GW_ItemSlotPet>();
+		pItem->nCharacterID = recordSet["CharacterID"];
+		pItem->liCashItemSN = recordSet["CashItemSN"];
+		pItem->nItemID = recordSet["ItemID"];
+		pItem->liExpireDate = recordSet["ExpireDate"];
+		pItem->nAttribute = recordSet["Attribute"];
+		pItem->nPetAttribute = (short)recordSet["PetAttribute"];
+		pItem->nPOS = recordSet["POS"];
+		pItem->nLevel = (unsigned char)(unsigned short)recordSet["Level"];
+		pItem->nRepleteness = (unsigned char)(unsigned short)recordSet["Repleteness"];
+		pItem->nTameness = (short)recordSet["Tameness"];
+		pItem->usPetSkill = (unsigned short)recordSet["PetSkill"];
+		pItem->strPetName = recordSet["PetName"].toString();
+		pItem->nActiveState = (unsigned char)(unsigned short)recordSet["ActiveState"];
+		pItem->nAutoBuffSkill = recordSet["AutoBuffSkill"];
+		pItem->nPetHue = recordSet["PetHue"];
+		pItem->nGiantRate = recordSet["GiantRate"];
+
+		pItem->nType = GW_ItemSlotType::CASH;
+		mRes[pItem->nPOS] = pItem;
+	}
+}
+
 void GW_ItemSlotPet::Load(ATOMIC_COUNT_TYPE SN)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -165,7 +196,7 @@ void GW_ItemSlotPet::Release()
 	FreeObj(this);
 }
 
-GW_ItemSlotBase * GW_ItemSlotPet::MakeClone()
+GW_ItemSlotBase * GW_ItemSlotPet::MakeClone() const
 {
 	GW_ItemSlotBase *pPet = AllocObj(GW_ItemSlotPet);
 	*pPet = *this;

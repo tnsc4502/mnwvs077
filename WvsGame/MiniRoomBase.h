@@ -3,6 +3,7 @@
 #include <mutex>
 #include <map>
 #include <string>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class User;
 class InPacket;
@@ -13,15 +14,15 @@ class MiniRoomBase
 protected:
 	static std::atomic<int> ms_nSNCounter;
 	static std::mutex ms_mtxMiniRoomLock;
-	static std::map<int, MiniRoomBase*> ms_mMiniRoom;
+	static std::map<int, ZUniquePtr<MiniRoomBase>> ms_mMiniRoom;
 	static const int MAX_USER_NUM = 8;
 
 	std::recursive_mutex m_mtxMiniRoomLock;
 
 	User* m_apUser[MAX_USER_NUM];
 	int m_anLeaveRequest[MAX_USER_NUM],
-		m_anReservedTime[MAX_USER_NUM],
 		m_anReserved[MAX_USER_NUM];
+	unsigned int m_anReservedTime[MAX_USER_NUM];
 
 	int m_nMiniRoomSN = 0,
 		m_nMaxUsers = 0,

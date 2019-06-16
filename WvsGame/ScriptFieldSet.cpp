@@ -46,7 +46,7 @@ void ScriptFieldSet::DestroySelf(lua_State *L, ScriptFieldSet *p)
 
 void ScriptFieldSet::Register(lua_State * L)
 {
-	luaL_Reg FieldSetMetatable[] = {
+	static luaL_Reg FieldSetMetatable[] = {
 		{ "enter", FieldSetEnter },
 		{ "join", FieldSetJoin },
 		{ "setVar", FieldSetSetVar },
@@ -61,7 +61,7 @@ void ScriptFieldSet::Register(lua_State * L)
 		{ NULL, NULL }
 	};
 
-	luaL_Reg FieldSetTable[] = {
+	static luaL_Reg FieldSetTable[] = {
 		{ NULL, NULL }
 	};
 

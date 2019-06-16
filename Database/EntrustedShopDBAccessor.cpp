@@ -34,7 +34,7 @@ void EntrustedShopDBAccessor::RestoreItemFromShop(int nCharacterID, int nTI, lon
 	}
 }
 
-void EntrustedShopDBAccessor::LoadEntrustedShopItem(std::vector<GW_ItemSlotBase*>& aItemRet, int nCharacterID)
+void EntrustedShopDBAccessor::LoadEntrustedShopItem(std::vector<ZUniquePtr<GW_ItemSlotBase>>& aItemRet, int nCharacterID)
 {
 	std::string asTableName[] = { "", "EQP", "CON", "INS", "ETC" };
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -44,17 +44,16 @@ void EntrustedShopDBAccessor::LoadEntrustedShopItem(std::vector<GW_ItemSlotBase*
 		queryStatement << "SELECT SN FROM EntrustedShop_" << asTableName[nTI] << " Where CharacterID = " << nCharacterID;
 		queryStatement.execute();
 		Poco::Data::RecordSet recordSet(queryStatement);
-		GW_ItemSlotBase* pItem = nullptr;
 		for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 		{
-			pItem = GW_ItemSlotBase::CreateItem(
+			ZUniquePtr<GW_ItemSlotBase> pItem = GW_ItemSlotBase::CreateItem(
 				nTI == GW_ItemSlotBase::EQUIP ?
 				GW_ItemSlotBase::GW_ItemSlotEquip_Type :
 				GW_ItemSlotBase::GW_ItemSlotBundle_Type
 			);
 			pItem->nType = (GW_ItemSlotBase::GW_ItemSlotType)nTI;
 			pItem->Load(recordSet["SN"]);
-			aItemRet.push_back(pItem);
+			aItemRet.push_back(std::move(pItem));
 		}
 	}
 }

@@ -12,6 +12,6 @@ struct StateChangeItem
 	int nItemID;
 	std::map<std::string, int> spec;
 
-	TemporaryStat::TS_Flag Apply(User* pUser, int tCur, bool bApplyBetterOnly, bool bResetByItem = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
+	TemporaryStat::TS_Flag Apply(User* pUser, unsigned int tCur, bool bApplyBetterOnly, bool bResetByItem = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
 };
 

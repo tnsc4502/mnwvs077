@@ -16,3 +16,10 @@ int LoginDBAccessor::CheckPassword(const std::string& sID, const std::string& sP
 	nGender = (int)recordSet["Gender"];
 	return LoginResult::res_PasswdCheck_Success;
 }
+
+void LoginDBAccessor::UpdateGenderAnd2ndPassword(int nAccountID, int nGender, const std::string & s2ndPasswd)
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "UPDATE Account Set SecondPassword = '" << s2ndPasswd << "', Gender = " << nGender << " WHERE AccountID = " << nAccountID;
+	queryStatement.execute();
+}

@@ -11,7 +11,7 @@ public:
 	};
 
 private:
-#define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name##_ = 0, r##name##_ = 0, t##name##_ = 0;
+#define ADD_MOB_STAT(name, flag) const static int MS_##name = 1 << flag; int n##name##_ = 0, r##name##_ = 0; unsigned int t##name##_ = 0;
 	friend class Mob;
 	int nFlagSet = 0;
 	BurnedInfo burnedInfo;
@@ -65,7 +65,7 @@ public:
 	~MobStat();
 
 	void SetFrom(const MobTemplate *pTemplate);
-	void EncodeTemporary(int nSet, OutPacket *oPacket, int tCur);
+	void EncodeTemporary(int nSet, OutPacket *oPacket, unsigned int tCur);
 	int ResetTemporary(int tCur);
 };
 

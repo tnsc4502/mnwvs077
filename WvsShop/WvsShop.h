@@ -1,6 +1,7 @@
 #pragma once
 #include "Center.h"
 #include "..\WvsLib\Net\WvsBase.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 
 class User;
@@ -17,8 +18,8 @@ class WvsShop : public WvsBase
 	std::thread* m_pCenterWorkThread;
 
 	std::recursive_mutex m_mUserLock;
-	std::map<int, std::shared_ptr<User>> m_mUserMap;
-	std::map<int, std::pair<unsigned int, int>> m_mMigratingUser;
+	std::map<int, ZSharedPtr<User>> m_mUserMap;
+	std::map<int, std::pair<unsigned int, unsigned int>> m_mMigratingUser;
 
 	void ConnectToCenter();
 	void CenterAliveMonitor();
@@ -27,17 +28,17 @@ public:
 	WvsShop();
 	~WvsShop();
 	std::recursive_mutex& GetUserLock();
-	const std::map<int, std::shared_ptr<User>>& GetConnectedUser();
+	std::map<int, ZSharedPtr<User>>& GetConnectedUser();
 	std::shared_ptr<Center>& GetCenter();
 
 	void SetConfigLoader(ConfigLoader* pCfg);
 	void InitializeCenter(); 
 
-	User* FindUser(int nUserID);
-	const std::pair<unsigned int, int>& GetMigratingUser(int nUserID);
+	ZSharedPtr<User> FindUser(int nUserID);
+	const std::pair<unsigned int, unsigned int>& GetMigratingUser(int nUserID);
 	void OnUserMigrating(int nUserID, int nSocketID);
 	void RemoveMigratingUser(int nUserID);
-	void OnUserConnected(std::shared_ptr<User> &pUser);
+	void OnUserConnected(ZSharedPtr<User> &pUser);
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
 	void ShutdownService();
 };

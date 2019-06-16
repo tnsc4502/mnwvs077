@@ -30,9 +30,9 @@ void TrunkDBAccessor::UpdateTrunk(int nAccountID, int nMoney, int nSlotCount)
 	queryStatement.execute();
 }
 
-std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkEquip(int nAccountID)
+std::vector<ZSharedPtr<GW_ItemSlotBase>> TrunkDBAccessor::LoadTrunkEquip(int nAccountID)
 {
-	std::vector<GW_ItemSlotBase*> aRet;
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> aRet;
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT SN FROM Trunk_EQP Where AccountID = " << nAccountID;
 	queryStatement.execute();
@@ -48,9 +48,9 @@ std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkEquip(int nAccountID)
 	return aRet;
 }
 
-std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkEtc(int nAccountID)
+std::vector<ZSharedPtr<GW_ItemSlotBase>> TrunkDBAccessor::LoadTrunkEtc(int nAccountID)
 {
-	std::vector<GW_ItemSlotBase*> aRet;
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> aRet;
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT SN FROM Trunk_ETC Where AccountID = " << nAccountID;
 	queryStatement.execute();
@@ -66,9 +66,9 @@ std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkEtc(int nAccountID)
 	return aRet;
 }
 
-std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkInstall(int nAccountID)
+std::vector<ZSharedPtr<GW_ItemSlotBase>> TrunkDBAccessor::LoadTrunkInstall(int nAccountID)
 {
-	std::vector<GW_ItemSlotBase*> aRet;
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> aRet;
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT SN FROM Trunk_INS Where AccountID = " << nAccountID;
 	queryStatement.execute();
@@ -84,9 +84,9 @@ std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkInstall(int nAccountID)
 	return aRet;
 }
 
-std::vector<GW_ItemSlotBase*> TrunkDBAccessor::LoadTrunkConsume(int nAccountID)
+std::vector<ZSharedPtr<GW_ItemSlotBase>> TrunkDBAccessor::LoadTrunkConsume(int nAccountID)
 {
-	std::vector<GW_ItemSlotBase*> aRet;
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> aRet;
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT SN FROM Trunk_CON Where AccountID = " << nAccountID;
 	queryStatement.execute();

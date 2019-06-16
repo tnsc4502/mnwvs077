@@ -18,8 +18,9 @@ public:
 	{
 		int nSkillID = 0, 
 			nSLV = 0, 
-			tLastSkillUse = 0, 
 			nSummoned = 0;
+
+		unsigned int tLastSkillUse = 0;
 	};
 
 	struct MobAttackInfo

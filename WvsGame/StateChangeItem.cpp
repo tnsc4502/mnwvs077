@@ -22,11 +22,11 @@ if(!bResetByItem)\
 	pRef->second.push_back(&pSS->nLv##name##_);\
 }\
 
-TemporaryStat::TS_Flag StateChangeItem::Apply(User * pUser, int tCur, bool bApplyBetterOnly, bool bResetByItem, bool bForcedSetTime, int nForcedSetTime)
+TemporaryStat::TS_Flag StateChangeItem::Apply(User * pUser, unsigned int tCur, bool bApplyBetterOnly, bool bResetByItem, bool bForcedSetTime, int nForcedSetTime)
 {
-	auto pSS = pUser->GetSecondaryStat();
-	auto pBS = pUser->GetBasicStat();
-	auto pS = pUser->GetCharacterData()->mStat;
+	auto &pSS = pUser->GetSecondaryStat();
+	auto &pBS = pUser->GetBasicStat();
+	auto &pS = pUser->GetCharacterData()->mStat;
 	auto info = spec.end(), end = spec.end(), time = spec.find("time");
 
 	std::pair<long long int, std::vector<int*>>* pRef = nullptr;

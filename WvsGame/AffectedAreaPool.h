@@ -18,8 +18,8 @@ public:
 	~AffectedAreaPool();
 
 	const std::vector<AffectedArea*>& GetAffectedAreas() const;
-	void InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSkillID, int nSLV, int tStart, int tEnd, const FieldPoint& pt, const FieldRect& rc, bool bSmoke);
+	void InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSkillID, int nSLV, unsigned int tStart, unsigned int tEnd, const FieldPoint& pt, const FieldRect& rc, bool bSmoke);
 	AffectedArea* GetAffectedAreaByPoint(const FieldPoint& pt);
-	void Update(int tCur);
+	void Update(unsigned int tCur);
 
 };

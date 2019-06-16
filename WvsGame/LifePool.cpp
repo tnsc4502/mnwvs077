@@ -41,10 +41,6 @@ LifePool::LifePool()
 
 LifePool::~LifePool()
 {
-	for (auto& p : m_mMob)
-		FreeObj( p.second );
-	for (auto& p : m_mNpc)
-		FreeObj( p.second );
 	for (auto& p : m_hCtrl)
 		FreeObj( p.second );
 	FreeObj( m_pCtrlNull );
@@ -162,7 +158,7 @@ Npc* LifePool::CreateNpc(const Npc& npc)
 void LifePool::TryCreateMob(bool bReset)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	if (!m_bMobGenEnable)
 		return;
 
@@ -171,7 +167,7 @@ void LifePool::TryCreateMob(bool bReset)
 		std::vector<MobGen*> apGen;
 
 		//MC Mob Gen
-		for (auto pGen : m_aMCMobGen)
+		for (auto& pGen : m_aMCMobGen)
 		{
 			if (bReset)
 				pGen->nRegenAfter = 1000;
@@ -180,7 +176,7 @@ void LifePool::TryCreateMob(bool bReset)
 		}
 
 		//Normal Gen
-		for (auto pGen : m_aMobGen)
+		for (auto& pGen : m_aMobGen)
 		{
 			if (bReset)
 				pGen->nRegenAfter = 1000;
@@ -288,7 +284,6 @@ void LifePool::RemoveNpc(Npc* pNpc)
 	oPacket.Encode4(pNpc->GetFieldObjectID());
 	m_pField->BroadcastPacket(&oPacket);
 	m_mNpc.erase(pNpc->GetFieldObjectID());
-	FreeObj(pNpc);
 }
 
 void LifePool::RemoveMob(Mob* pMob)
@@ -317,7 +312,6 @@ void LifePool::RemoveMob(Mob* pMob)
 	pMob->MakeLeaveFieldPacket(&oPacket);
 	m_pField->SplitSendPacket(&oPacket, nullptr);
 	m_mMob.erase(pMob->GetFieldObjectID());
-	FreeObj( pMob );
 
 	if(m_mMob.size() == 0)
 		ContinentMan::GetInstance()->OnAllSummonedMobRemoved(m_pField->GetFieldID());
@@ -339,8 +333,6 @@ void LifePool::Reset()
 	TryCreateMob(true);
 
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
-	for (auto pGen : m_aMCMobGen)
-		FreeObj(pGen);
 	m_aMCMobGen.clear();
 }
 
@@ -471,7 +463,7 @@ void LifePool::UpdateCtrlHeap(Controller * pController)
 	m_mController[pUser->GetUserID()] = m_hCtrl.insert({ pController->GetTotalControlledCount(), pController });
 }
 
-bool LifePool::ChangeMobController(int nCharacterID, Mob *pMobWanted, bool bChase)
+bool LifePool::ChangeMobController(int nCharacterID, Mob* pMobWanted, bool bChase)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	auto pUser = User::FindUser(nCharacterID);
@@ -592,13 +584,13 @@ void LifePool::MobStatResetByGuardian(int nTeam, int nSkillID, int nSLV)
 	}
 }
 
-std::vector<Mob*> LifePool::FindAffectedMobInRect(FieldRect& rc, Mob * pExcept)
+std::vector<ZSharedPtr<Mob>> LifePool::FindAffectedMobInRect(FieldRect& rc, const ZSharedPtr<Mob>& pExcept)
 {
-	std::vector<Mob*> aRet;
+	std::vector<ZSharedPtr<Mob>> aRet;
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	for (auto& prMob : m_mMob)
 		if (rc.PtInRect({ prMob.second->GetPosX(), prMob.second->GetPosY() }) &&
-			(prMob.second != pExcept))
+			((Mob*)prMob.second != pExcept))
 			aRet.push_back(prMob.second);
 	return aRet;
 }
@@ -664,7 +656,7 @@ void LifePool::RedistributeLife()
 
 void LifePool::Update()
 {
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	TryCreateMob(false);
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
 	for (auto& prMob : m_mMob)
@@ -715,7 +707,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 		auto mobIter = m_mMob.find(iterDmgInfo.first);
 		if (mobIter == m_mMob.end())
 			continue;
-		auto pMob = mobIter->second;
+		auto &pMob = mobIter->second;
 		dmgInfo.pMob = pMob;
 
 		//Calc Meso Explosion Damages.
@@ -887,15 +879,16 @@ std::recursive_mutex & LifePool::GetLock()
 	return m_lifePoolMutex;
 }
 
-Npc * LifePool::GetNpc(int nFieldObjID)
+const ZUniquePtr<Npc>& LifePool::GetNpc(int nFieldObjID)
 {
+	static ZUniquePtr<Npc> pNull;
 	auto findIter = m_mNpc.find(nFieldObjID);
 	if (findIter != m_mNpc.end())
 		return findIter->second;
-	return nullptr;
+	return pNull;
 }
 
-Mob * LifePool::GetMob(int nFieldObjID)
+ZSharedPtr<Mob> LifePool::GetMob(int nFieldObjID)
 {
 	auto findIter = m_mMob.find(nFieldObjID);
 	if (findIter != m_mMob.end())

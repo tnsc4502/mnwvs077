@@ -30,7 +30,7 @@ Please define this in the beginning section of every DoActiveSkill_XXX
 nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);\
 auto pSkillLVLData = pSkill->GetLevelData(bResetBySkill ? 1 : nSLV);\
 auto tsFlag = TemporaryStat::TS_Flag::GetDefault();\
-auto pSS = pUser->GetSecondaryStat();\
+auto &pSS = pUser->GetSecondaryStat();\
 std::pair<long long int, std::vector<int*>>* pRef = nullptr;\
 std::pair<long long int, std::vector<int>>* pRefIndie = nullptr;\
 int nSkillID = pSkill->GetSkillID(), tDelay = 0;\
@@ -64,7 +64,7 @@ if(!bResetBySkill)\
 
 void USkill::ValidateSecondaryStat(User * pUser)
 {
-	auto pSS = pUser->GetSecondaryStat();
+	auto &pSS = pUser->GetSecondaryStat();
 	auto iter = pSS->m_mSetByTS.begin(),
 		 iterEnd = pSS->m_mSetByTS.end();
 

@@ -71,7 +71,7 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 			pUser->SendCharacterStat(true, 0);
 			return;
 		}
-		GW_ItemSlotBase* pItemCopyed = nullptr;
+		ZSharedPtr<GW_ItemSlotBase> pItemCopyed;
 		QWUInventory::MoveItemToTemp(pUser, &pItemCopyed, nTI, nPOS, nNumber);
 
 		for (int i = 0; i < m_nMaxUsers; ++i)
@@ -85,7 +85,6 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 
 			m_apUser[i]->SendPacket(&oPacket);
 		}
-		pItemCopyed->Release();
 	}
 }
 
@@ -158,12 +157,12 @@ void TradingRoom::MakeExchageElements(std::vector<ExchangeElement> aEx[2], std::
 						((GW_ItemSlotBundle*)pItem)->nNumber == prItem.second;
 
 					//i = 0, aEx0: Remove Item, i = 1, aEx0: Add Item
-					elem.m_pItem = bTreatSingly ? (i == 0 ? pItem : pItem->MakeClone()) : nullptr;
+					elem.m_pItem = bTreatSingly ? (i == 0 ? pItem : ZSharedPtr<GW_ItemSlotBase>(pItem->MakeClone())) : nullptr;
 					elem.m_nItemID = bTreatSingly ? 0 : pItem->nItemID;
 					elem.m_nCount = prItem.second * (i == 0 ? -1 : 1);
 					aEx[0].push_back(elem);
 					//i = 0, aEx1: Add Item, i = 1, aEx1: Remove Item
-					elem.m_pItem = bTreatSingly ? (i == 1 ? pItem : pItem->MakeClone()) : nullptr;
+					elem.m_pItem = bTreatSingly ? (i == 1 ? pItem : ZSharedPtr<GW_ItemSlotBase>(pItem->MakeClone())) : nullptr;
 					elem.m_nCount *= -1;
 					aEx[1].push_back(elem);
 				}
@@ -195,17 +194,13 @@ int TradingRoom::DoTrade()
 
 	MakeExchageElements(aEx, amBackupItemTrading);
 	int nTradingAmount = (-anMoneyTrading[0] + anMoneyTrading[1]);
-	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nTradingAmount, aEx[0], &aChangLog[0], nullptr, aBackup[0], false, false);
+	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nTradingAmount, aEx[0], &aChangLog[0], nullptr, aBackup[0], false);
 	if (!nExchangeRes)
 		nExchangeRes = QWUInventory::Exchange(m_apUser[1], nTradingAmount * -1, aEx[1], &aChangLog[1], nullptr, aBackup[1], false);
 
 	//Exchanging with 2nd player failed then we should restore all items of 1st player.
 	if (nExchangeRes) 
 	{
-		for (auto& elem : aEx[1])
-			if (elem.m_pItem && elem.m_nCount >= 0)
-				elem.m_pItem->Release(); //Release all cloned items which are not properly added.
-
 		m_apUser[0]->SendCharacterStat(true, QWUser::SetMoney(m_apUser[0], anBackupMoneyTrading[0]));
 		InventoryManipulator::RestoreBackupItem(m_apUser[0]->GetCharacterData(), aBackup[0]);
 		QWUInventory::RestoreFromTemp(m_apUser[0], amBackupItemTrading[0]);
@@ -214,7 +209,6 @@ int TradingRoom::DoTrade()
 	}
 	else //Exchanging success, release all backup items.
 	{
-		InventoryManipulator::ReleaseBackupItem(aBackup[0]);
 		QWUInventory::SendInventoryOperation(m_apUser[0], true, aChangLog[0]);
 		QWUInventory::SendInventoryOperation(m_apUser[1], true, aChangLog[1]);
 	}

@@ -608,9 +608,6 @@
     <ClCompile Include="QuestMan.cpp">
       <Filter>WvsGame\InGame\Quest</Filter>
     </ClCompile>
-    <ClCompile Include="Script.cpp">
-      <Filter>WvsGame\InGame\Script</Filter>
-    </ClCompile>
     <ClCompile Include="ScriptMan.cpp">
       <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
@@ -770,6 +767,9 @@
     </ClCompile>
     <ClCompile Include="StoreBank.cpp">
       <Filter>WvsGame\InGame\World</Filter>
+    </ClCompile>
+    <ClCompile Include="Script.cpp">
+      <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

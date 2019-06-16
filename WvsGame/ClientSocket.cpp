@@ -42,8 +42,8 @@ int ProcessUserPacket(User *pUser, InPacket *iPacket)
 			case UserRecvPacketFlag::User_OnSelectNpc:
 			case UserRecvPacketFlag::User_OnScriptMessageAnswer:
 				if(pUser->GetScript())
-					pUser->GetScript()->Abort();
-				pUser->SetScript(nullptr);
+					pUser->GetScript()->Abort( );
+				//pUser->SetScript(nullptr);
 				break;
 			case UserRecvPacketFlag::User_OnMiniRoomRequest:
 				pUser->SetMiniRoom(nullptr);

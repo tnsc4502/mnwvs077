@@ -12,7 +12,8 @@ class ReactorEventManager
 	struct EventInfo
 	{
 		Reactor *pReactor;
-		int tEventTime, nEventSN;
+		int nEventSN;
+		unsigned int tEventTime;
 	};
 	std::atomic<int> m_mtxEventIDCounter;
 	std::recursive_mutex m_mtxTimerLock;

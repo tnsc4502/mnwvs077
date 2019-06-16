@@ -13,7 +13,7 @@
 int QWUQuestRecord::GetState(User * pUser, int nKey)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
+	auto &pCharacterData = pUser->GetCharacterData();
 	auto findIter = pCharacterData->mQuestRecord.find(nKey);
 	if (findIter != pCharacterData->mQuestRecord.end())
 		return findIter->second->nState;
@@ -28,7 +28,7 @@ int QWUQuestRecord::GetState(User * pUser, int nKey)
 void QWUQuestRecord::Remove(User * pUser, int nKey, bool bComplete)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
+	auto &pCharacterData = pUser->GetCharacterData();
 	if (bComplete)
 		pCharacterData->mQuestComplete.erase(nKey);
 	else
@@ -39,7 +39,7 @@ void QWUQuestRecord::Remove(User * pUser, int nKey, bool bComplete)
 std::string QWUQuestRecord::Get(User * pUser, int nKey)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
+	auto &pCharacterData = pUser->GetCharacterData();
 	auto findIter = pCharacterData->mQuestRecord.find(nKey);
 	if (findIter != pCharacterData->mQuestRecord.end())
 		return findIter->second->sStringRecord;
@@ -49,14 +49,14 @@ std::string QWUQuestRecord::Get(User * pUser, int nKey)
 void QWUQuestRecord::Set(User *pUser, int nKey, const std::string &sInfo)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacter = pUser->GetCharacterData();
+	auto &pCharacter = pUser->GetCharacterData();
 	pCharacter->SetQuest(nKey, sInfo);
 
 	auto pDemand = QuestMan::GetInstance()->GetCompleteDemand(nKey);
 	if (pDemand && pDemand->m_mDemandMob.size() > 0)
 	{
 		std::string sInfoSet = "";
-		auto pRecord = pCharacter->mQuestRecord[nKey];
+		auto&pRecord = pCharacter->mQuestRecord[nKey];
 		for (auto& prMob : pDemand->m_mDemandMob)
 		{
 			pRecord->aMobRecord.push_back(0);
@@ -71,12 +71,12 @@ void QWUQuestRecord::Set(User *pUser, int nKey, const std::string &sInfo)
 void QWUQuestRecord::SetMobRecord(User *pUser, int nKey, int nMobTempleteID)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
+	auto &pCharacterData = pUser->GetCharacterData();
 	auto findIter = pCharacterData->mQuestRecord.find(nKey);
 	if (findIter == pCharacterData->mQuestRecord.end() || findIter->second->aMobRecord.size() == 0)
 		return;
 
-	auto pRecord = findIter->second;
+	auto&pRecord = findIter->second;
 	auto pDemand = QuestMan::GetInstance()->GetCompleteDemand(nKey);
 	if (pDemand && pDemand->m_aDemandMob.size() > 0)
 	{
@@ -125,7 +125,7 @@ void QWUQuestRecord::ValidateMobCountRecord(User * pUser)
 void QWUQuestRecord::SetComplete(User * pUser, int nKey)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto pCharacterData = pUser->GetCharacterData();
+	auto &pCharacterData = pUser->GetCharacterData();
 	pCharacterData->RemoveQuest(nKey);
 	GW_QuestRecord *pComplete = AllocObj(GW_QuestRecord);
 	pComplete->nQuestID = nKey;
@@ -143,7 +143,7 @@ int QWUQuestRecord::GetMobCount(User *pUser, int nKey, int nIndex)
 		findIter->second->aMobRecord.size() == 0)
 		return 0;
 
-	auto pRecord = findIter->second;
+	auto&pRecord = findIter->second;
 	if (nIndex < 0 || nIndex >= (int)pRecord->aMobRecord.size())
 		return 0;
 	return (int)pRecord->aMobRecord[nIndex];

@@ -77,16 +77,18 @@ class Field_MonsterCarnival
 		m_nGuardianGenAvailable[2] = { 0 },
 		m_nGuardianGenAvailableUnited = 0,
 		m_nMobGenPosCount = 0,
-		m_nState = 0, 
-		m_tFinishMessage = 0,
+		m_nState = 0,
 		m_nTimeDefault = 0,
 		m_nTimeExpand = 0,
 		m_nTimeMessage = 0,
 		m_nTimeFinish = 0,
 		m_nRewardMapWin = 0,
 		m_nRewardMapLose = 0,
-		m_nDeathCP = 0,
-		m_tEndTime = -1;
+		m_nDeathCP = 0;
+
+	unsigned int 
+		m_tEndTime = -1,
+		m_tFinishMessage = 0;
 
 	double m_dClimaxRate;
 	bool m_bIsMapDivided = false, m_bCanceled = false;

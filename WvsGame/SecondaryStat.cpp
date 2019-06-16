@@ -295,10 +295,10 @@ bool SecondaryStat::EnDecode4Byte(TemporaryStat::TS_Flag & flag)
 	return false;
 }
 
-void SecondaryStat::ResetByTime(User* pUser, int tCur)
+void SecondaryStat::ResetByTime(User* pUser, unsigned int tCur)
 {
 	std::vector<int> aSkillResetReason;
-	auto pSS = pUser->GetSecondaryStat();
+	auto &pSS = pUser->GetSecondaryStat();
 	std::lock_guard<std::recursive_mutex> lock(pSS->m_mtxLock);
 	for (auto& setFlag : pSS->m_mSetByTS)
 	{
@@ -379,7 +379,7 @@ void SecondaryStat::EncodeInternal(User* pUser, OutPacket * oPacket)
 	oPacket->Encode4(pUser->GetChannelID());
 
 	//Encode Temporary Internal
-	auto pSS = pUser->GetSecondaryStat();
+	auto &pSS = pUser->GetSecondaryStat();
 	oPacket->Encode4((int)pSS->m_mSetByTS.size());
 	for (auto& setFlag : pSS->m_mSetByTS)
 	{

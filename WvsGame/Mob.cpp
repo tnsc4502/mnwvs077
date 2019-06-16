@@ -187,7 +187,7 @@ bool Mob::IsLucidSpecialMob(int dwTemplateID)
 
 bool Mob::OnMobMove(bool bNextAttackPossible, int nAction, int nData, unsigned char *nSkillCommand, unsigned char *nSLV, bool *bShootAttack)
 {
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	m_tLastMove = tCur;
 
 	if (nAction >= 0)
@@ -290,8 +290,8 @@ bool Mob::DoSkill(int nSkillID, int nSLV, int nOption)
 
 void Mob::DoSkill_AffectArea(int nSkillID, int nSLV, const MobSkillLevelData * pLevel, int tDelay)
 {
-	int tCur = GameDateTime::GetTime();
-	int tEnd = tCur + tDelay + pLevel->tTime;
+	unsigned int tCur = GameDateTime::GetTime();
+	unsigned int tEnd = tCur + tDelay + pLevel->tTime;
 	FieldRect rect = pLevel->rcAffectedArea;
 	rect.OffsetRect(GetPosX(), GetPosY());
 	m_pField->GetAffectedAreaPool()->InsertAffectedArea(
@@ -497,7 +497,7 @@ void Mob::DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay)
 	}
 }
 
-void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, int tCur)
+void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, unsigned int tCur)
 {
 	*nSkillCommand = 0;
 	if (m_pStat->nSealSkill_)
@@ -601,7 +601,7 @@ void Mob::ResetStatChangeSkill(int nSkillID)
 	SendMobTemporaryStatReset(nFlagReset);
 }
 
-void Mob::OnMobInAffectedArea(AffectedArea *pArea, int tCur)
+void Mob::OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur)
 {
 	auto pEntry = SkillInfo::GetInstance()->GetSkillByID(pArea->GetSkillID());
 	auto pLevel = !pEntry ? nullptr : pEntry->GetLevelData(pArea->GetSkillLevel());
@@ -636,12 +636,12 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 
 	int nX = pLevel->m_nX,
 		nY = pLevel->m_nY,
-		tCur = GameDateTime::GetTime(),
 		nDuration = pLevel->m_nTime + tDelay,
 		nSkillID = pSkill->GetSkillID(),
 		nFlagSet = 0,
 		nFlagReset = 0;
 
+	unsigned int tCur = GameDateTime::GetTime();
 	bool bResetBySkill = false, bReset = false;
 	switch (pSkill->GetSkillID())
 	{
@@ -1185,7 +1185,7 @@ Mob::DamageLog& Mob::GetDamageLog()
 	return m_damageLog;
 }
 
-void Mob::Update(int tCur)
+void Mob::Update(unsigned int tCur)
 {
 	UpdateMobStatChange(tCur, m_pStat->nPoison_, m_pStat->tPoison_, m_tLastUpdatePoison);
 	UpdateMobStatChange(tCur, m_pStat->nVenom_, m_pStat->tVenom_, m_tLastUpdateVenom);
@@ -1207,9 +1207,9 @@ void Mob::Update(int tCur)
 	}
 }
 
-void Mob::UpdateMobStatChange(int tCur, int nVal, int tVal, int & nLastUpdateTime)
+void Mob::UpdateMobStatChange(unsigned int tCur, int nVal, unsigned int tVal, unsigned int &nLastUpdateTime)
 {
-	int tTime = tCur;
+	unsigned int tTime = tCur;
 	if (nVal > 0)
 	{
 		if (tTime < tVal)

@@ -109,7 +109,7 @@ int ScriptPacket::PacketSend(lua_State * L)
 
 void ScriptPacket::Register(lua_State * L)
 {
-	luaL_Reg PacketMetatable[] = {
+	static luaL_Reg PacketMetatable[] = {
 		{ "clear", PacketClear },
 		{ "encode1", PacketEncode1 },
 		{ "encode2", PacketEncode2 },
@@ -122,7 +122,7 @@ void ScriptPacket::Register(lua_State * L)
 		{ NULL, NULL }
 	};
 
-	luaL_Reg PacketTable[] = {
+	static luaL_Reg PacketTable[] = {
 		{ NULL, NULL }
 	};
 

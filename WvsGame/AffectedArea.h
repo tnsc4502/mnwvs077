@@ -10,8 +10,9 @@ class AffectedArea : public FieldObj
 
 	int	m_nOwnerID = 0,
 		m_nSkillID = 0,
-		m_nSLV = 0,
-		m_tStart = 0,
+		m_nSLV = 0;
+
+	unsigned int m_tStart = 0,
 		m_tEnd = 0;
 
 	bool m_bMobSkill = false, m_bSmoke = false;

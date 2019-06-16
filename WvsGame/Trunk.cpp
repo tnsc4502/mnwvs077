@@ -30,9 +30,6 @@ Trunk::Trunk()
 
 Trunk::~Trunk()
 {
-	for (int nTI = 1; nTI <= 5; ++nTI)
-		for (auto pItem : m_aaItemSlot[nTI])
-			pItem->Release();
 }
 
 void Trunk::Encode(long long int liFlag, OutPacket *oPacket)
@@ -68,7 +65,7 @@ void Trunk::Decode(InPacket * iPacket)
 				(GW_ItemSlotBase*)AllocObj(GW_ItemSlotEquip) : AllocObj(GW_ItemSlotBundle)
 			);
 			pItem->RawDecode(iPacket);
-			m_aaItemSlot[nTI][i] = pItem;
+			m_aaItemSlot[nTI][i].reset(pItem);
 		}
 	}
 }
@@ -102,6 +99,7 @@ void Trunk::OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket)
 	int nItemID = iPacket->Decode4();
 	int nNumber = iPacket->Decode2();
 	int nTI = nItemID / 1000000;
+	int nDecRet = 0;
 
 	auto pItem = pUser->GetCharacterData()->GetItem(nTI, nPOS);
 	if ((nTI == GW_ItemSlotBase::EQUIP && nNumber != 1) ||
@@ -112,6 +110,10 @@ void Trunk::OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket)
 		pUser->SendCharacterStat(true, 0);
 		return;
 	}
+
+	std::vector<InventoryManipulator::ChangeLog> aLog;
+	InventoryManipulator::RawRemoveItem(pUser->GetCharacterData(), nTI, nPOS, nNumber, &aLog, &nDecRet, &m_pTradingItem);
+	QWUInventory::SendInventoryOperation(pUser, true, aLog);
 
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
@@ -142,9 +144,9 @@ void Trunk::OnMoveTrunkToSlotRequest(User *pUser, InPacket *iPacket)
 	//Try taking item.
 	std::vector<BackupItem> aBackup;
 	int nInc = 0;
-	bool bAdd = InventoryManipulator::RawAddItem(pUser->GetCharacterData(), nTI, pItem->MakeClone(), nullptr, &nInc, true, &aBackup);
+	bool bAdd = InventoryManipulator::RawAddItem(pUser->GetCharacterData(), nTI, pItem, nullptr, &nInc, &aBackup);
 	InventoryManipulator::RestoreBackupItem(pUser->GetCharacterData(), aBackup);
-	InventoryManipulator::ReleaseBackupItem(aBackup);
+	//InventoryManipulator::ReleaseBackupItem(aBackup);
 	if (bAdd)
 	{
 		OutPacket oPacket;
@@ -179,13 +181,8 @@ void Trunk::OnMoveSlotToTrunkDone(User *pUser, InPacket *iPacket)
 	int nTI = iPacket->Decode1();
 	int nPOS = iPacket->Decode2();
 	int nNumber = iPacket->Decode2();
-	int nDecRet;
-	std::vector<InventoryManipulator::ChangeLog> aLog;
-	GW_ItemSlotBase* pItem = nullptr;
 
-	InventoryManipulator::RawRemoveItem(pUser->GetCharacterData(), nTI, nPOS, nNumber, &aLog, &nDecRet, &pItem, nullptr);
-	QWUInventory::SendInventoryOperation(pUser, true, aLog);
-	m_aaItemSlot[nTI].push_back(pItem);
+	m_aaItemSlot[nTI].push_back(m_pTradingItem);
 	OutPacket oPacket;
 	oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
 	oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveSlotToTrunk);
@@ -202,11 +199,11 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 
 	auto pItem = m_aaItemSlot[nTI][nPOS];
 	int nInc = 0;
-	bool bAdd = InventoryManipulator::RawAddItem(pUser->GetCharacterData(), nTI, pItem, &aLog, &nInc, true, &aBackup);
+	bool bAdd = InventoryManipulator::RawAddItem(pUser->GetCharacterData(), nTI, pItem, &aLog, &nInc, &aBackup);
 	if (!bAdd)
 	{
 		InventoryManipulator::RestoreBackupItem(pUser->GetCharacterData(), aBackup);
-		InventoryManipulator::ReleaseBackupItem(aBackup);
+		//InventoryManipulator::ReleaseBackupItem(aBackup);
 
 		//Force put back item.
 		OutPacket oPacket;
@@ -296,7 +293,7 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	int nTI = iPacket->Decode1();
-	auto pItem = (nTI == GW_ItemSlotBase::EQUIP ?
+	ZSharedPtr<GW_ItemSlotBase> pItem = (nTI == GW_ItemSlotBase::EQUIP ?
 		(GW_ItemSlotBase*)AllocObj(GW_ItemSlotEquip) : AllocObj(GW_ItemSlotBundle)
 		);
 	iPacket->Decode2(); //nPOS
@@ -313,10 +310,7 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 	{
 		((GW_ItemSlotBundle*)pItem)->nNumber -= nNumber;
 		pItem->Save(nCharacterID);
-		auto pOItem = pItem;
-
-		pItem = pItem->MakeClone();
-		pOItem->Release();
+		pItem.reset(pItem->MakeClone());
 		((GW_ItemSlotBundle*)pItem)->nNumber = nNumber;
 	}
 	pItem->nCharacterID = -1;
@@ -336,8 +330,6 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	if (pwUser)
 		pwUser->SendPacket(&oPacket);
-
-	pItem->Release();
 }
 
 void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)

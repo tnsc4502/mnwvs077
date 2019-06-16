@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "MiniRoomBase.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct GW_ItemSlotBase;
 
@@ -10,7 +11,7 @@ protected:
 	struct Item
 	{
 		int nTI = 0, nPOS = 0, nSet = 0, nNumber = 0, nPrice = 0;
-		GW_ItemSlotBase *pItem;
+		ZSharedPtr<GW_ItemSlotBase> pItem;
 	};
 
 	int m_nSlotCount = 10;

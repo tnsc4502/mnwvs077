@@ -15,7 +15,7 @@ struct ScriptArg
 
 	union Data
 	{
-		int n;
+		long long int n;
 		double d;
 		bool b;
 		char c[MAX_CHAR_BUFFER_SIZE];
@@ -33,6 +33,20 @@ struct ScriptArg
 
 	template<>
 	void Init<int>(const int& d)
+	{
+		nType = e_INT;
+		data.n = d;
+	}
+
+	template<>
+	void Init<unsigned int>(const unsigned int& d)
+	{
+		nType = e_INT;
+		data.n = d;
+	}
+
+	template<>
+	void Init<long long int>(const long long int& d)
 	{
 		nType = e_INT;
 		data.n = d;

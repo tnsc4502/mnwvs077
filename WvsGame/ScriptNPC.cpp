@@ -3,6 +3,7 @@
 #include "Script.h"
 #include "User.h"
 #include "QWUser.h"
+#include "QWUInventory.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\WvsLib\Script\luaconf.h"
@@ -12,6 +13,7 @@
 #include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Random\Rand32.h"
 
 ScriptNPC::ScriptNPC()
 {
@@ -37,8 +39,9 @@ void ScriptNPC::DestroySelf(lua_State * L, ScriptNPC * p)
 
 void ScriptNPC::Register(lua_State * L)
 {
-	luaL_Reg SelfMetatable[] = {
+	static luaL_Reg SelfMetatable[] = {
 		{ "askAvatar", SelfAskAvatar },
+		{ "makeRandAvatar", SelfMakeRandAvatar },
 		{ "askText", SelfAskText },
 		{ "askYesNo", SelfAskYesNo },
 		{ "askAccept", SelfAskAcceptDecline },
@@ -51,7 +54,7 @@ void ScriptNPC::Register(lua_State * L)
 		{ NULL, NULL }
 	};
 
-	luaL_Reg SelfTable[] = {
+	static luaL_Reg SelfTable[] = {
 		{ NULL, NULL }
 	};
 	lua_pushinteger(L, ScriptStyle::ePlayerTalk);
@@ -87,8 +90,11 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		case ScriptType::OnSay:
 		{
 			nAction = iPacket->Decode1();
-			if (nAction == (char)0xFF)
+			if (nAction == (char)0xFF) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 0) 
 			{
 				pScript->GetConverstaionState().m_nUserInput = 0;
@@ -114,8 +120,11 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		case ScriptType::OnAskYesNo:
 		{
 			nAction = iPacket->Decode1();
-			if (nAction == (char)0xFF)
+			if (nAction == (char)0xFF) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 0)
 				pScript->GetConverstaionState().m_nUserInput = 0;
 			else if (nAction == 1)
@@ -127,8 +136,11 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		case ScriptType::OnAskText:
 		{
 			nAction = iPacket->Decode1();
-			if (nAction == 0)
+			if (nAction == 0) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 1)
 				lua_pushstring(L, iPacket->DecodeStr().c_str());
 			pScript->GetConverstaionState().m_bResume = true;
@@ -137,8 +149,11 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		case ScriptType::OnAskNumber:
 		{
 			nAction = iPacket->Decode1();
-			if (nAction == 0)
+			if (nAction == 0) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 1)
 				pScript->GetConverstaionState().m_nUserInput = iPacket->Decode4();
 			lua_pushinteger(L, pScript->GetConverstaionState().m_nUserInput);
@@ -148,8 +163,11 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		case ScriptType::OnAskMenu:
 		{
 			nAction = iPacket->Decode1();
-			if (nAction == 0)
+			if (nAction == 0) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 1)
 				pScript->GetConverstaionState().m_nUserInput = iPacket->Decode4();
 			lua_pushinteger(L, pScript->GetConverstaionState().m_nUserInput);
@@ -158,31 +176,37 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 		}
 		case ScriptType::OnAskAvatar:
 		{
+			int nResult = 1;
 			nAction = iPacket->Decode1();
-			if (nAction == 0)
+			if (nAction == 0) 
+			{
 				pScript->Abort();
+				return;
+			}
 			else if (nAction == 1)
 			{
 				auto& refInfo = pScript->GetLastConversationInfo();
 				pScript->GetConverstaionState().m_nUserInput = iPacket->Decode1();
 				if (pScript->GetConverstaionState().m_nUserInput < refInfo.m_aIntObj.size())
 				{
-					pScript->GetUser()->SendCharacterStat(false, QWUser::SetHair(pScript->GetUser(), refInfo.m_aIntObj[pScript->GetConverstaionState().m_nUserInput]));
-					pScript->GetUser()->OnAvatarModified();
+					std::vector<ExchangeElement> aExchange;
+					aExchange.push_back({});
+					aExchange.back().m_nItemID = refInfo.m_nAvatarTicket;
+					aExchange.back().m_nCount = -1;
+					//leave refInfo.m_nAvatarTicket = 0 for GMs and events
+					if (refInfo.m_nAvatarTicket && QWUInventory::Exchange(pScript->GetUser(), 0, aExchange))
+						nResult = 0;
+					else 
+						SetAvatar(pScript->GetUser(), refInfo.m_aIntObj[pScript->GetConverstaionState().m_nUserInput]);
 				}	
 				refInfo.m_aIntObj.clear();
 			}
-			lua_pushinteger(L, pScript->GetConverstaionState().m_nUserInput);
+			lua_pushinteger(L, nResult);
 			pScript->GetConverstaionState().m_bResume = true;
 			break;
 		}
 	}
 	pScript->GetConverstaionState().m_bPaging = false;
-	if (pScript->IsDone())
-	{
-		FreeObj( pScript );
-		return;
-	}
 	pScript->Notify();
 }
 
@@ -204,12 +228,31 @@ int ScriptNPC::SelfSay(lua_State * L)
 	return 1;
 }
 
+void ScriptNPC::SetAvatar(User * pUser, int nSet)
+{
+	long long liFlag = 0;
+	switch (nSet / 10000)
+	{
+		case 0:
+		case 1:
+			liFlag |= QWUser::SetSkin(pUser, nSet);
+			break;
+		case 2:
+			liFlag |= QWUser::SetFace(pUser, nSet);
+			break;
+		case 3:
+		case 4:
+			liFlag |= QWUser::SetHair(pUser, nSet);
+			break;
+	}
+	pUser->SendCharacterStat(false, liFlag);
+	pUser->OnAvatarModified();
+}
+
 int ScriptNPC::SelfAskAvatar(lua_State * L)
 {
 	Script* self = (Script*)(L->selfPtr);
 	const char* text = luaL_checkstring(L, 2);
-	int nTicket = (int)luaL_checkinteger(L, 3); //ticket
-	//int nArgs = lua_gettop(L); 
 
 	//====================
 	Script::NPCConverstaionInfo info;
@@ -218,9 +261,47 @@ int ScriptNPC::SelfAskAvatar(lua_State * L)
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
 
-	self->RetrieveArray(info.m_aIntObj, -1);
+	info.m_nAvatarTicket = (int)luaL_checkinteger(L, 3);
+	int nArg = lua_gettop(L);
+
+	if (lua_istable(L, 4))
+		self->RetrieveArray(info.m_aIntObj, 4);
+	else
+	{
+		//To be more similar to official style, use varadic args here.
+		for (int i = 4; i <= nArg - 1; ++i)
+			info.m_aIntObj.push_back((int)luaL_checkinteger(L, i));
+	}
 	MakeMessagePacket(L, &info);
 	self->Wait();
+	return 1;
+}
+
+int ScriptNPC::SelfMakeRandAvatar(lua_State * L)
+{
+	Script* self = (Script*)(L->selfPtr);
+	Script::NPCConverstaionInfo info;
+	info.m_nAvatarTicket = (int)luaL_checkinteger(L, 2);
+
+	int nArg = lua_gettop(L), nResult = 1;
+
+	if (lua_istable(L, 3))
+		self->RetrieveArray(info.m_aIntObj, 3);
+	else
+		for (int i = 3; i <= nArg - 1; ++i)
+			info.m_aIntObj.push_back((int)luaL_checkinteger(L, i));
+	
+	std::vector<ExchangeElement> aExchange;
+	aExchange.push_back({});
+	aExchange.back().m_nItemID = info.m_nAvatarTicket;
+	aExchange.back().m_nCount = -1;
+
+	//leave refInfo.m_nAvatarTicket = 0 for GMs and events
+	if (info.m_nAvatarTicket && QWUInventory::Exchange(self->GetUser(), 0, aExchange))
+		nResult = 0;
+	else
+		SetAvatar(self->GetUser(), info.m_aIntObj[(int)Rand32::GetInstance()->Random() % info.m_aIntObj.size()]);
+	lua_pushinteger(L, nResult);
 	return 1;
 }
 

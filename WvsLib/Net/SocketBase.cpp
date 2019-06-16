@@ -244,7 +244,7 @@ void SocketBase::OnReceive(const std::error_code &ec, std::size_t bytes_transfer
 	if (!ec)
 	{
 		unsigned short nPacketLen = WvsCrypto::get_packet_length(buffer);
-		if (nPacketLen < 2 || (!bIsLocalServer && nPacketLen > (768)))
+		if (nPacketLen < 2 || (!bIsLocalServer && nPacketLen > (768 + 1024)))
 		{
 			OnDisconnect();
 			return;

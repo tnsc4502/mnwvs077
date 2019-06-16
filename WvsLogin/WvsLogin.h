@@ -41,7 +41,7 @@ public:
 	void RegisterLoginEntry(std::shared_ptr<LoginEntry> &pLoginEntry);
 	void RemoveLoginEntryByAccountID(int nAccountID);
 	void RemoveLoginEntryByLoginSocketID(unsigned int uLoginSocketSN);
-	LoginEntry* GetLoginEntryByAccountID(int nAccountID);
-	LoginEntry* GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN);
+	std::shared_ptr<LoginEntry> GetLoginEntryByAccountID(int nAccountID);
+	std::shared_ptr<LoginEntry> GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN);
 };
 

@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct GW_ItemSlotBase;
 
@@ -23,7 +24,7 @@ struct RewardInfo
 class Reward
 {
 private:
-	GW_ItemSlotBase* m_pItem;
+	ZSharedPtr<GW_ItemSlotBase> m_pItem;
 
 	int m_nMoney = 0, 
 		m_nPeriod = 0,
@@ -48,13 +49,13 @@ public:
 	void SetMoney(int nMoney) { m_nMoney = nMoney; }
 	void SetPeriod(int nPeriod) { m_nPeriod = nPeriod; }
 
-	GW_ItemSlotBase* GetItem() { return m_pItem; }
-	void SetItem(GW_ItemSlotBase* pItem) { m_pItem = pItem; }
+	ZSharedPtr<GW_ItemSlotBase> GetItem() { return m_pItem; }
+	void SetItem(const ZSharedPtr<GW_ItemSlotBase>& pItem) { m_pItem = pItem; }
 	std::shared_ptr<RewardInfo> GetRewardInfo() { return m_pInfo; }
 
 	static void LoadReward();
 	static const std::vector<RewardInfo*>* GetMobReward(int nTemplateID);
 	static const std::vector<RewardInfo*>* GetReactorReward(int nTemplateID);
-	static std::vector<Reward*> Create(const std::vector<RewardInfo*> *aRewardInfo, bool bPremiumMap, double dRegionalIncRate, double dShowdown, double dOwnerDropRate, double dOwnerDropRate_Ticket, double *pRewardRate);
+	static std::vector<ZUniquePtr<Reward>> Create(const std::vector<RewardInfo*> *aRewardInfo, bool bPremiumMap, double dRegionalIncRate, double dShowdown, double dOwnerDropRate, double dOwnerDropRate_Ticket, double *pRewardRate);
 };
 

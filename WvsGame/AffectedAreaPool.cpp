@@ -20,7 +20,7 @@ const std::vector<AffectedArea*>& AffectedAreaPool::GetAffectedAreas() const
 	return m_apAffectedArea;
 }
 
-void AffectedAreaPool::InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSkillID, int nSLV, int tStart, int tEnd, const FieldPoint & pt, const FieldRect & rc, bool bSmoke)
+void AffectedAreaPool::InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSkillID, int nSLV, unsigned int tStart, unsigned int tEnd, const FieldPoint & pt, const FieldRect & rc, bool bSmoke)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
 	AffectedArea* pArea = AllocObj(AffectedArea);
@@ -42,7 +42,7 @@ void AffectedAreaPool::InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSki
 
 AffectedArea* AffectedAreaPool::GetAffectedAreaByPoint(const FieldPoint & pt)
 {
-	int tCur = GameDateTime::GetTime();
+	auto tCur = GameDateTime::GetTime();
 	std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
 	for (auto& pAffectedArea : m_apAffectedArea)
 	{
@@ -54,7 +54,7 @@ AffectedArea* AffectedAreaPool::GetAffectedAreaByPoint(const FieldPoint & pt)
 	return nullptr;
 }
 
-void AffectedAreaPool::Update(int tCur)
+void AffectedAreaPool::Update(unsigned int tCur)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
 	for (int i = 0; i < (int)m_apAffectedArea.size(); )

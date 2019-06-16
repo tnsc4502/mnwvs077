@@ -14,6 +14,50 @@ GW_ItemSlotBundle::~GW_ItemSlotBundle()
 {
 }
 
+void GW_ItemSlotBundle::LoadAll(int nType, int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+{
+	std::string strTableName = "",
+		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN");
+
+	if (nType == GW_ItemSlotType::CONSUME)
+		strTableName = "ItemSlot_CON";
+	else if (nType == GW_ItemSlotType::ETC)
+		strTableName = "ItemSlot_ETC";
+	else if (nType == GW_ItemSlotType::INSTALL)
+		strTableName = "ItemSlot_INS";
+	else if (nType == GW_ItemSlotType::CASH)
+		strTableName = "CashItem_Bundle";
+	else
+		throw std::runtime_error("Invalid Item Slot Type.");
+
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT * FROM " << strTableName << " Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+	{
+		auto pItem = MakeShared<GW_ItemSlotBundle>();
+		pItem->nType = (GW_ItemSlotType)nType;
+		if (nType == GW_ItemSlotType::CASH)
+		{
+			pItem->liCashItemSN = recordSet[sSNColumnName];
+			pItem->bIsCash = true;
+		}
+		else
+			pItem->liItemSN = recordSet[sSNColumnName];
+
+		pItem->nCharacterID = recordSet["CharacterID"];
+		pItem->nItemID = recordSet["ItemID"];
+		pItem->liExpireDate = recordSet["ExpireDate"];
+		pItem->nAttribute = recordSet["Attribute"];
+		pItem->nNumber = recordSet["Number"];
+		pItem->nPOS = recordSet["POS"];
+
+		mRes[pItem->nPOS] = pItem;
+	}
+}
+
 void GW_ItemSlotBundle::Load(ATOMIC_COUNT_TYPE SN)
 {
 	std::string strTableName = "",
@@ -53,7 +97,6 @@ void GW_ItemSlotBundle::Load(ATOMIC_COUNT_TYPE SN)
 
 void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 {
-
 	std::string strTableName = "",
 		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN"),
 		sQuery = "";
@@ -82,10 +125,11 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 		}
 		else
 		{
-			if (liItemSN <= 0)
+			if (nType == GW_ItemSlotType::CASH && liItemSN <= 0)
 				liItemSN = IncItemSN(nType);
 			if (nType == GW_ItemSlotType::CASH && liCashItemSN == -1)
-				liCashItemSN = liItemSN;
+				liCashItemSN = IncItemSN(nType);
+
 			queryStatement << "INSERT INTO " << strTableName << " (" + sSNColumnName + ", ItemID, CharacterID, ExpireDate, Attribute, POS, Number) VALUES("
 				<< (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN) << ", "
 				<< nItemID << ", "
@@ -152,12 +196,7 @@ void GW_ItemSlotBundle::RawDecode(InPacket *iPacket)
 		liItemSN = iPacket->Decode8();
 }
 
-void GW_ItemSlotBundle::Release()
-{
-	FreeObj(this);
-}
-
-GW_ItemSlotBase * GW_ItemSlotBundle::MakeClone()
+GW_ItemSlotBase * GW_ItemSlotBundle::MakeClone() const
 {
 	GW_ItemSlotBundle* ret = AllocObj(GW_ItemSlotBundle);
 	*ret = *this;

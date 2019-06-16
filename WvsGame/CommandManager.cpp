@@ -19,6 +19,7 @@
 #include <vector>
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 #include "ScriptMan.h"
 #include "GuildMan.h"
 
@@ -57,11 +58,11 @@ int CmdFuncItem(User *pUser, PARAM_TYPE aInput)
 				((GW_ItemSlotBundle*)pNewItem)->nNumber = GetInt(aInput, 2, 1);
 
 			//pNewItem->liExpireDate = GameDateTime::GetDateExpireFromPeriod(1);
-			Reward reward;
-			reward.SetType(1);
-			reward.SetItem(pNewItem);
+			auto zpReward = MakeUnique<Reward>();
+			zpReward->SetType(1);
+			zpReward->SetItem(pNewItem);
 			pUser->GetField()->GetDropPool()->Create(
-				&reward,
+				zpReward,
 				0,
 				0,
 				0,
@@ -194,10 +195,9 @@ CommandManager::CommandManager()
 	m_mCmdInvoke["#script"] = (
 		[](User*pUser, PARAM_TYPE aInput)->int
 	{			
-			auto pScript = ScriptMan::GetInstance()->GetScript(
+			auto pScript = ScriptMan::GetInstance()->CreateScript(
 				"./DataSrv/Script/Npc/script_test.lua",
-				2100,
-				pUser->GetField()
+				{ 2100,	pUser->GetField() }
 			);
 			if (pScript == nullptr)
 			{

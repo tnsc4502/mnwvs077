@@ -18,5 +18,8 @@ public:
 	static int InventoryExchange(lua_State* L);
 	static int InventoryItemCount(lua_State* L);
 	static int InventoryIncSlotCount(lua_State* L);
+	static int InventoryGetSlotCount(lua_State* L);
+	static int InventoryGetHoldCount(lua_State* L);
+	static int InventoryGetFreeCount(lua_State* L);
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <mutex>
 #include <vector>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class User;
 class InPacket;
@@ -14,7 +15,7 @@ class StoreBank
 	int m_nStoreBankTemplateID;
 	long long int m_liShopMoney = 0;
 
-	std::vector<GW_ItemSlotBase*> m_aItem;
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> m_aItem;
 
 public:
 	enum StoreBankRequest

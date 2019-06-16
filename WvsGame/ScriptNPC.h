@@ -1,6 +1,7 @@
 #pragma once
 #include "..\WvsLib\Script\lua.h"
 
+class User;
 class Script;
 class InPacket;
 
@@ -38,7 +39,9 @@ public:
 	static void OnPacket(InPacket *iPacket, Script* pScript, lua_State* L);
 
 	static int SelfSay(lua_State* L);
+	static void SetAvatar(User *pUser, int nSet);
 	static int SelfAskAvatar(lua_State* L);
+	static int SelfMakeRandAvatar(lua_State* L);
 	static int SelfSayNext(lua_State* L);
 	static void SelfSayNextImpl(lua_State* L, int nPage);
 

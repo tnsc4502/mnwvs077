@@ -23,6 +23,7 @@
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsGame\FriendMan.h"
 #include "..\WvsGame\Trunk.h"
+#include <cmath>
 
 LocalServer::LocalServer(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -93,6 +94,9 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 			break;
 		case LoginSendPacketFlag::Center_RequestCreateNewCharacter:
 			OnRequestCreateNewCharacter(iPacket);
+			break;
+		case LoginSendPacketFlag::Center_RequestCheckDuplicatedID:
+			OnRequestCheckDuplicatedID(iPacket);
 			break;
 		case LoginSendPacketFlag::Center_RequestGameServerInfo:
 			OnRequestGameServerInfo(iPacket);
@@ -266,8 +270,19 @@ void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
 		else if (ItemInfo::IsLongcoat(nAttrRead))
 			aEquips[CharacterDBAccessor::EQP_ID_CoatEquip] = nAttrRead;
 	}
-
 	CharacterDBAccessor::GetDefaultCharacterStat(aStats);
+	int nTotal = 0;
+	nTotal += (aStats[CharacterDBAccessor::STAT_Str] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::STAT_Luk] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::STAT_Dex] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::STAT_Int] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+
+	if (nTotal > 25)
+		aStats[CharacterDBAccessor::STAT_Str] 
+		= aStats[CharacterDBAccessor::STAT_Dex]
+		= aStats[CharacterDBAccessor::STAT_Int] 
+		= aStats[CharacterDBAccessor::STAT_Luk] = 4;
+
 	CharacterDBAccessor::GetInstance()->PostCreateNewCharacterRequest(
 		this, 
 		nLoginSocketID, 
@@ -280,6 +295,20 @@ void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
 		nSkin, 
 		(const int*)aEquips, 
 		(const int*)aStats);
+}
+
+void LocalServer::OnRequestCheckDuplicatedID(InPacket * iPacket)
+{
+	int nLoginSocketID = iPacket->Decode4();
+	int nAccountID = iPacket->Decode4();
+	std::string sCharacterName = iPacket->DecodeStr();
+
+	CharacterDBAccessor::GetInstance()->PostCheckDuplicatedID(
+		this,
+		nLoginSocketID,
+		nAccountID,
+		sCharacterName
+	);
 }
 
 void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)

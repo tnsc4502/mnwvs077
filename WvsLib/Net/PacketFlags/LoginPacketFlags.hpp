@@ -25,8 +25,9 @@ MAKE_FLAG_COLLECTION_BODY(LoginSendPacketFlag)
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RegisterCenterRequest, 1);
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestCharacterList, 2);
 MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestCreateNewCharacter, 3);
-MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestGameServerInfo, 4);
-MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestLoginAuth, 5);
+MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestCheckDuplicatedID, 4);
+MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestGameServerInfo, 5);
+MAKE_LOGIN_SEND_PACKET_FLAG(Center_RequestLoginAuth, 6);
 
 //Flags for Game Client
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_CheckPasswordResponse, 0x00);
@@ -36,6 +37,8 @@ MAKE_LOGIN_SEND_PACKET_FLAG(Client_WorldStatusResult, 0x13);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientSelectCharacterResult, 0x04);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientCheckDuplicatedIDResult, 0x05);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientCreateCharacterResult, 0x06);
+MAKE_LOGIN_SEND_PACKET_FLAG(Client_RequestSelectGenderAnd2ndPassword, 0x11);
+MAKE_LOGIN_SEND_PACKET_FLAG(Client_SelectGenderAnd2ndPasswordResult, 0x12);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientSecondPasswordResult, 0x1B);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientChannelBackgroundResponse, 0x34);
 MAKE_LOGIN_SEND_PACKET_FLAG(Client_ClientLoginBackgroundResponse, 0x2A);
@@ -51,6 +54,7 @@ MAKE_FLAG_COLLECTION_BODY(LoginRecvPacketFlag)
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientCheckPasswordRequest, 0x01);
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientSelectWorld, 0x04);
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientWorldStatusCheck, 0x13);
+MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientSelectGenderAnd2ndPassword, 0x14);
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientSecondPasswordCheck, 0x6D);
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientMigrateIn, 0x06);
 MAKE_LOGIN_RECV_PACKET_FLAG(Client_ClientSelectCharacter, 0x05);

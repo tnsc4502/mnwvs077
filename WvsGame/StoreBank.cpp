@@ -20,8 +20,6 @@ StoreBank::StoreBank(User *pUser)
 
 StoreBank::~StoreBank()
 {
-	for (auto& pItem : m_aItem)
-		pItem->Release();
 }
 
 void StoreBank::OnPacket(InPacket *iPacket)
@@ -93,16 +91,16 @@ void StoreBank::OnItemLoadDone(InPacket *iPacket)
 		oPacket.Encode4((int)m_liShopMoney); //nMoney
 		oPacket.Encode1(nCount);
 
-		GW_ItemSlotBase* pItem = nullptr;
+		ZSharedPtr<GW_ItemSlotBase> pItem;
 		for (int i = 0; i < nCount; ++i)
 		{
 			nTI = iPacket->Decode1();
 			iPacket->Decode1(); //nPOS
-			pItem = GW_ItemSlotBase::CreateItem(
+			pItem.reset(GW_ItemSlotBase::CreateItem(
 				nTI == GW_ItemSlotBase::EQUIP ?
 				GW_ItemSlotBase::GW_ItemSlotEquip_Type :
 				GW_ItemSlotBase::GW_ItemSlotBundle_Type
-			);
+			));
 			pItem->Decode(iPacket, true);
 			pItem->nType = (GW_ItemSlotBase::GW_ItemSlotType)nTI;
 			m_aItem.push_back(pItem);
@@ -119,7 +117,7 @@ void StoreBank::MoveItemToInventory(InPacket * iPacket)
 	std::vector<ExchangeElement> aExchange;
 	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 
-	GW_ItemSlotBase *pClone = nullptr;
+	ZSharedPtr<GW_ItemSlotBase> pClone;
 	OutPacket oPacket;
 	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
@@ -129,10 +127,10 @@ void StoreBank::MoveItemToInventory(InPacket * iPacket)
 
 	for (auto pItem : m_aItem)
 	{
-		pClone = pItem->MakeClone();
-		pClone->liItemSN = pItem->liItemSN;
+		//pClone = pItem;
+		//pClone->liItemSN = pItem->liItemSN;
 		aExchange.push_back({});
-		aExchange.back().m_pItem = pClone;
+		aExchange.back().m_pItem = pItem;
 		aExchange.back().m_nCount =
 			pItem->nType == GW_ItemSlotBase::EQUIP ?
 			1 : ((GW_ItemSlotBundle*)pItem)->nNumber;

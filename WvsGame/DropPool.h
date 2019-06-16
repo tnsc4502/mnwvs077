@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include "FieldRect.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class Drop;
 class User;
@@ -16,19 +17,19 @@ class DropPool
 {
 	std::mutex m_mtxDropPoolLock;
 	std::atomic<int> m_nDropIdCounter;
-	std::map<int, Drop*> m_mDrop;
+	std::map<int, ZSharedPtr<Drop>> m_mDrop;
 	bool m_bDropEverlasting = false;
-	int m_tLastExpire;
+	unsigned int m_tLastExpire;
 	Field *m_pField;
 
 public:
 
-	const Drop* GetDrop(int nDropID);
-	void Create(Reward *reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int tDelay, int bAdmin, int nPos, bool bByPet);
+	ZSharedPtr<Drop> GetDrop(int nDropID);
+	void Create(ZUniquePtr<Reward>& zpReward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, unsigned int tDelay, int bAdmin, int nPos, bool bByPet);
 	void OnEnter(User* pUser);
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnPickUpRequest(User* pUser, InPacket *iPacket, Pet *pPet);
-	std::vector<Drop*> FindDropInRect(const FieldRect& rc, int tTimeAfter);
+	std::vector<ZSharedPtr<Drop>> FindDropInRect(const FieldRect& rc, unsigned int tTimeAfter);
 	void Remove(int nID, int tDelay);
 	void TryExpire(bool bRemoveAll);
 	DropPool(Field* pField);

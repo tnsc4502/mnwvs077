@@ -18,6 +18,7 @@
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 #include "..\WvsGame\ItemInfo.h"
 #include "ShopInfo.h"
@@ -27,7 +28,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	m_pCharacterData(AllocObj(GA_Character))
 {
 	_pSocket->SetUser(this);
-	m_pFuncKeyMapped = AllocObjCtor(GW_FuncKeyMapped)(m_pCharacterData->nCharacterID);
+	m_pFuncKeyMapped.reset(MakeUnique<GW_FuncKeyMapped>(m_pCharacterData->nCharacterID));
 	m_pCharacterData->nAccountID = iPacket->Decode4();
 	m_pCharacterData->DecodeCharacterData(iPacket, true);
 	m_pFuncKeyMapped->Decode(iPacket);
@@ -36,7 +37,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	else
 		m_nChannelID = iPacket->Decode4();
 	auto bindT = std::bind(&User::Update, this);
-	m_pUpdateTimer = AsyncScheduler::CreateTask(bindT, 2000, true);
+	m_pUpdateTimer.reset(AsyncScheduler::CreateTask(bindT, 2000, true));
 	m_pUpdateTimer->Start();
 
 	OnRequestCenterUpdateCash();
@@ -74,12 +75,7 @@ User::~User()
 	oPacket.Encode1(2); //bGameEnd, Dont decode and save the secondarystat info.
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 
-	auto bindT = std::bind(&User::Update, this);
 	m_pUpdateTimer->Abort();
-
-	FreeObj(m_pUpdateTimer);
-	FreeObj(m_pCharacterData);
-	FreeObj(m_pFuncKeyMapped);
 }
 
 User * User::FindUser(int nUserID)
@@ -87,7 +83,7 @@ User * User::FindUser(int nUserID)
 	return WvsBase::GetInstance<WvsShop>()->FindUser(nUserID);
 }
 
-GA_Character* User::GetCharacterData()
+ZUniquePtr<GA_Character>& User::GetCharacterData()
 {
 	return m_pCharacterData;
 }
@@ -257,7 +253,7 @@ void User::OnCenterMoveItemToSlotDone(InPacket * iPacket)
 	int nPOS = iPacket->Decode2();
 	int nInstanceType = iPacket->Decode1();
 	iPacket->Offset(-1);
-	GW_ItemSlotBase *pItem = GW_ItemSlotBase::CreateItem(nInstanceType);
+	ZSharedPtr<GW_ItemSlotBase> pItem = GW_ItemSlotBase::CreateItem(nInstanceType);
 	if (pItem)
 	{
 		pItem->Decode(iPacket, false);
@@ -277,11 +273,7 @@ void User::OnCenterMoveItemToLockerDone(InPacket * iPacket)
 	int nType = iPacket->Decode1();
 	short nPOS = m_pCharacterData->FindCashItemSlotPosition(nType, liCashItemSN);
 	if (nPOS)
-	{
-		auto pItem = m_pCharacterData->mItemSlot[nType][nPOS];
 		m_pCharacterData->mItemSlot[nType].erase(nPOS);
-		FreeObj(pItem);
-	}
 
 	OutPacket oPacket;
 	oPacket.Encode2((short)ShopSendPacketFlag::User_CashItemResult);
@@ -319,7 +311,7 @@ void User::OnRequestBuyCashItem(InPacket * iPacket)
 	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(iPacket->Decode4());
 	if (pCommodity)
 	{
-		auto pItem = ItemInfo::GetInstance()->GetItemSlot(
+		ZSharedPtr<GW_ItemSlotBase> pItem = ItemInfo::GetInstance()->GetItemSlot(
 			pCommodity->nItemID,
 			ItemInfo::ItemVariationOption::ITEMVARIATION_NONE);
 
@@ -338,12 +330,10 @@ void User::OnRequestBuyCashItem(InPacket * iPacket)
 			oPacket.Encode1(pItem->bIsPet);
 			oPacket.Encode4(pCommodity->nPrice);
 			pItem->Encode(&oPacket, false);
-			auto pCashItemInfo = ShopInfo::GetInstance()->GetCashItemInfo(pCommodity);
+			ZUniquePtr<GW_CashItemInfo> pCashItemInfo = ShopInfo::GetInstance()->GetCashItemInfo(pCommodity);
 			pCashItemInfo->Encode(&oPacket);
-			FreeObj(pCashItemInfo);
 			WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 		}
-		pItem->Release();
 	}
 }
 

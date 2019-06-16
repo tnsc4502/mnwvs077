@@ -33,7 +33,7 @@ void FieldSet::Init(const std::string & sCfgFilePath)
 {
 	m_pCfg = ConfigLoader::Get(sCfgFilePath);
 	InitConfig();
-	m_pScript = ScriptMan::GetInstance()->GetScript(m_sScriptName, 0, nullptr);
+	m_pScript = ScriptMan::GetInstance()->CreateScript(m_sScriptName, { 0, nullptr });
 	if (!m_pScript)
 		return;
 
@@ -166,7 +166,7 @@ void FieldSet::OnLeaveFieldSet(int nCharacterID)
 	if (m_mUser.size() == 0) 
 	{
 		ForceClose();
-		//m_pFieldSetTimer->Pause();
+		m_pFieldSetTimer->Pause();
 	}
 }
 
@@ -219,10 +219,10 @@ void FieldSet::Update()
 		ForceClose();
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
-	if (m_nStartTime >= 0 && tCur - m_nStartTime > m_nTimeLimit * 1000) 
+	if (m_tStartTime >= 0 && tCur - m_tStartTime > (unsigned int)m_nTimeLimit * 1000) 
 	{
-		m_nStartTime = -1;
-		m_pScript->SafeInvocation("onTimeout", { m_nStartTime == 0 });
+		m_tStartTime = -1;
+		m_pScript->SafeInvocation("onTimeout", { m_tStartTime == 0 });
 	}
 }
 
@@ -233,12 +233,12 @@ void FieldSet::Reset()
 	m_pScript->SafeInvocation("onInit");
 	for (auto pField : m_aField)
 		pField->Reset(true);
-	m_nStartTime = GameDateTime::GetTime();
+	m_tStartTime = GameDateTime::GetTime();
 }
 
 void FieldSet::ForceClose()
 {
-	m_nStartTime = 0;
+	m_tStartTime = 0;
 	DestroyClock();
 }
 
@@ -258,7 +258,7 @@ void FieldSet::ResetTimeLimit(int nTimeLimit, bool bResetTimeTick)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
 	if (bResetTimeTick)
-		m_nStartTime = GameDateTime::GetTime();
+		m_tStartTime = GameDateTime::GetTime();
 	m_nTimeLimit = nTimeLimit;
 }
 
@@ -288,7 +288,7 @@ void FieldSet::MakeClockPacket(OutPacket & oPacket)
 	auto tCur = GameDateTime::GetTime();
 	oPacket.Encode2((short)FieldSendPacketFlag::Field_OnClock);
 	oPacket.Encode1(2);
-	oPacket.Encode4(((m_nStartTime + m_nTimeLimit * 1000) - GameDateTime::GetTime()) / 1000 + 1);
+	oPacket.Encode4((int)((m_tStartTime + m_nTimeLimit * 1000) - GameDateTime::GetTime()) / 1000 + 1);
 }
 
 int FieldSet::GetUserCount() const

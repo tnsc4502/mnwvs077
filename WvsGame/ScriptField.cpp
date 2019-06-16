@@ -44,7 +44,7 @@ void ScriptField::DestroySelf(lua_State * L, ScriptField * p)
 
 void ScriptField::Register(lua_State * L)
 {
-	luaL_Reg InvMetatable[] = {
+	static luaL_Reg InvMetatable[] = {
 		{ "getID", FieldGetID },
 		{ "summonMob", FieldSummonMob },
 		{ "summonNpc", FieldSummonNpc },
@@ -62,7 +62,7 @@ void ScriptField::Register(lua_State * L)
 		{ NULL, NULL }
 	};
 
-	luaL_Reg InvTable[] = {
+	static luaL_Reg InvTable[] = {
 		{ NULL, NULL }
 	};
 

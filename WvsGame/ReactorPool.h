@@ -5,6 +5,7 @@
 #include <string>
 #include <atomic>
 #include <mutex>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class Field;
 class Reactor;
@@ -22,10 +23,10 @@ public:
 			nY = 0,
 			tRegenInterval = 0,
 			nTemplateID = 0,
-			nReactorCount = 0,
-			tRegenAfter = 0;
-		bool bFlip = false, bForceGen = false;
+			nReactorCount = 0;
 
+		unsigned int tRegenAfter = 0;
+		bool bFlip = false, bForceGen = false;
 		std::string sName;
 	};
 
@@ -34,12 +35,12 @@ private:
 
 	Field* m_pField;
 	std::vector<ReactorGen> m_aReactorGen;
-	std::map<int, Reactor*> m_mReactor;
+	std::map<int, ZUniquePtr<Reactor>> m_mReactor;
 	std::map<std::string, int> m_mReactorName;
 	std::list<Npc*> m_lNpc;
 
-	int m_tLastCreateReactorTime,
-		m_nReactorTotalHit;
+	int m_nReactorTotalHit;
+	unsigned int m_tLastCreateReactorTime;
 
 	std::recursive_mutex m_mtxReactorPoolMutex;
 public:
@@ -58,7 +59,7 @@ public:
 	void RegisterNpc(Npc* pNpc);
 	void RemoveNpc();
 	std::recursive_mutex& GetLock();
-	void Update(int tCur);
+	void Update(unsigned int tCur);
 	void Reset(bool bShuffle);
 };
 

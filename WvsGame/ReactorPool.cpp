@@ -79,7 +79,7 @@ void ReactorPool::CreateReactor(ReactorGen * pPrg)
 	if (pTemplate == nullptr)
 		return;
 
-	auto pReactor = AllocObjCtor(Reactor)(pTemplate, m_pField);
+	auto pReactor = MakeUnique<Reactor>(pTemplate, m_pField);
 	pReactor->m_nTemplateID = pPrg->nTemplateID;
 	pReactor->m_ptPos.x = pPrg->nX;
 	pReactor->m_ptPos.y = pPrg->nY;
@@ -93,11 +93,10 @@ void ReactorPool::CreateReactor(ReactorGen * pPrg)
 	pReactor->m_pReactorGen = pPrg;
 	++pPrg->nReactorCount;
 
-	m_mReactor[pReactor->m_nFieldObjectID] = pReactor;
-	m_mReactorName[pReactor->m_sReactorName] = pReactor->m_nFieldObjectID;
-
 	OutPacket oPacket;
 	pReactor->MakeEnterFieldPacket(&oPacket);
+	m_mReactorName[pReactor->m_sReactorName] = pReactor->m_nFieldObjectID;
+	m_mReactor.insert({ pReactor->m_nFieldObjectID, std::move(pReactor) });
 	m_pField->BroadcastPacket(&oPacket);
 }
 
@@ -143,7 +142,7 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 	auto findIter = m_mReactor.find(findNameIter->second);
 	if (findIter == m_mReactor.end())
 		return;
-	auto pReactor = findIter->second;
+	auto &pReactor = findIter->second;
 	pReactor->m_nState = nState;
 	pReactor->FindAvailableAction();
 	auto pInfo = pReactor->m_pTemplate->GetStateInfo(nState);
@@ -162,28 +161,27 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 void ReactorPool::RemoveAllReactor()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
-	for (auto prReactor : m_mReactor)
-		RemoveReactor(prReactor.second, true);
+	while(m_mReactor.size() > 0)
+		RemoveReactor(m_mReactor.begin()->second, true);
 }
 
-void ReactorPool::RemoveReactor(Reactor * pReactor, bool bForce)
+void ReactorPool::RemoveReactor(Reactor *pReactor, bool bForce)
 {
 	if (bForce) 
 	{
-		pReactor->m_bDestroyAfterEvent = false; 
 		pReactor->CancelAllEvent();
+		pReactor->m_bDestroyAfterEvent = false; 
 	}
 
 	pReactor->SetRemoved();
 	OutPacket oPacket;
 	pReactor->MakeLeaveFieldPacket(&oPacket);
 	m_pField->BroadcastPacket(&oPacket);
-	m_mReactorName.erase(((ReactorGen*)pReactor->m_pReactorGen)->sName);
-	m_mReactor.erase(pReactor->m_nFieldObjectID);
 	if (!pReactor->m_bDestroyAfterEvent) 
 	{
 		m_pField->OnReactorDestroyed(pReactor);
-		FreeObj(pReactor);
+		m_mReactorName.erase(((ReactorGen*)pReactor->m_pReactorGen)->sName);
+		m_mReactor.erase(pReactor->m_nFieldObjectID);
 	}
 }
 
@@ -205,7 +203,7 @@ std::recursive_mutex& ReactorPool::GetLock()
 	return m_mtxReactorPoolMutex;
 }
 
-void ReactorPool::Update(int tCur)
+void ReactorPool::Update(unsigned int tCur)
 {
 	TryCreateReactor(false);
 	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
@@ -224,12 +222,13 @@ void ReactorPool::Reset(bool bShuffle)
 		int nRnd = 0, nIter = 0, nX = 0, nY = 0;
 		for (auto& prReactor1 : m_mReactor)
 		{
+			nIter = 0;
 			nRnd = (int)(Rand32::GetInstance()->Random() % m_mReactor.size());
 			for (auto& prReactor2 : m_mReactor)
 				if (nIter++ == nRnd)
 				{
 					nX = prReactor1.second->GetPosX();
-					nY = prReactor1.second->GetPosX();
+					nY = prReactor1.second->GetPosY();
 					prReactor1.second->SetPosX(prReactor2.second->GetPosX());
 					prReactor1.second->SetPosY(prReactor2.second->GetPosY());
 					prReactor2.second->SetPosX(nX);

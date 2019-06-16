@@ -31,9 +31,8 @@ public:
 			m_nLocalSrvIdx = 0, 
 			m_nChannelID = 0, 
 			m_nLocalSocketSN = 0,
-			m_tMigrateTime = 0,
 			m_nAccountID = 0;
-
+		unsigned int m_tMigrateTime = 0;
 		void SendPacket(OutPacket *oPacket);
 	};
 

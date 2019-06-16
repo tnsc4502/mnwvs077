@@ -57,6 +57,7 @@ public:
 	static void GetDefaultCharacterStat(int *aStat);
 
 	std::vector<int> PostLoadCharacterListRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID);
+	void PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, const std::string& sCharacterName);
 	void PostCreateNewCharacterRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID, const std::string& strName, int nGender, int nFace, int nHair, int nSkin, const int* aBody, const int* aStat);
 	void PostCharacterDataRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *oPacket);
 	void PostBuyCashItemRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);

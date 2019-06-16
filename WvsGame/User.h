@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include "TemporaryStat.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class ClientSocket;
 class OutPacket;
@@ -92,7 +93,7 @@ private:
 	static const int MAX_PET_INDEX = 3;
 	std::recursive_mutex m_mtxUserLock, m_scriptLock;
 
-	int m_tMigrateTime = 0, 
+	unsigned int m_tMigrateTime = 0,
 		m_tLastUpdateTime = 0,
 		m_tLastBackupTime = 0, 
 		m_tLastAliveCheckTime = 0;
@@ -102,31 +103,34 @@ private:
 	TransferStatus m_nTransferStatus;
 
 	//Stat
-	GA_Character *m_pCharacterData;
-	BasicStat* m_pBasicStat;
-	SecondaryStat* m_pSecondaryStat;
-	GW_FuncKeyMapped *m_pFuncKeyMapped;
+	ZUniquePtr<GA_Character> m_pCharacterData;
+	ZUniquePtr<BasicStat> m_pBasicStat;
+	ZUniquePtr<SecondaryStat> m_pSecondaryStat;
+	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;
 	int m_nInvalidDamageMissCount = 0,
 		m_nInvalidDamageCount = 0,
-		m_nActivePortableChairID = 0,
+		m_nActivePortableChairID = 0;
+
+	unsigned int 
 		m_tLastRecoveryTime = 0,
 		m_tLastAliveCheckRequestTime = 0,
 		m_tLastAliveCheckRespondTime = 0,
 		m_tPortableChairSittingTime = 0;
+
 	unsigned char m_nGradeCode = UserGrade::eGrade_None;
 	bool m_bDeadlyAttack = false;
 
 	//System
-	AsyncScheduler *m_pUpdateTimer;
+	ZUniquePtr<AsyncScheduler> m_pUpdateTimer;
 	Script* m_pScript = nullptr;
-	StoreBank* m_pStoreBank = nullptr;
+	ZUniquePtr<StoreBank> m_pStoreBank = nullptr;
 	Npc *m_pTradingNpc = nullptr;
-	Trunk *m_pTrunk = nullptr;
-	CalcDamage* m_pCalcDamage = nullptr;
+	ZUniquePtr<Trunk> m_pTrunk;
+	ZUniquePtr<CalcDamage> m_pCalcDamage;
 	int m_nTrunkTemplateID = 0, m_nStoreBankTemplateID = 0;
 
 	//Pet
-	Pet* m_apPet[MAX_PET_INDEX] = { nullptr };
+	ZUniquePtr<Pet> m_apPet[MAX_PET_INDEX] = { nullptr };
 
 	//Summoned
 	std::vector<Summoned*> m_lSummoned;
@@ -154,8 +158,8 @@ private:
 	AttackInfo* TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
 public:
-	static User* FindUser(int nUserID);
-	static User* FindUserByName(const std::string& strName);
+	static ZSharedPtr<User> FindUser(int nUserID);
+	static ZSharedPtr<User> FindUserByName(const std::string& strName);
 
 	User(ClientSocket *pSocket, InPacket *iPacket);
 	void EncodeCharacterDataInternal(OutPacket *oPacket);
@@ -170,7 +174,7 @@ public:
 	std::recursive_mutex& GetLock();
 	void Update();
 
-	GA_Character* GetCharacterData();
+	ZUniquePtr<GA_Character>& GetCharacterData();
 	Field* GetField();
 	FieldSet* GetFieldSet();
 	void MakeEnterFieldPacket(OutPacket *oPacket);
@@ -214,9 +218,9 @@ public:
 	void EncodeMarriageInfo(OutPacket *oPacket);
 
 	//Stat
-	CalcDamage* GetCalcDamage();
-	SecondaryStat* GetSecondaryStat();
-	BasicStat* GetBasicStat();
+	ZUniquePtr<CalcDamage>& GetCalcDamage();
+	ZUniquePtr<SecondaryStat>& GetSecondaryStat();
+	ZUniquePtr<BasicStat>& GetBasicStat();
 	void DecreaseEXP(bool bTown);
 	void ValidateStat(bool bCalledByConstructor = false);
 	void ValidateEffectItem();
@@ -339,7 +343,7 @@ public:
 	void SetTrunk(Trunk *pTrunk);
 
 	//StoreBank
-	StoreBank* GetStoreBank();
+	ZUniquePtr<StoreBank>& GetStoreBank();
 	void SetStoreBank(StoreBank *pStoreBank);
 };
 

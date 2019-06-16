@@ -27,6 +27,7 @@
 #include "ContinentMan.h"
 #include "AffectedArea.h"
 #include "AffectedAreaPool.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 #undef min
 #undef max
@@ -677,7 +678,7 @@ void Field::Reset(bool bShuffleReactor)
 
 void Field::Update()
 {
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	m_pLifePool->Update();
 	m_pReactorPool->Update(tCur); 
 	m_pAffectedAreaPool->Update(tCur);

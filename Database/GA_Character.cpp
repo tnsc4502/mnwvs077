@@ -30,26 +30,6 @@ GA_Character::GA_Character()
 
 GA_Character::~GA_Character()
 {
-	FreeObj(mAvatarData);
-	FreeObj(mStat);
-	FreeObj(mLevel);
-	FreeObj(mMoney);
-	FreeObj(mSlotCount);
-
-	for (auto& slot : mItemSlot)
-	{
-		for (auto& pItem : slot)
-			pItem.second->Release();
-	}
-
-	for (auto& skill : mSkillRecord)
-		FreeObj(skill.second);
-
-	for (auto& qr : mQuestComplete)
-		FreeObj(qr.second);
-
-	for (auto& qr : mQuestRecord)
-		FreeObj(qr.second);
 }
 
 void GA_Character::Load(int nCharacterID)
@@ -198,20 +178,15 @@ void GA_Character::Save(bool bIsNewCharacter)
 	mSlotCount->Save(nCharacterID, bIsNewCharacter);
 
 	for (auto& eqp : mItemSlot[1])
-		((GW_ItemSlotEquip*)(eqp.second))->Save(nCharacterID);
+		((eqp.second))->Save(nCharacterID);
 	for (auto& con : mItemSlot[2])
-		((GW_ItemSlotBundle*)(con.second))->Save(nCharacterID);
+		((con.second))->Save(nCharacterID);
 	for (auto& etc : mItemSlot[3])
-		((GW_ItemSlotBundle*)(etc.second))->Save(nCharacterID);
+		((etc.second))->Save(nCharacterID);
 	for (auto& ins : mItemSlot[4])
-		((GW_ItemSlotBundle*)(ins.second))->Save(nCharacterID);
+		((ins.second))->Save(nCharacterID);
 	for (auto& ins : mItemSlot[5])
-	{
-		if (ins.second->bIsPet)
-			((GW_ItemSlotPet*)(ins.second))->Save(nCharacterID);
-		else
-			((GW_ItemSlotBundle*)(ins.second))->Save(nCharacterID);
-	}
+		((ins.second))->Save(nCharacterID);
 	SaveInventoryRemovedRecord();
 
 	for (auto& skill : mSkillRecord)
@@ -226,7 +201,6 @@ void GA_Character::SaveInventoryRemovedRecord()
 {
 	GW_ItemSlotEquip equipRemovedInstance;
 	GW_ItemSlotBundle bundleRemovedInstance;
-	GW_ItemSlotPet petRemovedInstance;
 	equipRemovedInstance.nCharacterID = nCharacterID;
 	bundleRemovedInstance.nCharacterID = nCharacterID;
 	for (int i = 1; i <= 5; ++i)
@@ -267,53 +241,45 @@ int GA_Character::FindEmptySlotPosition(int nTI)
 	return nLastIndex > mSlotCount->aSlotCount[nTI] ? 0 : nLastIndex;
 }
 
-GW_ItemSlotBase* GA_Character::GetItem(int nTI, int nPOS)
+ZSharedPtr<GW_ItemSlotBase> GA_Character::GetItem(int nTI, int nPOS)
 {
 	if (nTI <= 0 || nTI > 5)
-		return nullptr;
+		return{ nullptr };
 	auto result = mItemSlot[nTI].find(nPOS);
 	if (result == mItemSlot[nTI].end())
-		return nullptr;
+		return{ nullptr };
 	return result->second;
 }
 
-GW_ItemSlotBase * GA_Character::GetItemByID(int nItemID)
+ZSharedPtr<GW_ItemSlotBase> GA_Character::GetItemByID(int nItemID)
 {
 	int nTI = nItemID / 1000000;
 	if (nTI <= 0 || nTI > 5)
-		return nullptr;
+		return{ nullptr };
 	auto itemSlot = mItemSlot[nTI];
 	for (auto& slot : itemSlot)
 	{
 		if (slot.first < 0) //skip equipped
 			continue;
 		if (slot.first > mSlotCount->aSlotCount[nTI])
-			return nullptr;
+			return{ nullptr };
 		if (slot.second->nItemID == nItemID)
 			return slot.second;
 	}
 	return nullptr;
 }
 
-void GA_Character::RemoveItem(int nTI, int nPOS, bool bRelease)
+void GA_Character::RemoveItem(int nTI, int nPOS)
 {
 	if (nTI <= 0 || nTI > 5)
 		return;
 	std::lock_guard<std::mutex> dataLock(mCharacterLock);
-	//int nNewPos = (int)mAtomicRemovedIndexCounter++;
 	auto pItem = GetItem(nTI, nPOS);
 	if (pItem != nullptr)
 	{
 		mItemSlot[nTI].erase(pItem->nPOS);
 		if (pItem->liItemSN != -1)
 			mItemRemovedRecord[nTI].insert(pItem->liItemSN);
-
-		if (!bRelease)
-			return;
-		if (pItem->nType == GW_ItemSlotBase::EQUIP)
-			FreeObj((GW_ItemSlotEquip*)(pItem));
-		else
-			FreeObj((GW_ItemSlotBundle*)(pItem));
 	}
 }
 
@@ -351,7 +317,7 @@ int GA_Character::GetEmptySlotCount(int nTI)
 	int nLastIndeex = 0;
 	for (auto& slot : itemSlot)
 	{
-		if (slot.second == nullptr)
+		if (!slot.second)
 			++nCount;
 		nCount += (slot.first - nLastIndeex - 1);
 		nLastIndeex = slot.first;
@@ -367,13 +333,13 @@ int GA_Character::GetItemCount(int nTI, int nItemID)
 	std::lock_guard<std::mutex> dataLock(mCharacterLock);
 	auto& itemSlot = mItemSlot[nTI];
 	for (auto& slot : itemSlot)
-		if (slot.second != nullptr && slot.second->nItemID == nItemID)
+		if (slot.second && slot.second->nItemID == nItemID)
 			nCount += (slot.second->nType == GW_ItemSlotBase::EQUIP ? 1 :
-			((GW_ItemSlotBundle*)slot.second)->nNumber);
+			((GW_ItemSlotBundle*)(slot.second))->nNumber);
 	return nCount;
 }
 
-void GA_Character::SetItem(int nTI, int nPOS, GW_ItemSlotBase * pItem)
+void GA_Character::SetItem(int nTI, int nPOS, const ZSharedPtr<GW_ItemSlotBase>& pItem)
 {
 	std::lock_guard<std::mutex> dataLock(mCharacterLock);
 	if (nTI >= 1 && nTI <= 5)
@@ -385,7 +351,7 @@ bool GA_Character::IsWearing(int nEquipItemID)
 	std::lock_guard<std::mutex> dataLock(mCharacterLock);
 	auto& itemSlot = mItemSlot[1];
 	for (auto& slot : itemSlot)
-		if (slot.second != nullptr
+		if (slot.second
 			&& slot.second->nItemID == nEquipItemID
 			&& slot.second->nPOS < 0)
 			return true;
@@ -402,7 +368,7 @@ decltype(GA_Character::mSkillRecord)& GA_Character::GetCharacterSkillRecord()
 GW_SkillRecord * GA_Character::GetSkill(int nSkillID)
 {
 	auto findResult = mSkillRecord.find(nSkillID);
-	return findResult == mSkillRecord.end() ? nullptr : findResult->second;
+	return findResult == mSkillRecord.end() ? nullptr : (GW_SkillRecord *)findResult->second;
 }
 
 void GA_Character::ObtainSkillRecord(GW_SkillRecord * pRecord)
@@ -825,7 +791,7 @@ void GA_Character::EncodeInventoryRemovedRecord(OutPacket * oPacket)
 GA_Character::ATOMIC_COUNT_TYPE GA_Character::InitCharacterID()
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT MAX(CharacterID) From Characters";
+	queryStatement << "SELECT MAX(CharacterID) From `Character`";
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
 	if (recordSet.rowCount() == 0)
@@ -835,89 +801,13 @@ GA_Character::ATOMIC_COUNT_TYPE GA_Character::InitCharacterID()
 
 void GA_Character::LoadItemSlot()
 {
-
-	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "SELECT ItemSN FROM ItemSlot_EQP Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
-	queryStatement.execute();
-	Poco::Data::RecordSet recordSet(queryStatement);
-	GW_ItemSlotBase* pItem = nullptr;
-
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotEquip);
-		pItem->Load(recordSet["ItemSN"]);
-		mItemSlot[1][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT CashItemSN FROM CashItem_EQP Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotEquip);
-		pItem->bIsCash = true;
-		pItem->Load(recordSet["CashItemSN"]);
-		mItemSlot[1][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT ItemSN FROM ItemSlot_CON Where CharacterID = " << nCharacterID;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext()) {
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CONSUME;
-		pItem->Load(recordSet["ItemSN"]);
-		mItemSlot[2][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT ItemSN FROM ItemSlot_INS Where CharacterID = " << nCharacterID;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::INSTALL;
-		pItem->Load(recordSet["ItemSN"]);
-		mItemSlot[3][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT ItemSN FROM ItemSlot_ETC Where CharacterID = " << nCharacterID;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::ETC;
-		pItem->Load(recordSet["ItemSN"]);
-		mItemSlot[4][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT CashItemSN FROM CashItem_Bundle Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotBundle);
-		pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
-		pItem->Load(recordSet["CashItemSN"]);
-		mItemSlot[5][pItem->nPOS] = pItem;
-	}
-
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "SELECT CashItemSN FROM CashItem_Pet Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
-	queryStatement.execute();
-	recordSet.reset(queryStatement);
-	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
-	{
-		pItem = AllocObj(GW_ItemSlotPet);
-		pItem->Load(recordSet["CashItemSN"]);
-		mItemSlot[5][pItem->nPOS] = pItem;
-	}
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::EQUIP, nCharacterID, false, false, mItemSlot[1]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::EQUIP, nCharacterID, true, false, mItemSlot[1]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CONSUME, nCharacterID, false, false, mItemSlot[2]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::INSTALL, nCharacterID, false, false, mItemSlot[3]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::ETC, nCharacterID, false, false, mItemSlot[4]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CASH, nCharacterID, true, false, mItemSlot[5]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CASH, nCharacterID, true, true, mItemSlot[5]);
 }
 
 void GA_Character::LoadSkillRecord()

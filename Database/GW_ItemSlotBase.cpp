@@ -4,6 +4,7 @@
 #include "GW_ItemSlotEquip.h"
 #include "GW_ItemSlotPet.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\Logger\WvsLogger.h"
 
 std::atomic<GW_ItemSlotBase::ATOMIC_COUNT_TYPE> GW_ItemSlotBase::ms_liSN[6];
 int GW_ItemSlotBase::ms_nChannelID;
@@ -195,6 +196,16 @@ void GW_ItemSlotBase::EncodeTradingPosition(OutPacket *oPacket) const
 			nEncodePos -= 100;
 	}
 	oPacket->Encode1((char)nEncodePos);
+}
+
+void GW_ItemSlotBase::LoadAll(int nType, int nCharacterID, bool bIsCash, bool bIsPet, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+{
+	if (nType == GW_ItemSlotBase::EQUIP)
+		GW_ItemSlotEquip::LoadAll(nCharacterID, bIsCash, mRes);
+	else if(!bIsPet)
+		GW_ItemSlotBundle::LoadAll(nType, nCharacterID, bIsCash, mRes);
+	else
+		GW_ItemSlotPet::LoadAll(nCharacterID, bIsCash, mRes);
 }
 
 void GW_ItemSlotBase::DecodeInventoryPosition(InPacket * iPacket) 

@@ -16,6 +16,7 @@ MAKE_CENTER_SEND_PACKET_FLAG(TransferChannelResult, 0x06);
 MAKE_CENTER_SEND_PACKET_FLAG(MigrateCashShopResult, 0x07);
 MAKE_CENTER_SEND_PACKET_FLAG(CreateCharacterResult, 0x08);
 MAKE_CENTER_SEND_PACKET_FLAG(LoginAuthResult, 0x09);
+MAKE_CENTER_SEND_PACKET_FLAG(CheckDuplicatedIDResult, 0x0A);
 
 //Center To Game
 MAKE_CENTER_SEND_PACKET_FLAG(PartyResult, 0x100);

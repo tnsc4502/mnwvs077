@@ -8,6 +8,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 EntrustedShopMan::EntrustedShopMan()
 {
@@ -24,6 +25,23 @@ EntrustedShopMan* EntrustedShopMan::GetInstance()
 	return pInstance;
 }
 
+int EntrustedShopMan::CheckEntrustedShopOpenPossible(int nCharacterID, long long int liCashItemSN)
+{
+	if (m_sEmployer.find(nCharacterID) == m_sEmployer.end())
+	{
+		std::vector<ZUniquePtr<GW_ItemSlotBase>> aItem;
+		EntrustedShopDBAccessor::LoadEntrustedShopItem(
+			aItem, nCharacterID
+		);
+		if (aItem.size() > 0 || EntrustedShopDBAccessor::QueryEntrustedShopMoney(nCharacterID))
+			return EntrustedShopCheckResult::res_EShop_OpenCheck_NonEmptyStoreBank;
+		else
+			return EntrustedShopCheckResult::res_EShop_OpenCheck_Valid;
+	}
+	else
+		return EntrustedShopCheckResult::res_EShop_OpenCheck_AlreadyOpened;
+}
+
 void EntrustedShopMan::CheckEntrustedShopOpenPossible(LocalServer* pSrv, int nCharacterID, long long int liCashItemSN)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
@@ -34,10 +52,7 @@ void EntrustedShopMan::CheckEntrustedShopOpenPossible(LocalServer* pSrv, int nCh
 		oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
 		oPacket.Encode4(nCharacterID);
 		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEntrustedShopCheckResult);
-		if (m_sEmployer.find(nCharacterID) == m_sEmployer.end())
-			oPacket.Encode1(EntrustedShopCheckResult::res_EShop_OpenCheck_Valid);
-		else
-			oPacket.Encode1(EntrustedShopCheckResult::res_EShop_OpenCheck_Failed);
+		oPacket.Encode1(CheckEntrustedShopOpenPossible(nCharacterID, liCashItemSN));
 		pwUser->SendPacket(&oPacket);
 	}
 }
@@ -56,14 +71,13 @@ void EntrustedShopMan::RemoveEntrustedShop(LocalServer * pSrv, int nCharacterID)
 
 void EntrustedShopMan::SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *iPacket)
 {
-	GW_ItemSlotBase* pItem = nullptr;
 	int nCount = iPacket->Decode1(), nTI = 0;
 	for (int i = 0; i < nCount; ++i)
 	{
 		nTI = iPacket->Decode1();
 		if (iPacket->Decode1())
 		{
-			pItem = GW_ItemSlotBase::CreateItem(
+			ZUniquePtr<GW_ItemSlotBase> pItem = GW_ItemSlotBase::CreateItem(
 				nTI == GW_ItemSlotBase::EQUIP ?
 				GW_ItemSlotBase::GW_ItemSlotEquip_Type :
 				GW_ItemSlotBase::GW_ItemSlotBundle_Type
@@ -73,7 +87,6 @@ void EntrustedShopMan::SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *i
 			pItem->Decode(iPacket, true);
 			pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
 			pItem->Save(nCharacterID);
-			pItem->Release();
 		}
 		EntrustedShopDBAccessor::MoveItemToShop(
 			nCharacterID,
@@ -85,14 +98,13 @@ void EntrustedShopMan::SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *i
 
 void EntrustedShopMan::ItemNumberChanged(LocalServer *pSrv, int nCharacterID, InPacket *iPacket)
 {
-	GW_ItemSlotBase* pItem = nullptr;
 	EntrustedShopDBAccessor::UpdateEntrustedShopMoney(nCharacterID, (int)iPacket->Decode8());
 	int nCount = iPacket->Decode1(), nTI = 0, nNumber = 0;
 	for (int i = 0; i < nCount; ++i)
 	{
 		nTI = iPacket->Decode1();
 		nNumber = iPacket->Decode2();
-		pItem = GW_ItemSlotBase::CreateItem(
+		ZUniquePtr<GW_ItemSlotBase> pItem = GW_ItemSlotBase::CreateItem(
 			nTI == GW_ItemSlotBase::EQUIP ?
 			GW_ItemSlotBase::GW_ItemSlotEquip_Type :
 			GW_ItemSlotBase::GW_ItemSlotBundle_Type
@@ -103,13 +115,12 @@ void EntrustedShopMan::ItemNumberChanged(LocalServer *pSrv, int nCharacterID, In
 		pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
 		if (nNumber)
 			pItem->Save(nCharacterID);
-		
-		EntrustedShopDBAccessor::RestoreItemFromShop(
-			nCharacterID,
-			nTI,
-			pItem->liItemSN,
-			!nNumber);
-		pItem->Release();
+		else
+			EntrustedShopDBAccessor::RestoreItemFromShop(
+				nCharacterID,
+				nTI,
+				pItem->liItemSN,
+				!(pItem->nType == GW_ItemSlotBase::EQUIP || ItemInfo::IsRechargable(pItem->nItemID)));
 	}
 }
 
@@ -125,7 +136,7 @@ void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nCharacterID)
 		oPacket.Encode1(-1);
 	else
 	{
-		std::vector<GW_ItemSlotBase*> aItem;
+		std::vector<ZUniquePtr<GW_ItemSlotBase>> aItem;
 		EntrustedShopDBAccessor::LoadEntrustedShopItem(
 			aItem, nCharacterID
 		);

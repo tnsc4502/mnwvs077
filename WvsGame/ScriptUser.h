@@ -51,6 +51,10 @@ public:
 	static int TargetGetMHP(lua_State* L);
 	static int TargetGetEXP(lua_State* L);
 	static int TargetGetMoney(lua_State* L);
+	static int TargetGetHair(lua_State* L);
+	static int TargetGetFace(lua_State* L);
+	static int TargetGetSkin(lua_State* L);
+	static int TargetGetGender(lua_State* L);
 	static int TargetIsWearing(lua_State* L);
 	static int TargetQuestEndEffect(lua_State* L);
 	static int TargetIsGuildMember(lua_State* L);
@@ -66,5 +70,8 @@ public:
 	static int TargetRemoveGuildMark(lua_State* L);
 	static int TargetIsGuildMarkExist(lua_State* L);
 	static int TargetIncGuildCountMax(lua_State* L);
+
+	static int TargetException1(lua_State* L);
+	static int TargetException2(lua_State* L);
 };
 

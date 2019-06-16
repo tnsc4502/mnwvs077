@@ -138,8 +138,7 @@ void Center::OnCenterMigrateInResult(InPacket *iPacket)
 		WvsBase::GetInstance<WvsShop>()->RemoveMigratingUser(nCharacterID);
 	}
 
-	auto deleter = [](User* p) { FreeObj(p); };
-	std::shared_ptr<User> pUser{ AllocObjCtor( User )((ClientSocket*)pSocket, iPacket), deleter };
+	ZSharedPtr<User> pUser = MakeShared<User>((ClientSocket*)pSocket, iPacket);
 
 	//pUser->GetCharacterData()->
 	//oPacket.EncodeHexString("01 00 00 00 6B FE 8F 06");
@@ -184,7 +183,7 @@ void Center::OnCheckMigrationState(InPacket *iPacket)
 			oPacket.Encode1(0); //Not yet migrated in.
 		else
 		{
-			int tMigrateTime = prMigrating.second;
+			unsigned int tMigrateTime = prMigrating.second;
 
 			//Check migrating time out.
 			if (GameDateTime::GetTime() - tMigrateTime > 60 * 1000)

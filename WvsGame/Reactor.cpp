@@ -62,6 +62,7 @@ Reactor::Reactor(ReactorTemplate* pTemplate, Field* pField)
 	: m_pTemplate(pTemplate),
 	  m_pField(pField)
 {
+	m_bDestroyAfterEvent = false;
 }
 
 Reactor::~Reactor()
@@ -111,7 +112,7 @@ int Reactor::GetHitDelay(int nEventIdx)
 void Reactor::OnHit(User * pUser, InPacket * iPacket)
 {
 	int nOption = iPacket->Decode4();
-	int tActionDelay = iPacket->Decode2();
+	unsigned int tActionDelay = iPacket->Decode2();
 
 	auto aInfo = m_pTemplate->m_aStateInfo;
 	if ((m_nState >= aInfo.size()) || aInfo[m_nState].m_aEventInfo.size() == 0)
@@ -192,7 +193,7 @@ void Reactor::MakeStateChangePacket(OutPacket * oPacket, int tActionDelay, int n
 
 void Reactor::FindAvailableAction()
 {
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	int nDropIdx = 0;
 	for (auto& info : m_pTemplate->m_aActionInfo)
 	{
@@ -219,7 +220,7 @@ void Reactor::FindAvailableAction()
 	}
 }
 
-void Reactor::DoAction(void *pInfo_, int tDelay, int nDropIdx)
+void Reactor::DoAction(void *pInfo_, unsigned int tDelay, int nDropIdx)
 {
 	int x1 = GetPosX(), y1 = GetPosY();
 	auto pInfo = (ReactorTemplate::ActionInfo*)pInfo_;
@@ -286,7 +287,7 @@ void Reactor::DoAction(void *pInfo_, int tDelay, int nDropIdx)
 					nDropOffsetX = 20 * (int)(aRewardDrop.size() / 2);
 
 				nDropIdx = 0;
-				for (auto pDrop : aRewardDrop)
+				for (auto &pDrop : aRewardDrop)
 				{
 					m_pField->GetDropPool()->Create(
 						pDrop,
@@ -348,7 +349,7 @@ void Reactor::DoActionByUpdateEvent()
 				FieldRect rc = eventInfo.m_rcSpaceVertex;
 				rc.OffsetRect(GetPosX(), GetPosY());
 
-				std::vector<Drop*> apDrop = m_pField->GetDropPool()->FindDropInRect(
+				auto apDrop = m_pField->GetDropPool()->FindDropInRect(
 					rc, 4500
 				);
 				abChecked.resize(apDrop.size(), false);
@@ -401,7 +402,7 @@ void Reactor::SetRemoved()
 	{
 		if (pGen->tRegenInterval && (!--pGen->nReactorCount))
 		{
-			int tCur = GameDateTime::GetTime();
+			unsigned int tCur = GameDateTime::GetTime();
 			int tBase = 6 * pGen->tRegenInterval / 10;
 			pGen->tRegenAfter = tCur + (7 * pGen->tRegenAfter / 10) + (tBase > 0 ? Rand32::GetInstance()->Random() % tBase : 0);
 		}

@@ -2,26 +2,26 @@
 #include "MemoryPoolMan.hpp"
 
 template<typename T>
-void ZRelease(void *p)
+static void ZRelease(void *p)
 {
 	if (p)
 		WvsSingleObjectAllocator<T>::GetInstance()->Free(p);
 }
 
-void ZReleaseArray(void *p)
+static void ZReleaseArray(void *p)
 {
 	if (p)
 		WvsArrayAllocator::GetInstance()->Free<unsigned char>(p);
 }
 
 template<typename T>
-T* ZAllocate()
+static T* ZAllocate()
 {
 	return WvsSingleObjectAllocator<T>::GetInstance()->Allocate();
 }
 
 template<typename T>
-T* ZAllocateArray(int nSize)
+static T* ZAllocateArray(int nSize)
 {
 	return (T*)WvsArrayAllocator::GetInstance()->Allocate<T>(nSize);
 }
@@ -39,8 +39,21 @@ public:
 	ZUniquePtr(ZUniquePtr&& rv) { m_p = rv.m_p; rv.m_p = nullptr; }
 	T& operator *() { return *m_p; }
 	T* operator ->() { return m_p; }
+	const T& operator *() const { return *(m_p); }
+	const T* operator ->() const { return m_p; }
+	operator bool() const { return m_p ? true : false; }
+	bool operator == (void *p) const { return m_p == p; }
+	bool operator != (void *p) const { return m_p != p; }
+	template<typename U>
+	operator U*() { return (U*)m_p; }
 
-	~ZUniquePtr() { ZRelease(m_p); }
+	template<typename U>
+	operator U*() const { return (U*)m_p; }
+
+	void reset(ZUniquePtr&& rv) { m_p = rv.m_p; rv.m_p = nullptr; }
+	void reset(T *p) { ZRelease<T>(m_p); m_p = p; }
+
+	~ZUniquePtr() { ZRelease<T>(m_p); }
 };
 
 template<typename T>
@@ -57,6 +70,7 @@ public:
 	T* operator +(int nOffset) { return m_p + nOffset; }
 	T& operator *() { return *m_p; }
 	T& operator[](int nIdx) { return m_p[nIdx]; }
+	operator bool() { return m_p ? true : false; }
 
 	~ZUniquePtr() { ZReleaseArray(m_p); }
 };
@@ -84,6 +98,9 @@ class ZSharedPtr
 	friend class ZSharedPtr;
 
 	std::shared_ptr<T> m_s;
+	
+	template <typename U>
+	ZSharedPtr& operator =(U* p) = delete; //Use reset instead.
 
 public:
 	ZSharedPtr() {}
@@ -94,9 +111,23 @@ public:
 
 	T& operator *() { return *(m_s.get()); }
 	T* operator ->() { return m_s.get(); }
-	operator bool() { return m_s.get() ? true : false; }
-	void reset(T *p) { m_s.reset(p, ZRelease<T>); }
+	const T& operator *() const  { return *(m_s.get()); }
+	const T* operator ->() const { return m_s.get(); }
+	operator bool() const { return m_s.get() ? true : false; }
 
+	template<typename SP>
+	bool operator == (const SP& p) const { return m_s == p; }
+
+	template<typename SP>
+	bool operator != (const SP& p) const { return m_s != p; }
+
+	template<typename U>
+	operator U*() { return (U*)m_s.get(); }
+
+	template<typename U>
+	operator U*() const { return (U*)m_s.get(); }
+
+	void reset(T *p) { m_s.reset(p, ZRelease<T>); }
 };
 
 template<typename T>
@@ -113,6 +144,14 @@ public:
 	T& operator *() { return *(m_s.get()); }
 	T& operator[](int nIdx) { return m_s.get()[nIdx]; }
 	operator bool() { return m_s.get() ? true : false; }
+	operator T*() { return m_s.get(); }
+
+	template<typename SP>
+	bool operator == (const SP& p) const { return m_s == p; }
+
+	template<typename SP>
+	bool operator != (const SP& p) const { return m_s != p; }
+
 	void reset(T *p) { m_s.reset(p, ZReleaseArray); }
 };
 

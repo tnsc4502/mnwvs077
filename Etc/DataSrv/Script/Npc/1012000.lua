@@ -1,12 +1,25 @@
 
 require "./DataSrv/Script/sysDef"
 
---inventory->exchange(100, 1462009, -1, 1462008, 1, 1462008, 1)
+field = qr->get(7600);
+self->askAvatar("Select : ", 4031249, {30030
+,30020
+,30000
+,30480
+,30310
+,30330
+,30060
+,30150
+,30410
+,30210
+,30140
+,30120
+,30200})
+--inventory->exchange(100, 2000000, -1, 2000000, 1)
+target->exception2();
 
-
+self->say("haeii"..self->getField()->getID())
 --self->endx()
-self->say("heii"..self->getField()->getID())
-self->endx()
 self->askAvatar("選擇一個您喜歡的髮型a : ", 4031249, {30030
 ,30020
 ,30000

@@ -96,7 +96,7 @@ void Drop::Init(unsigned int dwDropID, Reward * reward, unsigned int dwOwnerID, 
 	m_pItem = reward->GetItem();
 }
 
-GW_ItemSlotBase* Drop::GetItem()
+ZSharedPtr<GW_ItemSlotBase> Drop::GetItem()
 {
 	return m_pItem;
 }

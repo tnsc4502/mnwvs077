@@ -25,11 +25,11 @@ void Script::DestroySelf(lua_State * L, Script * p)
 
 void Script::Register(lua_State * L)
 {
-	luaL_Reg SysMetatable[] = {
+	static luaL_Reg SysMetatable[] = {
 		{ NULL, NULL }
 	};
 
-	luaL_Reg SysTable[] = {
+	static luaL_Reg SysTable[] = {
 		{ "random", ScriptSysRandom },
 		{ "getTime", ScriptSysTime },
 		{ "getDateTime", ScriptSysDateTime },
@@ -181,13 +181,14 @@ void Script::Run(const std::string & sFunc)
 
 void Script::Abort()
 {
-	if(m_pUser)
-		m_pUser->SetScript(nullptr);
-	if (L) 
+	if (L)
 		lua_close(L);
+	if (m_pUser) 
+	{
+		m_pUser->SetScript(nullptr);
+		return;
+	}
 	m_bDone = true;
-	if (!m_pUniqueScriptNpc)
-		FreeObj(this);
 }
 
 bool Script::IsDone()

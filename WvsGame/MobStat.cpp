@@ -43,7 +43,7 @@ void MobStat::SetFrom(const MobTemplate * pTemplate)
 	bInvincible = pTemplate->m_bInvincible;
 }
 
-void MobStat::EncodeTemporary(int nSet, OutPacket *oPacket, int tCur)
+void MobStat::EncodeTemporary(int nSet, OutPacket *oPacket, unsigned int tCur)
 {
 	CHECK_MOB_FLAG(PAD);
 	CHECK_MOB_FLAG(PDD);

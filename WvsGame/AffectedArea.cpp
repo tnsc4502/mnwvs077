@@ -20,7 +20,7 @@ void AffectedArea::MakeEnterFieldPacket(OutPacket * oPacket)
 	oPacket->Encode4(m_nOwnerID);
 	oPacket->Encode4(m_nSkillID);
 	oPacket->Encode1((char)m_nSLV);
-	int tTime = (m_tStart - GameDateTime::GetTime()) / 100;
+	int tTime = (int)(((long long int)m_tStart - (long long int)GameDateTime::GetTime()) / 100);
 	if (tTime < 0)
 		tTime = 0;
 	oPacket->Encode2((short)tTime);

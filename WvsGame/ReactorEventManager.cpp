@@ -23,7 +23,7 @@ void ReactorEventManager::Update()
 	if (m_mEvent.size() == 0)
 		return;
 
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	auto iter = m_mEvent.begin();
 	std::vector<int> aRemoveKey;
 	for(auto iter : m_mEvent)

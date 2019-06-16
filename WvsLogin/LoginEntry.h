@@ -13,11 +13,12 @@ enum LoginResult
 enum LoginState
 {
 	LS_Connection_Established = 0x00,
-	LS_PasswdCheck_Authenticated = 0x01,
-	LS_Stage_SelectWorld = 0x02,
-	LS_Stage_SelectCharacter = 0x03,
-	LS_Stage_CreateNewCharacter = 0x04,
-	LS_Stage_MigratedIn = 0x05
+	LS_SelectGenderAnd2ndPassword = 0x01,
+	LS_PasswdCheck_Authenticated = 0x02,
+	LS_Stage_SelectedWorld = 0x03,
+	LS_Stage_SelectedCharacter = 0x04,
+	LS_Stage_MigratedIn = 0x05,
+	LS_Stage_CheckDuplicatedID = 0x06,
 };
 
 struct LoginEntry

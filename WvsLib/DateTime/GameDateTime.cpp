@@ -30,7 +30,7 @@ long long int GameDateTime::GetDateExpireFromPeriodAsSec(int nSec)
 	return (millis.count() + nSec * 1000) * 10000 + 116444592000000000L;
 }
 
-int GameDateTime::GetTime()
+int unsigned GameDateTime::GetTime()
 {
 	return timeGetTime();
 }

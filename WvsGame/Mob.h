@@ -48,16 +48,17 @@ private:
 	Controller* m_pController; 
 	long long int m_liHP, m_liMP;
 
-	int m_tLastMove = 0, 
-		m_tLastSkillUse = 0,
-		m_tLastUpdatePoison = 0,
-		m_tLastUpdateVenom = 0,
-		m_tLastUpdateAmbush = 0,
-		m_nSkillSummoned = 0,
+	int m_nSkillSummoned = 0,
 		m_nSummonType = 0,
 		m_nSummonOption = 0,
 		m_nCtrlPriority = 0,
 		m_nSkillCommand = 0;
+
+	unsigned int m_tLastMove = 0,
+		m_tLastSkillUse = 0,
+		m_tLastUpdatePoison = 0,
+		m_tLastUpdateVenom = 0,
+		m_tLastUpdateAmbush = 0;
 
 	bool m_bNextAttackPossible = false;
 	void* m_pMobGen = nullptr;
@@ -88,9 +89,9 @@ public:
 	void DoSkill_PartizanStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_PartizanOneTimeStatChange(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay);
 	void DoSkill_Summon(const MobSkillLevelData *pLevel, int tDelay);
-	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, int tCur);
+	void PrepareNextSkill(unsigned char *nSkillCommand, unsigned char *nSLV, unsigned int tCur);
 	void ResetStatChangeSkill(int nSkillID);
-	void OnMobInAffectedArea(AffectedArea *pArea, int tCur);
+	void OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur);
 	void OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, int nDamageSum, int tDelay);
 	void SendMobTemporaryStatSet(int nSet, int tDelay);
 	void SendMobTemporaryStatReset(int nSet);
@@ -113,7 +114,7 @@ public:
 	long long int GetMP() const;
 
 	DamageLog& GetDamageLog();
-	void Update(int tCur);
-	void UpdateMobStatChange(int tCur, int nVal, int tVal, int &nLastUpdateTime);
+	void Update(unsigned int tCur);
+	void UpdateMobStatChange(unsigned int tCur, int nVal, unsigned int tVal, unsigned int &nLastUpdateTime);
 };
 

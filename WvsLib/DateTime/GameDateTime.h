@@ -12,6 +12,6 @@ public:
 	static long long int GetCurrentDate();
 	static long long int GetDateExpireFromPeriod(int nPeriod);
 	static long long int GetDateExpireFromPeriodAsSec(int nSec);
-	static int GetTime();
+	static unsigned int GetTime();
 };
 

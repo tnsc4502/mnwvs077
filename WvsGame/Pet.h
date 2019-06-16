@@ -1,6 +1,8 @@
 #pragma once
 #include "FieldObj.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
+struct GW_ItemSlotBase;
 struct GW_ItemSlotPet;
 class InPacket;
 class Field;
@@ -11,11 +13,11 @@ class Pet : public FieldObj
 
 	User *m_pOwner;
 	Field *m_pField;
-	GW_ItemSlotPet *m_pPetSlot;
+	ZSharedPtr<GW_ItemSlotBase> m_pPetSlot;
 	unsigned char m_nIndex = 0;
 
 public:
-	Pet(GW_ItemSlotPet *pPetSlot);
+	Pet(ZSharedPtr<GW_ItemSlotBase>& pPetSlot);
 	~Pet();
 
 	void SetIndex(unsigned char nIndex);
@@ -29,5 +31,6 @@ public:
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
 	void EncodeInitData(OutPacket *oPacket);
+	const GW_ItemSlotPet *GetItemSlot() const;
 };
 

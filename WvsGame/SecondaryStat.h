@@ -115,7 +115,7 @@ public:
 	void EncodePartyBooster(OutPacket *oPacket, TemporaryStat::TS_Flag& flag); 
 	void EncodeGuidedBullet(OutPacket *oPacket, TemporaryStat::TS_Flag& flag); 
 	bool EnDecode4Byte(TemporaryStat::TS_Flag& flag);
-	void ResetByTime(User* pUser, int tCur);
+	void ResetByTime(User* pUser, unsigned int tCur);
 	void ResetAll(User* pUser);
 
 	void DecodeInternal(User* pUser, InPacket *iPacket);

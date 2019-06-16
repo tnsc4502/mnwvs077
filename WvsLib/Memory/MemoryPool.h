@@ -215,7 +215,7 @@ public:
 			return (void*)((unsigned char*)t->ResourceMgr(true) + 4);
 		}
 
-		inline static void free(WvsSingleObjectAllocator* t, T* res, int nSize)
+		inline static void free(WvsSingleObjectAllocator* t, T* res)
 		{
 			res = (T*)(((unsigned char*)res) - 4);
 			t->ResourceMgr(false, res);

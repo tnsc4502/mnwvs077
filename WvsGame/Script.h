@@ -28,6 +28,7 @@ public:
 			m_nSpeakerTypeID = 4, 
 			m_nSpeakerTemplateID, 
 			m_nSpeakerTemplateID_, 
+			m_nAvatarTicket = 0,
 			m_tWait = 0, 
 			m_nPage = 0;
 		unsigned char m_nParam = 0, m_eColor = 0;
@@ -59,9 +60,9 @@ private:
 	User *m_pUser;
 	Field *m_pField;
 	bool m_bDone = false;
-	void(*m_pOnPacketInvoker)(InPacket*, Script*, lua_State*);
 
 public:
+	void(*m_pOnPacketInvoker)(InPacket*, Script*, lua_State*);
 
 	Script(const std::string& file, int nTemplateID, Field *pField, const std::vector<void(*)(lua_State*)>& aReg);
 	~Script();

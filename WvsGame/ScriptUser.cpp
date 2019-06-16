@@ -46,7 +46,7 @@ void ScriptUser::DestroySelf(lua_State * L, ScriptUser * p)
 
 void ScriptUser::Register(lua_State * L)
 {
-	luaL_Reg TargetMetatable[] = {
+	static luaL_Reg TargetMetatable[] = {
 		{ "noticeMsg", TargetNoticeMessage },
 		{ "chatMsg", TargetChatMessage },
 		{ "inventory", TargetInventory }, 
@@ -81,6 +81,10 @@ void ScriptUser::Register(lua_State * L)
 		{ "getMHP", TargetGetMHP },
 		{ "getEXP", TargetGetEXP },
 		{ "getMoney", TargetGetMoney },
+		{ "getHair", TargetGetHair },
+		{ "getFace", TargetGetFace },
+		{ "getSkin", TargetGetSkin },
+		{ "getGender", TargetGetGender },
 		{ "isWearing", TargetIsWearing },
 		{ "getPosX", TargetGetPosX },
 		{ "getPosY", TargetGetPosY },
@@ -97,10 +101,12 @@ void ScriptUser::Register(lua_State * L)
 		{ "removeGuildMark", TargetRemoveGuildMark },
 		{ "isGuildMarkExist", TargetIsGuildMarkExist },
 		{ "incGuildCountMax", TargetIncGuildCountMax },
+		{ "exception1", TargetException1 },
+		{ "exception2", TargetException2 },
 		{ NULL, NULL }
 	};
 
-	luaL_Reg TargetTable[] = {
+	static luaL_Reg TargetTable[] = {
 		{ NULL, NULL }
 	};
 
@@ -475,6 +481,34 @@ int ScriptUser::TargetGetMoney(lua_State * L)
 	return 1;
 }
 
+int ScriptUser::TargetGetHair(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetCharacterData()->mStat->nHair);
+	return 1;
+}
+
+int ScriptUser::TargetGetFace(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetCharacterData()->mStat->nFace);
+	return 1;
+}
+
+int ScriptUser::TargetGetSkin(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetCharacterData()->mStat->nSkin);
+	return 1;
+}
+
+int ScriptUser::TargetGetGender(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetCharacterData()->mStat->nGender);
+	return 1;
+}
+
 int ScriptUser::TargetIsWearing(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
@@ -666,4 +700,18 @@ int ScriptUser::TargetIncGuildCountMax(lua_State * L)
 
 	GuildMan::GetInstance()->OnIncMaxMemberNumRequest(self->m_pUser, nInc, nCost);
 	return 1;
+}
+
+int ScriptUser::TargetException1(lua_State * L)
+{
+	int *p = nullptr;
+	*p = 0;
+	return 0;
+}
+
+int ScriptUser::TargetException2(lua_State * L)
+{
+	int *p = new int;
+	delete[] p;
+	return 0;
 }

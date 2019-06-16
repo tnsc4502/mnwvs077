@@ -25,14 +25,13 @@ DropPool::~DropPool()
 {
 }
 
-const Drop * DropPool::GetDrop(int nDropID)
+ZSharedPtr<Drop> DropPool::GetDrop(int nDropID)
 {
 	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
-	auto findIter = m_mDrop.find(nDropID);
-	return findIter == m_mDrop.end() ? nullptr : findIter->second;
+	return m_mDrop[nDropID];
 }
 
-void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int tDelay, int bAdmin, int nPos, bool bByPet)
+void DropPool::Create(ZUniquePtr<Reward>& zpReward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, unsigned int tDelay, int bAdmin, int nPos, bool bByPet)
 {
 	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
 	auto pFoothold = m_pField->GetSpace2D()->GetFootholdUnderneath(x2, y1 - 100, &y2);
@@ -40,17 +39,17 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 	{
 		pFoothold = m_pField->GetSpace2D()->GetFootholdClosest(m_pField, x2, y1, &x2, &y2, x1);
 	}
-	Drop *pDrop = AllocObj(Drop);
-	pDrop->Init(++m_nDropIdCounter, reward, dwOwnerID, dwOwnPartyID, nOwnType, dwSourceID, x1, y1, x2, y2, bByPet);
+	ZSharedPtr<Drop> pDrop = AllocObj(Drop);
+	pDrop->Init(++m_nDropIdCounter, zpReward, dwOwnerID, dwOwnPartyID, nOwnType, dwSourceID, x1, y1, x2, y2, bByPet);
 	auto pItem = pDrop->GetItem();
-	if (pItem != nullptr && reward->GetType() == 1 && reward->GetPeriod() != 0)
-		pItem->liExpireDate = GameDateTime::GetDateExpireFromPeriod(reward->GetPeriod());
+	if (pItem != nullptr && zpReward->GetType() == 1 && zpReward->GetPeriod() != 0)
+		pItem->liExpireDate = GameDateTime::GetDateExpireFromPeriod(zpReward->GetPeriod());
 	bool bEverLasting = m_bDropEverlasting ? dwSourceID == 0 : false;
 	/*if (bAdmin)
 		bEverLasting = reward->GetType() == 1
 		&& (ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID) || ItemInfo::GetInstance()->IsTradeBlockItem(pItem->nItemID));*/
 
-	if (reward->GetType() == 1
+	if (zpReward->GetType() == 1
 		&& !dwSourceID
 		&& !bAdmin
 		&& pItem
@@ -59,12 +58,9 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 		//丟出後立即消失
 		OutPacket oPacket;
 		pDrop->MakeEnterFieldPacket(&oPacket, 3, tDelay);
-		if (!dwOwnerID)
-		{
-			pItem->Release();
-			pDrop->m_pItem = nullptr;
-		}
 		m_pField->BroadcastPacket(&oPacket);
+		//if (!dwOwnerID)
+		return;
 	}
 	else
 	{
@@ -76,8 +72,7 @@ void DropPool::Create(Reward * reward, unsigned int dwOwnerID, unsigned int dwOw
 		m_pField->BroadcastPacket(&oPacket2);
 	}
 	pDrop->m_tCreateTime = GameDateTime::GetTime();
-	m_mDrop[pDrop->m_dwDropID] = pDrop;
-	FreeObj(reward);
+	m_mDrop.insert({ pDrop->m_dwDropID, pDrop });
 }
 
 void DropPool::OnEnter(User * pUser)
@@ -101,7 +96,7 @@ void DropPool::OnPickUpRequest(User *pUser, InPacket *iPacket, Pet *pPet)
 {
 	iPacket->Decode4();
 	iPacket->Decode1();
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	int nX = iPacket->Decode2();
 	int nY = iPacket->Decode2();
 	int nObjectID = iPacket->Decode4();
@@ -159,17 +154,16 @@ void DropPool::OnPickUpRequest(User *pUser, InPacket *iPacket, Pet *pPet)
 			OutPacket oPacket;
 			pDrop->MakeLeaveFieldPacket(&oPacket, pPet ? 5 : 2, pUser->GetUserID(), pPet);
 			m_pField->SplitSendPacket(&oPacket, nullptr);
-			FreeObj(pDrop);
 			m_mDrop.erase(nObjectID);
 		}
 	}
 }
 
-std::vector<Drop*> DropPool::FindDropInRect(const FieldRect & rc, int tTimeAfter)
+std::vector<ZSharedPtr<Drop>> DropPool::FindDropInRect(const FieldRect & rc, unsigned int tTimeAfter)
 {
 	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);
-	std::vector<Drop*> aRet;
-	int tCur = GameDateTime::GetTime();
+	std::vector<ZSharedPtr<Drop>> aRet;
+	unsigned int tCur = GameDateTime::GetTime();
 	for (auto& prDrop : m_mDrop)
 	{
 		if (tCur - prDrop.second->m_tCreateTime >= tTimeAfter &&
@@ -190,15 +184,12 @@ void DropPool::Remove(int nID, int tDelay)
 	OutPacket oPacket;
 	pDrop->MakeLeaveFieldPacket(&oPacket, tDelay ? 4 : 0, tDelay, nullptr);
 	m_pField->BroadcastPacket(&oPacket);
-	if (pDrop->GetItem() != nullptr)
-		pDrop->GetItem()->Release();
-	FreeObj(pDrop);
 }
 
 void DropPool::TryExpire(bool bRemoveAll)
 {
 	std::lock_guard<std::mutex> dropPoolLock(m_mtxDropPoolLock);
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	if (bRemoveAll || tCur - m_tLastExpire >= 10000)
 	{
 		for (auto iter = m_mDrop.begin(); iter != m_mDrop.end();)
@@ -209,9 +200,6 @@ void DropPool::TryExpire(bool bRemoveAll)
 				OutPacket oPacket;
 				iter->second->MakeLeaveFieldPacket(&oPacket, 0, 0, nullptr);
 				m_pField->SplitSendPacket(&oPacket, nullptr);
-				if (iter->second->GetItem() != nullptr)
-					iter->second->GetItem()->Release();
-				FreeObj(iter->second);
 				iter = m_mDrop.erase(iter);
 			}
 			else

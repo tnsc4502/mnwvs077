@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <vector>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct BackupItem;
 struct ExchangeElement;
@@ -29,7 +30,7 @@ public:
 
 	struct ChangeLog
 	{
-		GW_ItemSlotBase *pItem;
+		ZSharedPtr<GW_ItemSlotBase> pItem;
 		int nChange, nTI, nPOS, nPOS2, nNumber;
 	};
 
@@ -42,20 +43,20 @@ public:
 	static bool RawIncMoney(GA_Character* pCharacterData, int nMoney);
 
 	//將pItem直接加入玩家背包
-	static bool RawAddItem(GA_Character* pCharacterData, int nTI, GW_ItemSlotBase* pItem, std::vector<ChangeLog>* aChangeLog, int *nIncRet, bool bDeleteIfItemCombined, std::vector<BackupItem>* paBackupItem = nullptr);
+	static bool RawAddItem(GA_Character* pCharacterData, int nTI, ZSharedPtr<GW_ItemSlotBase>& pItem, std::vector<ChangeLog>* aChangeLog, int *nIncRet, std::vector<BackupItem>* paBackupItem = nullptr);
 
 	//給定nItemID, nCount加入玩家背包
 	static bool RawAddItem(GA_Character* pCharacterData, int nTI, int nItemID, int nCount, std::vector<ChangeLog>* aChangeLog, int *nIncRet, std::vector<BackupItem>* paBackupItem = nullptr);
-	static bool RawRemoveItem(GA_Character* pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int *nDecRet, GW_ItemSlotBase **ppItemRemoved, std::vector<BackupItem>* aBackupItem = nullptr);
+	static bool RawRemoveItem(GA_Character* pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int *nDecRet, ZSharedPtr<GW_ItemSlotBase> *ppItemRemoved);
 	static bool RawWasteItem(GA_Character* pCharacterData, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog);
 	static bool RawRechargeItem(GA_Character* pCharacterData, int nPOS, std::vector<ChangeLog>* aChangeLog);
-	static int RawExchange(GA_Character* pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bReleaseBackupItem = true);
+	static int RawExchange(GA_Character* pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<ChangeLog>* aLogDefault, std::vector<BackupItem>& aBackupItem);
 
 	//在Exchange失敗的時候進行恢復
 	static void RestoreBackupItem(GA_Character* pCharacterData, std::vector<BackupItem>& aBackupItem);
-	static void ReleaseBackupItem(std::vector<BackupItem>& aBackupItem);
+	//static void ReleaseBackupItem(std::vector<BackupItem>& aBackupItem);
 	static void RestoreTradingInventory(GA_Character* pCharacterData, std::map<int, int> mBackupItemTrading[6], std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
-	static void InsertChangeLog(std::vector<ChangeLog>& aChangeLog, int nChange, int nTI, int nPOS, GW_ItemSlotBase* pi, int nPOS2, int nNumber);
+	static void InsertChangeLog(std::vector<ChangeLog>& aChangeLog, int nChange, int nTI, int nPOS, const ZSharedPtr<GW_ItemSlotBase>& pi, int nPOS2, int nNumber);
 	static void MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
 	static void MakeItemUpgradeEffect(OutPacket *oPacket, int nCharacterID, int nEItemID, int nUItemID, bool bSuccess, bool bCursed, bool bEnchant);
 };

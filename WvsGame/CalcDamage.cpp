@@ -111,7 +111,7 @@ double CalcDamage::GetDamageAdjustedByElemAttr(double damage, const SkillEntry *
 
 double CalcDamage::GetDamageAdjustedByChargedElemAttr(double damage, int *aDamagedElemAttr, User *pUser)
 {
-	auto ss = pUser->GetSecondaryStat();
+	auto &ss = pUser->GetSecondaryStat();
 	int nSkillID = ss->rWeaponCharge_;
 
 	if (!ss->nWeaponCharge_)
@@ -304,8 +304,8 @@ int CalcDamage::GetInvalidCount() const
 bool CalcDamage::CheckMDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
 {
 	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
 	int nACC = std::min(999, std::max(0, ss->nEVA + ss->nEVA_)),
 		nMobACC = 0;
 	if (bs->nLevel >= ms->nLevel || (nACC -= (ms->nLevel - bs->nLevel), nACC > 0))
@@ -319,8 +319,8 @@ bool CalcDamage::CheckMDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
 
 int CalcDamage::MDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand)
 {
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
 	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
 	if (pnRand)
 		*pnRand = (int)nRnd;
@@ -367,9 +367,9 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 	int nSkillID = pSkill ? pSkill->GetSkillID() : 0, 
 		nCriticalAttackProp = 0, 
 		nCriticalAttackParam = 0;
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
-	auto cd = m_pUser->GetCharacterData();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	auto &cd = m_pUser->GetCharacterData();
 
 	int nMAD = std::min(1999, std::max(0, ss->nMAD + ss->nMAD_)), nMobPDD = 0;
 	if (ss->nMaxLevelBuff_)
@@ -488,8 +488,8 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 bool CalcDamage::CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
 {
 	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
 	int nEVA = std::min(999, std::max(0, ss->nEVA + ss->nEVA_)),
 		nMobEVA = 0;
 	if (bs->nLevel >= ms->nLevel || (nEVA -= (ms->nLevel - bs->nLevel), nEVA > 0))
@@ -507,8 +507,8 @@ bool CalcDamage::CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
 
 int CalcDamage::PDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand)
 {
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
 	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
 	if (pnRand)
 		*pnRand = (int)nRnd;
@@ -574,9 +574,9 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 	int nSkillID = pSkill ? pSkill->GetSkillID() : 0, 
 		nCriticalAttackProp = 0, 
 		nCriticalAttackParam = 0;
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
-	auto cd = m_pUser->GetCharacterData();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	auto &cd = m_pUser->GetCharacterData();
 
 	SkillEntry *pSPSkill;
 	int nSPSLV = SkillInfo::GetInstance()->GetSkillLevel(
@@ -993,9 +993,9 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 void CalcDamage::MesoExplosionDamage(MobStat * ms, int * anMoneyAmount, int nDropCount, int *aDamage)
 {
 	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
-	auto ss = m_pUser->GetSecondaryStat();
-	auto bs = m_pUser->GetBasicStat();
-	auto cd = m_pUser->GetCharacterData();
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	auto &cd = m_pUser->GetCharacterData();
 
 	SkillEntry *pEntry;
 	int nSLV = SkillInfo::GetInstance()->GetSkillLevel(

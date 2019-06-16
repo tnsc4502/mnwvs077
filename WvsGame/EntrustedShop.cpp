@@ -71,9 +71,9 @@ void EntrustedShop::DoTransaction(User *pUser, int nSlot, Item *psItem, int nNum
 	//For buyer
 	aExchange.push_back({});
 	aExchange[0].m_nCount = nNumber * psItem->nSet;
-	aExchange[0].m_pItem = psItem->pItem->MakeClone();
+	aExchange[0].m_pItem.reset(psItem->pItem->MakeClone());
 
-	int nMoneyCost = psItem->nPrice * psItem->nNumber * -1;
+	int nMoneyCost = psItem->nPrice * nNumber * -1;
 	if (m_liEShopMoney + (long long int)(nMoneyCost * -1) > (long long int)INT_MAX)
 	{
 		pUser->SendNoticeMessage("³c°âªÌ·¬¹ô¤wº¡¡C");
@@ -116,10 +116,7 @@ void EntrustedShop::OnArrangeItem(User *pUser, InPacket *iPacket)
 	for (int i = 0; i < (int)m_aItem.size(); )
 	{
 		if (m_aItem[i].nNumber == 0)
-		{
-			m_aItem[i].pItem->Release();
 			m_aItem.erase(m_aItem.begin() + i);
-		}
 		else
 			++i;
 	}
@@ -152,7 +149,7 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 			{
 				aExchange.push_back({});
 				aExchange.back().m_nCount = item.nNumber;
-				aExchange.back().m_pItem = item.pItem->MakeClone();
+				aExchange.back().m_pItem = item.pItem;
 				item.nNumber = 0;
 				aRemove.push_back(&item);
 			}

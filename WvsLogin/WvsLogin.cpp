@@ -122,19 +122,19 @@ void WvsLogin::RemoveLoginEntryByLoginSocketID(unsigned int uLoginSocketSN)
 	}
 }
 
-LoginEntry* WvsLogin::GetLoginEntryByAccountID(int nAccountID)
+std::shared_ptr<LoginEntry> WvsLogin::GetLoginEntryByAccountID(int nAccountID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
 	auto findIter = m_mAccountIDToLoginEntry.find(nAccountID);
-	return findIter == m_mAccountIDToLoginEntry.end() ? nullptr : findIter->second.get();
+	return findIter == m_mAccountIDToLoginEntry.end() ? nullptr : findIter->second;
 }
 
-LoginEntry* WvsLogin::GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN)
+std::shared_ptr<LoginEntry> WvsLogin::GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
 	auto findIter = m_mSocketIDToAccountID.find(uLoginSocketSN);
 	if (findIter == m_mSocketIDToAccountID.end())
 		return nullptr;
 	auto accountIter = m_mAccountIDToLoginEntry.find(findIter->second);
-	return accountIter == m_mAccountIDToLoginEntry.end() ? nullptr : accountIter->second.get();
+	return accountIter == m_mAccountIDToLoginEntry.end() ? nullptr : accountIter->second;
 }

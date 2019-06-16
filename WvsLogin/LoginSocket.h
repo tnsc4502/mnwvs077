@@ -13,10 +13,13 @@ public:
 	LoginSocket(asio::io_service& serverService);
 	~LoginSocket();
 
+	void CheckLoginState(int nState);
 	void OnPacket(InPacket *iPacket);
 	void OnClientRequestStart();
 	void OnLoginBackgroundRequest();
 	void OnCheckPasswordRequst(InPacket *iPacket);
+	void OnSelectGenderAnd2ndPassword(InPacket *iPacket);
+	void EncodeLoginEntry(OutPacket *oPacket);
 	void OnCheckWorldStatusRequst(InPacket *iPacket);
 	void SendWorldInformation();
 	void OnClientSelectWorld(InPacket *iPacket);

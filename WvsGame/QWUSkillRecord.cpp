@@ -128,7 +128,7 @@ bool QWUSkillRecord::MasterLevelChange(User *pUser, int nSkillID, int nMasterLev
 bool QWUSkillRecord::MakeSkillVisible(User *pUser, int nSkillID, int nSkillLevel, int nMasterLevel)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto cd = pUser->GetCharacterData();
+	auto &cd = pUser->GetCharacterData();
 	if (cd->mStat->nHP == 0)
 		return false;
 
@@ -172,7 +172,7 @@ bool QWUSkillRecord::MakeSkillVisible(User *pUser, int nSkillID, int nSkillLevel
 void QWUSkillRecord::ValidateMasterLevelForSKills(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	auto cd = pUser->GetCharacterData();
+	auto &cd = pUser->GetCharacterData();
 	std::vector<GW_SkillRecord*> aChange;
 	std::vector<int> aJob;
 	GetSkillRootFromJob(cd->mStat->nJob, aJob);

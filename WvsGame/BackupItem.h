@@ -1,10 +1,12 @@
 #pragma once
+#include "..\WvsLib\Memory\ZMemory.h"
+
 struct GW_ItemSlotBase;
 
 struct BackupItem
 {
 	int m_nTI, m_nPOS;
-	GW_ItemSlotBase *m_pItem;
+	ZSharedPtr<GW_ItemSlotBase> m_pItem;
 	bool bClone;
 };
 

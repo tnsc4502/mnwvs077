@@ -108,9 +108,9 @@ const std::vector<RewardInfo*>* Reward::GetReactorReward(int nTemplateID)
 	return &(findIter->second);
 }
 
-std::vector<Reward*> Reward::Create(const std::vector<RewardInfo*>* aRewardInfo, bool bPremiumMap, double dRegionalIncRate, double dShowdown, double dOwnerDropRate, double dOwnerDropRate_Ticket, double* pRewardRate)
+std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* aRewardInfo, bool bPremiumMap, double dRegionalIncRate, double dShowdown, double dOwnerDropRate, double dOwnerDropRate_Ticket, double* pRewardRate)
 {
-	std::vector<Reward*> aRet;
+	std::vector<ZUniquePtr<Reward>> aRet;
 	double dDropRate = 1.0,
 		dRewardRate = 1.0,
 		dMoneyRate = 1.0,
@@ -122,7 +122,7 @@ std::vector<Reward*> Reward::Create(const std::vector<RewardInfo*>* aRewardInfo,
 	unsigned int unRndBase = 0, 
 		unRndRes = 0;
 
-	Reward *pReward = nullptr;
+	//Reward *pReward = nullptr;
 	for (auto& pInfo : (*aRewardInfo))
 	{
 		dRewardRate = 1.0;
@@ -158,7 +158,7 @@ std::vector<Reward*> Reward::Create(const std::vector<RewardInfo*>* aRewardInfo,
 			nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
 
 			//Create Reward
-			pReward = AllocObj(Reward);
+			ZUniquePtr<Reward> pReward = AllocObj(Reward);
 			if (pInfo->m_nItemID == 0)
 			{
 				nRange = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
@@ -168,17 +168,15 @@ std::vector<Reward*> Reward::Create(const std::vector<RewardInfo*>* aRewardInfo,
 			{
 				auto pItem = ItemInfo::GetInstance()->GetItemSlot(pInfo->m_nItemID, ItemInfo::ItemVariationOption::ITEMVARIATION_NORMAL);
 				if (!pItem)
-				{
-					FreeObj(pReward);
 					continue;
-				}
+				
 				pReward->SetItem(pItem);
 				if (pInfo->m_nItemID / 1000000 != GW_ItemSlotBase::EQUIP)
 					((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
 			}
 			pReward->SetType(1);
 			pReward->SetPeriod(pInfo->m_nPeriod);
-			aRet.push_back(pReward);
+			aRet.push_back(std::move(pReward));
 		}
 
 		/*int nRetCount = (int)aRet.size();

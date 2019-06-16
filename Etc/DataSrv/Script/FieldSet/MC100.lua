@@ -33,7 +33,7 @@ function onTimeout(forceClose)
 
 function enterMCarnival()
 {
-    stage = 2;
+    stage = 2
     --self->debug("Try Enter MC. MCParty1 = " .. fieldSet->getVar("MCParty1") .. " MCParty2 = " .. fieldSet->getVar("MCParty2"));
     fieldSet->resetTimeLimit(600, 1);
     fieldSet->setVar("timeLimit", "600");

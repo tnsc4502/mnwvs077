@@ -182,11 +182,7 @@ void Center::OnCenterMigrateInResult(InPacket *iPacket)
 		return;
 	}
 
-	auto deleter = [](User* p) { FreeObj(p); };
-	std::shared_ptr <User> pUser{ 
-		AllocObjCtor(User)((ClientSocket*)pSocket, iPacket),
-		deleter
-	};
+	ZSharedPtr<User> pUser = MakeShared<User>((ClientSocket*)pSocket, iPacket);
 	WvsBase::GetInstance<WvsGame>()->OnUserConnected(pUser);
 }
 

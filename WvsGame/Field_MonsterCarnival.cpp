@@ -577,7 +577,7 @@ void Field_MonsterCarnival::ProcessTimeFinish()
 void Field_MonsterCarnival::Update()
 {
 	Field::Update();
-	int tCur = GameDateTime::GetTime();
+	unsigned int tCur = GameDateTime::GetTime();
 	if (m_tEndTime > 0 && tCur >= m_tEndTime)
 	{
 		m_pParentFieldSet->DestroyClock();

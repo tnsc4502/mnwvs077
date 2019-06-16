@@ -1,5 +1,7 @@
 #pragma once
 #include <atomic>
+#include <map>
+#include "..\WvsLib\Memory\ZMemory.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -65,19 +67,11 @@ public:
 	void EncodeInventoryPosition(OutPacket *oPacket) const;
 	void EncodeTradingPosition(OutPacket *oPacket) const;
 
-	virtual GW_ItemSlotBase* MakeClone() = 0;
+	virtual GW_ItemSlotBase* MakeClone() const = 0;
 
+	static void LoadAll(int nType, int nCharacterID, bool bIsCash, bool bIsPet, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
 	virtual void Load(ATOMIC_COUNT_TYPE SN) = 0;
 	virtual void Save(int nCharacterID, bool bRemoveRecord = false) = 0;
 
 	static GW_ItemSlotBase* CreateItem(int nIntanceType);
-	virtual void Release() = 0;
 };
-
-#define FreeItemSlot(pItem) \
-if (pItem->nType == GW_ItemSlotBase::EQUIP)\
-	FreeObj((GW_ItemSlotEquip*)pItem);\
-else if (pItem->bIsPet)\
-	FreeObj((GW_ItemSlotPet*)pItem);\
-else\
-	FreeObj((GW_ItemSlotBundle*)pItem);

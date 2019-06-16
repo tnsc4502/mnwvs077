@@ -78,6 +78,7 @@ int main(int argc, char **argv)
 	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
 
+
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else

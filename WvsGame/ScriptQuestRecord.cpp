@@ -37,14 +37,14 @@ void ScriptQuestRecord::DestroySelf(lua_State * L, ScriptQuestRecord * p)
 
 void ScriptQuestRecord::Register(lua_State * L)
 {
-	luaL_Reg QRMetatable[] = {
+	static luaL_Reg QRMetatable[] = {
 		{ "getState", QuestRecordGetState },
 		{ "setState", QuestRecordSetState },
 		{ "get", QuestRecordGet },
 		{ NULL, NULL }
 	};
 
-	luaL_Reg QRTable[] = {
+	static luaL_Reg QRTable[] = {
 		{ NULL, NULL }
 	};
 

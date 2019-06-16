@@ -136,7 +136,7 @@ void FieldObj::SetMoveAction(char moveAction)
 	m_bMoveAction = moveAction;
 }
 
-Field * FieldObj::GetField()
+Field * FieldObj::GetField() const
 {
 	return m_pField;
 }

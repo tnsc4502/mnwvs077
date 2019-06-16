@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct GW_ItemSlotBase;
 class OutPacket;
@@ -10,7 +11,8 @@ class Trunk
 {
 	friend class User;
 	int m_nSlotCount = 4, m_nMoney = 0, m_nTrunkTemplateID = 0, m_nTrunkCost = 0;
-	std::vector<GW_ItemSlotBase*> m_aaItemSlot[6];
+	std::vector<ZSharedPtr<GW_ItemSlotBase>> m_aaItemSlot[6];
+	ZSharedPtr<GW_ItemSlotBase> m_pTradingItem;
 
 public:
 	enum TrunkRequest

@@ -22,12 +22,12 @@ class FieldSet
 	void *m_pCfg;
 
 	int m_nTimeLimit, 
-		m_nStartTime, 
 		m_nPartyMemberMin, 
 		m_nPartyMemberMax,
 		m_nLevelMin,
 		m_nLevelMax;
 
+	long long int m_tStartTime;
 	bool m_bParty, m_bEnd, m_bInvokeUpdateFunc;
 	Script* m_pScript;
 	AsyncScheduler *m_pFieldSetTimer;

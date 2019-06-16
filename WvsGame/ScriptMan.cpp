@@ -7,6 +7,7 @@
 #include "ScriptQuestRecord.h"
 #include "ScriptField.h"
 #include <functional>
+#include <filesystem>
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -31,7 +32,7 @@ void ScriptMan::RegisterScriptFunc(const std::string& sType, const std::string &
 		mFuncTable.erase(prFunc);
 	mFuncTable.erase(sScriptPath);
 
-	auto pScript = GetScript(sScriptPath, 0, nullptr);
+	auto pScript = CreateScript(sScriptPath, { 0, nullptr });
 	if (!pScript)
 		return;
 
@@ -60,7 +61,9 @@ void ScriptMan::RegisterScriptFunc(const std::string& sType, const std::string &
 	lua_pop(L, 1);
 
 	lua_close(L);
-	FreeObj(pScript);
+	pScript->~Script();
+	WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(pScript);
+	//FreeObj(pScript);
 }
 
 void ScriptMan::ScriptFileMonitor()
@@ -115,13 +118,12 @@ void ScriptMan::RegisterScriptFuncReflector()
 	pTimer->Start();
 }
 
-Script * ScriptMan::GetScript(const std::string & file, int nTemplateID, Field *pField)
+Script* ScriptMan::CreateScript(const std::string& sFile, const std::pair<int, Field*>& prParam)
 {
-	auto pScript = AllocObjCtor(Script)(
-		file, 
-		nTemplateID,
-		pField,
-		std::vector<void(*)(lua_State*)>({
+	if (!std::experimental::filesystem::exists(sFile))
+		return nullptr;
+
+	static std::vector<void(*)(lua_State*)> aRegFunc = {
 		&ScriptNPC::Register,
 		&ScriptInventory::Register,
 		&ScriptFieldSet::Register,
@@ -129,7 +131,9 @@ Script * ScriptMan::GetScript(const std::string & file, int nTemplateID, Field *
 		&ScriptQuestRecord::Register,
 		&ScriptField::Register,
 		&ScriptPacket::Register
-	}));
+	};
+
+	auto pScript = AllocObjCtor(Script)(sFile, prParam.first, prParam.second, aRegFunc);
 	if (pScript && pScript->Init())
 	{
 		pScript->m_pOnPacketInvoker = &(ScriptNPC::OnPacket);
@@ -137,6 +141,12 @@ Script * ScriptMan::GetScript(const std::string & file, int nTemplateID, Field *
 		return pScript;
 	}
 	else if (pScript)
-		FreeObj(pScript);
-	return nullptr;
+	{
+		pScript->Abort();
+		pScript->~Script();
+		WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(pScript);
+		pScript = nullptr;
+	}
+
+	return pScript;
 }

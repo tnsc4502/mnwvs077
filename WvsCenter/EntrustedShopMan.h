@@ -26,13 +26,15 @@ public:
 
 	enum EntrustedShopCheckResult
 	{
-		res_EShop_OpenCheck_Failed = 0x05,
+		res_EShop_OpenCheck_NonEmptyStoreBank = 0x04,
+		res_EShop_OpenCheck_AlreadyOpened = 0x05,
 		res_EShop_OpenCheck_Valid = 0x06,
 		res_EShop_LoadItemResult = 0x07,
 	};
 
 
 	static EntrustedShopMan* GetInstance();
+	int CheckEntrustedShopOpenPossible(int nCharacterID, long long int liCashItemSN);
 	void CheckEntrustedShopOpenPossible(LocalServer *pSrv, int nCharacterID, long long int liCashItemSN);
 	void CreateEntrustedShop(LocalServer *pSrv, int nCharacterID, int SlotCount, long long int liCashItemSN);
 	void RemoveEntrustedShop(LocalServer *pSrv, int nCharacterID);

@@ -23,8 +23,6 @@ PersonalShop::PersonalShop()
 
 PersonalShop::~PersonalShop()
 {
-	for (auto& psItem : m_aItem)
-		psItem.pItem->Release();
 }
 
 void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
@@ -62,7 +60,7 @@ void PersonalShop::OnPutItem(User *pUser, InPacket *iPacket)
 	item.nTI = nTI;
 	item.nPrice = nPrice;
 	item.nSet = nSet;
-	item.pItem = pItem->MakeClone();
+	item.pItem.reset(pItem->MakeClone());
 
 	if (item.pItem->nType == GW_ItemSlotBase::EQUIP || 
 		ItemInfo::IsRechargable(pItem->nItemID) ||
@@ -121,7 +119,6 @@ void PersonalShop::OnMoveItemToInventory(User *pUser, InPacket *iPacket)
 		return;
 	}
 	m_aItem.erase(m_aItem.begin() + nItemIdx);
-	//m_aItem.pop_back();
 	BroadcastItemList();
 	pUser->SendCharacterStat(true, 0);
 }
@@ -136,7 +133,7 @@ GW_ItemSlotBase * PersonalShop::MoveItemToShop(GW_ItemSlotBase *pItem, User *pUs
 bool PersonalShop::RestoreItemFromShop(User *pUser, PersonalShop::Item* psItem)
 {
 	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-	auto pItem = psItem->pItem;
+	auto pItem = pUser->GetCharacterData()->GetItem(psItem->nTI, psItem->nPOS);
 	if (pItem->nType == GW_ItemSlotBase::EQUIP ||
 		((GW_ItemSlotBundle*)pItem)->nNumber == psItem->nNumber * psItem->nSet)
 		InventoryManipulator::InsertChangeLog(
@@ -145,12 +142,14 @@ bool PersonalShop::RestoreItemFromShop(User *pUser, PersonalShop::Item* psItem)
 	else
 	{
 		int nTradingCount = pUser->GetCharacterData()->GetTradingCount(psItem->nTI, psItem->nPOS);
+		int nRestoreCount = (psItem->nNumber * psItem->nSet);
+		auto pItemSlot = (GW_ItemSlotBundle*)pItem;
 		InventoryManipulator::InsertChangeLog(
-			aChangeLog, InventoryManipulator::ChangeType::Change_QuantityChanged, psItem->nTI, psItem->nPOS, nullptr, 0, nTradingCount - (psItem->nNumber * psItem->nSet)
+			aChangeLog, InventoryManipulator::ChangeType::Change_QuantityChanged, psItem->nTI, psItem->nPOS, nullptr, 0, pItemSlot->nNumber - nTradingCount + nRestoreCount
 		);
+		pUser->GetCharacterData()->mItemTrading[psItem->nTI][psItem->nPOS] -= nRestoreCount;
 	}
 	QWUInventory::SendInventoryOperation(pUser, true, aChangeLog);
-	pItem->Release();
 	return true;
 }
 
@@ -167,35 +166,27 @@ void PersonalShop::DoTransaction(User *pUser, int nSlot, Item *psItem, int nNumb
 	//For owner
 	elem[0].push_back({});
 	elem[0][0].m_nCount = -nNumber * psItem->nSet;
-	elem[0][0].m_pItem = m_apUser[0]->GetCharacterData()->GetItem(psItem->nTI, psItem->nPOS);
+	elem[0][0].m_pItem = psItem->pItem;
 
 	//For buyer
 	elem[1].push_back({});
 	elem[1][0].m_nCount = nNumber * psItem->nSet;
-	elem[1][0].m_pItem = psItem->pItem->MakeClone();
+	elem[1][0].m_pItem.reset(psItem->pItem->MakeClone());
 
 	int nMoneyCost = psItem->nPrice * psItem->nNumber * -1, 
 		nMoneyBackup = (int)QWUser::GetMoney(m_apUser[0]);
-	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nMoneyCost * -1, elem[0], nullptr, nullptr, aBackup[0], true, false);
+	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nMoneyCost * -1, elem[0], nullptr, nullptr, aBackup[0], false);
 	if (!nExchangeRes)
-		nExchangeRes = QWUInventory::Exchange(m_apUser[nSlot], nMoneyCost, elem[1], &aLogAdd[1], nullptr, aBackup[1]);
+		nExchangeRes = QWUInventory::Exchange(m_apUser[nSlot], nMoneyCost, elem[1], nullptr, nullptr, aBackup[1]);
 
 	if (nExchangeRes)
 	{
-		if (elem[1][0].m_pItem && elem[1][0].m_nCount >= 0)
-			elem[1][0].m_pItem->Release(); //Release all cloned items which are not properly added.
-
 		m_apUser[0]->SendCharacterStat(true, QWUser::SetMoney(m_apUser[0], nMoneyBackup));
 		InventoryManipulator::RestoreBackupItem(m_apUser[0]->GetCharacterData(), aBackup[0]);
-		//Reset item, the original item has been released during restoring.
-		psItem->pItem = aBackup[0][0].m_pItem;
 		pUser->SendNoticeMessage("購買失敗，請確認背包欄位是否足夠。");
 	}
 	else //Exchanging success, release all backup items. 
 	{
-		for (auto &bkItem : aBackup[0])
-			if (bkItem.m_pItem)
-				bkItem.m_pItem->Release();
 		psItem->nNumber -= nNumber;
 		pUser->SendNoticeMessage("購買成功。");
 	}

@@ -35,11 +35,10 @@ class EntrustedShop : public PersonalShop
 
 	int m_nEmployeeTemplateID = 0,
 		m_nEmployerID = 0,
-		m_nFieldID = 0,
-		m_tOpen = 0;
+		m_nFieldID = 0;
 
+	unsigned int m_tOpen = 0;
 	long long int m_liEShopMoney = 0;
-
 	bool m_bOnCreate = false;
 
 	std::string m_sEmployerName;

@@ -25,7 +25,7 @@ std::recursive_mutex& WvsShop::GetUserLock()
 	return m_mUserLock;
 }
 
-const std::map<int, std::shared_ptr<User>>& WvsShop::GetConnectedUser()
+std::map<int, ZSharedPtr<User>>& WvsShop::GetConnectedUser()
 {
 	return m_mUserMap;
 }
@@ -84,16 +84,16 @@ void WvsShop::InitializeCenter()
 	tCenterWorkThread.detach();
 }
 
-User * WvsShop::FindUser(int nUserID)
+ZSharedPtr<User> WvsShop::FindUser(int nUserID)
 {
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserMap.find(nUserID);
-	return (findIter == m_mUserMap.end() ? nullptr : findIter->second.get());
+	return (findIter == m_mUserMap.end() ? nullptr : findIter->second);
 }
 
-const std::pair<unsigned int, int>& WvsShop::GetMigratingUser(int nUserID)
+const std::pair<unsigned int, unsigned int>& WvsShop::GetMigratingUser(int nUserID)
 {
-	static std::pair<unsigned int, int> prEmpty = { 0, 0 };
+	static std::pair<unsigned int, unsigned int> prEmpty = { 0, 0 };
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mMigratingUser.find(nUserID);
 	return findIter == m_mMigratingUser.end() ? prEmpty : findIter->second;
@@ -111,7 +111,7 @@ void WvsShop::RemoveMigratingUser(int nUserID)
 	m_mMigratingUser.erase(nUserID);
 }
 
-void WvsShop::OnUserConnected(std::shared_ptr<User>& pUser)
+void WvsShop::OnUserConnected(ZSharedPtr<User>& pUser)
 {
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	m_mUserMap[pUser->GetUserID()] = pUser;

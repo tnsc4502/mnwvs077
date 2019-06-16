@@ -43,14 +43,17 @@ void ScriptInventory::DestroySelf(lua_State * L, ScriptInventory * p)
 
 void ScriptInventory::Register(lua_State * L)
 {
-	luaL_Reg InvMetatable[] = {
+	static luaL_Reg InvMetatable[] = {
 		{ "exchange", InventoryExchange },
 		{ "itemCount", InventoryItemCount },
 		{ "incSlotCount", InventoryIncSlotCount },
+		{ "slotCount", InventoryGetSlotCount },
+		{ "holdCount", InventoryGetHoldCount },
+		{ "freeCount", InventoryGetFreeCount },
 		{ NULL, NULL }
 	};
 
-	luaL_Reg InvTable[] = {
+	static luaL_Reg InvTable[] = {
 		{ NULL, NULL }
 	};
 
@@ -67,30 +70,16 @@ int ScriptInventory::InventoryExchange(lua_State * L)
 	int nMoney = (int)luaL_checkinteger(L, 2), nItemID, nCount;
 	int nArg = lua_gettop(L);
 	std::vector<ExchangeElement> aExchange;
-	std::map<int, int> mItemCount;
-	auto iter = mItemCount.end();
 
 	for (int i = 3; i <= nArg - 1;)
 	{
 		nItemID = (int)lua_tointeger(L, i);
 		nCount = (int)lua_tointeger(L, i + 1);
+		aExchange.push_back({});
+		aExchange.back().m_nItemID = nItemID;
+		aExchange.back().m_nCount = nCount;
 
-		//To prevent sending the change packet of previously added but eventaully deleted item.
-		//For example, exchange(0, 20000000, 1, 20000000, -1)
-		iter = mItemCount.find(nItemID);
-		if (iter == mItemCount.end())
-			iter = mItemCount.insert({ nItemID, 0 }).first;
-
-		iter->second += nCount;
 		i += 2;
-	}
-	for (auto& iter : mItemCount)
-	{
-		ExchangeElement e;
-		e.m_nItemID = iter.first;
-		e.m_nCount = iter.second;
-		e.m_pItem = nullptr;
-		aExchange.push_back(std::move(e));
 	}
 	int nResult = QWUInventory::Exchange(self->m_pUser, nMoney, aExchange);
 
@@ -121,7 +110,6 @@ int ScriptInventory::InventoryIncSlotCount(lua_State * L)
 	int nTI = (int)luaL_checkinteger(L, 2);
 	int nCount = (int)luaL_checkinteger(L, 3);
 	std::lock_guard<std::recursive_mutex> lock(self->m_pUser->GetLock());
-
 	if(nTI < 0
 		|| nTI > 5
 		|| self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI] + nCount > 80)
@@ -136,5 +124,29 @@ int ScriptInventory::InventoryIncSlotCount(lua_State * L)
 		oPacket.Encode1(self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI]);
 		self->m_pUser->SendPacket(&oPacket);
 	}
+	return 1;
+}
+
+int ScriptInventory::InventoryGetSlotCount(lua_State * L)
+{
+	ScriptInventory* self = luaW_check<ScriptInventory>(L, 1);
+	int nTI = (int)luaL_checkinteger(L, 2);
+	lua_pushinteger(L, QWUInventory::GetSlotCount(self->m_pUser, nTI));
+	return 1;
+}
+
+int ScriptInventory::InventoryGetHoldCount(lua_State * L)
+{
+	ScriptInventory* self = luaW_check<ScriptInventory>(L, 1);
+	int nTI = (int)luaL_checkinteger(L, 2);
+	lua_pushinteger(L, QWUInventory::GetHoldCount(self->m_pUser, nTI));
+	return 1;
+}
+
+int ScriptInventory::InventoryGetFreeCount(lua_State * L)
+{
+	ScriptInventory* self = luaW_check<ScriptInventory>(L, 1);
+	int nTI = (int)luaL_checkinteger(L, 2);
+	lua_pushinteger(L, QWUInventory::GetFreeCount(self->m_pUser, nTI));
 	return 1;
 }

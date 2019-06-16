@@ -7,6 +7,7 @@
 #include <thread>
 #include <string>
 #include <map>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 class User;
 class OutPacket;
@@ -16,9 +17,9 @@ class WvsGame : public WvsBase
 	ConfigLoader* m_pCfgLoader;
 
 	std::recursive_mutex m_mUserLock;
-	std::map<int, std::shared_ptr<User>> m_mUserMap;
-	std::map<int, std::pair<unsigned int, int>> m_mMigratingUser;
-	std::map<std::string, std::shared_ptr<User>> m_mUserNameMap;
+	std::map<int, ZSharedPtr<User>> m_mUserMap;
+	std::map<int, std::pair<unsigned int, unsigned int>> m_mMigratingUser;
+	std::map<std::string, ZSharedPtr<User>> m_mUserNameMap;
 	std::string m_sCenterIP;
 	std::shared_ptr<Center> m_pCenterInstance;
 	asio::io_service* m_pCenterServerService;
@@ -32,7 +33,7 @@ public:
 
 	std::shared_ptr<Center>& GetCenter();
 	std::recursive_mutex& GetUserLock();
-	const std::map<int, std::shared_ptr<User>>& GetConnectedUser();
+	std::map<int, ZSharedPtr<User>>& GetConnectedUser();
 	int GetChannelID() const;
 
 	void ConnectToCenter(int nCenterIdx);
@@ -41,12 +42,12 @@ public:
 
 	void OnUserMigrating(int nUserID, int nSocketID);
 	void RemoveMigratingUser(int nUserID);
-	void OnUserConnected(std::shared_ptr<User> &pUser);
+	void OnUserConnected(ZSharedPtr<User> &pUser);
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
 
-	User* FindUser(int nUserID);
-	User* FindUserByName(const std::string& strName);
-	const std::pair<unsigned int, int>& GetMigratingUser(int nUserID);
+	ZSharedPtr<User> FindUser(int nUserID);
+	ZSharedPtr<User> FindUserByName(const std::string& strName);
+	const std::pair<unsigned int, unsigned int>& GetMigratingUser(int nUserID);
 
 	void ShutdownService();
 };

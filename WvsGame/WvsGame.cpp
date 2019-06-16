@@ -27,7 +27,7 @@ std::recursive_mutex & WvsGame::GetUserLock()
 	return m_mUserLock;
 }
 
-const std::map<int, std::shared_ptr<User>>& WvsGame::GetConnectedUser()
+std::map<int, ZSharedPtr<User>>& WvsGame::GetConnectedUser()
 {
 	return m_mUserMap;
 }
@@ -93,7 +93,7 @@ void WvsGame::InitializeCenter()
 	tCenterWorkThread.detach();
 }
 
-void WvsGame::OnUserConnected(std::shared_ptr<User> &pUser)
+void WvsGame::OnUserConnected(ZSharedPtr<User> &pUser)
 {
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	m_mUserMap[pUser->GetUserID()] = pUser;
@@ -118,27 +118,27 @@ int WvsGame::GetChannelID() const
 	return m_nChannelID;
 }
 
-User * WvsGame::FindUser(int nUserID)
+ZSharedPtr<User> WvsGame::FindUser(int nUserID)
 {
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserMap.find(nUserID);
 	if (findIter == m_mUserMap.end())
 		return nullptr;
-	return findIter->second.get();
+	return findIter->second;
 }
 
-User * WvsGame::FindUserByName(const std::string & strName)
+ZSharedPtr<User> WvsGame::FindUserByName(const std::string & strName)
 {
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mUserNameMap.find(strName);
 	if (findIter == m_mUserNameMap.end())
 		return nullptr;
-	return findIter->second.get();
+	return findIter->second;
 }
 
-const std::pair<unsigned int, int>& WvsGame::GetMigratingUser(int nUserID)
+const std::pair<unsigned int, unsigned int>& WvsGame::GetMigratingUser(int nUserID)
 {
-	static std::pair<unsigned int, int> prEmpty = { 0, 0 };
+	static std::pair<unsigned int, unsigned int> prEmpty = { 0, 0 };
 	std::lock_guard<std::recursive_mutex> lockGuard(m_mUserLock);
 	auto findIter = m_mMigratingUser.find(nUserID);
 	return findIter == m_mMigratingUser.end() ? prEmpty : findIter->second;

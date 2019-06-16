@@ -3,6 +3,7 @@
 #include <mutex>
 #include <set>
 #include <map>
+#include "..\WvsLib\Memory\ZMemory.h"
 
 struct GW_ItemSlotBase;
 struct GW_ItemSlotEquip;
@@ -53,16 +54,16 @@ public:
 		nActiveEffectItemID = 0;
 
 	std::string strName;
-	GW_Avatar *mAvatarData = nullptr;
-	GW_CharacterStat *mStat = nullptr;
-	GW_CharacterLevel *mLevel = nullptr;
-	GW_CharacterMoney *mMoney = nullptr;
-	GW_CharacterSlotCount *mSlotCount = nullptr;
+	ZUniquePtr<GW_Avatar> mAvatarData = nullptr;
+	ZUniquePtr<GW_CharacterStat> mStat = nullptr;
+	ZUniquePtr<GW_CharacterLevel> mLevel = nullptr;
+	ZUniquePtr<GW_CharacterMoney> mMoney = nullptr;
+	ZUniquePtr<GW_CharacterSlotCount> mSlotCount = nullptr;
 
-	std::map<int, GW_SkillRecord*> mSkillRecord;
-	std::map<int, GW_QuestRecord*> mQuestRecord;
-	std::map<int, GW_QuestRecord*> mQuestComplete;
-	std::map<int, GW_ItemSlotBase*> mItemSlot[6];
+	std::map<int, ZUniquePtr<GW_SkillRecord>> mSkillRecord;
+	std::map<int, ZUniquePtr<GW_QuestRecord>> mQuestRecord;
+	std::map<int, ZUniquePtr<GW_QuestRecord>> mQuestComplete;
+	std::map<int, ZSharedPtr<GW_ItemSlotBase>> mItemSlot[6];
 	std::map<int, int> mItemTrading[6];
 
 	//For recording the liItemSN of the item which was dropped or removed.
@@ -94,15 +95,15 @@ public:
 	~GA_Character();
 
 	//GW_ItemSlot
-	GW_ItemSlotBase* GetItem(int nTI, int nPOS);
-	GW_ItemSlotBase* GetItemByID(int nItemID);
+	ZSharedPtr<GW_ItemSlotBase> GetItem(int nTI, int nPOS);
+	ZSharedPtr<GW_ItemSlotBase> GetItemByID(int nItemID);
 	int FindEmptySlotPosition(int nTI);
-	void RemoveItem(int nTI, int nPOS, bool bRelease = true);
+	void RemoveItem(int nTI, int nPOS);
 	int FindCashItemSlotPosition(int nTI, long long int liSN);
 	int FindGeneralItemSlotPosition(int nTI, int nItemID, long long int dateExpire, long long int liSN);
 	int GetEmptySlotCount(int nTI);
 	int GetItemCount(int nTI, int nItemID);
-	void SetItem(int nTI, int nPOS, GW_ItemSlotBase* pItem);
+	void SetItem(int nTI, int nPOS, const ZSharedPtr<GW_ItemSlotBase>& pItem);
 	bool IsWearing(int nEquipItemID);
 
 	//GW_SkillRecord

@@ -36,6 +36,56 @@ GW_ItemSlotEquip::~GW_ItemSlotEquip()
 {
 }
 
+void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+{
+	std::string sTableName = "ItemSlot_EQP";
+	if (bIsCash)
+		sTableName = "CashItem_EQP";
+
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT * FROM " << sTableName << " Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+	{
+		auto pItem = MakeShared<GW_ItemSlotEquip>();
+		pItem->nCharacterID = recordSet["CharacterID"];
+
+		if (bIsCash)
+			pItem->liCashItemSN = recordSet["CashItemSN"];
+		else
+			pItem->liItemSN = recordSet["ItemSN"];
+
+		pItem->nItemID = recordSet["ItemID"];
+		pItem->liExpireDate = recordSet["ExpireDate"];
+		pItem->nAttribute = recordSet["Attribute"];
+		pItem->nPOS = recordSet["POS"];
+		pItem->sTitle = recordSet["Title"].toString();
+		pItem->nRUC = (unsigned char)(unsigned short)recordSet["RUC"];
+		pItem->nCUC = (unsigned char)(unsigned short)recordSet["CUC"];
+		pItem->nCuttable = recordSet["Cuttable"];
+		pItem->nSTR = recordSet["I_STR"];
+		pItem->nDEX = recordSet["I_DEX"];
+		pItem->nINT = recordSet["I_INT"];
+		pItem->nLUK = recordSet["I_LUK"];
+		pItem->nMaxHP = recordSet["I_MaxHP"];
+		pItem->nMaxMP = recordSet["I_MaxMP"];
+		pItem->nPAD = recordSet["I_PAD"];
+		pItem->nMAD = recordSet["I_MAD"];
+		pItem->nPDD = recordSet["I_PDD"];
+		pItem->nMDD = recordSet["I_MDD"];
+		pItem->nACC = recordSet["I_ACC"];
+		pItem->nEVA = recordSet["I_EVA"];
+		pItem->nSpeed = recordSet["I_Speed"];
+		pItem->nCraft = recordSet["I_Craft"];
+		pItem->nJump = recordSet["I_Jump"];
+		pItem->nType = GW_ItemSlotType::EQUIP;
+
+		pItem->bIsCash = (pItem->liCashItemSN != -1);
+		mRes[pItem->nPOS] = pItem;
+	}
+}
+
 void GW_ItemSlotEquip::Load(ATOMIC_COUNT_TYPE SN)
 {
 	std::string sColumnName = "ItemSN", sTableName = "ItemSlot_EQP";
@@ -277,12 +327,7 @@ void GW_ItemSlotEquip::DecodeEquipAdvanced(InPacket *iPacket)
 		liItemSN = iPacket->Decode8();
 }
 
-void GW_ItemSlotEquip::Release()
-{
-	FreeObj(this);
-}
-
-GW_ItemSlotBase * GW_ItemSlotEquip::MakeClone()
+GW_ItemSlotBase * GW_ItemSlotEquip::MakeClone() const
 {
 	GW_ItemSlotEquip* ret = AllocObj(GW_ItemSlotEquip);
 	*ret = *this;

@@ -14,7 +14,7 @@
 #include "..\Database\GW_ItemSlotBase.h"
 
 std::atomic<int> MiniRoomBase::ms_nSNCounter = 1;
-std::map<int, MiniRoomBase*> MiniRoomBase::ms_mMiniRoom;
+std::map<int, ZUniquePtr<MiniRoomBase>> MiniRoomBase::ms_mMiniRoom;
 std::mutex MiniRoomBase::ms_mtxMiniRoomLock;
 
 MiniRoomBase::MiniRoomBase(int nMaxUsers)
@@ -248,7 +248,7 @@ unsigned char MiniRoomBase::OnCreateBase(User *pUser, InPacket *iPacket, int nRo
 		m_apUser[0] = pUser;
 
 		std::lock_guard<std::mutex> lock(ms_mtxMiniRoomLock);
-		ms_mMiniRoom[m_nMiniRoomSN] = this;
+		ms_mMiniRoom.insert({ m_nMiniRoomSN, this });
 		return MiniRoomCreateResult::res_Create_Success;
 	}
 	return MiniRoomCreateResult::res_Create_Failed_UnableToProcess;
@@ -260,7 +260,7 @@ void MiniRoomBase::OnInviteBase(User *pUser, InPacket *iPacket)
 	int nFailedReason = 0;
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
-	if (!pToInvite || pToInvite == pUser)
+	if (!pToInvite || (User*)pToInvite == pUser)
 		nFailedReason = MiniRoomInviteResult::res_Invite_InvalidUser;
 	else if (!pToInvite || !pToInvite ->CanAttachAdditionalProcess() || m_nCurUsers == m_nMaxUsers)
 		nFailedReason = MiniRoomInviteResult::res_Invite_UnableToProcess;
@@ -666,10 +666,10 @@ MiniRoomBase* MiniRoomBase::MiniRoomFactory(int nMiniRoomType, InPacket *iPacket
 	return pRet;
 }
 
-MiniRoomBase * MiniRoomBase::GetMiniRoom(int nSN)
+MiniRoomBase* MiniRoomBase::GetMiniRoom(int nSN)
 {
 	std::lock_guard<std::mutex> lock(ms_mtxMiniRoomLock);
 
 	auto findIter = ms_mMiniRoom.find(nSN);
-	return findIter == ms_mMiniRoom.end() ? nullptr : findIter->second;
+	return findIter == ms_mMiniRoom.end() ? nullptr : (MiniRoomBase*)findIter->second;
 }

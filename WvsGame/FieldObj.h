@@ -62,7 +62,7 @@ public:
 	void SetMoveAction(char moveAction);
 	virtual void SetMovePosition(int x, int y, bool bMoveAction, short nSN) {}
 
-	Field* GetField();
+	Field* GetField() const;
 	void SetField(Field *pField);
 };
 

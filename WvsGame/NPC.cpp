@@ -20,8 +20,8 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 	int nPOS = iPacket->Decode2();
 	int nItemID = iPacket->Decode4();
 	int nCount = iPacket->Decode2();
-	//iPacket->Decode4();
-	//int nUnitPrice = iPacket->Decode4();
+	if (ItemInfo::IsRechargable(nItemID) || ItemInfo::GetItemSlotType(nItemID) == GW_ItemSlotBase::EQUIP)
+		nCount = 1;
 
 	auto& aItemList = m_pTemplate->GetShopItem();
 	if (nPOS >= 0 && nPOS < aItemList.size())
@@ -31,7 +31,13 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 		{
 			int nPrice = pItem->nPrice * (ItemInfo::IsRechargable(nItemID) ? 1 : nCount);
 			std::vector<ExchangeElement> aExchange;
-			nCount *= pItem->nQuantity;
+			if(ItemInfo::IsRechargable(pItem->nItemID))
+				nCount = SkillInfo::GetInstance()->GetBundleItemMaxPerSlot(
+					pItem->nItemID,
+					pUser->GetCharacterData()
+				);
+			else
+				nCount *= pItem->nQuantity;
 			if (pItem->nTokenPrice > 0)
 			{
 				aExchange.push_back({});
@@ -158,6 +164,10 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 				QWUInventory::SendInventoryOperation(pUser, true, aChangeLog);
 				pUser->SendNoticeMessage("Àx­È¦¨¥\¡C");
 				pUser->SendCharacterStat(true, 0);
+
+				OutPacket oPacket;
+				MakeShopResult(pUser, pItem, &oPacket, 8, 0);
+				pUser->SendPacket(&oPacket);
 				return;
 			}
 			QWUInventory::Exchange(pUser, nCost, aExchange, nullptr, nullptr, aBackup);

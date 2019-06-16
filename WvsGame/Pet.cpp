@@ -10,9 +10,9 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 
-Pet::Pet(GW_ItemSlotPet * pPetSlot)
+Pet::Pet(ZSharedPtr<GW_ItemSlotBase>& pPetSlot)
+	: m_pPetSlot(pPetSlot)
 {
-	m_pPetSlot = pPetSlot;
 	SetMoveAction(0);
 }
 
@@ -116,10 +116,15 @@ void Pet::EncodeInitData(OutPacket *oPacket)
 {
 	oPacket->Encode1(1);
 	oPacket->Encode4(m_pPetSlot->nItemID);
-	oPacket->EncodeStr(m_pPetSlot->strPetName);
+	oPacket->EncodeStr(GetItemSlot()->strPetName);
 	oPacket->Encode8(m_pPetSlot->liCashItemSN);
 	oPacket->Encode2(GetPosX());
 	oPacket->Encode2(GetPosY() - 20);
 	oPacket->Encode1(GetMoveAction());
 	oPacket->Encode2(GetFh());
+}
+
+const GW_ItemSlotPet * Pet::GetItemSlot() const
+{
+	return m_pPetSlot;
 }
