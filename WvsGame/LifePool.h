@@ -18,6 +18,7 @@ class SkillEntry;
 class Drop;
 class Employee;
 class MiniRoomBase;
+class Summoned;
 
 class LifePool
 {
@@ -101,6 +102,8 @@ public:
 	void Update();
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
+	void OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEntry *pSkill, AttackInfo *pInfo);
+	void ApplyAttackToMob(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
 	std::recursive_mutex& GetLock();

@@ -485,6 +485,58 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 	}
 }
 
+int CalcDamage::MDamage(MobStat * ms, const SkillEntry * pSkill, int nSLV)
+{
+	int nMAD = pSkill ? pSkill->GetLevelData(nSLV)->m_nMad : 0;
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	double MS = 5 * (bs->nINT / 10 + bs->nLUK / 10);
+	int nLevelDiff = std::max(0, ms->nLevel - bs->nLevel);
+	MS *= 100.0 / ((double)nLevelDiff * 10.0 + 255.0);
+	int nMobEVA = std::min(999, ms->nEVA + ms->nEVA_);
+	double dCalcMin = MS * 0.5, dCalcMax = MS * 1.2;
+	dCalcMin += (dCalcMax - dCalcMin) * ((double)(nRnd % 10000000) * 0.0000001);
+
+	if (dCalcMin >= nMobEVA)
+	{
+		double dUserMAD = std::min(1999, ss->nMAD + ss->nMAD_);
+		auto pLevel = pSkill->GetLevelData(nSLV);
+		MS = ((double)pLevel->m_nMastery * 5.0 + 10.0) * 0.009;
+		if (!ms->bInvincible)
+		{
+			nRnd = (unsigned int)m_pRndGen->Random();
+			if (ms->nMImmune_)
+				return 1;
+			MS *= (double)dUserMAD;
+			if (dUserMAD > MS)
+				MS += (dUserMAD - MS) * ((double)(nRnd % 10000000) * 0.0000001);
+
+			return (int)GetDamageAdjustedByElemAttr(
+				(double)bs->nINT * 0.6 + std::pow((double)dUserMAD * 0.058, 2) + (double)MS * 3.3 * ((double)nMAD) * 0.015,
+				pSkill,
+				ms->aDamagedElemAttr,
+				nSLV
+			);
+		}
+	}
+	return 0;
+}
+
+int CalcDamage::MDamageSummoned(MobStat *ms, int nSLV)
+{
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	int nMobMAD = ms->nPAD + ms->nPAD_;
+	double dCalcMin = (double)nMobMAD * 0.1;
+	double dCalcMax = (double)nMobMAD * 0.85;
+	int nUserMAD = std::min(999, std::max(0, ss->nMAD + ss->nMAD_));
+
+	dCalcMin += ((double)(nRnd % 10000000) * 0.0000001) * (dCalcMax - dCalcMin);
+	return (int)(40.0 / ((double)nSLV + 70) * (double)nMobMAD * dCalcMin * 0.01);
+}
+
 bool CalcDamage::CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck)
 {
 	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
@@ -990,7 +1042,52 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 	}
 }
 
-void CalcDamage::MesoExplosionDamage(MobStat * ms, int * anMoneyAmount, int nDropCount, int *aDamage)
+int CalcDamage::PDamage(MobStat * ms, const SkillEntry * pSkill, int nSLV)
+{
+	int nPAD = pSkill ? pSkill->GetLevelData(nSLV)->m_nPad : 0;
+	auto &ss = m_pUser->GetSecondaryStat();
+	auto &bs = m_pUser->GetBasicStat();
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+
+	int nUserACC = std::min(999, ms->nACC + ms->nACC_);
+	int nLevelDiff = std::max(0, ms->nLevel - bs->nLevel);
+	double MS = (double)nUserACC * 100.0 / ((double)nLevelDiff * 10.0 + 255.0);
+	int nMobEVA = std::min(999, ms->nEVA + ms->nEVA_);
+	double dCalcMin = MS * 0.7, dCalcMax = MS * 1.3;
+	dCalcMin += (dCalcMax - dCalcMin) * ((double)(nRnd % 10000000) * 0.0000001);
+
+	if (dCalcMin >= nMobEVA)
+	{
+		auto pLevel = pSkill->GetLevelData(nSLV);
+		if (!ms->bInvincible)
+		{
+			nRnd = (unsigned int)m_pRndGen->Random();
+			if (ms->nPImmune_)
+				return 1;
+
+			return (int)GetDamageAdjustedByElemAttr(
+				((double)bs->nDEX * ((double)(nRnd % 10000000) * 0.00000003 + 0.7) * 2.5 + (double)bs->nSTR) * (double)nPAD * 0.015,
+				pSkill,
+				ms->aDamagedElemAttr,
+				nSLV
+			);
+		}
+	}
+	return 0;
+}
+
+int CalcDamage::PDamageSummoned(MobStat *ms, int nSLV)
+{
+	unsigned int nRnd = (unsigned int)m_pRndGen->Random();
+	int nMobPAD = ms->nPAD + ms->nPAD_;
+	double dCalcMin = (double)nMobPAD * 0.1;
+	double dCalcMax = (double)nMobPAD * 0.85;
+	dCalcMin += ((double)(nRnd % 10000000) * 0.0000001) * (dCalcMax - dCalcMin);
+
+	return (int)(40.0 / ((double)nSLV + 70) * (double)nMobPAD * dCalcMin * 0.01);
+}
+
+void CalcDamage::MesoExplosionDamage(MobStat *ms, int *anMoneyAmount, int nDropCount, int *aDamage)
 {
 	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
 	auto &ss = m_pUser->GetSecondaryStat();
@@ -1030,4 +1127,37 @@ void CalcDamage::MesoExplosionDamage(MobStat * ms, int * anMoneyAmount, int nDro
 			aDamage[i] = (int)((double)(50 * pLevel->m_nX) * dRatio);
 		}
 	}
+}
+
+void CalcDamage::InspectAttackDamage(AttackInfo::DamageInfo & dmgInfo, int nDamageCount)
+{	
+	//Inspect Damage Values Between Server and Client
+	long long int liTotalDmgClient = 0, liTotalDmgSrv = 0;
+	for (int i = 0; i < nDamageCount; ++i)
+	{
+		liTotalDmgClient += dmgInfo.anDamageClient[i];
+		liTotalDmgSrv += dmgInfo.anDamageSrv[i];
+
+		if ((double)dmgInfo.anDamageClient[i] >= (double)dmgInfo.anDamageSrv[i] * 1.3)
+		{
+			if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably be hacking 
+			{
+				IncInvalidCount();
+				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 6)
+					dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
+			}
+			else //Possible that critial damages were yielded in the client but not in the server. 
+				dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i] = true;
+		}
+		//If not, that means the calculations are very close
+		else if (dmgInfo.anDamageClient[i] > (double)dmgInfo.anDamageSrv[i]
+			|| dmgInfo.anDamageSrv[i] >= (double)dmgInfo.anDamageClient[i] * 1.4)
+			dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i];
+		dmgInfo.anDamageSrv[i] = dmgInfo.anDamageClient[i];
+	}
+
+	if (liTotalDmgClient > liTotalDmgSrv * 2.2)
+		IncInvalidCount();
+	else
+		DecInvalidCount();
 }

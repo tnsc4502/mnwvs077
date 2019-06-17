@@ -58,6 +58,8 @@ void ScriptFieldSet::Register(lua_State * L)
 		{ "resetTimeLimit", FieldSetResetTimeLimit },
 		{ "setMCTeam", FieldSetSetMCTeam },
 		{ "destroyClock", FieldSetDestroyClock },
+		{ "broadcastMsg", FieldSetBroadcastMsg },
+		{ "setReactorState", FieldSetReactorState },
 		{ NULL, NULL }
 	};
 
@@ -173,5 +175,15 @@ int ScriptFieldSet::FieldSetDestroyClock(lua_State * L)
 {
 	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
 	self->m_pFieldSet->DestroyClock();
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetBroadcastMsg(lua_State * L)
+{
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetReactorState(lua_State * L)
+{
 	return 1;
 }

@@ -26,5 +26,7 @@ public:
 	static int FieldSetResetTimeLimit(lua_State* L);
 	static int FieldSetSetMCTeam(lua_State* L);
 	static int FieldSetDestroyClock(lua_State* L);
+	static int FieldSetBroadcastMsg(lua_State* L);
+	static int FieldSetReactorState(lua_State* L);
 };
 

@@ -122,7 +122,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	SendPacket(&oPacket);
 
 	//Internal Stats Are Encoded Outside PostCharacterDataRequest
-	m_pSecondaryStat->DecodeInternal(this, iPacket);
+	DecodeInternal(iPacket);
 	UpdateAvatar();
 	OnMigrateIn();
 }
@@ -161,7 +161,7 @@ User::~User()
 	if (m_nTransferStatus == TransferStatus::eOnTransferShop || m_nTransferStatus == TransferStatus::eOnTransferChannel) 
 	{
 		oPacket.Encode1(1); //bGameEnd
-		m_pSecondaryStat->EncodeInternal(this, &oPacket);
+		EncodeInternal(&oPacket);
 	}
 	else
 		oPacket.Encode1(0); //bGameEnd, Dont decode and save the secondarystat info.
@@ -281,24 +281,27 @@ void User::MakeLeaveFieldPacket(OutPacket * oPacket)
 	oPacket->Encode4(GetUserID());
 }
 
-void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
+void User::TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamageMobCount, int nDamagedCountPerMob)
 {
-	int nDamageMobCount = pInfo->GetDamagedMobCount();
-	int nDamagedCountPerMob = pInfo->GetDamageCountPerMob();
+	//int nDamageMobCount = pInfo->GetDamagedMobCount();
+	//int nDamagedCountPerMob = pInfo->GetDamageCountPerMob();
+	int nAction = 0;
 	for (int i = 0; i < nDamageMobCount; ++i)
 	{
 		int nObjectID = iPacket->Decode4();
 		auto& ref = pInfo->m_mDmgInfo[nObjectID];
 		ref.nDamageCount = nDamagedCountPerMob;
 
+		ref.m_nHitAction = iPacket->Decode1();
+		nAction = iPacket->Decode1();
+		ref.m_nForeAction = (nAction & 0x7F);
+		ref.m_bLeft = (nAction >> 7) & 1;
+		ref.m_nFrameIdx = iPacket->Decode1();
 		iPacket->Decode1();
-		iPacket->Decode1();
-		iPacket->Decode1();
-		iPacket->Decode1();
-		iPacket->Decode2();
-		iPacket->Decode2();
-		iPacket->Decode2();
-		iPacket->Decode2();
+		ref.ptHit.x = iPacket->Decode2();
+		ref.ptHit.y = iPacket->Decode2();
+		ref.ptPosPrev.x = iPacket->Decode2();
+		ref.ptPosPrev.y = iPacket->Decode2();
 
 		if (pInfo->m_nSkillID == 4211006)
 		{
@@ -308,12 +311,9 @@ void User::TryParsingDamageData(AttackInfo * pInfo, InPacket * iPacket)
 		}
 		else
 		{
-			iPacket->Decode2();
+			ref.m_tDelay = iPacket->Decode2();
 			for (int j = 0; j < nDamagedCountPerMob; ++j)
-			{
-				long long int nDmg = iPacket->Decode4();
-				ref.anDamageClient[j] = (int)nDmg;
-			}
+				ref.anDamageClient[j] = (int)iPacket->Decode4();
 		}
 	}
 	pInfo->m_nX = iPacket->Decode2();
@@ -392,11 +392,11 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 		pInfo->m_nCsStar = iPacket->Decode2();
 		pInfo->m_nShootRange = iPacket->Decode1();
 	}
-	TryParsingDamageData(pInfo, iPacket);
+	TryParsingDamageData(pInfo, iPacket, pInfo->GetDamagedMobCount(), pInfo->GetDamageCountPerMob());
 	return pInfo;
 }
 
-AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
+/*AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
 {
 	pInfo->m_nType = nType;
 	pInfo->m_bFieldKey = iPacket->Decode1();
@@ -423,7 +423,7 @@ AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
-	TryParsingDamageData(pInfo, iPacket);
+	TryParsingDamageData(pInfo, iPacket, pInfo->GetDamagedMobCount(), pInfo->GetDamageCountPerMob());
 	return pInfo;
 }
 
@@ -455,7 +455,7 @@ AttackInfo * User::TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_nAttackSpeed = iPacket->Decode1();
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 
-	TryParsingDamageData(pInfo, iPacket);
+	TryParsingDamageData(pInfo, iPacket, pInfo->GetDamagedMobCount(), pInfo->GetDamageCountPerMob());
 	return pInfo;
 }
 
@@ -488,14 +488,15 @@ AttackInfo * User::TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket 
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 
 
-	TryParsingDamageData(pInfo, iPacket);
+	TryParsingDamageData(pInfo, iPacket, pInfo->GetDamagedMobCount(), pInfo->GetDamageCountPerMob());
 	return pInfo;
 }
 
-AttackInfo * User::TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
+
+AttackInfo *User::TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
 {
 	return TryParsingMeleeAttack(pInfo, nType, iPacket);
-}
+}*/
 
 void User::OnPacket(InPacket *iPacket)
 {
@@ -983,6 +984,121 @@ void User::EncodeMarriageInfo(OutPacket * oPacket)
 	}
 }
 
+void User::DecodeInternal(InPacket * iPacket)
+{
+	bool bDecodeInternal = iPacket->Decode1() == 1;
+	if (!bDecodeInternal)
+		return;
+	int nChannelID = iPacket->Decode4();
+	int nCount = iPacket->Decode4(), nSkillID, tDurationRemained, nSLV, nSetCooltime = 0;
+	unsigned int tCooltime = 0;
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+
+	//Decode Temporary Internal
+	const void *pSkill = nullptr;
+	for (int i = 0; i < nCount; ++i)
+	{
+		nSkillID = iPacket->Decode4();
+		tDurationRemained = iPacket->Decode4();
+		nSLV = iPacket->Decode4();
+
+		//Reset State Change Item
+		if (nSkillID < 0)
+		{
+			auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(-nSkillID);
+			if (pItem)
+				pItem->Apply(this, 0, false, false, true, tDurationRemained);
+		}
+		//Reset Skill Stat
+		else if (pSkill = SkillInfo::GetInstance()->GetSkillByID(nSkillID), pSkill)
+			USkill::OnSkillUseRequest(
+				this,
+				nullptr,
+				(SkillEntry*)pSkill,
+				nSLV,
+				false,
+				true,
+				tDurationRemained
+			);
+		//Reset Mob Skill Stat
+		else if (pSkill = SkillInfo::GetInstance()->GetMobSkill(nSkillID & 0xFF), pSkill)
+			OnStatChangeByMobSkill(
+				nSkillID & 0xFF,
+				(nSkillID & 0xFF0000) >> 16,
+				((MobSkillEntry*)pSkill)->GetLevelData((nSkillID & 0xFF0000) >> 16),
+				0,
+				0,
+				false,
+				true,
+				tDurationRemained
+			);
+	}
+
+	//Decode Cooltime Records
+	nCount = iPacket->Decode4();
+	for (int i = 0; i < nCount; ++i)
+	{
+		nSetCooltime = iPacket->Decode4();
+		tCooltime = iPacket->Decode4();
+		m_pSecondaryStat->m_mCooltimeOver[nSetCooltime] = tCooltime;
+		SendSkillCooltimeSet(nSetCooltime, tCooltime);
+	}
+
+	//Decode Summoneds
+	nCount = iPacket->Decode4();
+	for (int i = 0; i < nCount; ++i)
+	{
+		nSkillID = iPacket->Decode4();
+		nSLV = iPacket->Decode2();
+		auto pSummoned = GetField()->GetSummonedPool()->CreateSummoned(
+			this,
+			nSkillID,
+			nSLV,
+			FieldPoint({ GetPosX(), GetPosY() }),
+			iPacket->Decode4(),
+			true
+		);
+		if (pSummoned)
+			m_lSummoned.push_back(pSummoned);
+	}
+}
+
+void User::EncodeInternal(OutPacket * oPacket)
+{
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxUserLock);
+	oPacket->Encode4(GetChannelID());
+
+	//Encode Temporary Internal
+	auto &pSS = m_pSecondaryStat;
+	oPacket->Encode4((int)pSS->m_mSetByTS.size());
+	for (auto& setFlag : pSS->m_mSetByTS)
+	{
+		int nSkillID = *(setFlag.second.second[1]);
+		int tDurationRemained = (int)setFlag.second.first;
+		int nSLV = *(setFlag.second.second[3]);
+		oPacket->Encode4(nSkillID);
+		oPacket->Encode4(tDurationRemained);
+		oPacket->Encode4(nSLV);
+	}
+
+	//Encode Cooltime Records
+	oPacket->Encode4((int)pSS->m_mCooltimeOver.size());
+	for (auto& prCooltime : pSS->m_mCooltimeOver)
+	{
+		oPacket->Encode4(prCooltime.first);
+		oPacket->Encode4(prCooltime.second);
+	}
+
+	//Encode Summoned.
+	oPacket->Encode4((int)m_lSummoned.size());
+	for (auto& pSummoned : m_lSummoned)
+	{
+		oPacket->Encode4(pSummoned->GetSkillID());
+		oPacket->Encode2(pSummoned->GetSkillLevel());
+		oPacket->Encode4(pSummoned->GetTimeEnd());
+	}
+}
+
 void User::ValidateStat(bool bCalledByConstructor)
 {
 	m_pBasicStat->SetFrom(m_pCharacterData, m_pSecondaryStat->nMaxHP_, m_pSecondaryStat->nMaxMP_, m_pSecondaryStat->nBasicStatUp_);
@@ -1167,6 +1283,17 @@ void User::OnAttack(int nType, InPacket * iPacket)
 		unsigned int tCur = GameDateTime::GetTime();
 		auto& pWeapon = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -11);
 		pResult->m_nWeaponItemID = pWeapon ? pWeapon->nItemID : 0;
+
+		//Check Cooltime and HP/MP Consumption
+		if (pLevel && 
+			(tCur < GetSkillCooltime(pResult->m_nSkillID) || !USkill::ConsumeHPAndMPBySkill(this, pLevel)))
+		{
+			SendCharacterStat(true, 0);
+			return;
+		}
+		SetSkillCooltime(pResult->m_nSkillID, pLevel ? pLevel->m_nCooltime : 0);
+
+		//Apply to LifePool
 		m_pField->GetLifePool()->OnUserAttack(
 			this,
 			pSkillEntry,
@@ -2180,6 +2307,31 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 unsigned char User::GetGradeCode() const
 {
 	return m_nGradeCode;
+}
+
+void User::SetSkillCooltime(int nReason, int tDuration)
+{
+	if (!tDuration || m_nGradeCode != eGrade_None)
+		return;
+	std::lock_guard<std::recursive_mutex> lock(m_pSecondaryStat->m_mtxLock);
+	unsigned int tSet = GameDateTime::GetTime() + tDuration;
+	m_pSecondaryStat->m_mCooltimeOver[nReason] = tSet;
+	SendSkillCooltimeSet(nReason, tSet);
+}
+
+unsigned int User::GetSkillCooltime(int nReason)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_pSecondaryStat->m_mtxLock);
+	return m_pSecondaryStat->m_mCooltimeOver[nReason];
+}
+
+void User::SendSkillCooltimeSet(int nReason, unsigned int tTime)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSkillCooltimeSet);
+	oPacket.Encode4(nReason);
+	oPacket.Encode2(tTime ? ((tTime - GameDateTime::GetTime()) / 1000) : 0);
+	SendPacket(&oPacket);
 }
 
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
@@ -3200,7 +3352,10 @@ void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint 
 		return;
 	}
 	auto pSummoned = m_pField->GetSummonedPool()->CreateSummoned(
-		this, pSkill->GetSkillID(), nSLV, m_ptPos
+		this, 
+		pSkill->GetSkillID(), 
+		nSLV, m_ptPos, 
+		GameDateTime::GetTime() + pSkill->GetLevelData(nSLV)->m_nTime
 	);
 	if (pSummoned)
 		m_lSummoned.push_back(pSummoned);
@@ -3230,6 +3385,14 @@ void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 	}
 	if (m_pField)
 		m_pField->GetSummonedPool()->RemoveSummoned(GetUserID(), nSkillID, nLeaveType);
+}
+
+void User::RemoveSummoned(Summoned *pSummoned)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	m_lSummoned.erase(
+		std::find(m_lSummoned.begin(), m_lSummoned.end(), pSummoned)
+	);
 }
 
 void User::AddPartyInvitedCharacterID(int nCharacterID)

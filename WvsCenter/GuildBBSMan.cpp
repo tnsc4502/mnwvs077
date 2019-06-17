@@ -5,7 +5,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\Memory\ZMemory.h"
 #include <cmath>
 
 GuildBBSMan::GuildBBSMan()
@@ -128,12 +128,13 @@ void GuildBBSMan::LoadList(void *pGuild_, int nCharacterID, InPacket *iPacket)
 	}
 	else
 	{
+		ZUniquePtr<BBSEntry> pEntry;
 		bool bNoticeContained = ((BBSEntry*)aRet[0])->m_bIsNotice;
 		oPacket.Encode1(bNoticeContained);
 		if (bNoticeContained)
 		{
-			((BBSEntry*)aRet[0])->Encode(&oPacket);
-			FreeObj((BBSEntry*)aRet[0]);
+			pEntry.reset((BBSEntry*)aRet[0]);
+			pEntry->Encode(&oPacket);
 			aRet.erase(aRet.begin());
 		}
 		int nEntryListStart = 10 * nParam;
@@ -144,9 +145,8 @@ void GuildBBSMan::LoadList(void *pGuild_, int nCharacterID, InPacket *iPacket)
 		oPacket.Encode4(nEntryListCount);
 		for (int i = 0; i < nEntryListCount; ++i)
 		{
-			auto pEntry = (BBSEntry*)aRet[nEntryListStart + i];
+			pEntry.reset((BBSEntry*)aRet[nEntryListStart + i]);
 			pEntry->Encode(&oPacket);
-			FreeObj(pEntry);
 		}
 	}
 	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
@@ -157,7 +157,7 @@ void GuildBBSMan::LoadList(void *pGuild_, int nCharacterID, InPacket *iPacket)
 void GuildBBSMan::ViewEntry(void *pGuild_, int nCharacterID, int nEntryID)
 {
 	auto pGuild = (GuildMan::GuildData*)pGuild_;
-	BBSEntry* pEntry = (BBSEntry*)GuildBBSDBAccessor::LoadEntryView(
+	ZUniquePtr<BBSEntry> pEntry = (BBSEntry*)GuildBBSDBAccessor::LoadEntryView(
 		WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
 		pGuild->nGuildID,
 		nEntryID
@@ -187,8 +187,6 @@ void GuildBBSMan::ViewEntry(void *pGuild_, int nCharacterID, int nEntryID)
 	auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	if (pwUser)
 		pwUser->SendPacket(&oPacket);
-
-	FreeObj(pEntry);
 }
 
 void GuildBBSMan::RegisterComment(void *pGuild_, int nCharacterID, InPacket *iPacket)

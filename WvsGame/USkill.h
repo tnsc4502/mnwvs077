@@ -5,6 +5,7 @@ class User;
 class OutPacket;
 class InPacket;
 class SkillEntry;
+struct SkillLevelData;
 
 class USkill
 {
@@ -15,6 +16,7 @@ public:
 
 	static void OnSkillUseRequest(User* pUser, InPacket *iPacket, const SkillEntry* pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, int nForceSetTime);
 	static void OnSkillUseRequest(User* pUser, InPacket *iPacket);
+	static bool ConsumeHPAndMPBySkill(User *pUser, const SkillLevelData* pLevelData);
 	static void OnSkillUpRequest(User* pUser, InPacket *iPacket);
 	static void OnSkillUpRequest(User* pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel);
 

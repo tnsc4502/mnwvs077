@@ -2,6 +2,7 @@
 #include <memory>
 #include "User.h"
 #include "QWUser.h"
+#include <cmath>
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\WvsLib\Script\lvm.h"
@@ -33,6 +34,8 @@ void Script::Register(lua_State * L)
 		{ "random", ScriptSysRandom },
 		{ "getTime", ScriptSysTime },
 		{ "getDateTime", ScriptSysDateTime },
+		{ "currentTime", ScriptSysCurrentTime },
+		{ "compareTime", ScriptSysCompareTime },
 		{ NULL, NULL }
 	};
 
@@ -156,6 +159,41 @@ int Script::ScriptSysTime(lua_State * L)
 int Script::ScriptSysDateTime(lua_State * L)
 {
 	lua_pushinteger(L, GameDateTime::GetCurrentDate());
+	return 1;
+}
+
+int Script::ScriptSysCurrentTime(lua_State * L)
+{
+	char sBuffer[32] = { 0 };
+
+	//Use standard lib instead of _SYSTEMTIME
+	time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	tm tm;
+	localtime_s(&tm, &start_time);
+	sprintf_s(sBuffer, "%02d/%02d/%02d/%02d/%02d\n", tm.tm_year % 100, (tm.tm_mon + 1), tm.tm_mday, tm.tm_hour, tm.tm_min);
+
+	lua_pushstring(L, sBuffer);
+	return 1;
+}
+
+int Script::ScriptSysCompareTime(lua_State * L)
+{
+	std::string sTime1 = luaL_checkstring(L, 1);
+	std::string sTime2 = luaL_checkstring(L, 2);
+
+	tm tm1, tm2;
+	memset(&tm1, 0, sizeof(tm1));
+	memset(&tm2, 0, sizeof(tm2));
+	sscanf_s(sTime1.data(), "%02d/%02d/%02d/%02d/%02d", &tm1.tm_year, &tm1.tm_mon, &tm1.tm_mday, &tm1.tm_hour, &tm1.tm_min);
+	tm1.tm_year += 100;
+	--tm1.tm_mon;
+	sscanf_s(sTime2.data(), "%02d/%02d/%02d/%02d/%02d", &tm2.tm_year, &tm2.tm_mon, &tm2.tm_mday, &tm2.tm_hour, &tm2.tm_min);
+	tm2.tm_year += 100;
+	--tm2.tm_mon;
+
+	auto tp1 = std::chrono::system_clock::from_time_t(mktime(&tm1));
+	auto tp2 = std::chrono::system_clock::from_time_t(mktime(&tm2));
+	lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(tp1 - tp2).count());
 	return 1;
 }
 

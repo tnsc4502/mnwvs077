@@ -683,4 +683,5 @@ void Field::Update()
 	m_pReactorPool->Update(tCur); 
 	m_pAffectedAreaPool->Update(tCur);
 	m_pDropPool->TryExpire(false);
+	m_pSummonedPool->Update(tCur);
 }

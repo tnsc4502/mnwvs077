@@ -27,7 +27,7 @@ std::mutex & SummonedPool::GetSummonedPoolLock()
 void SummonedPool::OnEnter(User * pUser)
 {
 	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
-	for (auto& pSummoned : m_lSummoned)
+	for (auto& pSummoned : m_sSummoned)
 	{
 		OutPacket oPacket;
 		pSummoned->MakeEnterFieldPacket(&oPacket);
@@ -38,14 +38,17 @@ void SummonedPool::OnEnter(User * pUser)
 Summoned * SummonedPool::GetSummoned(int nFieldObjID)
 {
 	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
-	for (auto& pSummoned : m_lSummoned)
+	for (auto& pSummoned : m_sSummoned)
 		if (pSummoned->GetFieldObjectID() == nFieldObjID)
 			return pSummoned;
 	return nullptr;
 }
 
-bool SummonedPool::CreateSummoned(User* pUser, Summoned * pSummoned, const FieldPoint & pt)
+bool SummonedPool::CreateSummoned(User* pUser, Summoned *pSummoned, const FieldPoint & pt)
 {
+	if (!pSummoned->GetMoveAbility(pSummoned->m_nSkillID))
+		return false; 
+
 	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
 	pSummoned->SetFieldObjectID(m_nSummonedIdCounter++);
 	pSummoned->m_ptPos = pt;
@@ -53,13 +56,16 @@ bool SummonedPool::CreateSummoned(User* pUser, Summoned * pSummoned, const Field
 	OutPacket oPacket;
 	pSummoned->MakeEnterFieldPacket(&oPacket);
 	m_pField->BroadcastPacket(&oPacket);
-	m_lSummoned.push_back(pSummoned);
+	m_sSummoned.insert(pSummoned);
 
 	return true;
 }
 
-Summoned * SummonedPool::CreateSummoned(User* pUser, int nSkillID, int nSLV, const FieldPoint & pt)
+Summoned *SummonedPool::CreateSummoned(User* pUser, int nSkillID, int nSLV, const FieldPoint & pt, unsigned int tEnd, bool bMigrate)
 {
+	if (bMigrate && !Summoned::GetMoveAbility(nSkillID))
+		return nullptr;
+		
 	int nX = pUser->GetPosX();
 	int nY = pUser->GetPosY() - 5;
 	auto pFH = m_pField->GetSpace2D()->GetFootholdUnderneath(nX, nY, &(nY));
@@ -70,12 +76,13 @@ Summoned * SummonedPool::CreateSummoned(User* pUser, int nSkillID, int nSLV, con
 		pRet->m_ptPos.x = nX;
 		pRet->m_ptPos.y = nY;
 		pRet->Init(pUser, nSkillID, nSLV);
+		pRet->m_tEnd = tEnd;
 		pRet->SetFieldObjectID(m_nSummonedIdCounter++);
 		OutPacket oPacket;
 		pRet->MakeEnterFieldPacket(&oPacket);
 		m_pField->BroadcastPacket(&oPacket);
 
-		m_lSummoned.push_back(pRet);
+		m_sSummoned.insert(pRet);
 		return pRet;
 	}
 
@@ -85,12 +92,13 @@ Summoned * SummonedPool::CreateSummoned(User* pUser, int nSkillID, int nSLV, con
 void SummonedPool::RemoveSummoned(int nCharacterID, int nSkillID, int nLeaveType)
 {
 	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
-	for (int i = 0; i < m_lSummoned.size(); ++i) 
+	for(auto& pSummoned : m_sSummoned)
 	{
-		auto pSummoned = m_lSummoned[i];
-		if (pSummoned->GetSkillID() == nSkillID && pSummoned->GetOwnerID() == nCharacterID)
+		//auto &pSummoned = m_sSummoned[i];
+		if ((nSkillID == -1 || pSummoned->GetSkillID() == nSkillID) && 
+			pSummoned->GetOwnerID() == nCharacterID)
 		{
-			m_lSummoned.erase(m_lSummoned.begin() + i);
+			m_sSummoned.erase(pSummoned);
 			OutPacket oPacket;
 			pSummoned->MakeLeaveFieldPacket(&oPacket);
 			m_pField->SplitSendPacket(&oPacket, nullptr);
@@ -98,5 +106,24 @@ void SummonedPool::RemoveSummoned(int nCharacterID, int nSkillID, int nLeaveType
 				FreeObj(pSummoned);
 			return;
 		}
+	}
+}
+
+void SummonedPool::Update(unsigned int tCur)
+{
+	std::lock_guard<std::mutex> poolLock(m_mtxSummonedLock);
+	for (auto iter = m_sSummoned.begin(); iter != m_sSummoned.end();)
+	{
+		if (tCur > (*iter)->m_tEnd)
+		{
+			(*iter)->m_pOwner->RemoveSummoned((*iter));
+			OutPacket oPacket;
+			(*iter)->MakeLeaveFieldPacket(&oPacket);
+			m_pField->SplitSendPacket(&oPacket, nullptr);
+			FreeObj((*iter));
+			iter = m_sSummoned.erase(iter);
+		}
+		else
+			++iter;
 	}
 }

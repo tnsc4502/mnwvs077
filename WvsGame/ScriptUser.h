@@ -61,6 +61,9 @@ public:
 	static int TargetIsGuildMaster(lua_State* L);
 	static int TargetGetGuildCountMax(lua_State* L);
 	static int TargetIsPartyBoss(lua_State* L);
+	static int TargetGetPartyMemberJob(lua_State* L);
+	static int TargetGetPartyMemberLevel(lua_State* L);
+	static int TargetGivePartyBuff(lua_State* L);
 	static int TargetGetPartyID(lua_State* L);
 	static int TargetGetMCTeam(lua_State* L);
 	static int TargetGetName(lua_State* L);

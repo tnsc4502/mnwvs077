@@ -6,6 +6,7 @@
 #include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 
@@ -32,7 +33,10 @@
 #include "Drop.h"
 #include "CalcDamage.h"
 #include "ContinentMan.h"
+#include "Summoned.h"
 #include <cmath>
+
+#undef min
 
 LifePool::LifePool()
 	: m_pCtrlNull(AllocObjCtor(Controller)(nullptr))
@@ -675,8 +679,6 @@ void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 
 void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo)
 {
-#undef min
-
 	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
 
 	//Prepare Meso Explosion Drops
@@ -763,54 +765,84 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					0
 				);
 		}
-
-		//Inspect Damage Values Between Server and Client
-		long long int liTotalDmgClient = 0, liTotalDmgSrv = 0;
-		for (int i = 0; i < dmgInfo.nDamageCount; ++i) 
-		{
-			liTotalDmgClient += dmgInfo.anDamageClient[i];
-			liTotalDmgSrv += dmgInfo.anDamageSrv[i];
-
-			if ((double)dmgInfo.anDamageClient[i] >= (double)dmgInfo.anDamageSrv[i] * 1.3)
-			{
-				if (dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 3) //Might probably be hacking 
-				{
-					pUser->GetCalcDamage()->IncInvalidCount();
-					if(dmgInfo.anDamageClient[i] >= dmgInfo.anDamageSrv[i] * 6)
-						dmgInfo.anDamageClient[i] = dmgInfo.anDamageSrv[i];
-				}
-				else //Possible that critial damages were yielded in the client but not in the server. 
-					dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i] = true;
-			} 
-			//If not, that means the calculations are very close
-			else if(dmgInfo.anDamageClient[i] > (double)dmgInfo.anDamageSrv[i]
-				|| dmgInfo.anDamageSrv[i] >= (double)dmgInfo.anDamageClient[i] * 1.4)
-				dmgInfo.abDamageCriticalClient[i] = dmgInfo.abDamageCriticalSrv[i];
-			dmgInfo.anDamageSrv[i] = dmgInfo.anDamageClient[i];
-		}
-
-		if (liTotalDmgClient > liTotalDmgSrv * 2.2)
-			pUser->GetCalcDamage()->IncInvalidCount();
-		else
-			pUser->GetCalcDamage()->DecInvalidCount();
+		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
 	}
 
 	//Send Attack Packet and Apply Damages to Monsters
-	OutPacket attackPacket;
-	EncodeAttackInfo(pUser, pInfo, &attackPacket);
-	m_pField->SplitSendPacket(&attackPacket, nullptr);
-	for (auto& iter : pInfo->m_mDmgInfo) //Apply damages to the monster
+	OutPacket oPacket;
+	EncodeAttackInfo(pUser, pInfo, &oPacket);
+	m_pField->SplitSendPacket(&oPacket, nullptr);
+	ApplyAttackToMob(pUser, pSkill, pInfo);
+}
+
+void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEntry *pSkill, AttackInfo *pInfo)
+{
+	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
+	for (auto& iterDmgInfo : pInfo->m_mDmgInfo)
+	{
+		auto& dmgInfo = iterDmgInfo.second;
+		auto mobIter = m_mMob.find(iterDmgInfo.first);
+		if (mobIter == m_mMob.end())
+			continue;
+		auto pMob = mobIter->second;
+		dmgInfo.pMob = pMob;
+
+		if (pInfo->m_nAttackType == 2) //Magic Damages
+			dmgInfo.anDamageSrv[0] = pUser->GetCalcDamage()->MDamage(
+				pMob->GetMobStat(),
+				pSkill,
+				pInfo->m_nSLV
+			);
+		else //Physical Damages
+			dmgInfo.anDamageSrv[0] = pUser->GetCalcDamage()->PDamage(
+				pMob->GetMobStat(),
+				pSkill,
+				pInfo->m_nSLV
+			);
+
+		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, 1);
+		WvsLogger::LogFormat("Summoned Attack Client Dmg = %d, Srv Dmg = %d Mob ID = %d, Mob == nullptr ? %d\n",
+			dmgInfo.anDamageClient[0],
+			dmgInfo.anDamageSrv[0],
+			iterDmgInfo.first,
+			pMob == nullptr ? 1 : 0);
+	}
+
+	OutPacket oPacket;
+	oPacket.Encode2(SummonedSendPacketFlag::Summoned_OnAttack);
+	oPacket.Encode4(pUser->GetUserID());
+	oPacket.Encode4(pSummoned->GetFieldObjectID());
+	oPacket.Encode1(pInfo->m_bLeft << 7 | pInfo->m_nAction & 0x7F);
+	oPacket.Encode1((char)pInfo->m_mDmgInfo.size());
+	for (auto& prDmgInfo : pInfo->m_mDmgInfo)
+	{
+		oPacket.Encode4(prDmgInfo.first);
+		if (prDmgInfo.first == 0)
+			continue;
+		oPacket.Encode1(prDmgInfo.second.m_nHitAction);
+		oPacket.Encode4(prDmgInfo.second.anDamageSrv[0]);
+	}
+	m_pField->SplitSendPacket(&oPacket, pUser);
+	ApplyAttackToMob(pUser, pSkill, pInfo);
+}
+
+void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackInfo * pInfo)
+{
+	for (auto& iter : pInfo->m_mDmgInfo)
 	{
 		auto& dmgInfo = iter.second;
 		for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 		{
+			if (!dmgInfo.pMob)
+				continue;
+
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
-			if(pSkill)
+			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
 				OnMobStatChangeSkill(
-					pUser, 
-					dmgInfo.pMob->GetFieldObjectID(), 
-					SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID), 
-					pInfo->m_nSLV, 
+					pUser,
+					dmgInfo.pMob->GetFieldObjectID(),
+					SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID),
+					pInfo->m_nSLV,
 					0
 				);
 			if (dmgInfo.pMob->GetHP() <= 0)
@@ -829,15 +861,14 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 	}
 }
 
-void LifePool::OnMobStatChangeSkill(User * pUser, int nMobID, const SkillEntry * pSkill, int nSLV, int tDelay)
+void LifePool::OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay)
 {
 	auto pMob = GetMob(nMobID);
 	if (pMob)
 		pMob->OnMobStatChangeSkill(pUser, pSkill, nSLV, 0, tDelay);
 }
 
-
-void LifePool::EncodeAttackInfo(User * pUser, AttackInfo * pInfo, OutPacket * oPacket)
+void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPacket)
 {
 	oPacket->Encode2(pInfo->m_nType - UserRecvPacketFlag::User_OnUserAttack_MeleeAttack + UserSendPacketFlag::UserRemote_OnMeleeAttack);
 	oPacket->Encode4(pUser->GetUserID());

@@ -15,6 +15,7 @@
 #include "SkillInfo.h"
 #include "QWUSkillRecord.h"
 #include "PartyMan.h"
+#include "Summoned.h"
 
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -81,12 +82,14 @@ void USkill::ValidateSecondaryStat(User * pUser)
 void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(pUser->GetLock());
+	auto tCur = GameDateTime::GetTime();
 	int tRequestTime = iPacket->Decode4();
 	int nSkillID = iPacket->Decode4();
 	int nSpiritJavelinItemID = 0;
 	int nSLV = iPacket->Decode1();
 	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
 	auto pSkillRecord = pUser->GetCharacterData()->GetSkill(nSkillID);
+
 	if (pSkillEntry == nullptr || 
 		pSkillRecord == nullptr ||
 		pUser->GetCharacterData()->mStat->nHP <= 0)
@@ -94,22 +97,18 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 		SendFailPacket(pUser);
 		return;
 	}
-	nSLV = nSLV > pSkillRecord->nSLV ? pSkillRecord->nSLV : nSLV;
+	nSLV = std::min(nSLV, pSkillRecord->nSLV);
 	if (!pUser->GetField() || 
 		nSLV <= 0 ||
 		nSLV > pSkillEntry->GetMaxLevel() ||
-		pUser->GetCharacterData()->mStat->nMP < pSkillEntry->GetLevelData(nSLV)->m_nMpCon)
+		pUser->GetSkillCooltime(nSkillID) > tCur ||
+		!ConsumeHPAndMPBySkill(pUser, pSkillEntry->GetLevelData(pSkillRecord->nSLV)))
 	{
 		SendFailPacket(pUser);
 		return;
 	}
 
-	if(pUser->GetSecondaryStat()->nInfinity_ == 0)
-		pUser->SendCharacterStat(
-			false,
-			QWUser::IncMP(pUser, -pSkillEntry->GetLevelData(nSLV)->m_nMpCon, false)
-		);
-
+	pUser->SetSkillCooltime(nSkillID, pSkillEntry->GetLevelData(pSkillRecord->nSLV)->m_nCooltime);
 	USkill::OnSkillUseRequest(
 		pUser,
 		iPacket,
@@ -119,6 +118,29 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 		false,
 		0
 	);
+}
+
+bool USkill::ConsumeHPAndMPBySkill(User *pUser, const SkillLevelData *pLevelData)
+{
+	int nMpCon = pLevelData ? pLevelData->m_nMpCon : 0;
+	int nHpCon = pLevelData ? pLevelData->m_nHpCon : 0;
+	long long int liFlag = 0;
+
+	if (nMpCon && pUser->GetSecondaryStat()->nInfinity_ == 0)
+	{
+		if (QWUser::GetMP(pUser) < nMpCon)
+			return false;
+		liFlag |= QWUser::IncMP(pUser, -nMpCon, false);
+	}
+
+	if (nHpCon)
+	{
+		if (QWUser::GetHP(pUser) < nHpCon)
+			return false;
+		liFlag |= QWUser::IncHP(pUser, -nHpCon, false);
+	}
+	pUser->SendCharacterStat(false, liFlag);
+	return true;
 }
 
 void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, int nForceSetTime)
@@ -429,7 +451,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 3111002: // puppet ranger
 		case 3211002: // puppet sniper
 
-			REGISTER_TS(PickPocket, 1);
+			REGISTER_TS(Summon, 1);
 			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.PUPPET, Integer.valueOf(1)));
 			break;
 
@@ -674,9 +696,6 @@ void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nS
 {
 	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
 	REGISTER_USE_SKILL_SECTION;
-	REGISTER_TS(ComboCounter, 1);
-	//REGISTER_TS(EVAR, 10);
-	//REGISTER_TS(FireBomb, 10);
 	pUser->RemoveSummoned(nSkillID, 0, nSkillID);
 	if (bResetBySkill)
 	{
@@ -686,8 +705,7 @@ void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nS
 	else
 	{
 		pUser->CreateSummoned(pSkill, nSLV, { pUser->GetPosX(), pUser->GetPosY() }, false);
-		pUser->SendTemporaryStatReset(tsFlag);
-		pUser->SendTemporaryStatSet(tsFlag, 0);
+		pUser->SendUseSkillEffect(nSkillID, nSLV);
 	}
 	pUser->SendCharacterStat(true, 0);
 }

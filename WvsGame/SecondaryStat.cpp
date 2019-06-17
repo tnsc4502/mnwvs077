@@ -9,6 +9,8 @@
 #include "Field.h"
 #include "LifePool.h"
 #include "MobSkillEntry.h"
+#include "Summoned.h"
+#include "SummonedPool.h"
 
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotEquip.h"
@@ -316,6 +318,15 @@ void SecondaryStat::ResetByTime(User* pUser, unsigned int tCur)
 			aSkillResetReason.push_back(nID);
 	}
 	USkill::ResetTemporaryByTime(pUser, aSkillResetReason);
+
+	for (auto iter = m_mCooltimeOver.begin(); iter != m_mCooltimeOver.end();)
+		if (tCur > iter->second) 
+		{
+			pUser->SendSkillCooltimeSet(iter->first, 0);
+			iter = m_mCooltimeOver.erase(iter);
+		}
+		else
+			++iter;
 }
 
 void SecondaryStat::ResetAll(User* pUser)
@@ -324,70 +335,4 @@ void SecondaryStat::ResetAll(User* pUser)
 	for (auto& setFlag : m_mSetByTS)
 		*(setFlag.second.second[2]) = 0;
 	ResetByTime(pUser, GameDateTime::GetTime());
-}
-
-void SecondaryStat::DecodeInternal(User* pUser, InPacket * iPacket)
-{
-	bool bDecodeInternal = iPacket->Decode1() == 1;
-	if (!bDecodeInternal)
-		return;
-	int nChannelID = iPacket->Decode4();
-
-	//Decode Temporary Internal
-	int nCount = iPacket->Decode4(), nSkillID, tDurationRemained, nSLV;
-	const void *pSkill = nullptr;
-	for (int i = 0; i < nCount; ++i)
-	{
-		nSkillID = iPacket->Decode4();
-		tDurationRemained = iPacket->Decode4();
-		nSLV = iPacket->Decode4();
-		WvsLogger::LogFormat("Decode Internal ID = %d, tValue = %d, nSLV = %d\n", nSkillID, tDurationRemained, nSLV);
-		if (nSkillID < 0)
-		{
-			auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(-nSkillID);
-			if (pItem)
-				pItem->Apply(pUser, 0, false, false, true, tDurationRemained);
-		}
-		else if (pSkill = SkillInfo::GetInstance()->GetSkillByID(nSkillID), pSkill)
-			USkill::OnSkillUseRequest(
-				pUser,
-				nullptr,
-				(SkillEntry*)pSkill,
-				nSLV,
-				false,
-				true,
-				tDurationRemained
-			);
-		else if (pSkill = SkillInfo::GetInstance()->GetMobSkill(nSkillID & 0xFF), pSkill)
-			pUser->OnStatChangeByMobSkill(
-				nSkillID & 0xFF,
-				(nSkillID & 0xFF0000) >> 16,
-				((MobSkillEntry*)pSkill)->GetLevelData((nSkillID & 0xFF0000) >> 16),
-				0,
-				0,
-				false,
-				true,
-				tDurationRemained
-			);
-	}
-}
-
-void SecondaryStat::EncodeInternal(User* pUser, OutPacket * oPacket)
-{
-	std::lock_guard<std::recursive_mutex> userGuard(pUser->GetLock());
-
-	oPacket->Encode4(pUser->GetChannelID());
-
-	//Encode Temporary Internal
-	auto &pSS = pUser->GetSecondaryStat();
-	oPacket->Encode4((int)pSS->m_mSetByTS.size());
-	for (auto& setFlag : pSS->m_mSetByTS)
-	{
-		int nSkillID = *(setFlag.second.second[1]);
-		int tDurationRemained = (int)setFlag.second.first;
-		int nSLV = *(setFlag.second.second[3]);
-		oPacket->Encode4(nSkillID);
-		oPacket->Encode4(tDurationRemained);
-		oPacket->Encode4(nSLV);
-	}
 }

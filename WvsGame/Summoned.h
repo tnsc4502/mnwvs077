@@ -5,11 +5,11 @@ class InPacket;
 class OutPacket;
 class User;
 class SummonedPool;
+class SkillEntry;
 
 class Summoned : public FieldObj
 {
 public:
-	static int SUMMONED_MOV, SUMMONED_ATT;
 	enum LeaveType
 	{
 		eLeave_ResetByTime = 0,
@@ -20,6 +20,7 @@ public:
 private:
 	friend class SummonedPool;
 	User* m_pOwner;
+	const SkillEntry* m_pSkillEntry;
 
 	bool 
 		m_bFlyMob = true, 
@@ -35,7 +36,10 @@ private:
 		m_nEnterType = 0,
 		m_nMobID = 0,
 		m_nLookID = 0,
-		m_nBulletID = 0,
+		m_nBulletID = 0;
+
+	unsigned int 
+		m_tLastAttackTime = 0,
 		m_tEnd = 0;
 
 public:
@@ -44,12 +48,15 @@ public:
 
 	int GetOwnerID() const;
 	int GetSkillID() const;
+	int GetSkillLevel() const;
+	unsigned int GetTimeEnd() const;
 	void Init(User *pUser, int nSkillID, int nSLV);
 	void OnPacket(InPacket *iPacket, int nType);
 	void OnMove(InPacket *iPacket);
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
-	int GetMoveAbility();
-	int GetAssitType();
+	static int GetMoveAbility(int nSkillID);
+	static int GetAssitType(int nSkillID);
+	void OnAttack(InPacket *iPacket);
 };
 

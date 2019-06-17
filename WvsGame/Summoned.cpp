@@ -2,6 +2,12 @@
 #include "User.h"
 #include "MovePath.h"
 #include "Field.h"
+#include "LifePool.h"
+#include "AttackInfo.h"
+#include "SkillInfo.h"
+#include "SkillEntry.h"
+#include "SkillLevelData.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\Database\GA_Character.hpp"
@@ -26,15 +32,27 @@ int Summoned::GetSkillID() const
 	return m_nSkillID;
 }
 
+int Summoned::GetSkillLevel() const
+{
+	return m_nSLV;
+}
+
+unsigned int Summoned::GetTimeEnd() const
+{
+	return m_tEnd;
+}
+
 void Summoned::Init(User * pUser, int nSkillID, int nSLV)
 {
 	m_pOwner = pUser;
 	m_nSkillID = nSkillID;
+	m_pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(m_nSkillID);
+
 	m_nSLV = nSLV;
 	m_pField = pUser->GetField();
 
-	m_nMoveAbility = GetMoveAbility();
-	m_nAssitType = GetAssitType();
+	m_nMoveAbility = GetMoveAbility(m_nSkillID);
+	m_nAssitType = GetAssitType(m_nSkillID);
 }
 
 void Summoned::OnPacket(InPacket * iPacket, int nType)
@@ -45,6 +63,7 @@ void Summoned::OnPacket(InPacket * iPacket, int nType)
 			OnMove(iPacket);
 			break;
 		case SummonedRecvPacketFlag::Summoned_OnAttackRequest:
+			OnAttack(iPacket);
 			break;
 		case SummonedRecvPacketFlag::Summoned_OnHitRequest:
 			break;
@@ -112,23 +131,54 @@ void Summoned::MakeLeaveFieldPacket(OutPacket * oPacket)
 	oPacket->Encode1(0x0A);
 }
 
-int Summoned::GetMoveAbility()
+int Summoned::GetMoveAbility(int nSkillID)
 {
-	if (m_nSkillID == 1321007 || m_nSkillID == 2121005 || m_nSkillID == 2221005 || m_nSkillID == 2321003)
+	if (nSkillID == 1321007 ||  
+		nSkillID == 2121005 || 
+		nSkillID == 2221005 || 
+		nSkillID == 2321003 ||
+		nSkillID == 3121006 ||
+		nSkillID == 3221005
+		)
 		return 1;
-	else if (m_nSkillID == 3111002 || m_nSkillID == 3211002)
+	else if (nSkillID == 3111002 || nSkillID == 3211002)
 		return 0;
-	return SUMMONED_MOV;
+	return 3;
 }
 
-int Summoned::GetAssitType()
+int Summoned::GetAssitType(int nSkillID)
 {
-	if (m_nSkillID == 1321007)
+	if (nSkillID == 1321007)
 		return 2; 
-	else if (m_nSkillID == 3111002 || m_nSkillID == 3211002)
+	else if (nSkillID == 3111002 || nSkillID == 3211002)
 		return 0;
-	return SUMMONED_ATT;
+	return 1;
 }
 
-int Summoned::SUMMONED_MOV = 3;
-int Summoned::SUMMONED_ATT = 1; 
+void Summoned::OnAttack(InPacket *iPacket)
+{
+	AttackInfo info;
+	int tLastAttackClient = iPacket->Decode4();
+	info.m_bAttackInfoFlag = iPacket->Decode1();
+	info.m_bLeft = (info.m_bAttackInfoFlag >> 7) & 1;
+	info.m_nAction = info.m_bAttackInfoFlag & 0x7F;
+	int nMobCount = iPacket->Decode1();
+	auto tCur = GameDateTime::GetTime();
+
+	if (tCur - m_tLastAttackTime < 2000 ||
+		nMobCount > m_pSkillEntry->GetLevelData(m_nSLV)->m_nMobCount)
+		return;
+
+	User::TryParsingDamageData(&info, iPacket, nMobCount, 1);
+	info.m_nSkillID = m_nSkillID;
+	info.m_nSLV = m_nSLV;
+	info.m_nAttackType = m_nSkillID / 1000000 != 2 ? 0 : 2;
+
+	m_pField->GetLifePool()->OnSummonedAttack(
+		m_pOwner,
+		this,
+		m_pSkillEntry,
+		&info
+	);
+	m_tLastAttackTime = tCur;
+}

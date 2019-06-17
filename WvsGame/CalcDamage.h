@@ -1,4 +1,5 @@
 #pragma once
+#include "AttackInfo.h"
 
 class User;
 class MobStat;
@@ -28,9 +29,14 @@ public:
 	bool CheckMDamageMiss(MobStat *ms, unsigned int nRandForMissCheck);
 	int MDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand);
 	void MDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nAction, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int nMobCount, int tKeyDown);
+	int MDamage(MobStat *ms, const SkillEntry* pSkill, int nSLV);
+	int MDamageSummoned(MobStat *ms, int nSLV);
 	bool CheckPDamageMiss(MobStat *ms, unsigned int nRandForMissCheck);
 	int PDamage(MobStat *ms, void *pMobAttackInfo_, unsigned int nRandForMissCheck, int *pnReduce, int *pnRand);
 	void PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponItemID, int nBulletItemID, int nAttackType, int nAction, bool bShadowPartner, const SkillEntry* pSkill, int nSLV, int *aDamage, bool *abCritical, int tKeyDown, int nBerserkDamage, int nAdvancedChargeDamage);
+	int PDamage(MobStat *ms, const SkillEntry* pSkill, int nSLV);
+	int PDamageSummoned(MobStat *ms, int nSLV);
 	void MesoExplosionDamage(MobStat *ms, int *anMoneyAmount, int nDropCount, int *aDamage);
+	void InspectAttackDamage(AttackInfo::DamageInfo& dmgInfo, int nDamageCount);
 };
 

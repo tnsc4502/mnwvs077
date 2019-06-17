@@ -499,16 +499,17 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 	pResult->SetMaxLevel(atoi(((std::string)skillCommonImg["maxLevel"]).c_str()));
 	pResult->SetInvisible((int)skillDataImg["invisible"] == 1 ? true : false);
 	if(bLevelStructure)
-		LoadLevelDataByLevelNode(nSkillID, pResult, (void*)&skillCommonImg);
+		LoadLevelDataByLevelNode(nSkillID, pResult, (void*)&skillCommonImg, (void*)&(skillDataImg));
 	
 	std::lock_guard<std::mutex> lock(m_mtxSkillResLock);
 	m_mSkillByRootID[nSkillRootID]->insert({ nSkillID, pResult });
 	return pResult;
 }
 
-void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void * pData)
+void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void * pData, void *pRoot)
 {
 	auto& skillLevelImg = *((WZ::Node*)pData);
+	auto& skillData = *((WZ::Node*)pRoot);
 	WZ::Node empty;
 	int nMaxLevel = pEntry->GetMaxLevel();
 	pEntry->AddLevelData(nullptr); //for lvl 0
@@ -525,6 +526,8 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		pLevelData->m_nBulletConsume = PARSE_SKILLDATA(bulletConsume);
 		pLevelData->m_nBulletCount = PARSE_SKILLDATA(bulletCount);
 		pLevelData->m_nCooltime = PARSE_SKILLDATA(cooltime);
+		pLevelData->m_nCooltime *= 1000;
+
 		pLevelData->m_nDamage = PARSE_SKILLDATA(damage);
 		pLevelData->m_nEva = PARSE_SKILLDATA(eva);
 		pLevelData->m_nHp = PARSE_SKILLDATA(hp);
@@ -569,6 +572,9 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 			pLevelData->m_rc.right = rb["x"];
 			pLevelData->m_rc.bottom = rb["y"];
 		}
+		if (IsSummonSkill(nSkillID))
+			pLevelData->m_nMobCount = skillData["summon"]["attack1"]["info"]["mobCount"];
+
 		pEntry->AddLevelData(pLevelData);
 	}
 	pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);
@@ -628,6 +634,13 @@ bool SkillInfo::IsSummonSkill(int nSkillID)
 		case BowmanSkills::Phoenix_311: //¥l³ê»ñ°Ä
 		case RogueSkills::DarkFlare_411: //µ´±þ»â°ì
 		case RogueSkills::DarkFlare_421_2: //µ´±þ»â°ì
+		case 3211002:
+		case 3111002:
+		case 1321007: // Beholder
+		case 2311006: // summon dragon
+		case 3121006: // phoenix
+		case 5211001: // Pirate octopus summon
+		case 5220002: // wrath of the octopi
 			return true;
 	}
 	return false;

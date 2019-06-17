@@ -1,7 +1,7 @@
 #pragma once
 #include "FieldPoint.h"
 
-#include <vector>
+#include <set>
 #include <mutex>
 #include <atomic>
 
@@ -14,7 +14,7 @@ class SummonedPool
 	Field* m_pField;
 	std::mutex m_mtxSummonedLock;
 	std::atomic<int> m_nSummonedIdCounter;
-	std::vector<Summoned*> m_lSummoned;
+	std::set<Summoned*> m_sSummoned;
 
 public:
 	SummonedPool(Field *pField);
@@ -24,7 +24,8 @@ public:
 	void OnEnter(User *pUser);
 	Summoned* GetSummoned(int nFieldObjID);
 	bool CreateSummoned(User* pUser, Summoned* pSummoned, const FieldPoint& pt);
-	Summoned* CreateSummoned(User* pUser, int nSkillID, int nSLV, const FieldPoint& pt);
+	Summoned* CreateSummoned(User* pUser, int nSkillID, int nSLV, const FieldPoint& pt, unsigned int tEnd, bool bMigrate = false);
 	void RemoveSummoned(int nCharacterID, int nSkillID, int nLeaveType);
+	void Update(unsigned int tCur);
 };
 

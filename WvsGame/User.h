@@ -149,15 +149,14 @@ private:
 	//MiniRoom
 	MiniRoomBase* m_pMiniRoom = nullptr;
 	bool m_bHasOpenedEntrustedShop = false;
-
-	void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket);
 	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	AttackInfo* TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	AttackInfo* TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	AttackInfo* TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
+	//AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
+	//AttackInfo* TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
+	//AttackInfo* TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
+	//AttackInfo* TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
 public:
+	static void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamageMobCount, int nDamagedCountPerMob);
 	static ZSharedPtr<User> FindUser(int nUserID);
 	static ZSharedPtr<User> FindUserByName(const std::string& strName);
 
@@ -216,6 +215,8 @@ public:
 	void EncodeCoupleInfo(OutPacket *oPacket);
 	void EncodeFriendshipInfo(OutPacket *oPacket);
 	void EncodeMarriageInfo(OutPacket *oPacket);
+	void DecodeInternal(InPacket *iPacket);
+	void EncodeInternal(OutPacket *oPacket);
 
 	//Stat
 	ZUniquePtr<CalcDamage>& GetCalcDamage();
@@ -241,6 +242,9 @@ public:
 	void OnDropMoneyRequest(InPacket *iPacket);
 	void OnCharacterInfoRequest(InPacket *iPacket);
 	unsigned char GetGradeCode() const;
+	void SetSkillCooltime(int nReason, int tDuration);
+	unsigned int GetSkillCooltime(int nReason);
+	void SendSkillCooltimeSet(int nReason, unsigned int tTime);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);
@@ -303,6 +307,7 @@ public:
 	void ReregisterSummoned();
 	void CreateSummoned(const SkillEntry* pSkill, int nSLV, const FieldPoint& pt, bool bMigrate);
 	void RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID); //nForceRemoveSkillID = -1 means that remove all summoneds.
+	void RemoveSummoned(Summoned *pSummoned);
 
 	//Party
 	void AddPartyInvitedCharacterID(int nCharacterID);

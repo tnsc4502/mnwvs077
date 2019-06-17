@@ -1,6 +1,8 @@
 #pragma once
 #include <map>
 #include <vector>
+#include "..\WvsLib\Memory\ZMemory.h"
+#include "FieldPoint.h"
 
 class Mob;
 
@@ -8,14 +10,24 @@ struct AttackInfo
 {
 	struct DamageInfo
 	{
-		Mob *pMob;
+		ZSharedPtr<Mob> pMob;
 		const static int MAX_DAMAGE_COUNT = 16;
 		int anDamageClient[MAX_DAMAGE_COUNT] = { 0 },
 			anDamageSrv[MAX_DAMAGE_COUNT] = { 0 },
-			nDamageCount = 0;
+			nDamageCount = 0,
+			m_nHitAction = 0,
+			m_nForeAction = 0,
+			m_nMobID = 0,
+			m_nTemplateID = 0,
+			m_nFrameIdx = 0;
 
 		bool abDamageCriticalClient[MAX_DAMAGE_COUNT] = { false },
-			abDamageCriticalSrv[MAX_DAMAGE_COUNT] = { false };
+			abDamageCriticalSrv[MAX_DAMAGE_COUNT] = { false },
+			m_bLeft = false,
+			m_bDoomed = false;
+
+		unsigned int m_tDelay;
+		FieldPoint ptHit, ptPosPrev;
 	};
 
 	std::map<int, DamageInfo> m_mDmgInfo;
@@ -25,10 +37,11 @@ struct AttackInfo
 	int GetDamageCountPerMob();
 
 	char 
-		m_bCheckExJablinResult,
-		m_bAddAttackProc,
-		m_bFieldKey,
-		m_bEvanForceAction;
+		m_bCheckExJablinResult = false,
+		m_bAddAttackProc = false,
+		m_bFieldKey = false,
+		m_bLeft = 0,
+		m_bEvanForceAction = false;
 
 	int 
 		m_nX = 0, 
@@ -57,6 +70,5 @@ struct AttackInfo
 		m_pGrenade = 0,
 		m_nFinalAttack = 0
 		;
-
 };
 

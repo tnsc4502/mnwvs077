@@ -97,6 +97,8 @@ public:
 	static int ScriptSysRandom(lua_State* L);
 	static int ScriptSysTime(lua_State* L);
 	static int ScriptSysDateTime(lua_State* L);
+	static int ScriptSysCurrentTime(lua_State* L);
+	static int ScriptSysCompareTime(lua_State* L);
 
 	//Lua Sys.
 	lua_State* GetLuaState();
