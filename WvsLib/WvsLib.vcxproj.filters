@@ -279,9 +279,6 @@
     <ClInclude Include="Common\WvsLoginConstants.hpp">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Common\CommonDef.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Wz\ImgAccessor.h">
       <Filter>Wz</Filter>
     </ClInclude>
@@ -311,6 +308,12 @@
     </ClInclude>
     <ClInclude Include="Memory\ZMemory.h">
       <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CommonDef.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="String\StringPool.h">
+      <Filter>String</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -556,6 +559,9 @@
     </ClCompile>
     <ClCompile Include="Exception\WvsException.cpp">
       <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="String\StringPool.cpp">
+      <Filter>String</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

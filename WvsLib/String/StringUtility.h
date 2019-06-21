@@ -23,4 +23,6 @@ public:
 			ret += (std::to_string(*iter) + (i++ != nSize - 1 ? delimeter : ""));
 		return ret;
 	}
+
+	static std::string& Replace(std::string& str, const std::string& from, const std::string& to);
 };

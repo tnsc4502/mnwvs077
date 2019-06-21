@@ -12,5 +12,6 @@ public:
 	static CALLBACK_FUNC ms_pfCallBack;
 	static std::string  ms_sAppName;
 	static void RegisterUnhandledExceptionFilter(const std::string& sAppName, CALLBACK_FUNC pfCallBack);
+	static void FatalError(const std::string sFormat, ...);
 };
 

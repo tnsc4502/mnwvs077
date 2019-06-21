@@ -14,6 +14,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\NpcPacketFlags.hpp"
+#include "..\WvsLib\String\StringPool.h"
 
 void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 {
@@ -52,13 +53,13 @@ void Npc::OnShopPurchaseItem(User * pUser, InPacket * iPacket)
 			switch (nResult)
 			{
 				case InventoryManipulator::Exchange_InsufficientMeso:
-					pUser->SendNoticeMessage("楓幣不足。");
+					pUser->SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_Money));
 					break;
 				case InventoryManipulator::Exchange_InsufficientSlotCount:
-					pUser->SendNoticeMessage("道具欄位不足。");
+					pUser->SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_SlotCount));
 					break;
 				case InventoryManipulator::Exchange_InsufficientItemCount:
-					pUser->SendNoticeMessage("需求道具數量不足。");
+					pUser->SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_ItemCount));
 					break;
 			}
 			if (nResult)
@@ -88,7 +89,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 		);
 		if (pItem == nullptr)
 		{
-			pUser->SendNoticeMessage("物品不存在。");
+			pUser->SendNoticeMessage(GET_STRING(GameSrv_Shop_Invalid_Item));
 			pUser->SendCharacterStat(true, 0);
 			return;
 		}
@@ -130,7 +131,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 	auto pItem = (GW_ItemSlotBundle*)pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
 	if (!pItem || !ItemInfo::GetInstance()->IsRechargable(pItem->nItemID))
 	{
-		pUser->SendNoticeMessage("發生異常。");
+		pUser->SendNoticeMessage(GET_STRING(Common_Unknown_Error));
 		pUser->SendCharacterStat(true, 0);
 		return;
 	}
@@ -139,7 +140,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 	int nCount = nMaxPerSlot - pItem->nNumber;
 	if (nCount <= 0)
 	{
-		pUser->SendNoticeMessage("發生異常。");
+		pUser->SendNoticeMessage(GET_STRING(Common_Unknown_Error));
 		pUser->SendCharacterStat(true, 0);
 		return;
 	}
@@ -162,7 +163,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 			if (QWUInventory::RawRechargeItem(pUser, nPOS, &aChangeLog))
 			{
 				QWUInventory::SendInventoryOperation(pUser, true, aChangeLog);
-				pUser->SendNoticeMessage("儲值成功。");
+				pUser->SendNoticeMessage(GET_STRING(GameSrv_Shop_Item_Recharged));
 				pUser->SendCharacterStat(true, 0);
 
 				OutPacket oPacket;
@@ -173,7 +174,7 @@ void Npc::OnShopRechargeItem(User * pUser, InPacket * iPacket)
 			QWUInventory::Exchange(pUser, nCost, aExchange, nullptr, nullptr, aBackup);
 		}
 	}
-	pUser->SendNoticeMessage("發生異常。");
+	pUser->SendNoticeMessage(GET_STRING(Common_Unknown_Error));
 	pUser->SendCharacterStat(true, 0);
 	return;
 }

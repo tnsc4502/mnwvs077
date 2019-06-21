@@ -31,7 +31,7 @@ private:
 		m_nType = 0,
 		m_n;
 
-	std::shared_ptr<RewardInfo> m_pInfo;
+	RewardInfo* m_pInfo = nullptr;
 	static std::map<int, std::vector<RewardInfo*>> stMobRewardInfo;
 	static std::map<int, std::vector<RewardInfo*>> stReactorRewardInfo;
 	static double ms_fIncDropRate;
@@ -51,7 +51,7 @@ public:
 
 	ZSharedPtr<GW_ItemSlotBase> GetItem() { return m_pItem; }
 	void SetItem(const ZSharedPtr<GW_ItemSlotBase>& pItem) { m_pItem = pItem; }
-	std::shared_ptr<RewardInfo> GetRewardInfo() { return m_pInfo; }
+	RewardInfo* GetRewardInfo() { return m_pInfo; }
 
 	static void LoadReward();
 	static const std::vector<RewardInfo*>* GetMobReward(int nTemplateID);

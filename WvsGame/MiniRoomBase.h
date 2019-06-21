@@ -90,7 +90,7 @@ public:
 	};
 
 	MiniRoomBase(int nMaxUsers);
-	~MiniRoomBase();
+	virtual ~MiniRoomBase();
 	int GetMiniRoomSN() const;
 	int GetType() const;
 	int GetMaxUsers() const;

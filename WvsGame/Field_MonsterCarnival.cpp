@@ -255,7 +255,7 @@ int Field_MonsterCarnival::OnSummonMob(MemberData &rmd, int nIndex)
 	auto &mobToGen = pGen->mob;
 	auto pTemplate = MobTemplate::GetMobTemplate(mob.nID);
 	pGen->nTeamForMCarnival = rmd.nTeam;
-	pGen->nRegenInterval = 1000 * mob.nMobTime;
+	pGen->nRegenInterval = mob.nMobTime;
 	pGen->nRegenAfter = 1;
 	pGen->mob.SetTemplateID(mob.nID);
 	pGen->mob.SetMobTemplate(pTemplate);
@@ -315,7 +315,7 @@ int Field_MonsterCarnival::OnSummonGuardian(MemberData & rmd, int nIndex)
 	pRGen->sName = std::to_string(nIndex + 100 * rmd.nTeam);
 	pRGen->nX = m_aGuardianGenPos[nGenPos].nX;
 	pRGen->nY = m_aGuardianGenPos[nGenPos].nY;
-	pRGen->tRegenAfter = -1;
+	pRGen->tRegenAfter = 0;
 	m_aGuardianGenPos[nGenPos].nOccupier = rmd.nTeam;
 	m_apReactorGen[nGenPos] = pRGen;
 	--m_nGuardianGenAvailable[rmd.nTeam];
@@ -485,7 +485,7 @@ void Field_MonsterCarnival::Reset(bool bShuffleReactor)
 
 	m_pLifePool->SetMobGenEnable(true);
 	m_nState = 0;
-	m_tEndTime = -1;
+	m_tEndTime = 0;
 	m_tFinishMessage = 0;
 	m_mMember.clear();
 	m_mCharacterOut.clear();
@@ -585,7 +585,7 @@ void Field_MonsterCarnival::Update()
 		m_pDropPool->TryExpire(true); 
 		m_pLifePool->SetMobGenEnable(false);
 		ProcessTimeFinish();
-		m_tEndTime = -1;
+		m_tEndTime = 0;
 	}
 	else
 	{

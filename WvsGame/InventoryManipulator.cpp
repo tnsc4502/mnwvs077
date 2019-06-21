@@ -145,10 +145,6 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, ZSh
 			}
 		}
 
-		/*//物品完全合併
-		if (nNumber == 0 && bDeleteIfItemCombined)
-			pItem->Release();*/
-
 		//欄位無相同物品，找新的欄位插入
 		while (nNumber > 0)
 		{
@@ -156,12 +152,13 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, ZSh
 			nPOS = pCharacterData->FindEmptySlotPosition(nTI);
 
 			//告知物品並未完全放入背包中。
-			if (nPOS <= 0)
+			if (nPOS <= 0 || nPOS > pCharacterData->mSlotCount->aSlotCount[nTI])
 			{
 				((GW_ItemSlotBundle*)pItem)->nNumber = nNumber;
 				*nIncRet = nTotalInc;
 				return false;
 			}
+
 			/*
 			如果pItem剩餘的數量沒有超過nMaxPerSlot，整個pItem放進slot中。
 			如果超過最大數量，則產生一個pClone，數量為nMaxPerSlot，並且將pItem剩餘數量減去nSlotInc (nMaxPerSlot)。

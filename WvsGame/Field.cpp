@@ -27,6 +27,8 @@
 #include "ContinentMan.h"
 #include "AffectedArea.h"
 #include "AffectedAreaPool.h"
+#include "QWUser.h"
+#include "SecondaryStat.h"
 #include "..\WvsLib\Memory\ZMemory.h"
 
 #undef min
@@ -62,6 +64,9 @@ Field::Field(void *pData, int nFieldID)
 	SetFirstUserEnter(infoData["onFirstUerEnter"]);
 	SetUserEnter(infoData["onUserEnter"]);
 	SetRecoveryRate(std::max(1.0, (double)infoData["recovery"]));
+	m_nAutoDecHP = infoData["decHP"];
+	m_nAutoDecMP = infoData["decMP"];
+	m_nProtectItem = infoData["protectItem"];
 
 	if (areaData != mapWz.end())
 		LoadAreaRect(&areaData);
@@ -111,6 +116,16 @@ void Field::BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID)
 		
 		iter->second->SendPacket(oPacket);
 	}
+}
+
+void Field::RegisterFieldObj(FieldObj *pNew, OutPacket *oPacketEnter)
+{
+	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
+	oPacketEnter->GetSharedPacket()->ToggleBroadcasting();
+
+	for (auto& user : m_mUser)
+		if(pNew->IsShowTo(user.second))
+			user.second->SendPacket(oPacketEnter);
 }
 
 void Field::SetCould(bool cloud)
@@ -326,12 +341,14 @@ void Field::OnEnter(User *pUser)
 
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeEnterFieldPacket(&oPacketForBroadcasting);
-	SplitSendPacket(&oPacketForBroadcasting, pUser);
+	RegisterFieldObj(pUser, &oPacketForBroadcasting);
+
+	OutPacket oPacketToTarget;
 	for (auto pFieldUser : m_mUser) 
 	{
-		if (pFieldUser.second != pUser)
+		if (pFieldUser.second->IsShowTo(pUser))
 		{
-			OutPacket oPacketToTarget;
+			oPacketToTarget.Reset();
 			pFieldUser.second->MakeEnterFieldPacket(&oPacketToTarget);
 			pUser->SendPacket(&oPacketToTarget);
 		}
@@ -345,15 +362,13 @@ void Field::OnLeave(User *pUser)
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
 	m_mUser.erase(pUser->GetUserID());
 	m_pLifePool->RemoveController(pUser);
-	//if (m_mUser.size() == 0 && m_asyncUpdateTimer->IsStarted())
-	//	m_asyncUpdateTimer->Pause();;
 
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeLeaveFieldPacket(&oPacketForBroadcasting);
 	SplitSendPacket(&oPacketForBroadcasting, nullptr);
 }
 
-//發送oPacket給該地圖的其他User，其中pExcept是例外對象
+//Send oPacket to all users in this field, designated user "pExcept" would be ignored if not nullptr.
 void Field::SplitSendPacket(OutPacket *oPacket, User *pExcept)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxFieldLock);
@@ -668,12 +683,42 @@ void Field::OnReactorDestroyed(Reactor* pReactor)
 {
 }
 
+void Field::CheckReactorAction(const std::string &sReactorName, unsigned tEventTime)
+{
+	if (m_pParentFieldSet)
+		m_pParentFieldSet->CheckReactorAction(this, sReactorName, tEventTime);
+}
+
 void Field::Reset(bool bShuffleReactor)
 {
 	m_pDropPool->TryExpire(true);
 	m_pLifePool->Reset();
-	m_pReactorPool->Reset(true);
+	m_pReactorPool->Reset(false);
 	m_pPortalMap->ResetPortal();
+}
+
+void Field::OnStatChangeByField(unsigned int tCur)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	long long int liFlag = 0;
+	if (tCur - m_tLastStatChangeByField > FIELD_STAT_CHANGE_PERIOD &&
+		(m_nAutoDecHP || m_nAutoDecMP))
+	{
+		for (auto& prUser : m_mUser)
+		{
+			if ((prUser.second->GetGradeCode() & User::UserGrade::eGrade_GM) ||
+				prUser.second->GetCharacterData()->IsWearing(m_nProtectItem) ||
+				prUser.second->GetSecondaryStat()->nThaw_)
+				continue;
+
+			liFlag |= QWUser::IncHP(prUser.second, -m_nAutoDecHP, false);
+			if (prUser.second->GetCharacterData()->mStat->nHP == 0)
+				prUser.second->OnUserDead(IsTown());
+			liFlag |= QWUser::IncMP(prUser.second, -m_nAutoDecMP, false);
+			prUser.second->SendCharacterStat(false, liFlag);
+		}
+		m_tLastStatChangeByField = tCur;
+	}
 }
 
 void Field::Update()
@@ -684,4 +729,5 @@ void Field::Update()
 	m_pAffectedAreaPool->Update(tCur);
 	m_pDropPool->TryExpire(false);
 	m_pSummonedPool->Update(tCur);
+	OnStatChangeByField(tCur);
 }

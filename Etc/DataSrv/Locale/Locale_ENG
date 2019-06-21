@@ -1,0 +1,38 @@
+//WvsApp Common Str Pool
+Common_No_CommandLine_Provided = "Please run this program with command line, and provide the path of config files.\n"
+Common_Unknown_Error = "Unknown error occurred."
+
+//WvsLogin Str Pool
+
+//WvsGame Str Pool
+GameSrv_ItemInfo_Init_ItemName = "[ItemInfo::Initialize<IterateItemString>]On iterating all item names....\n"
+GameSrv_ItemInfo_Init_ItemName_Done = "[ItemInfo::Initialize<IterateItemString>]Item names are completely loaded.\n"
+GameSrv_ItemInfo_Init_Equip = "[ItemInfo::Initialize<IterateEquipItem>]On iterating all equip items....\n"
+GameSrv_ItemInfo_Init_Equip_Done = "[ItemInfo::Initialize<IterateEquipItem>]Equip items are completely loaded.\n"
+GameSrv_ItemInfo_Init_Bundle = "[ItemInfo::Initialize<IterateBundleItem>]On iterating all bundle items....\n"
+GameSrv_ItemInfo_Init_Bundle_Done = "[ItemInfo::Initialize<IterateBundleItem>]Bundle items are completely loaded.\n"
+GameSrv_SkillInfo_Init = "[SkillInfo::IterateSkillInfo<IterateSkillInfo>]On iterating all skills....\n"
+GameSrv_SkillInfo_Init_Done = "[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded.\n"
+
+GameSrv_System_Application_Title = "MapleStory Server [WvsGame][TWMS][%03d][WorldID : %02d][ChannelID : %02d]";
+GameSrv_System_Center_Connected = "[WvsGame][Center::OnConnect]Successfully connected to center server.\n"
+GameSrv_System_Center_Disconnected = "[WvsGame]Disconnected from WvsCenter (closed by remote server).\n"
+GameSrv_System_Center_Connection_Accepted = "[Center][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n"
+GameSrv_System_Center_Connection_Rejected = "[Center][RegisterCenterAck]Center has rejected the connection request, WvsGame server may not work properly.\n"
+GameSrv_System_Alive_Monitor = "--------------------Periodically reconnecting to WvsCenter--------------------\n"
+GameSrv_System_Alive_Monitor_Connect_Failed = "Connecting to Center Server %d failed, reconnection has been scheduled.\n"
+
+GameSrv_User_Check_StartDemand_Failed = "[User][OnAcceptQuest]Unable to pass start-demand checking, user name: %s, quest id: %d\n"
+GameSrv_User_Check_CompleteDemand_Failed = "[User][OnCompleteQuest]Unable to pass complete-demand checking, user name: %s, quest id: %d\n"
+GameSrv_User_Insufficient_SlotCount = "Make sure you have sufficient slot counts."
+GameSrv_User_Insufficient_ItemCount = "Insufficient number of items."
+GameSrv_User_Insufficient_Money = "Insufficient money."
+
+GameSrv_Shop_Invalid_Item = "Invalid item, please try again."
+GameSrv_Shop_Item_Recharged = "Item has been recharged."
+
+//WvsCenter Str Pool
+
+//WvsLib Str Pool
+Lib_WvsBase_Acceptor_Created = "[WvsBase::CreateAcceptor]WvsApp server instance is successfully initialized and listening on port %d.\n"
+Lib_WvsBase_Socket_Disconnected = "[WvsBase::OnSocketDisconnected]Socket has been disconnected from server [Socket ID : %u].\n"

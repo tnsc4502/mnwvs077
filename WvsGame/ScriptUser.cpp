@@ -7,6 +7,8 @@
 #include "QWUser.h"
 #include "PartyMan.h"
 #include "GuildMan.h"
+#include "ItemInfo.h"
+#include "StateChangeItem.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
@@ -14,6 +16,7 @@
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GA_Character.hpp"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 
 ScriptUser::ScriptUser()
 {
@@ -52,7 +55,8 @@ void ScriptUser::Register(lua_State * L)
 		{ "inventory", TargetInventory }, 
 		{ "questRecord", TargetQuestRecord },
 		{ "questEndEffect", TargetQuestEndEffect },
-		{ "getField", TargetField },
+		{ "getField", TargetGetField },
+		{ "playPortalSE", TargetPlayPortalSE },
 		{ "transferField", TargetRegisterTransferField },
 		{ "incHP", TargetIncHP },
 		{ "incMP", TargetIncMP },
@@ -88,6 +92,8 @@ void ScriptUser::Register(lua_State * L)
 		{ "isWearing", TargetIsWearing },
 		{ "getPosX", TargetGetPosX },
 		{ "getPosY", TargetGetPosY },
+		{ "giveBuff", TargetGiveBuff },
+		{ "cancelBuff", TargetCancelBuff },
 		{ "isGuildMember", TargetIsGuildMember },
 		{ "isGuildMaster", TargetIsGuildMaster },
 		{ "getGuildCountMax", TargetGetGuildCountMax },
@@ -95,6 +101,7 @@ void ScriptUser::Register(lua_State * L)
 		{ "getPartyMemberJob", TargetGetPartyMemberJob },
 		{ "getPartyMemberLevel", TargetGetPartyMemberLevel },
 		{ "givePartyBuff", TargetGivePartyBuff },
+		{ "cancelPartyBuff", TargetCancelPartyBuff },
 		{ "getPartyID", TargetGetPartyID },
 		{ "getMCTeam", TargetGetMCTeam },
 		{ "getName", TargetGetName },
@@ -104,6 +111,7 @@ void ScriptUser::Register(lua_State * L)
 		{ "removeGuildMark", TargetRemoveGuildMark },
 		{ "isGuildMarkExist", TargetIsGuildMarkExist },
 		{ "incGuildCountMax", TargetIncGuildCountMax },
+		{ "message", TargetMessage },
 		{ "exception1", TargetException1 },
 		{ "exception2", TargetException2 },
 		{ NULL, NULL }
@@ -163,7 +171,7 @@ int ScriptUser::TargetQuestRecord(lua_State * L)
 	return 1;
 }
 
-int ScriptUser::TargetField(lua_State * L)
+int ScriptUser::TargetGetField(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 	ScriptField* obj =
@@ -173,6 +181,13 @@ int ScriptUser::TargetField(lua_State * L)
 		obj->SetField(self->m_pUser->GetField());
 
 	((Script*)L->selfPtr)->PushClassObject(obj);
+	return 1;
+}
+
+int ScriptUser::TargetPlayPortalSE(lua_State *L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	self->m_pUser->SendPlayPortalSE();
 	return 1;
 }
 
@@ -587,8 +602,103 @@ int ScriptUser::TargetGetPartyMemberLevel(lua_State * L)
 	return 1;
 }
 
+int ScriptUser::TargetGiveBuff(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nItemID = (int)luaL_checkinteger(L, 2);
+	auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
+	if (!pItem)
+		return 1;
+	pItem->Apply(
+		self->m_pUser,
+		GameDateTime::GetTime(),
+		false
+	);
+	return 1;
+}
+
+int ScriptUser::TargetCancelBuff(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nItemID = (int)luaL_checkinteger(L, 2);
+	auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
+	if (!pItem)
+		return 1;
+	pItem->Apply(
+		self->m_pUser,
+		GameDateTime::GetTime(),
+		false,
+		true
+	);
+	return 1;
+}
+
 int ScriptUser::TargetGivePartyBuff(lua_State * L)
 {
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nItemID = (int)luaL_checkinteger(L, 2);
+	auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
+	if (!pItem)
+		return 1;
+	pItem->Apply(
+		self->m_pUser,
+		GameDateTime::GetTime(),
+		false
+	);
+	if (self->m_pUser->GetPartyID() == -1)
+		return 1;
+
+	int anCharacterID[PartyMan::MAX_PARTY_MEMBER_COUNT];
+	PartyMan::GetInstance()->GetSnapshot(
+		self->m_pUser->GetPartyID(),
+		anCharacterID
+	);
+	ZSharedPtr<User> pUser;
+	for(auto nID : anCharacterID)
+		if(nID != self->m_pUser->GetUserID() &&
+			((pUser = User::FindUser(nID)) != nullptr))
+			pItem->Apply(
+				pUser,
+				GameDateTime::GetTime(),
+				false
+			);
+			
+	return 1;
+}
+
+int ScriptUser::TargetCancelPartyBuff(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nItemID = (int)luaL_checkinteger(L, 2);
+	auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(nItemID);
+	if (!pItem)
+		return 1;
+
+	pItem->Apply(
+		self->m_pUser,
+		GameDateTime::GetTime(),
+		false,
+		true
+	);
+	if (self->m_pUser->GetPartyID() == -1)
+		return 1;
+
+	int anCharacterID[PartyMan::MAX_PARTY_MEMBER_COUNT];
+	PartyMan::GetInstance()->GetSnapshot(
+		self->m_pUser->GetPartyID(),
+		anCharacterID
+	);
+
+	ZSharedPtr<User> pUser;
+	for (auto nID : anCharacterID)
+		if (nID != self->m_pUser->GetUserID() &&
+			((pUser = User::FindUser(nID)) != nullptr))
+			pItem->Apply(
+				pUser,
+				GameDateTime::GetTime(),
+				false,
+				true
+			);
 	return 1;
 }
 
@@ -731,6 +841,14 @@ int ScriptUser::TargetIncGuildCountMax(lua_State * L)
 	}
 
 	GuildMan::GetInstance()->OnIncMaxMemberNumRequest(self->m_pUser, nInc, nCost);
+	return 1;
+}
+
+int ScriptUser::TargetMessage(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	std::string sMsg = luaL_checkstring(L, 2);
+	self->m_pUser->SendChatMessage(5, sMsg);
 	return 1;
 }
 

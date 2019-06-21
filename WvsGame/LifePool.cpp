@@ -54,13 +54,13 @@ void LifePool::Init(Field* pField, int nFieldID)
 {
 	m_pField = pField;
 
-	int nSizeX = 1920;
-	int nSizeY = 1080; //I dont know
-	int nGenSize = (int)(((double)nSizeX * nSizeY) * 0.0000048125f);
+	int nSizeX = pField->GetMapSize().x;
+	int nSizeY = pField->GetMapSize().y; //I dont know
+	int nGenSize = (int)(((double)nSizeX * nSizeY) * 0.0000031825f);
 	if (nGenSize < 1)
 		nGenSize = 1;
-	else if (nGenSize >= MAX_MOB_GEN)
-		nGenSize = MAX_MOB_GEN;
+	else if (nGenSize >= LIFE_MAX_MOB_GEN)
+		nGenSize = LIFE_MAX_MOB_GEN;
 	m_nMobCapacityMin = nGenSize;
 	m_nMobCapacityMax = (int)std::ceil((double)nGenSize * 2.0 * pField->GetMobRate());
 
@@ -76,7 +76,10 @@ void LifePool::Init(Field* pField, int nFieldID)
 			LoadNpcData(node);
 		else if (typeFlag == "m")
 			LoadMobData(node);
-	}	
+	}
+
+	for (int i = 0; i < (int)m_aMobGen.size(); ++i)
+		m_aMobGen[i].swap(m_aMobGen[(int)(Rand32::GetInstance()->Random() % (int)m_aMobGen.size())]);
 
 	//強制生成所有NPC
 	for (auto& npc : m_lNpc)
@@ -143,8 +146,13 @@ Npc* LifePool::CreateNpc(int nTemplateID, int nX, int nY, int nFh)
 	Npc npc;
 	npc.SetPosX(nX);
 	npc.SetPosY(nY);
+	npc.SetCy(nY);
 	npc.SetFh(nFh);
-	npc.SetTemplate(NpcTemplate::GetInstance()->GetNpcTemplate(npc.GetTemplateID()));
+	npc.SetRx0(nX + 50);
+	npc.SetRx1(nX - 50);
+	npc.SetHide(false);
+	npc.SetTemplate(NpcTemplate::GetInstance()->GetNpcTemplate(nTemplateID));
+	npc.SetTemplateID(nTemplateID);
 	return CreateNpc(npc);
 }
 
@@ -156,6 +164,10 @@ Npc* LifePool::CreateNpc(const Npc& npc)
 	newNpc->SetFieldObjectID(atomicObjectCounter++);
 	newNpc->SetField(m_pField);
 	m_mNpc.insert({ newNpc->GetFieldObjectID(), newNpc });
+	
+	OutPacket oPacket;
+	newNpc->MakeEnterFieldPacket(&oPacket);
+	m_pField->BroadcastPacket(&oPacket);
 	return newNpc;
 }
 
@@ -175,7 +187,7 @@ void LifePool::TryCreateMob(bool bReset)
 		{
 			if (bReset)
 				pGen->nRegenAfter = 1000;
-			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur - pGen->nRegenAfter >= 0)))
+			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur >= pGen->nRegenAfter)))
 				apGen.push_back(pGen);
 		}
 
@@ -184,7 +196,7 @@ void LifePool::TryCreateMob(bool bReset)
 		{
 			if (bReset)
 				pGen->nRegenAfter = 1000;
-			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur - pGen->nRegenAfter >= 0)))
+			if ((pGen->nRegenAfter && (!pGen->nMobCount || tCur >= pGen->nRegenAfter)))
 				apGen.push_back(pGen);
 		}
 
@@ -198,8 +210,8 @@ void LifePool::TryCreateMob(bool bReset)
 			if (apGen.size())
 				apGen.pop_back();
 
-			if (pMobGen->nRegenInterval == 0 ||
-				(pMobGen->nRegenAfter && tCur >= pMobGen->nRegenAfter))
+			if (pMobGen->nRegenAfter && tCur >= pMobGen->nRegenAfter && //These two are necessary conditions
+				(pMobGen->nRegenInterval != -1 || pMobGen->nMobCount == 0)) //Those with mobTime -1 should only be generated with bReset = true
 			{
 				auto& mob = pMobGen->mob;
 				CreateMob(mob, mob.GetPosX(), mob.GetPosY(), mob.GetFh(), 0, -2, 0, 0, 0, nullptr);
@@ -254,18 +266,16 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		newMob->SetSummonType(nType);
 		newMob->SetSummonOption(dwOption);
 		if (mob.GetMobGen()) 
-		{
 			++((MobGen*)mob.GetMobGen())->nMobCount;
-			((MobGen*)mob.GetMobGen())->nRegenAfter = 0;
-		}
 
 		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-		newMob->SetHP(/*1*/ newMob->GetMobTemplate()->m_lnMaxHP);
+		newMob->SetHP(1 /*newMob->GetMobTemplate()->m_lnMaxHP*/);
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //怪物 = 5 ?
 		newMob->GetDamageLog().nFieldID = m_pField->GetFieldID();
 		newMob->GetDamageLog().liInitHP = newMob->GetMobTemplate()->m_lnMaxHP;
+		newMob->SetMobType(nMobType);
 
 		OutPacket createMobPacket;
 		newMob->MakeEnterFieldPacket(&createMobPacket);
@@ -278,6 +288,9 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 		//19/05/07 +
 		UpdateCtrlHeap(pController);
 		m_mMob.insert({ newMob->GetFieldObjectID(), newMob });
+
+		if (nMobType == Mob::MobType::e_MobType_SubMob)
+			++m_nSubMobCount;
 	}
 }
 
@@ -303,11 +316,16 @@ void LifePool::RemoveMob(Mob* pMob)
 	else
 		m_pCtrlNull->RemoveCtrlMob(pMob);
 	auto pGen = (MobGen*)pMob->GetMobGen();
-	if (pGen && pGen->nRegenInterval)
+
+	//Reset time of generation.
+	if (pGen)
 	{
 		--pGen->nMobCount;
-		pGen->nRegenAfter = pGen->nRegenInterval == 0 ? REGEN_PERIOD :
-			(pGen->nRegenInterval * 300) * (int)(1 + Rand32::GetInstance()->Random() % 16);
+		pGen->nRegenAfter = GameDateTime::GetTime() + 
+			(pGen->nRegenInterval == 0 ? 
+				LIFE_REGEN_PERIOD : 
+				(pGen->nRegenInterval * 250) * (int)(4 + Rand32::GetInstance()->Random() % 16)
+			);
 
 		if (pGen->nRegenInterval == -1)
 			pGen->nRegenAfter = 0;
@@ -315,8 +333,37 @@ void LifePool::RemoveMob(Mob* pMob)
 	OutPacket oPacket;
 	pMob->MakeLeaveFieldPacket(&oPacket);
 	m_pField->SplitSendPacket(&oPacket, nullptr);
-	m_mMob.erase(pMob->GetFieldObjectID());
 
+	//Generate all mobs in "revive" node.
+	for (auto nRevive : pMob->GetMobTemplate()->m_aReviveTemplateID)
+		CreateMob(
+			nRevive,
+			pMob->GetPosX(),
+			pMob->GetPosY(),
+			pMob->GetFh(),
+			false,
+			-3,
+			pMob->GetTemplateID(),
+			pMob->GetMoveAction() & 1,
+			pMob->GetMobTemplate()->m_bIsBoss ? Mob::MobType::e_MobType_Suspend : Mob::MobType::e_MobType_Normal,
+			nullptr
+		);
+
+	//Turn suspended mobs (ex. Zakum...etc.) into "real" mode.
+	if (pMob->GetMobType() == Mob::MobType::e_MobType_SubMob)
+		--m_nSubMobCount;
+
+	if (!m_nSubMobCount)
+	{
+		for(auto& prMob : m_mMob)
+			if ((Mob*)prMob.second != pMob && prMob.second->GetMobType() == Mob::MobType::e_MobType_Suspend)
+			{
+				prMob.second->SendSuspendReset(true);
+				prMob.second->SetSummonType(-1);
+				prMob.second->SetSummonOption(0);
+			}
+	}
+	m_mMob.erase(pMob->GetFieldObjectID());
 	if(m_mMob.size() == 0)
 		ContinentMan::GetInstance()->OnAllSummonedMobRemoved(m_pField->GetFieldID());
 }
@@ -422,16 +469,16 @@ void LifePool::RemoveController(User* pUser)
 	if (m_mController.size() == 0)
 		return;
 
-	//找到pUser對應的iterator
+	//Get the iterator of controller of pUser
 	auto& iter = m_mController.find(pUser->GetUserID());
 
-	//根據iterator找到controller指標
+	//According to iterator, fetch the Controller pointer.
 	auto pController = iter->second->second;
 
-	//從hCtrl中移除此controller
+	//Remove controller from hCtrl
 	m_hCtrl.erase(iter->second);
 
-	//從pUser中移除iter
+	//Remove iterator storage
 	m_mController.erase(iter);
 
 	auto& controlled = pController->GetMobCtrlList();
@@ -450,19 +497,19 @@ void LifePool::RemoveController(User* pUser)
 		}
 	}
 
-	//銷毀
+	//Destroy object
 	FreeObj( pController );
 }
 
 void LifePool::UpdateCtrlHeap(Controller * pController)
 {
-	//根據controller找到對應的pUser
+	//Get the iterator of controller of pUser
 	auto pUser = pController->GetUser();
 
-	//找到pUser對應的iterator
+	//According to iterator, fetch the Controller pointer.
 	auto& iter = m_mController.find(pUser->GetUserID());
 
-	//從hCtrl中移除此controller，並重新插入 [新的數量為key]
+	//Remove the controller from hCtrl and then re-insert it [the key would be the new number of controlled objects].
 	m_hCtrl.erase(iter->second);
 	m_mController[pUser->GetUserID()] = m_hCtrl.insert({ pController->GetTotalControlledCount(), pController });
 }
@@ -612,7 +659,7 @@ void LifePool::RedistributeLife()
 			auto pMob = *iter;
 			pCtrl = m_hCtrl.begin()->second;
 
-			//控制NPC與怪物數量總和超過50，重新配置
+			//If sum of the number of controlled Npcs and Mobs are greater than 50, then redistribute lifes.
 			if (pCtrl->GetTotalControlledCount() >= 50)
 				break;
 			pCtrl->AddCtrlMob(pMob);
@@ -627,8 +674,9 @@ void LifePool::RedistributeLife()
 
 		Controller* minCtrl, *maxCtrl;
 		int nMaxNpcCtrl, nMaxMobCtrl, nMinNpcCtrl, nMinMobCtrl;
-		//重新調配每個人的怪物控制權
-		if (nCtrlCount >= 2) //至少一個minCtrl與maxCtrl
+
+		//Redistrubte mob controllers
+		if (nCtrlCount >= 2) //At least one minCtrl and maxCtrl.
 		{
 			while (true) 
 			{
@@ -639,7 +687,8 @@ void LifePool::RedistributeLife()
 				nMinNpcCtrl = minCtrl->GetNpcCtrlCount();
 				nMinMobCtrl = minCtrl->GetMobCtrlCount();
 				//WvsLogger::LogFormat("Min Ctrl User = %d(%d), Max Ctrl User = %d(%d)\n", minCtrl->GetUser()->GetUserID(), nMinMobCtrl, maxCtrl->GetUser()->GetUserID(), nMaxMobCtrl);
-				//已經足夠平衡不需要再重新配給
+
+				//Balanced, no need to redistribute
 				if ((nMaxNpcCtrl + nMaxMobCtrl - (nMaxMobCtrl != 0) <= (nMinNpcCtrl - (nMinMobCtrl != 0) + nMinMobCtrl + 1))
 					|| ((nMaxNpcCtrl + nMaxMobCtrl - (nMaxMobCtrl != 0)) <= 20))
 					break;
@@ -819,7 +868,7 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 		oPacket.Encode4(prDmgInfo.first);
 		if (prDmgInfo.first == 0)
 			continue;
-		oPacket.Encode1(prDmgInfo.second.m_nHitAction);
+		oPacket.Encode1(prDmgInfo.second.nHitAction);
 		oPacket.Encode4(prDmgInfo.second.anDamageSrv[0]);
 	}
 	m_pField->SplitSendPacket(&oPacket, pUser);

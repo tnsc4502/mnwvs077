@@ -46,6 +46,7 @@ public:
 	std::vector<MobSkillContext> m_aSkillContext;
 	std::vector<MobAttackInfo> m_aAttackInfo;
 	std::vector<std::pair<int, int>> m_aMobSkill;
+	std::vector<int> m_aReviveTemplateID;
 
 	unsigned int m_unTotalRewardProb = 0;
 

@@ -113,7 +113,7 @@ void WvsLogger::LogFormat(int nConsoleColor, const std::string format, ...)
 		nOldSz = n;
 
 		formatted = AllocArray(char, n);
-		strcpy(&formatted[0], format.c_str());
+		//strcpy(&formatted[0], format.c_str());
 		va_start(ap, format);
 		final_n = vsnprintf(&formatted[0], n, format.c_str(), ap);
 		va_end(ap);

@@ -143,6 +143,15 @@ void Mob::SendReleaseControllPacket(User* pUser, int dwMobID)
 	pUser->SendPacket(&oPacket);
 }
 
+void Mob::SendSuspendReset(bool bResetSuspend)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(MobSendPacketFlag::Mob_OnSuspendReset);
+	oPacket.Encode4(m_nFieldObjectID);
+	oPacket.Encode1(bResetSuspend ? 1 : 0);
+	m_pField->SplitSendPacket(&oPacket, nullptr);
+}
+
 void Mob::SetMobTemplate(MobTemplate *pTemplate)
 {
 	m_pMobTemplate = pTemplate;
@@ -1168,6 +1177,16 @@ void Mob::SetSummonType(int nType)
 void Mob::SetSummonOption(int nOption)
 {
 	m_nSummonOption = nOption;
+}
+
+void Mob::SetMobType(int nMobType)
+{
+	m_nMobType = nMobType;
+}
+
+int Mob::GetMobType() const
+{
+	return m_nMobType;
 }
 
 long long int Mob::GetHP() const

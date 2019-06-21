@@ -66,10 +66,13 @@ void DropPool::Create(ZUniquePtr<Reward>& zpReward, unsigned int dwOwnerID, unsi
 	{
 		OutPacket oPacket;
 		pDrop->MakeEnterFieldPacket(&oPacket, 1, tDelay);
-		m_pField->BroadcastPacket(&oPacket);
+		//m_pField->BroadcastPacket(&oPacket);
+		m_pField->RegisterFieldObj(pDrop, &oPacket);
+
 		OutPacket oPacket2;
 		pDrop->MakeEnterFieldPacket(&oPacket2, 0, tDelay);
-		m_pField->BroadcastPacket(&oPacket2);
+		//m_pField->BroadcastPacket(&oPacket2);
+		m_pField->RegisterFieldObj(pDrop, &oPacket2);
 	}
 	pDrop->m_tCreateTime = GameDateTime::GetTime();
 	m_mDrop.insert({ pDrop->m_dwDropID, pDrop });
@@ -80,6 +83,8 @@ void DropPool::OnEnter(User * pUser)
 	std::lock_guard<std::mutex> dropPoolock(m_mtxDropPoolLock);
 	for (auto& drop : m_mDrop)
 	{
+		if (!drop.second->IsShowTo(pUser))
+			continue;
 		OutPacket oPacket;
 		drop.second->MakeEnterFieldPacket(&oPacket);
 		pUser->SendPacket(&oPacket);

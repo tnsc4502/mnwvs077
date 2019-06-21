@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 
+class Field;
+
 class Portal
 {
 private:
@@ -15,6 +17,8 @@ private:
 		m_sScript; //script
 
 	bool m_bIsEnable;
+	Field *m_pField = nullptr;
+
 public:
 	Portal(int nID, int nType, int nTargetMap, int nX, int nY, const std::string& sName, const std::string& sTName, const std::string& sScript);
 	~Portal();
@@ -37,5 +41,8 @@ public:
 
 	bool IsEnable() const;
 	void SetEnable(bool enable);
+
+	void SetField(Field *pField);
+	Field *GetField();
 };
 

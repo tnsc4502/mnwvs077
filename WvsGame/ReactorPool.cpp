@@ -56,7 +56,7 @@ void ReactorPool::TryCreateReactor(bool bReset)
 	{
 		if (!bReset && gen.tRegenInterval <= 0)
 			continue;
-		if (!bReset && (gen.nReactorCount || tCur - gen.tRegenAfter < 0))
+		if (!bReset && (gen.nReactorCount || tCur < gen.tRegenAfter))
 			continue;
 		aGen.push_back(&gen);
 	}
@@ -133,6 +133,19 @@ void ReactorPool::OnHit(User *pUser, InPacket *iPacket)
 	pFindIter->second->OnHit(pUser, iPacket);
 }
 
+int ReactorPool::GetState(const std::string & sName)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
+	auto findNameIter = m_mReactorName.find(sName);
+	if (findNameIter == m_mReactorName.end())
+		return -1;
+	auto findIter = m_mReactor.find(findNameIter->second);
+	if (findIter == m_mReactor.end())
+		return -1;
+	auto &pReactor = findIter->second;
+	return pReactor->m_nState;
+}
+
 void ReactorPool::SetState(const std::string &sName, int nState)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
@@ -146,16 +159,11 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 	pReactor->m_nState = nState;
 	pReactor->FindAvailableAction();
 	auto pInfo = pReactor->m_pTemplate->GetStateInfo(nState);
+	pReactor->m_bRemove = (!pInfo || pInfo->m_aEventInfo.size() == 0);
 
-	if (((!pInfo || pInfo->m_aEventInfo.size() == 0) && !m_pField->GetFieldSet())
-		/*|| !pReactor->m_pTemplate->RemoveInFieldSet()*/)
-		RemoveReactor(pReactor);
-	else
-	{
-		OutPacket oPacket;
-		pReactor->MakeStateChangePacket(&oPacket, 0, -1);
-		m_pField->BroadcastPacket(&oPacket);
-	}
+	OutPacket oPacket;
+	pReactor->MakeStateChangePacket(&oPacket, 0, -1);
+	m_pField->BroadcastPacket(&oPacket);
 }
 
 void ReactorPool::RemoveAllReactor()
@@ -207,8 +215,16 @@ void ReactorPool::Update(unsigned int tCur)
 {
 	TryCreateReactor(false);
 	std::lock_guard<std::recursive_mutex> lock(m_mtxReactorPoolMutex);
-	for (auto& prReactor : m_mReactor)
-		prReactor.second->DoActionByUpdateEvent();
+
+	for(auto iter = m_mReactor.begin(); iter != m_mReactor.end(); )
+	{
+		if (iter->second->m_bRemove && 
+			!iter->second->m_bDestroyAfterEvent && 
+			tCur > iter->second->m_tStateEnd)
+			RemoveReactor((iter++)->second);
+		else
+			(iter++)->second->DoActionByUpdateEvent();
+	}
 }
 
 void ReactorPool::Reset(bool bShuffle)

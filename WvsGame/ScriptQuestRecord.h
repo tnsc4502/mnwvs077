@@ -9,7 +9,6 @@ class ScriptQuestRecord
 public:
 	ScriptQuestRecord();
 	~ScriptQuestRecord();
-
 	void SetUser(User *pUser);
 
 	static ScriptQuestRecord* GetSelf(lua_State* L);
@@ -18,5 +17,8 @@ public:
 	static int QuestRecordGetState(lua_State* L);
 	static int QuestRecordGet(lua_State* L);
 	static int QuestRecordSetState(lua_State* L);
+	static int QuestRecordSet(lua_State* L);
+	static int QuestRecordRemove(lua_State* L);
+	static int QuestRecordSetComplete(lua_State* L);
 };
 

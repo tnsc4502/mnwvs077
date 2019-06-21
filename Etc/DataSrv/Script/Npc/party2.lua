@@ -260,18 +260,6 @@ function party2_stage7() {
 	}
 }
 
-function make_area_answer(numCount, answerCount) {
-    rndSeq = randomSeq(1, numCount);
-    ret = "";
-    for k, v in pairs(rndSeq) {
-        if(v > answerCount)
-            ret = ret .. '0';
-        else
-            ret = ret .. '1';
-    }
-    return ret;
-}
-
 function area_check(areaCount, answerCount) {
     ret = "";
     areaCount = areaCount - 1;

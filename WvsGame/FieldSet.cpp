@@ -6,13 +6,71 @@
 #include "PartyMan.h"
 #include "QWUser.h"
 #include "ScriptFieldSet.h"
+#include "ReactorPool.h"
+#include "FieldSetEventManager.h"
 #include <functional>
+#include "..\WvsLib\Wz\ImgAccessor.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
 #include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+
+#undef GetJob
+#undef min
+#undef max
+
+void FieldSet::LoadReactorAction(void *pAction)
+{
+	auto& wzNode = *((WZ::Node*)pAction);
+	for (auto& eachField : wzNode)
+		for(auto& subNode : eachField)
+			LoadEachAction(&subNode, atoi(eachField.Name().c_str()));
+}
+
+void FieldSet::LoadEachAction(void *pSub, int nFieldIdx)
+{
+	auto& wzNode = *((WZ::Node*)pSub);
+	auto empty = WZ::Node();
+	ActionInfo info;
+	int nVal = 0;
+	std::string sVal = "";
+	info.nFieldIdx = nFieldIdx;
+	for (auto& dataNode : wzNode)
+	{
+		if (dataNode.Name() == "info")
+		{
+			info.nActionType = dataNode["type"];
+			if (info.nActionType == -1)
+				return;
+			for (int i = 0; ; ++i)
+			{
+				auto& subNode = dataNode[std::to_string(i)];
+				if (subNode.Name() == "" || subNode == empty)
+					break;
+
+				sVal = ((std::string)subNode);
+				nVal = atoi(sVal.c_str());
+				if (nVal == 0 && sVal != "0")
+				{
+					info.avArgs.push_back({ });
+					info.avArgs.back().FromStr(sVal);
+				}
+				else
+					info.avArgs.push_back({ nVal });
+			}
+		}
+		else
+		{
+			info.ari.push_back({});
+			info.ari.back().sName = dataNode.Name();
+			info.ari.back().nEventState = dataNode;
+		}
+	}
+	m_aReactorActionInfo.push_back(info);
+}
 
 FieldSet::FieldSet()
 {
@@ -21,7 +79,7 @@ FieldSet::FieldSet()
 FieldSet::~FieldSet()
 {
 	m_pFieldSetTimer->Abort();
-	delete m_pFieldSetTimer;
+	FreeObj( m_pFieldSetTimer );
 	if (m_pScript) 
 	{
 		m_pScript->Abort();
@@ -50,6 +108,7 @@ void FieldSet::Init(const std::string & sCfgFilePath)
 void FieldSet::InitConfig()
 {
 	auto pCfg = (ConfigLoader*)m_pCfg;
+	m_aFieldUnAffected = pCfg->GetArray<int>("FieldUnAffected");
 	m_aFieldID = pCfg->GetArray<int>("FieldList");
 	m_aField.clear();
 	Field *pField;
@@ -58,6 +117,9 @@ void FieldSet::InitConfig()
 		pField = FieldMan::GetInstance()->GetField(nFieldID);
 		pField->SetFieldSet(this);
 		m_aField.push_back(pField);
+
+		if (std::find(m_aFieldUnAffected.begin(), m_aFieldUnAffected.end(), nFieldID) == m_aFieldUnAffected.end())
+			m_aField_Affected.push_back(pField);
 	}
 	m_sFieldSetName = pCfg->StrValue("FieldSetName");
 	m_sScriptName = pCfg->StrValue("ScriptName");
@@ -69,6 +131,14 @@ void FieldSet::InitConfig()
 	m_nLevelMin = pCfg->IntValue("Level_Min");
 	m_nLevelMax = pCfg->IntValue("Level_Max");
 	m_aJobType = pCfg->GetArray<int>("JobType");
+
+	std::string sFieldSetInfo = pCfg->StrValue("FieldSetInfo");
+	if (sFieldSetInfo != "")
+	{
+		m_aReactorActionInfo.clear();
+		WZ::ImgAccessor img("./DataSrv/FieldSet");
+		LoadReactorAction(&(img[sFieldSetInfo]["action"]));
+	}
 
 	auto aVariable = pCfg->GetArray<std::string>("FieldSetVar");
 	std::vector<std::string> aKeyValue;
@@ -157,6 +227,14 @@ bool FieldSet::IsPartyFieldSet() const
 bool FieldSet::IsGuildFieldSet() const
 {
 	return false;
+}
+
+int FieldSet::GetFieldIndex(Field * pField) const
+{
+	for (int i = 0; i < (int)m_aField.size(); ++i)
+		if (m_aField[i] == pField)
+			return i;
+	return -1;
 }
 
 void FieldSet::OnLeaveFieldSet(int nCharacterID)
@@ -275,6 +353,7 @@ const std::string & FieldSet::GetVar(const std::string& sVarName)
 void FieldSet::OnUserEnterField(User* pUser, Field *pField)
 {
 	m_pScript->SafeInvocation("onUserEnter", { pField->GetFieldID(), pUser->GetUserID() });
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
 	if (m_pFieldSetTimer->IsStarted()) 
 	{
 		OutPacket oPacket;
@@ -304,7 +383,151 @@ void FieldSet::IncExpAll(int nCount)
 			QWUser::IncEXP(prUser.second, nCount, false);
 }
 
+int FieldSet::GetReactorState(int nFieldIdx, const std::string & sReactorName)
+{
+	if (nFieldIdx < 0 || nFieldIdx >= (int)m_aField.size())
+		return -1;
+	auto pField = m_aField[nFieldIdx];
+	return pField->GetReactorPool()->GetState(sReactorName);;
+}
+
+void FieldSet::SetReactorState(int nFieldIdx, const std::string & sReactorName, int nState, int nOrder)
+{
+	if (nFieldIdx < 0 || nFieldIdx >= (int)m_aField.size())
+		return;
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
+
+	ActionInfo info;
+	info.nEventType = ActionInfo::EventType::e_Event_ReactorAction;
+	info.nActionType = ActionInfo::ActionType::e_Action_Reactor_SetReactorState;
+	info.avArgs.push_back({ nFieldIdx });
+
+	info.avArgs.push_back({ });
+	info.avArgs.back().FromStr(sReactorName);
+	info.avArgs.push_back({ nState });
+	info.avArgs.push_back({ nOrder });
+
+	m_mEventAction.insert({
+		FieldSetEventManager::GetInstance()->RegisterEvent(this, 3200 * nOrder),
+		std::move(info)
+	});
+}
+
+void FieldSet::OnTime(unsigned int uEventSN)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
+	auto findIter = m_mEventAction.find(uEventSN);
+	if (findIter == m_mEventAction.end())
+		return;
+
+	auto& action = findIter->second;
+	if (action.nEventType == ActionInfo::EventType::e_Event_ReactorAction)
+		DoReactorAction(action);
+	else if (action.nEventType == ActionInfo::EventType::e_Event_EventAction)
+		DoEventAction(action);
+	m_mEventAction.erase(uEventSN);
+}
+
+void FieldSet::DoReactorAction(const ActionInfo & prai)
+{
+	if (prai.avArgs.size() < 1)
+		return;
+	auto pReactorPool = m_aField[prai.avArgs[0].nVal]->GetReactorPool();
+
+	switch (prai.nActionType)
+	{
+		case ActionInfo::ActionType::e_Action_Reactor_SetReactorState:
+			/*
+			[0] = nFieldIdx
+			[1] = sName
+			[2] = nState
+			[3] = nOder <Optional>
+			*/
+			if (prai.avArgs.size() < 3)
+				return;
+			pReactorPool->SetState(
+				prai.avArgs[1].sVal,
+				prai.avArgs[2].nVal != -1 ? prai.avArgs[2].nVal : pReactorPool->GetState(prai.avArgs[1].sVal) + 1
+			);
+			if (prai.avArgs.size() > 3)
+			{
+				auto& strStatueQuestion = GetVar("statueQuestion");
+				int nIdx = 1;
+				while (true)
+				{
+					if (strStatueQuestion.find(std::to_string(nIdx)) == std::string::npos)
+						break;
+					++nIdx;
+				}
+				if (prai.avArgs[3].nVal == nIdx - 1)
+					SetVar("statueAnswer", "00000000000000000000");
+			}
+			break;
+	}
+}
+
+void FieldSet::DoEventAction(const ActionInfo &prai)
+{
+}
+
+void FieldSet::CheckReactorAction(Field *pField, const std::string sReactorName, unsigned int tEventTime)
+{
+	int nFieldIdx = GetFieldIndex(pField), nState = 0;
+	if (nFieldIdx == -1)
+		return;
+	bool bReactorMatch = false;
+	for (auto& info : m_aReactorActionInfo)
+	{
+		bReactorMatch = false;
+		if (info.nFieldIdx != nFieldIdx)
+			continue;
+		for (int i = 0; ; ++i)
+		{
+			auto& ri = info.ari[i];
+			if (i >= (int)info.ari.size() || i >= ri.nEventState)
+				break;
+			nState = m_aField[nFieldIdx]->GetReactorPool()->GetState(ri.sName);
+			if (nState < 0 || nState != ri.nEventState)
+				break;
+
+			if (nState == ri.nEventState && ri.sName == sReactorName) 
+			{
+				bReactorMatch = true;
+				break;
+			}
+		}
+		if (bReactorMatch)
+		{
+			info.nEventType = ActionInfo::EventType::e_Event_ReactorAction;
+			m_mEventAction.insert({
+				FieldSetEventManager::GetInstance()->RegisterEvent(this, tEventTime),
+				info
+			});
+		}
+	}
+}
+
+void FieldSet::BroadcastMsg(int nType, const std::string &sMsg, int nNPCTemplateID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnBroadcastMsg);
+	oPacket.Encode1(nType);
+	oPacket.EncodeStr(sMsg);
+	oPacket.Encode4(nNPCTemplateID);
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
+	for (auto pField : m_aField_Affected)
+		pField->BroadcastPacket(&oPacket);
+}
+
 ScriptFieldSet* FieldSet::GetScriptFieldSet() const
 {
 	return m_pScriptFieldSet;
+}
+
+void FieldSet::ActionInfo::VAL_TYPE::FromStr(const std::string & s)
+{
+	int nCopy = (int)std::min(sizeof(sVal) - 1, s.size());
+	memcpy(sVal, s.data(), nCopy);
+	sVal[nCopy] = 0;
 }

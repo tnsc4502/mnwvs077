@@ -26,6 +26,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Exception\WvsException.h"
+#include "..\WvsLib\String\StringPool.h"
 
 BOOL WINAPI ConsoleHandler(DWORD CEvent)
 {
@@ -56,6 +57,16 @@ void UnhandledExcpetionHandler()
 
 int main(int argc, char **argv)
 {
+	ConfigLoader* pCfgLoader = nullptr;
+	if (argc > 1)
+		pCfgLoader = ConfigLoader::Get(argv[1]);
+	else
+	{
+		WvsLogger::LogRaw(GET_STRING("Common_No_CommandLine_Provided"));
+		return -1;
+	}
+
+	StringPool::Init();
 	WvsException::RegisterUnhandledExceptionFilter("WvsGame", UnhandledExcpetionHandler);
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	TimerThread::RegisterTimerPool(50, 1000);
@@ -75,17 +86,7 @@ int main(int argc, char **argv)
 	SkillInfo::GetInstance()->LoadMCSkill();
 	SkillInfo::GetInstance()->LoadMCGuardian();
 	SkillInfo::GetInstance()->IterateSkillInfo();
-	ConfigLoader* pCfgLoader = nullptr;
 	WvsBase::GetInstance<WvsGame>()->Init();
-
-
-	if (argc > 1)
-		pCfgLoader = ConfigLoader::Get(argv[1]);
-	else
-	{
-		WvsLogger::LogRaw("Please run this program with command line, and provide the path of config file.\n");
-		return -1;
-	}
 	WvsBase::GetInstance<WvsGame>()->SetExternalIP(pCfgLoader->StrValue("ExternalIP"));
 	WvsBase::GetInstance<WvsGame>()->SetExternalPort(pCfgLoader->IntValue("Port"));
 	// start the connection acceptor thread

@@ -50,6 +50,7 @@ public:
 	template<typename U>
 	operator U*() const { return (U*)m_p; }
 
+	void swap(ZUniquePtr& lv) { std::swap(m_p, lv.m_p); }
 	void reset(ZUniquePtr&& rv) { m_p = rv.m_p; rv.m_p = nullptr; }
 	void reset(T *p) { ZRelease<T>(m_p); m_p = p; }
 
@@ -72,6 +73,13 @@ public:
 	T& operator[](int nIdx) { return m_p[nIdx]; }
 	operator bool() { return m_p ? true : false; }
 
+	template<typename U>
+	operator U*() { return (U*)m_p; }
+
+	template<typename U>
+	operator U*() const { return (U*)m_p; }
+
+	void reset(T *p) { ZReleaseArray(m_p); m_p = p; }
 	~ZUniquePtr() { ZReleaseArray(m_p); }
 };
 

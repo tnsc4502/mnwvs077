@@ -45,10 +45,8 @@ public:
 
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption, Pet *pPet);
-	/*
-	此Drop是否可以被user看見，例如某些任務進行中才會獲得的物品，需要額外檢查
-	*/
-	bool IsShowTo(User *pUser);
+
+	bool IsShowTo(FieldObj *pUser);
 	void Init(unsigned int dwDropID, Reward *reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int bByPet);
 	ZSharedPtr<GW_ItemSlotBase> GetItem();
 	int GetDropInfo() const;

@@ -59,6 +59,7 @@ void ScriptFieldSet::Register(lua_State * L)
 		{ "setMCTeam", FieldSetSetMCTeam },
 		{ "destroyClock", FieldSetDestroyClock },
 		{ "broadcastMsg", FieldSetBroadcastMsg },
+		{ "getReactorState", FieldGetReactorState },
 		{ "setReactorState", FieldSetReactorState },
 		{ NULL, NULL }
 	};
@@ -180,10 +181,35 @@ int ScriptFieldSet::FieldSetDestroyClock(lua_State * L)
 
 int ScriptFieldSet::FieldSetBroadcastMsg(lua_State * L)
 {
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nType = (int)luaL_checkinteger(L, 2);
+	std::string sMsg = luaL_checkstring(L, 3);
+	int nNPCTemplateID = (int)(lua_gettop(L) > 3 ? luaL_checkinteger(L, 4) : 0);
+	self->m_pFieldSet->BroadcastMsg(nType, sMsg, nNPCTemplateID);
+	return 1;
+}
+
+int ScriptFieldSet::FieldGetReactorState(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nFieldIdx = (int)luaL_checkinteger(L, 2);
+	std::string sName = luaL_checkstring(L, 3);
+	lua_pushinteger(L, self->m_pFieldSet->GetReactorState(nFieldIdx, sName));
 	return 1;
 }
 
 int ScriptFieldSet::FieldSetReactorState(lua_State * L)
 {
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nFieldIdx = (int)luaL_checkinteger(L, 2);
+	std::string sName = luaL_checkstring(L, 3);
+	int nState = (int)luaL_checkinteger(L, 4);
+	int nOrder = (int)luaL_checkinteger(L, 5);
+	self->m_pFieldSet->SetReactorState(
+		nFieldIdx,
+		sName,
+		nState,
+		nOrder
+	);
 	return 1;
 }

@@ -30,3 +30,32 @@ function randomSeq(numStart, count) {
     }
     return retSeq;
 }
+
+function currentTime() {
+    return System.currentTime();
+}
+
+function compareTime(t1, t2) {
+    return System.compareTime(t1, t2);
+}
+
+function substring(str, start, count) {
+    return string.sub(str, start + 1, start + count);
+}
+
+function dayOfWeek() {
+    return System.dayOfWeek();
+}
+
+--For generating a character sequence which contains only 0 and 1 for PQs.
+function make_area_answer(numCount, answerCount) {
+    rndSeq = randomSeq(1, numCount);
+    ret = "";
+    for k, v in pairs(rndSeq) {
+        if(v > answerCount)
+            ret = ret .. '0';
+        else
+            ret = ret .. '1';
+    }
+    return ret;
+}

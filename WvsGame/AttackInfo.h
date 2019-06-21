@@ -15,16 +15,16 @@ struct AttackInfo
 		int anDamageClient[MAX_DAMAGE_COUNT] = { 0 },
 			anDamageSrv[MAX_DAMAGE_COUNT] = { 0 },
 			nDamageCount = 0,
-			m_nHitAction = 0,
-			m_nForeAction = 0,
-			m_nMobID = 0,
-			m_nTemplateID = 0,
-			m_nFrameIdx = 0;
+			nHitAction = 0,
+			nForeAction = 0,
+			nMobID = 0,
+			nTemplateID = 0,
+			nFrameIdx = 0;
 
 		bool abDamageCriticalClient[MAX_DAMAGE_COUNT] = { false },
 			abDamageCriticalSrv[MAX_DAMAGE_COUNT] = { false },
-			m_bLeft = false,
-			m_bDoomed = false;
+			bLeft = false,
+			bDoomed = false;
 
 		unsigned int m_tDelay;
 		FieldPoint ptHit, ptPosPrev;

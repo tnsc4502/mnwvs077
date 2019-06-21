@@ -23,10 +23,9 @@ class Summoned;
 class LifePool
 {
 public:
-	const static int MAX_WINDOW_VIEW_X = 1280, 
-		MAX_WINDOW_VIEW_Y = 1024, 
-		MAX_MOB_GEN = 40,
-		REGEN_PERIOD = 2500; //If the monster is killed, how long it should be re-generated
+	const static int 
+		LIFE_MAX_MOB_GEN = 40,
+		LIFE_REGEN_PERIOD = 3200; //If the monster is killed, how long should it be re-generated
 
 	struct MobGen
 	{
@@ -53,7 +52,7 @@ private:
 	int m_nMobCapacityMin, 
 		m_nMobCapacityMax, 
 		m_aInitMobGenCount = 0, 
-		m_nSubMobCount = -1, 
+		m_nSubMobCount = 0, 
 		m_nMobDamagedByMobState = 0;
 
 	bool m_bMobGenEnable = true;

@@ -4,6 +4,8 @@
 #include "Reward.h"
 #include "User.h"
 #include "Pet.h"
+#include "QWUQuestRecord.h"
+#include "QWUser.h"
 
 Drop::Drop()
 {
@@ -62,9 +64,19 @@ void Drop::MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption,
 		oPacket->Encode2(nOption);
 }
 
-bool Drop::IsShowTo(User * pUser)
+bool Drop::IsShowTo(FieldObj *pUser_)
 {
-	return true;
+	auto pUser = (User*)pUser_;
+	if (!pUser || QWUser::GetHP(pUser) == 0)
+		return false;
+	if (!m_usQRKey)
+		return true;
+
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	if (m_usQRKey && QWUQuestRecord::GetState(pUser, m_usQRKey) == 1)
+		return true;
+		
+	return false;
 }
 
 void Drop::Init(unsigned int dwDropID, Reward * reward, unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, unsigned int dwSourceID, int x1, int y1, int x2, int y2, int bByPet)

@@ -125,7 +125,7 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 		}
 		else
 		{
-			if (nType == GW_ItemSlotType::CASH && liItemSN <= 0)
+			if (nType != GW_ItemSlotType::CASH && liItemSN <= 0)
 				liItemSN = IncItemSN(nType);
 			if (nType == GW_ItemSlotType::CASH && liCashItemSN == -1)
 				liCashItemSN = IncItemSN(nType);

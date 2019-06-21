@@ -48,6 +48,7 @@ void PortalMap::RestorePortal(Field * pField, void* pImg)
 		if (nType)
 			newPortal->SetY(newPortal->GetY() - 40);
 
+		newPortal->SetField(pField);
 		m_apPortal.push_back(newPortal);
 		int nIdx = (int)m_apPortal.size() - 1;
 

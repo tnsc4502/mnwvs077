@@ -17,6 +17,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
+#include "..\WvsLib\String\StringPool.h"
 
 #include "WvsGame.h"
 #include "User.h"
@@ -52,12 +53,12 @@ int Center::GetWorldID() const
 
 void Center::OnNotifyCenterDisconnected(SocketBase *pSocket)
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][Center]與Center Server中斷連線。\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Disconnected));
 }
 
 void Center::OnConnected()
 {
-	WvsLogger::LogRaw("[WvsGame][Center::OnConnect]Center Server 認證完成，與世界伺服器連線成功建立。\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_System_Center_Connected));
 
 	//向Center Server發送Hand Shake封包
 	OutPacket oPacket;
@@ -103,7 +104,7 @@ void Center::OnPacket(InPacket *iPacket)
 			auto result = iPacket->Decode1();
 			if (!result)
 			{
-				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Warning]The Center Server Didn't Accept This Socket. Program Will Terminated.\n");
+				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Connection_Rejected));
 				exit(0);
 			}
 			int nWorldID = iPacket->Decode1();
@@ -113,7 +114,7 @@ void Center::OnPacket(InPacket *iPacket)
 				WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1; //Channel 0 is reserved for Center
 
 			char aBuffer[128];
-			sprintf_s(aBuffer, "MapleStory Server [WvsGame][TWMS][%03d][WorldID : %02d][ChannelID : %02d]",
+			sprintf_s(aBuffer, GET_STRING(GameSrv_System_Application_Title),
 				ServerConstants::kGameVersion,
 				nWorldID,
 				WvsBase::GetInstance<WvsGame>()->GetChannelID());
@@ -121,7 +122,7 @@ void Center::OnPacket(InPacket *iPacket)
 
 			for (int i = 1; i <= 5; ++i)
 				GW_ItemSlotBase::SetInitSN(i, iPacket->Decode8());
-			WvsLogger::LogRaw("Center Server Authenciated Ok. The Connection Between Local Server Has Builded.\n");
+			WvsLogger::LogRaw(GET_STRING(GameSrv_System_Center_Connection_Accepted));
 			break;
 		}
 		case CenterSendPacketFlag::CenterMigrateInResult:
@@ -164,7 +165,7 @@ void Center::OnClosed()
 
 void Center::OnConnectFailed()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsGame][Center::OnConnect]Center Server拒絕當前LocalServer連接，程式即將終止。\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Connection_Rejected));
 	OnDisconnect();
 }
 

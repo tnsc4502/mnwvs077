@@ -59,8 +59,6 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 	m_mReactorTemplate[nTemplateID] = pTemplate;
 }
 
-#include "..\WvsLib\Logger\WvsLogger.h"
-
 void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 {
 	auto& ref_ = (*((WZ::Node*)pImg));
@@ -68,10 +66,10 @@ void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 	auto empty = WZ::Node();
 	if (ref == empty)
 		return;
-	EventInfo eventInfo;
 
 	for (int i = 0; ; ++i)
 	{
+		EventInfo eventInfo;
 		auto& node = ref[std::to_string(i)];
 		if (node == empty)
 			break;

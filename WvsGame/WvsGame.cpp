@@ -4,6 +4,7 @@
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\String\StringPool.h"
 #include "ClientSocket.h"
 #include "User.h"
 
@@ -46,10 +47,10 @@ void WvsGame::CenterAliveMonitor()
 {
 	if (m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eConnecting))
 		return;
-	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, "=================定期檢查Center Server連線程序=================\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, GET_STRING(GameSrv_System_Alive_Monitor));
 	if (m_pCenterInstance && m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eClosed))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Center Server %d 尚未連線，嘗試重新連線。\n", 0);
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Alive_Monitor_Connect_Failed), 0);
 		m_pCenterWorkThread->detach();
 		*m_pCenterWorkThread = std::thread(&WvsGame::ConnectToCenter, this, 0);
 	}

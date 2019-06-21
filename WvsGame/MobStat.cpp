@@ -17,7 +17,7 @@ oPacket->Encode4(r##f_##_); \
 oPacket->Encode2((t##f_##_ - tCur) / 500); \
 }\
 
-#define CHECK_MOB_STAT_TIMEOUT(f_) if(n##f_##_ > 0 && tCur - t##f_##_ > 0) { \
+#define CHECK_MOB_STAT_TIMEOUT(f_) if(n##f_##_ > 0 && tCur > t##f_##_) { \
 nSet |= MS_##f_; \
 n##f_##_ = 0; \
 r##f_##_ = 0; \
@@ -80,7 +80,7 @@ void MobStat::EncodeTemporary(int nSet, OutPacket *oPacket, unsigned int tCur)
 	}
 }
 
-int MobStat::ResetTemporary(int tCur)
+int MobStat::ResetTemporary(unsigned int tCur)
 {
 	int nSet = 0;
 	CHECK_MOB_STAT_TIMEOUT(PAD);

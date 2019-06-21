@@ -25,7 +25,7 @@
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
-
+#include "..\WvsLib\String\StringPool.h"
 #include "..\WvsCenter\EntrustedShopMan.h"
 
 #include "FieldMan.h"
@@ -76,6 +76,25 @@
 #include "Reward.h"
 #include "DropPool.h"
 #include "WvsPhysicalSpace2D.h"
+#include "AdminSkills.h"
+
+#define REGISTER_TS_BY_MOB(name, value) \
+tsFlag |= GET_TS_FLAG(##name); \
+auto *pRef = &m_pSecondaryStat->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
+m_pSecondaryStat->n##name##_ = bResetBySkill ? 0 : value;\
+m_pSecondaryStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16);\
+m_pSecondaryStat->t##name##_ = bResetBySkill ? 0 : nDuration;\
+m_pSecondaryStat->nLv##name##_ =  bResetBySkill ? 0 : nSLV;\
+m_pSecondaryStat->m_tsFlagSet ^= TemporaryStat::TS_##name;\
+if(!bResetBySkill)\
+{\
+	m_pSecondaryStat->m_tsFlagSet |= TemporaryStat::TS_##name;\
+	pRef->first = bForcedSetTime ? nForcedSetTime : (GameDateTime::GetTime() + nDuration);\
+	pRef->second.push_back(&m_pSecondaryStat->n##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->r##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->t##name##_);\
+	pRef->second.push_back(&m_pSecondaryStat->nLv##name##_);\
+} else { m_pSecondaryStat->m_mSetByTS.erase(TemporaryStat::TS_##name); }
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: 
@@ -291,12 +310,12 @@ void User::TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamag
 		int nObjectID = iPacket->Decode4();
 		auto& ref = pInfo->m_mDmgInfo[nObjectID];
 		ref.nDamageCount = nDamagedCountPerMob;
-
-		ref.m_nHitAction = iPacket->Decode1();
+		ref.nMobID = nObjectID;
+		ref.nHitAction = iPacket->Decode1();
 		nAction = iPacket->Decode1();
-		ref.m_nForeAction = (nAction & 0x7F);
-		ref.m_bLeft = (nAction >> 7) & 1;
-		ref.m_nFrameIdx = iPacket->Decode1();
+		ref.nForeAction = (nAction & 0x7F);
+		ref.bLeft = (nAction >> 7) & 1;
+		ref.nFrameIdx = iPacket->Decode1();
 		iPacket->Decode1();
 		ref.ptHit.x = iPacket->Decode2();
 		ref.ptHit.y = iPacket->Decode2();
@@ -702,7 +721,7 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 {
 	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserLock);
 	SetTransferStatus(TransferStatus::eOnTransferField);
-	Field *pTargetField = FieldMan::GetInstance()->GetField(nFieldID);
+	Field *pTargetField = nFieldID == -1 ? m_pField : FieldMan::GetInstance()->GetField(nFieldID);
 	if (pTargetField != nullptr)
 	{
 		Portal* pTargetPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
@@ -715,20 +734,25 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 			SetPosY(pTargetPortal->GetY());
 		}
 
-		//Process Leaving
-		LeaveField();
-		if (GetFieldSet() && GetFieldSet() != pTargetField->GetFieldSet())
-			GetFieldSet()->OnLeaveFieldSet(GetUserID());
+		if (nFieldID == -1 && pTargetPortal)
+			PostPortalTeleport(pTargetPortal->GetID());
+		else
+		{
+			//Process Leaving
+			LeaveField();
+			if (GetFieldSet() && GetFieldSet() != pTargetField->GetFieldSet())
+				GetFieldSet()->OnLeaveFieldSet(GetUserID());
 
-		//Process Entering
-		m_pField = pTargetField;
-		PostTransferField(m_pField->GetFieldID(), pTargetPortal, false);
-		m_pField->OnEnter(this);
-		m_pCharacterData->nFieldID = m_pField->GetFieldID();
-		SetTransferStatus(TransferStatus::eOnTransferNone);
+			//Process Entering
+			m_pField = pTargetField;
+			PostTransferField(nFieldID, pTargetPortal, false);
+			m_pField->OnEnter(this);
+			m_pCharacterData->nFieldID = m_pField->GetFieldID();
+			SetTransferStatus(TransferStatus::eOnTransferNone);
 
-		ReregisterPet();
-		ReregisterSummoned();
+			ReregisterPet();
+			ReregisterSummoned();
+		}
 		return true;
 	}
 	SetTransferStatus(TransferStatus::eOnTransferNone);
@@ -766,6 +790,7 @@ void User::OnPortalScriptRequest(InPacket *iPacket)
 
 			if (pScript)
 			{
+				pScript->SetPortal(pPortal);
 				SetScript(pScript);
 				pScript->Run(sScriptName);
 			}
@@ -774,6 +799,7 @@ void User::OnPortalScriptRequest(InPacket *iPacket)
 		}
 		else if (pScript) 
 		{
+			pScript->SetPortal(pPortal);
 			SetScript(pScript);
 			pScript->Run();
 		}
@@ -856,6 +882,15 @@ void User::PostTransferField(int dwFieldID, Portal * pPortal, int bForce)
 	oPacket.Encode2(m_pCharacterData->mStat->nHP); //HP
 	oPacket.Encode1(0);
 	oPacket.Encode8(GameDateTime::GetCurrentDate());
+	SendPacket(&oPacket);
+}
+
+void User::PostPortalTeleport(int nPortalID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnTeleport);
+	oPacket.Encode1(0); // bLoopback
+	oPacket.Encode1(nPortalID);
 	SendPacket(&oPacket);
 }
 
@@ -990,8 +1025,8 @@ void User::DecodeInternal(InPacket * iPacket)
 	if (!bDecodeInternal)
 		return;
 	int nChannelID = iPacket->Decode4();
-	int nCount = iPacket->Decode4(), nSkillID, tDurationRemained, nSLV, nSetCooltime = 0;
-	unsigned int tCooltime = 0;
+	int nCount = iPacket->Decode4(), nSkillID, nSLV, nSetCooltime = 0;
+	unsigned int tDurationRemained = 0, tCooltime = 0;
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	//Decode Temporary Internal
@@ -1007,7 +1042,7 @@ void User::DecodeInternal(InPacket * iPacket)
 		{
 			auto pItem = ItemInfo::GetInstance()->GetStateChangeItem(-nSkillID);
 			if (pItem)
-				pItem->Apply(this, 0, false, false, true, tDurationRemained);
+				pItem->Apply(this, GameDateTime::GetTime(), false, false, true, tDurationRemained);
 		}
 		//Reset Skill Stat
 		else if (pSkill = SkillInfo::GetInstance()->GetSkillByID(nSkillID), pSkill)
@@ -1067,15 +1102,17 @@ void User::EncodeInternal(OutPacket * oPacket)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(m_mtxUserLock);
 	oPacket->Encode4(GetChannelID());
+	int nSkillID, nSLV;
+	unsigned int tDurationRemained;
 
 	//Encode Temporary Internal
 	auto &pSS = m_pSecondaryStat;
 	oPacket->Encode4((int)pSS->m_mSetByTS.size());
 	for (auto& setFlag : pSS->m_mSetByTS)
 	{
-		int nSkillID = *(setFlag.second.second[1]);
-		int tDurationRemained = (int)setFlag.second.first;
-		int nSLV = *(setFlag.second.second[3]);
+		nSkillID = *(setFlag.second.second[1]);
+		tDurationRemained = (unsigned int)setFlag.second.first;
+		nSLV = *(setFlag.second.second[3]);
 		oPacket->Encode4(nSkillID);
 		oPacket->Encode4(tDurationRemained);
 		oPacket->Encode4(nSLV);
@@ -1221,7 +1258,7 @@ void User::SendTemporaryStatReset(TemporaryStat::TS_Flag& flag)
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTemporaryStatReset);
 	flag.Encode(&oPacket);
-	oPacket.Encode2(0);
+	oPacket.Encode2(2000);
 	oPacket.Encode1(0);
 	oPacket.Encode1(0);
 	oPacket.Encode1(0);
@@ -1242,7 +1279,7 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	OutPacket oPacket;
 	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTemporaryStatSet);
 	m_pSecondaryStat->EncodeForLocal(&oPacket, flag);
-	oPacket.Encode2(0);
+	oPacket.Encode2(tDelay);
 	oPacket.Encode1(0);
 	SendPacket(&oPacket);
 
@@ -1250,7 +1287,7 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	oForRemote.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
 	oForRemote.Encode4(GetUserID());
 	m_pSecondaryStat->EncodeForRemote(&oForRemote, flag);
-	oForRemote.Encode2(0);
+	oForRemote.Encode2(tDelay);
 	GetField()->SplitSendPacket(&oForRemote, this);
 }
 
@@ -1559,9 +1596,7 @@ void User::OnHit(InPacket *iPacket)
 			nFlag |= QWUser::IncMP(this, -nMPDec, false);
 
 		if (m_pCharacterData->mStat->nHP == 0)
-		{
-			DecreaseEXP(m_pField->IsTown());
-		}
+			OnUserDead(m_pField->IsTown());
 		else if (nDamage)
 		{
 			if (nMobSkill)
@@ -1754,6 +1789,11 @@ ZUniquePtr<BasicStat>& User::GetBasicStat()
 	return this->m_pBasicStat;
 }
 
+void User::OnUserDead(bool bTown)
+{
+	DecreaseEXP(bTown);
+}
+
 void User::DecreaseEXP(bool bTown)
 {
 	if (m_pBasicStat->nJob)
@@ -1820,6 +1860,18 @@ void User::Update()
 		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnAliveCheckRequest);
 		SendPacket(&oPacket);
 	}
+}
+
+bool User::IsShowTo(FieldObj *pUser)
+{
+	if(!pUser || pUser == this)
+		return false;
+
+	return !m_pSecondaryStat->nDarkSight_ || 
+		(m_pSecondaryStat->rDarkSight_ == AdminSkills::Admin_HyperHidden && 
+			((User*)pUser)->m_nGradeCode && 
+			m_nGradeCode <= ((User*)pUser)->m_nGradeCode
+		);
 }
 
 void User::ResetTemporaryStat(int tCur, int nReasonID)
@@ -1924,27 +1976,9 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 	return liRet;
 }
 
-void User::OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay, int nTemplateID, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
+void User::OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData *pLevel, int tDelay, int nTemplateID, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
 {
-
-#define SET_BY_MOB_X(name, value) \
-tsFlag |= GET_TS_FLAG(##name); \
-auto *pRef = &m_pSecondaryStat->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
-m_pSecondaryStat->n##name##_ = bResetBySkill ? 0 : value;\
-m_pSecondaryStat->r##name##_ = bResetBySkill ? 0 : nSkillID | (nSLV << 16);\
-m_pSecondaryStat->t##name##_ = bResetBySkill ? 0 : nDuration;\
-m_pSecondaryStat->nLv##name##_ =  bResetBySkill ? 0 : nSLV;\
-m_pSecondaryStat->m_tsFlagSet ^= TemporaryStat::TS_##name;\
-if(!bResetBySkill)\
-{\
-	m_pSecondaryStat->m_tsFlagSet |= TemporaryStat::TS_##name;\
-	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
-	pRef->second.push_back(&m_pSecondaryStat->n##name##_);\
-	pRef->second.push_back(&m_pSecondaryStat->r##name##_);\
-	pRef->second.push_back(&m_pSecondaryStat->t##name##_);\
-	pRef->second.push_back(&m_pSecondaryStat->nLv##name##_);\
-}\
-
+	auto tCur = GameDateTime::GetTime();
 	if ((int)(Rand32::GetInstance()->Random() % 100) < (!pLevel->nProp ? 100 : pLevel->nProp))
 	{
 		if (pLevel->tTime <= 0)
@@ -1955,59 +1989,59 @@ if(!bResetBySkill)\
 		{
 			TemporaryStat::TS_Flag tsFlag = TemporaryStat::TS_Flag::GetDefault();
 			int nDuration = tDelay + pLevel->tTime;
-			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Mob Skill ID %d, Duration : %d\n", nSkillID, nDuration);
+			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Mob Skill ID %d, Duration : %d\n", nSkillID, nDuration);
 			switch (nSkillID)
 			{
 				case 120:
 					if (!m_pSecondaryStat->nHolyShield_)
 					{
-						SET_BY_MOB_X(Seal, 1);
+						REGISTER_TS_BY_MOB(Seal, 1);
 					}
 					break;
 				case 121:
 					if (!m_pSecondaryStat->nHolyShield_)
 					{
-						SET_BY_MOB_X(Darkness, 1);
+						REGISTER_TS_BY_MOB(Darkness, 1);
 					}
 					break;
 				case 122:
 					if (!m_pSecondaryStat->nHolyShield_)
 					{
-						SET_BY_MOB_X(Weakness, 1);
+						REGISTER_TS_BY_MOB(Weakness, 1);
 					}
 					break;
 				case 123: 
 				{
-					SET_BY_MOB_X(Stun, 1);
+					REGISTER_TS_BY_MOB(Stun, 1);
 					break;
 				}
 				case 124: 
 				{
 					if (m_pSecondaryStat->nHolyShield_)
 						break;
-					SET_BY_MOB_X(Curse, 1);
+					REGISTER_TS_BY_MOB(Curse, 1);
 					break;
 				}
 				case 125:
 					if (!m_pSecondaryStat->nHolyShield_)
 					{
-						SET_BY_MOB_X(Poison, pLevel->nX);
+						REGISTER_TS_BY_MOB(Poison, pLevel->nX);
 					}
 					break;
 				case 126:
 					if (!m_pSecondaryStat->nHolyShield_)
 					{
-						SET_BY_MOB_X(Slow, pLevel->nX);
+						REGISTER_TS_BY_MOB(Slow, pLevel->nX);
 					}
 					break;
 				case 128: 
 				{
-					SET_BY_MOB_X(Attract, pLevel->nX);
+					REGISTER_TS_BY_MOB(Attract, pLevel->nX);
 					break;
 				}
 				case 129: 
 				{
-					SET_BY_MOB_X(BanMap, pLevel->nX);
+					REGISTER_TS_BY_MOB(BanMap, pLevel->nX);
 					m_pSecondaryStat->mBanMap = nTemplateID;
 				}
 					break;
@@ -2393,6 +2427,14 @@ void User::SendChangeJobEffect()
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_ChangeJobEffect);
 	GetField()->SplitSendPacket(&oPacket, this);
+}
+
+void User::SendPlayPortalSE()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode1(Effect::eEffect_PlayPortalSE);
+	SendPacket(&oPacket);
 }
 
 void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
@@ -2881,12 +2923,12 @@ void User::OnAcceptQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc
 {
 	if (!QuestMan::GetInstance()->CheckStartDemand(nQuestID, this))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[OnAcceptQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n",
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_User_Check_StartDemand_Failed),
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
 		return;
 	}
-	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
+	//WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
 	TryQuestStartAct(nQuestID, dwTemplateID, pNpc);
 }
 
@@ -2894,12 +2936,12 @@ void User::OnCompleteQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, N
 {
 	if (!QuestMan::GetInstance()->CheckCompleteDemand(nQuestID, this))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[OnCompleteQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n",
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_User_Check_CompleteDemand_Failed),
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
 		return;
 	}
-	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
+	//WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "任務檢測成功。\n");
 	TryQuestCompleteAct(nQuestID, pNpc);
 }
 
@@ -2931,7 +2973,7 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 	}
 	if (QWUInventory::Exchange(this, 0, aExchange))
 	{
-		SendNoticeMessage("請確保背包有足夠的空間。");
+		SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_SlotCount));
 		SendCharacterStat(false, 0);
 	}
 }
@@ -3012,13 +3054,13 @@ bool User::TryExchange(const std::vector<ActItem*>& aActItem)
 	switch (nRet)
 	{
 		case InventoryManipulator::ExchangeResult::Exchange_InsufficientSlotCount:
-			SendNoticeMessage("背包欄位不足。");
+			SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_SlotCount));
 			break;
 		case InventoryManipulator::ExchangeResult::Exchange_InsufficientItemCount:
-			SendNoticeMessage("所需的物品數量不足。");
+			SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_ItemCount));
 			break;
 		case InventoryManipulator::ExchangeResult::Exchange_InsufficientMeso:
-			SendNoticeMessage("所需的楓幣數量不足。");
+			SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_Money));
 			break;
 		default:
 			return true;
@@ -3808,6 +3850,7 @@ void User::LeaveField()
 
 void User::OnMigrateIn()
 {
+	ValidateStat();
 	SendCharacterStat(false, 0);
 	SendFuncKeyMapped();
 	m_pField->OnEnter(this);

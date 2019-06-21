@@ -61,6 +61,7 @@ public:
 	char GetMoveAction() const;
 	void SetMoveAction(char moveAction);
 	virtual void SetMovePosition(int x, int y, bool bMoveAction, short nSN) {}
+	virtual bool IsShowTo(FieldObj *pUser);
 
 	Field* GetField() const;
 	void SetField(Field *pField);

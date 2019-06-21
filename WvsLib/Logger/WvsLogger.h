@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <string>
 #include <condition_variable>
 #include "..\Common\CommonDef.h"
 
@@ -82,7 +83,6 @@ public:
 	static void LogRaw(const std::string& strLog);
 	static void LogRaw(int nConsoleColor, const std::string& strLog);
 
-	//Don't pass reference or pointer of "format"
 	static void LogFormat(const std::string format, ...);
 	static void LogFormat(int nConsoleColor, const std::string format, ...);
 };

@@ -12,6 +12,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\String\StringUtility.h"
+#include "..\WvsLib\String\StringPool.h"
 
 ItemInfo::ItemInfo()
 {
@@ -32,18 +33,18 @@ void ItemInfo::Initialize()
 {
 	IterateMapString(nullptr);
 	LoadItemSellPriceByLv();
-	WvsLogger::LogRaw("[ItemInfo::Initialize]秨﹍更┮Τ珇嘿[IterateItemString Start]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_ItemName));
 	IterateItemString(nullptr);
-	WvsLogger::LogRaw("[ItemInfo::Initialize]珇嘿更ЧΘ[IterateItemString Done]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_ItemName_Done));
 
 	static auto& eqpWz = stWzResMan->GetWz(Wz::Character);
-	WvsLogger::LogRaw("[ItemInfo::Initialize]秨﹍更┮Τ杆称[IterateEquipItem Start]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Equip));
 	IterateEquipItem(&eqpWz);
-	WvsLogger::LogRaw("[ItemInfo::Initialize]杆称更ЧΘ[IterateEquipItem Done]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Equip_Done));
 
-	WvsLogger::LogRaw("[ItemInfo::Initialize]秨﹍更┮Τ珇[IterateBundleItem Start]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Bundle));
 	IterateBundleItem();
-	WvsLogger::LogRaw("[ItemInfo::Initialize]珇更ЧΘ[IterateBundleItem Done]....\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Bundle_Done));
 	//IterateCashItem();
 	IteratePetItem();
 	RegisterSpecificItems();

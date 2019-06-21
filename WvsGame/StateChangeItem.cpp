@@ -15,28 +15,29 @@ pSS->t##name##_ = bResetByItem ? 0 : tTime;\
 pSS->nLv##name##_ = 0;\
 if(!bResetByItem)\
 {\
-	pRef->first = bForcedSetTime ? nForcedSetTime : tCur;\
+	pRef->first = bForcedSetTime ? nForcedSetTime : (tCur + tTime);\
 	pRef->second.push_back(&pSS->n##name##_);\
 	pRef->second.push_back(&pSS->r##name##_);\
 	pRef->second.push_back(&pSS->t##name##_);\
 	pRef->second.push_back(&pSS->nLv##name##_);\
-}\
+} else { pSS->m_mSetByTS.erase(TemporaryStat::TS_##name); }
 
-TemporaryStat::TS_Flag StateChangeItem::Apply(User * pUser, unsigned int tCur, bool bApplyBetterOnly, bool bResetByItem, bool bForcedSetTime, int nForcedSetTime)
+TemporaryStat::TS_Flag StateChangeItem::Apply(User *pUser, unsigned int tCur, bool bApplyBetterOnly, bool bResetByItem, bool bForcedSetTime, unsigned int nForcedSetTime)
 {
 	auto &pSS = pUser->GetSecondaryStat();
+	std::lock_guard<std::recursive_mutex> userLock(pUser->GetLock());
+	std::lock_guard<std::recursive_mutex> lock(pSS->m_mtxLock);
 	auto &pBS = pUser->GetBasicStat();
 	auto &pS = pUser->GetCharacterData()->mStat;
 	auto info = spec.end(), end = spec.end(), time = spec.find("time");
 
 	std::pair<long long int, std::vector<int*>>* pRef = nullptr;
 	long long int liFlag = 0;
-	int tTime = (time == end ? 0 : time->second);
+	int tTime = (nForcedSetTime > tCur) ? (nForcedSetTime - tCur) : (time == end ? 0 : time->second);
 	TemporaryStat::TS_Flag retTSFlag;
 
 	for (auto& info : spec)
 	{
-		std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 		if (info.first == "hp")
 		{
 			pS->nHP += info.second;
@@ -146,9 +147,10 @@ TemporaryStat::TS_Flag StateChangeItem::Apply(User * pUser, unsigned int tCur, b
 			REGISTER_TS(MaxMP, info.second);
 		}
 	}
-
+	
+	pUser->SendTemporaryStatReset(retTSFlag);
+	pUser->SendTemporaryStatSet(retTSFlag, 0);
 	pUser->SendCharacterStat(true, liFlag);
 	pUser->ValidateStat();
-
 	return retTSFlag;
 }

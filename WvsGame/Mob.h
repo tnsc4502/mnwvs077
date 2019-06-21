@@ -15,6 +15,13 @@ class InPacket;
 class Mob : public FieldObj
 {
 public:
+	enum MobType
+	{
+		e_MobType_Normal = 0,
+		e_MobType_SubMob = 1,
+		e_MobType_Suspend = 2
+	};
+
 	struct DamageLog
 	{
 		struct Info
@@ -50,6 +57,7 @@ private:
 
 	int m_nSkillSummoned = 0,
 		m_nSummonType = 0,
+		m_nMobType = 0,
 		m_nSummonOption = 0,
 		m_nCtrlPriority = 0,
 		m_nSkillCommand = 0;
@@ -72,6 +80,7 @@ public:
 	void EncodeInitData(OutPacket *oPacket, bool bIsControl = false);
 	void SendChangeControllerPacket(User* pUser, int nLevel);
 	void SendReleaseControllPacket(User* pUser, int dwMobID);
+	void SendSuspendReset(bool bResetSuspend);
 	void SetMobTemplate(MobTemplate *pTemplate);
 	const MobTemplate* GetMobTemplate() const;
 
@@ -109,6 +118,8 @@ public:
 	void SetMobGen(void* pGen);
 	void SetSummonType(int nType);
 	void SetSummonOption(int nOption);
+	void SetMobType(int nMobType);
+	int GetMobType() const;
 
 	long long int GetHP() const;
 	long long int GetMP() const;

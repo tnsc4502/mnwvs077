@@ -17,6 +17,7 @@ class Field;
 class FieldSet;
 class InPacket;
 class OutPacket;
+class Portal;
 
 class Script
 {
@@ -47,7 +48,7 @@ public:
 	};
 
 	friend class ScriptMan;
-	void *m_pUniqueScriptNpc = nullptr;
+	void *m_pUniqueScriptBinding = nullptr;
 	void *m_pUniqueFieldSet = nullptr;
 
 private:
@@ -59,6 +60,7 @@ private:
 	std::string m_fileName;
 	User *m_pUser;
 	Field *m_pField;
+	Portal *m_pPortal;
 	bool m_bDone = false;
 
 public:
@@ -87,6 +89,8 @@ public:
 	User* GetUser();
 	Field* GetField();
 	void SetFieldSet(FieldSet *pFieldSet);
+	void SetPortal(Portal *pPortal);
+	Portal *GetPortal();
 
 	//NPC
 	NPCConversationState& GetConverstaionState();
@@ -99,6 +103,7 @@ public:
 	static int ScriptSysDateTime(lua_State* L);
 	static int ScriptSysCurrentTime(lua_State* L);
 	static int ScriptSysCompareTime(lua_State* L);
+	static int ScriptSysDayOfWeek(lua_State* L);
 
 	//Lua Sys.
 	lua_State* GetLuaState();

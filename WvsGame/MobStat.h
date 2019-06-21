@@ -66,6 +66,6 @@ public:
 
 	void SetFrom(const MobTemplate *pTemplate);
 	void EncodeTemporary(int nSet, OutPacket *oPacket, unsigned int tCur);
-	int ResetTemporary(int tCur);
+	int ResetTemporary(unsigned int tCur);
 };
 

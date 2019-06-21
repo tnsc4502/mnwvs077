@@ -84,6 +84,9 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_bOnlyNormalAttack = ((int)info["onlyNormalAttack"] == 1);
 	pTemplate->m_bIsBoss = ((int)info["boss"] == 1);
 	pTemplate->m_nTemplateID = dwTemplateID;
+	auto& reviveNode = info["revive"];
+	for (auto& revive : reviveNode)
+		pTemplate->m_aReviveTemplateID.push_back((int)revive);
 
 	auto& skillNode = info["skill"];
 	for (auto& skill : skillNode)

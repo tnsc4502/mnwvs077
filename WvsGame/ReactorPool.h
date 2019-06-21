@@ -53,6 +53,7 @@ public:
 	void OnEnter(User *pUser);
 	void OnPacket(User *pUser, int nType, InPacket *iPacket);
 	void OnHit(User *pUser, InPacket *iPacket);
+	int GetState(const std::string& sName);
 	void SetState(const std::string& sName, int nState);
 	void RemoveAllReactor();
 	void RemoveReactor(Reactor *pReactor, bool bForce = false);

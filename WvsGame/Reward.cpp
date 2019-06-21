@@ -147,13 +147,13 @@ std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* a
 		unRndRes = 0;
 
 		if (unRndBase)
-			unRndRes = ((unsigned int)Rand32::GetInstance()->Random()) % unRndBase;
+			unRndRes = (unsigned int)(Rand32::GetInstance()->Random()) % unRndBase;
 		else
-			unRndRes = ((unsigned int)Rand32::GetInstance()->Random());
+			unRndRes = (unsigned int)(Rand32::GetInstance()->Random());
 
 		if ((unsigned int)unRndRes < pInfo->m_unWeight)
 		{
-			//Determine the drop number.
+			//Decide the drop number.
 			nDiff = pInfo->m_nMax - pInfo->m_nMin;
 			nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
 
@@ -174,6 +174,7 @@ std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* a
 				if (pInfo->m_nItemID / 1000000 != GW_ItemSlotBase::EQUIP)
 					((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
 			}
+			pReward->m_pInfo = pInfo;
 			pReward->SetType(1);
 			pReward->SetPeriod(pInfo->m_nPeriod);
 			aRet.push_back(std::move(pReward));

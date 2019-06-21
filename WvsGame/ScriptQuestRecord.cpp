@@ -41,6 +41,9 @@ void ScriptQuestRecord::Register(lua_State * L)
 		{ "getState", QuestRecordGetState },
 		{ "setState", QuestRecordSetState },
 		{ "get", QuestRecordGet },
+		{ "set", QuestRecordSet },
+		{ "setComplete", QuestRecordSetComplete },
+		{ "remove", QuestRecordRemove },
 		{ NULL, NULL }
 	};
 
@@ -86,5 +89,30 @@ int ScriptQuestRecord::QuestRecordSetState(lua_State * L)
 			lua_gettop(L) > 3 ? luaL_checkstring(L, 4) : "");
 	else if (nState == 2)
 		QWUQuestRecord::SetComplete(self->m_pUser, nQuestID);
+	return 1;
+}
+
+int ScriptQuestRecord::QuestRecordSet(lua_State * L)
+{
+	ScriptQuestRecord* self = luaW_check<ScriptQuestRecord>(L, 1);
+	int nQuestID = (int)luaL_checkinteger(L, 2);
+	std::string sinfo = luaL_checkstring(L, 3);
+	QWUQuestRecord::Set(self->m_pUser, nQuestID, sinfo);
+	return 1;
+}
+
+int ScriptQuestRecord::QuestRecordRemove(lua_State * L)
+{
+	ScriptQuestRecord* self = luaW_check<ScriptQuestRecord>(L, 1);
+	int nQuestID = (int)luaL_checkinteger(L, 2);
+	QWUQuestRecord::Remove(self->m_pUser, nQuestID, false);
+	return 1;
+}
+
+int ScriptQuestRecord::QuestRecordSetComplete(lua_State * L)
+{
+	ScriptQuestRecord* self = luaW_check<ScriptQuestRecord>(L, 1);
+	int nQuestID = (int)luaL_checkinteger(L, 2);
+	QWUQuestRecord::SetComplete(self->m_pUser, nQuestID);
 	return 1;
 }

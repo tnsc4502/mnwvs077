@@ -140,7 +140,6 @@ void MiniRoomBase::RemoveMiniRoom()
 	ms_mMiniRoom.erase(m_nMiniRoomSN);
 
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "Remove MiniRoom!\n");
-	this->Release();
 }
 
 int MiniRoomBase::GetLeaveType() const

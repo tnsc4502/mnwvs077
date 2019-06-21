@@ -13,6 +13,7 @@
 #include "NPC.h"
 #include "WvsPhysicalSpace2D.h"
 #include "User.h"
+#include "StaticFoothold.h"
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -160,22 +161,21 @@ void Reactor::SetState(int nEventIdx, int tActionDelay)
 
 	auto pInfo = m_pTemplate->GetStateInfo(m_nState);
 	auto pEventInfo = m_pTemplate->GetEventInfo(m_nState, nEventIdx);
-	if (pInfo == nullptr || pEventInfo == nullptr)
-		m_nState = m_pTemplate->m_aStateInfo[m_nState].m_aEventInfo[nEventIdx].m_nStateToBe;
+	if (pInfo && 
+		nEventIdx >= 0 && 
+		pEventInfo && 
+		nEventIdx < (int)pInfo->m_aEventInfo.size())
+		m_nState = pEventInfo->m_nStateToBe;
 	else
 		m_nState = (m_nState + 1) % m_pTemplate->m_aStateInfo.size();
 	pInfo = m_pTemplate->GetStateInfo(m_nState);
 	m_tTimeout = pInfo->m_tTimeout;
 	m_bRemove = (pInfo->m_aEventInfo.size() == 0) /*&& (m_pField->GetFieldSet() == nullptr || m_pTemplate->m_bRemoveInFieldSet)*/;
 	FindAvailableAction();
-	if (m_bRemove && !m_bDestroyAfterEvent)
-		m_pField->GetReactorPool()->RemoveReactor(this);
-	else
-	{
-		OutPacket oPacket;
-		MakeStateChangePacket(&oPacket, tActionDelay, nEventIdx);
-		m_pField->BroadcastPacket(&oPacket);
-	}
+
+	OutPacket oPacket;
+	MakeStateChangePacket(&oPacket, tActionDelay, nEventIdx);
+	m_pField->BroadcastPacket(&oPacket);
 }
 
 void Reactor::MakeStateChangePacket(OutPacket * oPacket, int tActionDelay, int nProperEventIdx)
@@ -218,6 +218,7 @@ void Reactor::FindAvailableAction()
 			}
 		}
 	}
+	m_pField->CheckReactorAction(m_sReactorName, m_tStateEnd);
 }
 
 void Reactor::DoAction(void *pInfo_, unsigned int tDelay, int nDropIdx)
@@ -261,19 +262,19 @@ void Reactor::DoAction(void *pInfo_, unsigned int tDelay, int nDropIdx)
 		if (m_pField)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
-			int y = GetPosY(), nMobType = 0;
-			m_pField->GetSpace2D()->GetFootholdUnderneath(x1, y1 - 20, &y);
+			int y = y1, nMobType = 0;
 			if (pInfo->anArgs.size() < 3)
 				return;
 			if (pInfo->anArgs.size() >= 5)
 			{
 				x1 = pInfo->anArgs[4];
-				y1 = pInfo->anArgs[5];
+				y1 = pInfo->anArgs[5];	
 			}
+			auto pFh = m_pField->GetSpace2D()->GetFootholdUnderneath(x1, y1 - 20, &y);
 			if (pInfo->anArgs.size() >= 4)
 				nMobType = pInfo->anArgs[3];
 			for (int i = 0; i < pInfo->anArgs[2]; ++i)
-				m_pField->GetLifePool()->CreateMob(pInfo->anArgs[0], x1, y, GetFh(), 0, pInfo->anArgs[1], 0, 1, nMobType, nullptr);
+				m_pField->GetLifePool()->CreateMob(pInfo->anArgs[0], x1, y, GetFh(), pFh ? pFh->GetSN() : 0, pInfo->anArgs[1], 0, 1, nMobType, nullptr);
 		}
 	}
 	else if (pInfo->nType == 2) //Drop rewards
@@ -312,7 +313,22 @@ void Reactor::DoAction(void *pInfo_, unsigned int tDelay, int nDropIdx)
 	}
 	else if (pInfo->nType == 6)
 	{
+		int y = pInfo->anArgs[2];
+		auto pFh = m_pField->GetSpace2D()->GetFootholdUnderneath(x1, y1 - 10, &y);
+		m_pField->GetReactorPool()->RegisterNpc(m_pField->GetLifePool()->CreateNpc(
+			pInfo->anArgs[0],
+			pInfo->anArgs[1],
+			y,
+			pFh ? pFh->GetSN() : 0
+		));
 
+		if (pInfo->sMessage != "")
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
+			auto& mUsers = m_pField->GetUsers();
+			for (auto& prUser : mUsers)
+				prUser.second->SendChatMessage(0, pInfo->sMessage);
+		}
 	}
 	else if (pInfo->nType == 7)
 	{
@@ -354,6 +370,7 @@ void Reactor::DoActionByUpdateEvent()
 				);
 				abChecked.resize(apDrop.size(), false);
 
+				int nDropIdx = 0;
 				for (auto pDrop : apDrop)
 				{
 					pItem = pDrop->GetItem();
@@ -365,13 +382,14 @@ void Reactor::DoActionByUpdateEvent()
 						if (pItem->nItemID == aReq[i].first &&
 							(pItem->nType == GW_ItemSlotBase::EQUIP ||
 							((GW_ItemSlotBundle*)pItem)->nNumber == aReq[i].second)
-							&& !abChecked[i])
+							&& !abChecked[nDropIdx])
 						{
-							abChecked[i] = true;
+							abChecked[nDropIdx] = true;
 							++nMeet;
 							break;
 						}
 					}
+					++nDropIdx;
 				}
 				if (nMeet == (int)aReq.size())
 				{
@@ -404,7 +422,7 @@ void Reactor::SetRemoved()
 		{
 			unsigned int tCur = GameDateTime::GetTime();
 			int tBase = 6 * pGen->tRegenInterval / 10;
-			pGen->tRegenAfter = tCur + (7 * pGen->tRegenAfter / 10) + (tBase > 0 ? Rand32::GetInstance()->Random() % tBase : 0);
+			pGen->tRegenAfter = tCur + (7 * pGen->tRegenInterval / 10) + (tBase > 0 ? Rand32::GetInstance()->Random() % tBase : 0);
 		}
 	}
 }
@@ -425,6 +443,7 @@ void Reactor::OnTime(int nEventSN)
 	auto pAction = (ReactorTemplate::ActionInfo*)p->second;
 	DoAction(p->second, 0, 0);
 	m_mEvent.erase(nEventSN);
+	m_bDestroyAfterEvent = m_mEvent.size() != 0;
 	if (m_bDestroyAfterEvent && m_mEvent.size() == 0)
 		m_pField->GetReactorPool()->RemoveReactor(this);
 }

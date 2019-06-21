@@ -22,11 +22,13 @@ class OutPacket;
 class WvsPhysicalSpace2D;
 class SummonedPool;
 class AffectedAreaPool;
+class FieldObj;
 
 class Field
 {
-
 protected:
+	static const int FIELD_STAT_CHANGE_PERIOD = 3 * 1000;
+
 	struct BalloonEntry
 	{
 		enum BalloonType
@@ -83,9 +85,13 @@ protected:
 		m_nForcedReturn,
 		m_nFieldType,
 		m_nFieldLimit,
+		m_nAutoDecHP = 0,
+		m_nAutoDecMP = 0,
+		m_nProtectItem = 0,
 		m_nCreateMobInterval,
 		m_nFixedMobCapacity;
 
+	unsigned int m_tLastStatChangeByField = 0;
 	std::string m_strFirstUserEnter, 
 				m_strUserEnter;
 
@@ -143,6 +149,7 @@ public:
 	void SplitSendPacket(OutPacket* oPacket, User* pExcept);
 	void BroadcastPacket(OutPacket* oPacket);
 	void BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID);
+	void RegisterFieldObj(FieldObj *pNew, OutPacket *oPacketEnter);
 
 	void OnMobMove(User* pCtrl, Mob* pMob, InPacket* iPacket);
 	virtual void OnPacket(User* pUser, InPacket* iPacket);
@@ -173,7 +180,9 @@ public:
 	bool OnSitRequest(User *pUser, int nSeatID);
 
 	virtual void OnReactorDestroyed(Reactor *pReactor);
+	void CheckReactorAction(const std::string& sReactorName, unsigned tEventTime);
 	virtual void Reset(bool bShuffleReactor);
+	virtual void OnStatChangeByField(unsigned int tCur);
 	virtual void Update();
 };
 

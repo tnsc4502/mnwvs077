@@ -1,0 +1,38 @@
+//WvsApp Common Str Pool
+Common_No_CommandLine_Provided = "請以命令列執行程式，並且指定設定檔的路徑。"
+Common_Unknown_Error = "發生異常。"
+
+//WvsLogin Str Pool
+
+//WvsGame Str Pool
+GameSrv_ItemInfo_Init_ItemName = "[ItemInfo::Initialize<IterateItemString>]開始載入所有物品名稱....\n"
+GameSrv_ItemInfo_Init_ItemName_Done = "[ItemInfo::Initialize<IterateItemString>]物品名稱載入完成.\n"
+GameSrv_ItemInfo_Init_Equip = "[ItemInfo::Initialize<IterateEquipItem>]開始載入所有裝備....\n"
+GameSrv_ItemInfo_Init_Equip_Done = "[ItemInfo::Initialize<IterateEquipItem>]裝備載入完成.\n"
+GameSrv_ItemInfo_Init_Bundle = "[ItemInfo::Initialize<IterateBundleItem>]開始載入所有物品....\n"
+GameSrv_ItemInfo_Init_Bundle_Done = "[ItemInfo::Initialize<IterateBundleItem>]物品載入完成.\n"
+GameSrv_SkillInfo_Init = "[SkillInfo::IterateSkillInfo<IterateSkillInfo>]開始載入所有技能資訊....\n"
+GameSrv_SkillInfo_Init_Done = "[SkillInfo::IterateSkillInfo<IterateSkillInfo>]技能資訊載入完畢.\n"
+
+GameSrv_System_Application_Title="楓之谷伺服器 [WvsGame][TWMS][%03d][伺服器ID: %02d][頻道ID : %02d]";
+GameSrv_System_Center_Connected="[WvsGame][Center::OnConnect]Center Server 認證完成，與世界伺服器連線成功建立。\n"
+GameSrv_System_Center_Disconnected="[WvsGame]與WvsCenter中斷連線(遠端伺服器終止連線)。\n"
+GameSrv_System_Center_Connection_Accepted="[Center][RegisterCenterAck]與遠端WvsCenter伺服器的連線已經驗證成功並且建立永久連線。\n"
+GameSrv_System_Center_Connection_Rejected="[Center][RegisterCenterAck]Center Server拒絕連線，伺服器即將終止。\n"
+GameSrv_System_Alive_Monitor = "--------------------嘗試重建與WvsCenter的連線--------------------\n"
+GameSrv_System_Alive_Monitor_Connect_Failed = "無法連線到Center Server %d，嘗試重新連線。\n"
+
+GameSrv_User_Check_StartDemand_Failed = "[User][OnAcceptQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n"
+GameSrv_User_Check_CompleteDemand_Failed = "[User][OnCompleteQuest]無法通過任務需求檢測，玩家名稱: %s, 任務ID: %d\n"
+GameSrv_User_Insufficient_SlotCount = "請確保背包有足夠的空間。"
+GameSrv_User_Insufficient_ItemCount = "所需的物品數量不足。"
+GameSrv_User_Insufficient_Money = "所需的楓幣數量不足。"
+
+GameSrv_Shop_Invalid_Item = "道具不存在或發生異常。"
+GameSrv_Shop_Item_Recharged = "儲值成功。"
+
+//WvsCenter Str Pool
+
+//WvsLib Str Pool
+Lib_WvsBase_Acceptor_Created = "[WvsBase::CreateAcceptor]成功於Port %d建立Wvs伺服器程序。\n"
+Lib_WvsBase_Socket_Disconnected = "[WvsBase::OnSocketDisconnected]遠端Socket與伺服器中斷連線，SocketID: %d.\n"

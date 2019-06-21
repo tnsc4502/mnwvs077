@@ -136,6 +136,11 @@ void FieldObj::SetMoveAction(char moveAction)
 	m_bMoveAction = moveAction;
 }
 
+bool FieldObj::IsShowTo(FieldObj * pUser)
+{
+	return true;
+}
+
 Field * FieldObj::GetField() const
 {
 	return m_pField;

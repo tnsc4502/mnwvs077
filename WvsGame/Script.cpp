@@ -36,6 +36,7 @@ void Script::Register(lua_State * L)
 		{ "getDateTime", ScriptSysDateTime },
 		{ "currentTime", ScriptSysCurrentTime },
 		{ "compareTime", ScriptSysCompareTime },
+		{ "dayOfWeek", ScriptSysDayOfWeek },
 		{ NULL, NULL }
 	};
 
@@ -93,9 +94,19 @@ Field * Script::GetField()
 	return m_pField;
 }
 
-void Script::SetFieldSet(FieldSet * pFieldSet)
+void Script::SetFieldSet(FieldSet *pFieldSet)
 {
 	m_pUniqueFieldSet = pFieldSet;
+}
+
+void Script::SetPortal(Portal *pPortal)
+{
+	m_pPortal = pPortal;
+}
+
+Portal *Script::GetPortal()
+{
+	return m_pPortal;
 }
 
 lua_State * Script::GetLuaState()
@@ -194,6 +205,15 @@ int Script::ScriptSysCompareTime(lua_State * L)
 	auto tp1 = std::chrono::system_clock::from_time_t(mktime(&tm1));
 	auto tp2 = std::chrono::system_clock::from_time_t(mktime(&tm2));
 	lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(tp1 - tp2).count());
+	return 1;
+}
+
+int Script::ScriptSysDayOfWeek(lua_State * L)
+{
+	time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	tm tm;
+	localtime_s(&tm, &start_time);
+	lua_pushinteger(L, tm.tm_wday);
 	return 1;
 }
 

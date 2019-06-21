@@ -1,4 +1,5 @@
 #include "WvsException.h"
+#include "..\Memory\ZMemory.h"
 #include <Windows.h>
 #include <ctime>
 #include <chrono>
@@ -54,6 +55,31 @@ void WvsException::RegisterUnhandledExceptionFilter(const std::string &sAppName,
 		ms_pfCallBack = pfCallBack;
 	ms_sAppName = std::move(sAppName);
 	SetUnhandledExceptionFilter(WvsUnhandledExceptionFilter);
+}
+
+void WvsException::FatalError(const std::string sFormat, ...)
+{
+	int final_n, n = ((int)sFormat.size()) * 2, nOldSz = 0;
+	char* formatted = nullptr;
+	va_list ap;
+	while (1)
+	{
+		if (formatted)
+			FreeArray(formatted);
+		nOldSz = n;
+		formatted = AllocArray(char, n);
+		//formatted.reset(AllocObj(sizn));
+		strcpy(&formatted[0], sFormat.c_str());
+		va_start(ap, sFormat);
+		final_n = vsnprintf(&formatted[0], n, sFormat.c_str(), ap);
+		va_end(ap);
+		if (final_n < 0 || final_n >= n)
+			n += abs(final_n - n + 1);
+		else
+			break;
+	}
+	MessageBox(nullptr, (char*)formatted, "Fatal Error", 0);
+	exit(-1);
 }
 
 #elif

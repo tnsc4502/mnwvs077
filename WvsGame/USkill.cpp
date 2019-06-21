@@ -16,6 +16,8 @@
 #include "QWUSkillRecord.h"
 #include "PartyMan.h"
 #include "Summoned.h"
+#include "AdminSkills.h"
+#include "Field.h"
 
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -28,14 +30,16 @@ This MACRO defines some variables that are required by REGISTER_TS
 Please define this in the beginning section of every DoActiveSkill_XXX
 */
 #define REGISTER_USE_SKILL_SECTION \
+auto tCur = GameDateTime::GetTime(); \
 nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);\
 auto pSkillLVLData = pSkill->GetLevelData(bResetBySkill ? 1 : nSLV);\
 auto tsFlag = TemporaryStat::TS_Flag::GetDefault();\
 auto &pSS = pUser->GetSecondaryStat();\
+std::lock_guard<std::recursive_mutex> _lock(pSS->m_mtxLock);\
 std::pair<long long int, std::vector<int*>>* pRef = nullptr;\
 std::pair<long long int, std::vector<int>>* pRefIndie = nullptr;\
 int nSkillID = pSkill->GetSkillID(), tDelay = 0;\
-int nDuration = pSkillLVLData->m_nTime ? pSkillLVLData->m_nTime : (INT_MAX) ;\
+int nDuration = (nForcedSetTime > tCur) ? (nForcedSetTime - tCur) : (pSkillLVLData->m_nTime ? pSkillLVLData->m_nTime : (INT_MAX)) ;\
 
 /*
 此MACRO作為註冊TemporaryStat(TS)用。
@@ -56,12 +60,12 @@ pSS->m_tsFlagSet ^= TemporaryStat::TS_##name;\
 if(!bResetBySkill)\
 {\
 	pSS->m_tsFlagSet |= TemporaryStat::TS_##name;\
-	pRef->first = bForcedSetTime ? nForcedSetTime : GameDateTime::GetTime();\
+	pRef->first = bForcedSetTime ? nForcedSetTime : (tCur + nDuration);\
 	pRef->second.push_back(&pSS->n##name##_);\
 	pRef->second.push_back(&pSS->r##name##_);\
 	pRef->second.push_back(&pSS->t##name##_);\
 	pRef->second.push_back(&pSS->nLv##name##_);\
-}\
+} else { pSS->m_mSetByTS.erase(TemporaryStat::TS_##name); }
 
 void USkill::ValidateSecondaryStat(User * pUser)
 {
@@ -71,10 +75,7 @@ void USkill::ValidateSecondaryStat(User * pUser)
 
 	while (iter != iterEnd)
 		if (iter->second.second.size() == 0)
-		{
-			pSS->m_mSetByTS.erase(iter);
-			iter = pSS->m_mSetByTS.begin();
-		}
+			iter = pSS->m_mSetByTS.erase(iter);
 		else
 			++iter;
 }
@@ -143,13 +144,15 @@ bool USkill::ConsumeHPAndMPBySkill(User *pUser, const SkillLevelData *pLevelData
 	return true;
 }
 
-void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, int nForceSetTime)
+void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, unsigned int nForceSetTime)
 {
 	int nSkillID = pEntry->GetSkillID();
 	if (SkillInfo::IsSummonSkill(nSkillID))
 		DoActiveSkill_Summon(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
 	else if (SkillInfo::IsPartyStatChangeSkill(nSkillID))
 		DoActiveSkill_PartyStatChange(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
+	else if (SkillInfo::IsAdminSkill(nSkillID))
+		DoActiveSkill_AdminSkill(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
 	else
 		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, 0, bResetBySkill, bForceSetTime, nForceSetTime);
 }
@@ -226,7 +229,7 @@ void USkill::SendFailPacket(User* pUser)
 {
 }
 
-void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, int nOptionValue, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
+void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, int nOptionValue, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
 {
 	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
 	REGISTER_USE_SKILL_SECTION;
@@ -282,11 +285,8 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 2301003: // invincible
 			REGISTER_TS(Invincible, pSkillLVLData->m_nX);
 			break;
-		case 9101004: // hide
-			//ret.duration = 2100000000;
-			//ret.overTime = true;
 		case 4001003: // darksight
-			REGISTER_TS(DarkSight, pSkillLVLData->m_nX);
+			REGISTER_TS(DarkSight, std::max(1, pSkillLVLData->m_nX));
 			break;
 		case 4211003: // pickpocket
 			REGISTER_TS(PickPocket, pSkillLVLData->m_nX);
@@ -435,10 +435,6 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 1221002:
 		case 1321002: // Stance
 			REGISTER_TS(Stance, pSkillLVLData->m_nX);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.STANCE, Integer.valueOf(iprop)));
-			break;
-		case 1005: // Echo of Hero
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.ECHO_OF_HERO, Integer.valueOf(ret.x)));
 			break;
 		case 2121002: // mana reflection
 		case 2221002:
@@ -448,88 +444,11 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case 2321005: // holy shield
 			REGISTER_TS(HolyShield, pSkillLVLData->m_nX);
 			break;
-		case 3111002: // puppet ranger
-		case 3211002: // puppet sniper
-
-			REGISTER_TS(Summon, 1);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.PUPPET, Integer.valueOf(1)));
-			break;
-
-			// ----------------------------- MONSTER STATUS PUT! ----------------------------- //
-		case 4001002: // disorder
-			//monsterStatus.put(MonsterStatus.WATK, Integer.valueOf(ret.x));
-			//monsterStatus.put(MonsterStatus.WDEF, Integer.valueOf(ret.y));
-			break;
-		case 1201006: // threaten
-			//monsterStatus.put(MonsterStatus.WATK, Integer.valueOf(ret.x));
-			//monsterStatus.put(MonsterStatus.WDEF, Integer.valueOf(ret.y));
-			break;
-		case 1111005: // coma: sword
-		case 1111006: // coma: axe
-		case 1111008: // shout
-		case 1211002: // charged blow
-		case 3101005: // arrow bomb
-		case 4211002: // assaulter
-		case 4221007: // boomerang step
-		case 5101002: // Backspin Blow
-		case 5101003: // Double Uppercut
-		case 5121004: // pirate 8 hit punches
-		case 5121005: // pirate pull mob skill? O.o
-		case 5121007: // pirate 6 hit shyt...
-		case 5201004: // pirate blank shot
-			//monsterStatus.put(MonsterStatus.STUN, Integer.valueOf(1));
-			break;
-			//case 5201004: // pirate blank shot
-		case 4121003:
-		case 4221003:
-			//monsterStatus.put(MonsterStatus.SHOWDOWN, Integer.valueOf(1));
-			break;
-		case 2201004: // cold beam
-		case 2211002: // ice strike
-		case 2211006: // il elemental compo
-		case 2221007: // Blizzard
-		case 3211003: // blizzard
-		case 5211005:
-			//monsterStatus.put(MonsterStatus.FREEZE, Integer.valueOf(1));
-			//ret.duration *= 2; // freezing skills are a little strange
-			break;
-		case 2121006://Paralyze
-		case 2101003: // fp slow
-		case 2201003: // il slow
-			//monsterStatus.put(MonsterStatus.SPEED, Integer.valueOf(ret.x));
-			break;
-		case 2101005: // poison breath
-		case 2111006: // fp elemental compo
-			//monsterStatus.put(MonsterStatus.POISON, Integer.valueOf(1));
-			break;
-		case 2311005:
-			//monsterStatus.put(MonsterStatus.DOOM, Integer.valueOf(1));
-			break;
-		case 3111005: // golden hawk
-		case 3211005: // golden eagle
-			REGISTER_TS(Summon, pSkillLVLData->m_nX);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SUMMON, Integer.valueOf(1)));
-			//monsterStatus.put(MonsterStatus.STUN, Integer.valueOf(1));
-			break;
-		case 2121005: // elquines
-		case 3221005: // frostprey
-			REGISTER_TS(Summon, pSkillLVLData->m_nX);
-			//monsterStatus.put(MonsterStatus.FREEZE, Integer.valueOf(1));
-			break;
-		case 2111004: // fp seal
-		case 2211004: // il seal
-			//monsterStatus.put(MonsterStatus.SEAL, 1);
-			break;
-		case 4111003: // shadow web
-			//monsterStatus.put(MonsterStatus.SHADOW_WEB, 1);
-			break;
 		case 3121007: // Hamstring
 			REGISTER_TS(HamString, pSkillLVLData->m_nX);
-			//monsterStatus.put(MonsterStatus.SPEED, x);
 			break;
 		case 3221006: // Blind
 			REGISTER_TS(Blind, pSkillLVLData->m_nX);
-			//monsterStatus.put(MonsterStatus.ACC, x);
 			break;
 		default:
 			break;
@@ -560,7 +479,7 @@ void USkill::DoActiveSkill_TownPortal(User* pUser, const SkillEntry * pSkill, in
 {
 }
 
-void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill, int nSLV, InPacket *iPacket, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
+void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill, int nSLV, InPacket *iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
 {
 	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
 	REGISTER_USE_SKILL_SECTION;
@@ -578,7 +497,7 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 	for (auto& nID : anCharacterID)
 	{
 		if (nID == 0 ||
-			!(pMember = User::FindUser(nID)) ||
+			!(pMember = (nID == pUser->GetUserID() ? pUser : User::FindUser(nID))) ||
 			pMember->GetField() != pUser->GetField()) 
 		{
 			nID = 0;
@@ -601,8 +520,8 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 	for (auto& nID : anCharacterID)
 	{
 		if (nID == 0 ||
-			!(pMember = User::FindUser(nID))
-			|| (bResetBySkill && pMember != pUser))
+			!(pMember = (nID == pUser->GetUserID() ? pUser : User::FindUser(nID))) ||
+			(bResetBySkill && pMember != pUser))
 			continue;
 
 		TemporaryStat::TS_Flag tsSet;
@@ -641,6 +560,10 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 		{
 			REGISTER_TS(PAD, pSkillLVLData->m_nSpeed);
 		}
+		if (pSkillLVLData->m_nJump)
+		{
+			REGISTER_TS(Jump, pSkillLVLData->m_nJump);
+		}
 		switch (nSkillID)
 		{
 			case 1121000:
@@ -675,10 +598,9 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 			pMember->SendTemporaryStatReset(tsFlag);
 			ValidateSecondaryStat(pMember);
 		}
-		else
+		else if (!bForcedSetTime)
 		{
 			pMember->SendCharacterStat(pMember == pUser, liFlag);
-			pMember->SendTemporaryStatSet(tsFlag, 0);
 			pMember->SendTemporaryStatSet(tsFlag, tDelay);
 			if (pMember != pUser)
 				pMember->SendUseSkillEffectByParty(nSkillID, nSLV);
@@ -692,7 +614,7 @@ void USkill::DoActiveSkill_MobStatChange(User* pUser, const SkillEntry * pSkill,
 {
 }
 
-void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, bool bResetBySkill, bool bForcedSetTime, int nForcedSetTime)
+void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
 {
 	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
 	REGISTER_USE_SKILL_SECTION;
@@ -712,6 +634,42 @@ void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nS
 
 void USkill::DoActiveSkill_SmokeShell(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket)
 {
+}
+
+void USkill::DoActiveSkill_AdminSkill(User * pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
+{
+	nSLV = (nSLV > pSkill->GetMaxLevel() ? pSkill->GetMaxLevel() : nSLV);
+	REGISTER_USE_SKILL_SECTION;
+	switch (nSkillID)
+	{
+		case AdminSkills::Admin_HyperHidden: 
+			nDuration = 1000 * 60 * 60 * 24 * 15;
+			REGISTER_TS(DarkSight, std::max(1, pSkillLVLData->m_nX));
+			break;
+	}
+
+	if (nSkillID == AdminSkills::Admin_HyperHidden)
+	{
+		OutPacket oEnterField, oLeaveField;
+		pUser->MakeEnterFieldPacket(&oEnterField);
+		pUser->MakeLeaveFieldPacket(&oLeaveField);
+		if (!bResetBySkill)
+			pUser->GetField()->BroadcastPacket(&oLeaveField);
+		pUser->GetField()->RegisterFieldObj(pUser, &oEnterField);
+	}
+
+	if (bResetBySkill)
+	{
+		pUser->SendTemporaryStatReset(tsFlag);
+		ValidateSecondaryStat(pUser);
+	}
+	else
+	{
+		pUser->SendUseSkillEffect(nSkillID, nSLV);
+		pUser->SendTemporaryStatReset(tsFlag);
+		pUser->SendTemporaryStatSet(tsFlag, tDelay);
+	}
+	pUser->SendCharacterStat(true, 0);
 }
 
 void USkill::ResetTemporaryByTime(User * pUser, const std::vector<int>& aResetReason)

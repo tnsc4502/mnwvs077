@@ -306,7 +306,7 @@ void SecondaryStat::ResetByTime(User* pUser, unsigned int tCur)
 	{
 		int nID = *(setFlag.second.second[1]);
 		int tValue = *(setFlag.second.second[2]);
-		if (!((tCur - setFlag.second.first) > tValue))
+		if (tCur < setFlag.second.first)
 			continue;
 		if (nID < 0)
 		{

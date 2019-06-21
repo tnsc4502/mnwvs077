@@ -147,11 +147,11 @@ void FieldMan::RestoreFoothold(Field * pField, void * pPropFoothold, void * pLad
 		pPropFoothold = &(mapWz["foothold"]);
 	}
 	pField->GetSpace2D()->Load(pPropFoothold, pLadderOrRope, pInfo);
-	pField->SetMapSize(
+	pField->SetLeftTop(
 		pField->GetSpace2D()->GetRect().left,
 		pField->GetSpace2D()->GetRect().top
 	);
-	pField->SetLeftTop(
+	pField->SetMapSize(
 		pField->GetSpace2D()->GetRect().right - pField->GetSpace2D()->GetRect().left,
 		pField->GetSpace2D()->GetRect().bottom - pField->GetSpace2D()->GetRect().top
 	);

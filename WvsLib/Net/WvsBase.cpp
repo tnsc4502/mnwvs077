@@ -2,6 +2,7 @@
 #include <mutex>
 #include "..\Logger\WvsLogger.h"
 #include "..\String\StringUtility.h"
+#include "..\String\StringPool.h"
 
 std::map<unsigned int, SocketBase*> WvsBase::m_mSocketList;
 
@@ -36,7 +37,7 @@ void WvsBase::Init()
 
 void WvsBase::CreateAcceptor(short nPort)
 {
-	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "[WvsBase::CreateAcceptor]成功於Port %d建立Wvs伺服器程序。\n", nPort);
+	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, GET_STRING(Lib_WvsBase_Acceptor_Created), nPort);
 	asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), nPort);
 	m_pAcceptor = new asio::ip::tcp::acceptor(m_IOService, endpoint);
 }
@@ -49,13 +50,10 @@ void WvsBase::OnSocketConnected(SocketBase *pSocket)
 
 void WvsBase::OnSocketDisconnected(SocketBase *pSocket)
 {
-	//printf("OnSocketDisconnected called!\n ");
-	/*static std::mutex localLock;
-	std::lock_guard<std::mutex> lock(localLock);*/
 	auto findIter = m_mSocketList.find(pSocket->GetSocketID());
 	if (findIter == m_mSocketList.end())
 		return;
-	WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "[WvsBase::OnSocketDisconnected]移除遠端連線Socket實體，Socket ID = %u\n", pSocket->GetSocketID());
+	WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, GET_STRING(Lib_WvsBase_Socket_Disconnected), pSocket->GetSocketID());
 	OnNotifySocketDisconnected(pSocket);
 	m_mSocketList.erase(pSocket->GetSocketID());
 }

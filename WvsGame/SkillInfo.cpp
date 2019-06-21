@@ -19,10 +19,11 @@
 #include "MagicSkills.h"
 #include "ManagerSkills.h"
 #include "PirateSkills.h"
-#include "RogueSkills.h"
+#include "ThiefSkills.h"
 #include "WarriorSkills.h"
 #include "MCSkillEntry.h"
 #include "MCGuardianEntry.h"
+#include "..\WvsLib\String\StringPool.h"
 
 #include <thread>
 #include <unordered_map>
@@ -436,7 +437,7 @@ void SkillInfo::LoadMCGuardian()
 
 void SkillInfo::IterateSkillInfo()
 {
-	WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo]¶}©l¸ü¤J©Ò¦³§Þ¯à¸ê°T IterateSkillInfo Start.\n");
+	WvsLogger::LogRaw(GET_STRING(GameSrv_SkillInfo_Init));
 	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
@@ -473,7 +474,7 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
 	{
 		stWzResMan->ReleaseMemory();
-		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo]§Þ¯à¸ê°T¸ü¤J§¹²¦ IterateSkillInfo End.\n");
+		WvsLogger::LogRaw(GET_STRING(GameSrv_SkillInfo_Init_Done));
 	}
 }
 
@@ -615,32 +616,20 @@ bool SkillInfo::IsSummonSkill(int nSkillID)
 {
 	switch (nSkillID)
 	{
-		case PirateSkills::AllAboard_521:
-		case PirateSkills::AllAboard_521_2:
-		case PirateSkills::AllAboard_521_3:
-		case PirateSkills::AllAboard_521_4:
-		case PirateSkills::AllAboard_521_5:
-		case PirateSkills::AllAboard_521_6:
-		case PirateSkills::AllAboard_521_7: //¥l³ê²î­û
-		case PirateSkills::Gaviota_521: //®üÅÃ¬ðÀ»¶¤
-		case PirateSkills::TurretDeployment_571: //¯}«°¯¥
-		case PirateSkills::MonkeyMilitia_532_2: //Âù­M­LµU¤l
-		case MagicSkills::Ifrit_212: //¥l³ê¤õÅ]
-		case MagicSkills::Elquines_222: //¥l³ê¦BÅ]
-		case MagicSkills::Bahamut_232: //¸tÀsºë³q
-		case BowmanSkills::GoldenEagle_320: //ª÷ÆN¥l³ê
-		case BowmanSkills::Freezer_321: //¥l³ê»ÈÔG
-		case BowmanSkills::SilverHawk_310: //»ÈÆN¥l³ê
-		case BowmanSkills::Phoenix_311: //¥l³ê»ñ°Ä
-		case RogueSkills::DarkFlare_411: //µ´±þ»â°ì
-		case RogueSkills::DarkFlare_421_2: //µ´±þ»â°ì
-		case 3211002:
-		case 3111002:
-		case 1321007: // Beholder
-		case 2311006: // summon dragon
-		case 3121006: // phoenix
-		case 5211001: // Pirate octopus summon
-		case 5220002: // wrath of the octopi
+		case WarriorSkills::DarkKnight_Beholder: // Beholder
+		case MagicSkills::Adv_Magic_Holy_SummonDragon: //
+		case MagicSkills::Highest_Magic_IL_Ifrit: //¥l³ê¤õÅ]
+		case MagicSkills::Highest_Magic_FP_Elquines: //¥l³ê¦BÅ]
+		case MagicSkills::Highest_Magic_Holy_Bahamut: //¸tÀsºë³q
+		case BowmanSkills::Sniper_GoldenEagle: //ª÷ÆN¥l³ê
+		case BowmanSkills::Marksman_Freezer: //¥l³ê»ÈÔG
+		case BowmanSkills::Ranger_SilverHawk: //»ÈÆN¥l³ê
+		case BowmanSkills::Bow_Master_Phoenix: //¥l³ê»ñ°Ä
+		case BowmanSkills::Sniper_Puppet:
+		case BowmanSkills::Ranger_Puppet:
+		case PirateSkills::Outlaw_Octopus: // Pirate octopus summon
+		case PirateSkills::Corsair_WrathOfTheOctopi: // wrath of the octopi
+		case PirateSkills::Outlaw_Gaviota: //®üÅÃ¬ðÀ»¶¤
 			return true;
 	}
 	return false;
@@ -651,22 +640,22 @@ bool SkillInfo::IsPartyStatChangeSkill(int nSkillID)
 	switch (nSkillID)
 	{
 		//BasicStatUp
-		case 1121000:
-		case 1221000:
-		case 1321000:
-		case 2121000:
-		case 2221000:
-		case 2321000:
-		case 3121000:
-		case 3221000:
-		case 4121000:
-		case 4221000:
-		case 5121000:
-		case 5221000:
+		case WarriorSkills::Hero_MapleWarrior:
+		case WarriorSkills::Paladin_MapleWarrior:
+		case WarriorSkills::DarkKnight_MapleWarrior:
+		case MagicSkills::Highest_Magic_FP_MapleWarrior:
+		case MagicSkills::Highest_Magic_IL_MapleWarrior:
+		case MagicSkills::Highest_Magic_Holy_MapleWarrior:
+		case BowmanSkills::Bow_Master_MapleWarrior:
+		case BowmanSkills::Marksman_MapleWarrior:
+		case ThiefSkills::NightsLord_MapleWarrior:
+		case ThiefSkills::Shadower_MapleWarrior:
+		case PirateSkills::Buccaneer_MapleWarrior:
+		case PirateSkills::Corsair_MapleWarrior:
 
 		//SharpEyes
-		case 3121002:
-		case 3221002:
+		case BowmanSkills::Bow_Master_SharpEyes:
+		case BowmanSkills::Marksman_SharpEyes:
 
 		case 1101006:
 		case 1301006:
@@ -684,6 +673,12 @@ bool SkillInfo::IsPartyStatChangeSkill(int nSkillID)
 			return true;
 	}
 	return false;
+}
+
+bool SkillInfo::IsAdminSkill(int nSkillID)
+{
+	int nJobRoot = nSkillID / 10000;
+	return nJobRoot == 800 || nJobRoot == 900 || nJobRoot == 910;
 }
 
 int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)

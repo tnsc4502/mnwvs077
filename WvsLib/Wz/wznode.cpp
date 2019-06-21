@@ -140,6 +140,8 @@ Node::operator double() const {
         return data->value.ireal;
     else if (data->type == Data::Type::dreal)
         return data->value.dreal;
+	else if(data->type == Data::Type::string)
+		return atof(data->value.string);
     else
         return 0;
 }
@@ -150,6 +152,8 @@ Node::operator int() const {
         return data->value.ireal;
     else if (data->type == Data::Type::dreal)
         return (int)data->value.dreal;
+	else if (data->type == Data::Type::string)
+		return atoi(data->value.string);
     else
         return 0;
 }

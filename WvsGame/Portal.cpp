@@ -97,3 +97,13 @@ void Portal::SetEnable(bool enable)
 {
 	m_bIsEnable = enable;
 }
+
+void Portal::SetField(Field *pField)
+{
+	m_pField = pField;
+}
+
+Field *Portal::GetField()
+{
+	return m_pField;
+}

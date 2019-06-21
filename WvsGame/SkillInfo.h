@@ -51,6 +51,7 @@ public:
 	GW_SkillRecord* GetSkillRecord(int nSkillID, int nSLV, long long int tExpired);
 	static bool IsSummonSkill(int nSkillID);
 	static bool IsPartyStatChangeSkill(int nSkillID);
+	static bool IsAdminSkill(int nSkillID);
 	int GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry *pEntry, int *pnInc);
 	int GetEndureDuration(GA_Character* pCharacter);
 	int GetHPRecoveryUpgrade(GA_Character* pCharacter);

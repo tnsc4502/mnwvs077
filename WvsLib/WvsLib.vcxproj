@@ -197,6 +197,7 @@
     <ClInclude Include="Script\lundump.h" />
     <ClInclude Include="Script\lvm.h" />
     <ClInclude Include="Script\lzio.h" />
+    <ClInclude Include="String\StringPool.h" />
     <ClInclude Include="String\StringUtility.h" />
     <ClInclude Include="Task\AsyncScheduler.h" />
     <ClInclude Include="Wz\ImgAccessor.h" />
@@ -282,6 +283,7 @@
     <ClCompile Include="Script\lutf8lib.cpp" />
     <ClCompile Include="Script\lvm.cpp" />
     <ClCompile Include="Script\lzio.cpp" />
+    <ClCompile Include="String\StringPool.cpp" />
     <ClCompile Include="String\StringUtility.cpp" />
     <ClCompile Include="Task\AsyncScheduler.cpp" />
     <ClCompile Include="Wz\ImgAccessor.cpp" />

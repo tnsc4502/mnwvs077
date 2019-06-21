@@ -75,7 +75,8 @@ public:
 		eEffect_LevelUp = 0x00, //Flag only
 		eEffect_OnUseSkill = 0x01,
 		eEffect_OnSkillAppliedByParty = 0x02,
-		eEffect_ShowSkillAffected = 0x05, 
+		eEffect_ShowSkillAffected = 0x05,
+		eEffect_PlayPortalSE = 0x07,//Flag only
 		eEffect_ChangeJobEffect = 0x08,//Flag only
 		eEffect_QuestCompleteEffect = 0x09, //Flag only
 		eEffect_IncDecHpEffect = 0x0A,
@@ -172,6 +173,7 @@ public:
 	const std::string& GetName() const;
 	std::recursive_mutex& GetLock();
 	void Update();
+	bool IsShowTo(FieldObj *pUser);
 
 	ZUniquePtr<GA_Character>& GetCharacterData();
 	Field* GetField();
@@ -201,6 +203,7 @@ public:
 	void OnLevelUp();
 	void OnEmotion(InPacket *iPacket);
 	void PostTransferField(int dwFieldID, Portal* pPortal, int bForce);
+	void PostPortalTeleport(int nPortalID);
 	void SetMovePosition(int x, int y, char bMoveAction, short nFSN);
 
 	//Avatar
@@ -222,6 +225,7 @@ public:
 	ZUniquePtr<CalcDamage>& GetCalcDamage();
 	ZUniquePtr<SecondaryStat>& GetSecondaryStat();
 	ZUniquePtr<BasicStat>& GetBasicStat();
+	void OnUserDead(bool bTown);
 	void DecreaseEXP(bool bTown);
 	void ValidateStat(bool bCalledByConstructor = false);
 	void ValidateEffectItem();
@@ -232,7 +236,7 @@ public:
 	void ResetTemporaryStat(int tCur, int nReasonID);
 	void OnAbilityUpRequest(InPacket *iPacket);
 	long long int IncMaxHPAndMP(int nFlag, bool bLevelUp);
-	void OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData* pLevel, int tDelay, int nTemplateID, bool bResetBySkill = false, bool bForcedSetTime = false, int nForcedSetTime = 0);
+	void OnStatChangeByMobSkill(int nSkillID, int nSLV, const MobSkillLevelData* pLevel, int tDelay, int nTemplateID, bool bResetBySkill = false, bool bForcedSetTime = false, unsigned int nForcedSetTime = 0);
 	void OnStatChangeByMobAttack(int nMobTemplateID, int nMobAttackIdx);
 	void OnSitRequest(InPacket *iPacket);
 	void OnPortableChairSitRequest(InPacket *iPacket);
@@ -286,6 +290,7 @@ public:
 	void SendUseSkillEffectByParty(int nSkillID, int nSLV);
 	void SendLevelUpEffect();
 	void SendChangeJobEffect();
+	void SendPlayPortalSE();
 
 	//Message
 	void SendChatMessage(int nType, const std::string& sMsg);

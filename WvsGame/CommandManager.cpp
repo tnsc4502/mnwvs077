@@ -86,7 +86,7 @@ int CmdFuncMaxSkill(User *pUser, PARAM_TYPE aInput)
 	int nLevel = nJob % 10;
 	while (nLevel >= 0)
 	{
-		auto pSkills = SkillInfo::GetInstance()->GetSkillsByRootID(nJob - (2 - nLevel));
+		auto pSkills = SkillInfo::GetInstance()->GetSkillsByRootID(nJob - (!nLevel ? 0 : (2 - nLevel)));
 		for (const auto& pSkill : *pSkills)
 		{
 			auto pEntry = pSkill.second;
@@ -247,6 +247,13 @@ CommandManager::CommandManager()
 		[](User*pUser, PARAM_TYPE aInput)->int
 	{
 		pUser->GetField()->GetLifePool()->TryKillingAllMobs(pUser);
+		return 1;
+	});
+
+	m_mCmdInvoke["#mobCount"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		pUser->SendChatMessage(0, "Mob Count In This Field: " + std::to_string( pUser->GetField()->GetLifePool()->GetMobCount()) );
 		return 1;
 	});
 }

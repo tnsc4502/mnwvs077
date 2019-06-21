@@ -27,9 +27,12 @@ ScriptNPC::~ScriptNPC()
 ScriptNPC * ScriptNPC::GetSelf(lua_State * L)
 {
 	auto pSys =((Script*)L->selfPtr);
-	if (pSys->m_pUniqueScriptNpc == nullptr)
-		pSys->m_pUniqueScriptNpc = AllocObj(ScriptNPC);
-	return (ScriptNPC*)pSys->m_pUniqueScriptNpc;
+	if (pSys->GetID() == 0)
+		return nullptr;
+
+	if (pSys->m_pUniqueScriptBinding == nullptr)
+		pSys->m_pUniqueScriptBinding = AllocObj(ScriptNPC);
+	return (ScriptNPC*)pSys->m_pUniqueScriptBinding;
 }
 
 void ScriptNPC::DestroySelf(lua_State * L, ScriptNPC * p)

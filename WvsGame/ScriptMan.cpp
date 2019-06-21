@@ -6,6 +6,7 @@
 #include "ScriptPacket.h"
 #include "ScriptQuestRecord.h"
 #include "ScriptField.h"
+#include "ScriptPortal.h"
 #include <functional>
 #include <filesystem>
 #include "..\WvsLib\Task\AsyncScheduler.h"
@@ -130,7 +131,8 @@ Script* ScriptMan::CreateScript(const std::string& sFile, const std::pair<int, F
 		&ScriptUser::Register,
 		&ScriptQuestRecord::Register,
 		&ScriptField::Register,
-		&ScriptPacket::Register
+		&ScriptPacket::Register,
+		&ScriptPortal::Register
 	};
 
 	auto pScript = AllocObjCtor(Script)(sFile, prParam.first, prParam.second, aRegFunc);
