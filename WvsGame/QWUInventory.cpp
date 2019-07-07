@@ -35,12 +35,12 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 	int nMovedCount = 0;
 	if (pCharacterData->mStat->nHP && nPOS1 != nPOS2)
 	{
-		//將物品從背包移除並且在地圖上嘗試召喚
-		if (nPOS2 == 0)
+		//Drop out the item from inventory.
+		if (nPOS2 == 0 && pUser->GetField())
 		{
 			ZSharedPtr<GW_ItemSlotBase> pItemCopyed = nullptr;
 			InventoryManipulator::RawRemoveItem(pCharacterData, nTI, nPOS1, nCount, &aChangeLog, &nMovedCount, &pItemCopyed);
-			if (pItemCopyed && pUser->GetField())
+			if (pItemCopyed)
 			{
 				auto zpReward = MakeUnique<Reward>();
 				zpReward->SetType(1);
@@ -61,7 +61,7 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 					0);
 			}
 		}
-		else if (nPOS1 > 0 && nPOS2 > 0) //在背包內移動
+		else if (nPOS1 > 0 && nPOS2 > 0) //Exchange the position of the item inside inventory.
 		{
 			auto pItemSrc = pCharacterData->GetItem(nTI, nPOS1);
 			auto pItemDst = pCharacterData->GetItem(nTI, nPOS2);
@@ -93,7 +93,7 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 					InventoryManipulator::SwapSlot(pCharacterData, aChangeLog, nTI, nPOS1, nPOS2);
 			}
 		}
-		else if ((nPOS1 < 0 && nPOS2 > 0) || nPOS2 < 0) //脫下裝備
+		else if ((nPOS1 < 0 && nPOS2 > 0) || nPOS2 < 0) //Equip/Unequip the item.
 		{
 			auto pItemSrc = pCharacterData->GetItem(nTI, nPOS1);
 			auto pItemDst = pCharacterData->GetItem(nTI, nPOS2);
@@ -106,22 +106,18 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 					InventoryManipulator::InsertChangeLog(aChangeLog, InventoryManipulator::Change_RemoveFromSlot, nTI, nPOS1, nullptr, nPOS2, 1);
 					InventoryManipulator::InsertChangeLog(aChangeLog, InventoryManipulator::Change_AddToSlot, nTI, nPOS1, pItemSrc, nPOS2, 1);
 				}
-				auto slotPos = pCharacterData->FindEmptySlotPosition(nTI);
 				InventoryManipulator::SwapSlot(pCharacterData, aChangeLog, nTI, nPOS1, nPOS2);
 				pUser->OnAvatarModified();
 			}
 		}
 	}
-	OutPacket oPacket;
-	InventoryManipulator::MakeInventoryOperation(&oPacket, bOnExclRequest, aChangeLog);
+	SendInventoryOperation(pUser, bOnExclRequest, aChangeLog);
 	pUser->SendCharacterStat(true, 0);
-	pUser->SendPacket(&oPacket);
-	return false;
+	return false; //The return value is dispensable.
 }
 
 void QWUInventory::OnChangeSlotPositionRequest(User * pUser, InPacket * iPacket)
 {
-
 	//0xF7 0x00 [0x71 0xF2 0x4A 0x52] [0x01] [0xF9 0xFF] [0x01 0x00] [0xFF 0xFF]
 	int tRequestTime = iPacket->Decode4();
 	char nTI = iPacket->Decode1();
@@ -163,7 +159,7 @@ bool QWUInventory::PickUpItem(User * pUser, bool byPet, ZSharedPtr<GW_ItemSlotBa
 }
 
 /*
-此處對pUser上鎖
+pUser is locked here.
 */
 bool QWUInventory::RawRemoveItemByID(User * pUser, int nItemID, int nCount)
 {
@@ -474,7 +470,7 @@ bool QWUInventory::WasteItem(User *pUser, int nItemID, int nCount, bool bProtect
 			pClone = (GW_ItemSlotBundle*)pItem->MakeClone();
 			pClone->liItemSN = pItem->liItemSN;
 			pClone->liCashItemSN = pItem->liCashItemSN;
-			aBackup.push_back({ GW_ItemSlotBase::CONSUME, pItem->nPOS, pClone, true });
+			aBackup.push_back({ GW_ItemSlotBase::CONSUME, pItem->nPOS, pClone });
 
 			nDecCount = pItem->nNumber;
 			if (nDecCount > nCount)

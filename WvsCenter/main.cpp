@@ -11,6 +11,7 @@
 #include "..\Database\WvsUnified.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Exception\WvsException.h"
+#include "..\WvsLib\String\StringPool.h"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
 		std::cout << "Please run this program with command line, and given the config file path." << std::endl;
 		return -1;
 	}
+	StringPool::Init();
 	WvsUnified::InitDB(pConfigLoader);
 	WvsWorld::GetInstance()->SetConfigLoader(pConfigLoader);
 	WvsBase::GetInstance<WvsCenter>()->Init();

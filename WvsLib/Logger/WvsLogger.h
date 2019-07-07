@@ -80,10 +80,10 @@ public:
 		WvsLogData();
 	};
 
-	static void LogRaw(const std::string& strLog);
-	static void LogRaw(int nConsoleColor, const std::string& strLog);
+	static void LogRaw(const char *sFormat);
+	static void LogRaw(int nConsoleColor, const char *sFormat);
 
-	static void LogFormat(const std::string format, ...);
-	static void LogFormat(int nConsoleColor, const std::string format, ...);
+	static void LogFormat(const char *sFormat, ...);
+	static void LogFormat(int nConsoleColor, const char *sFormat, ...);
 };
 

@@ -156,19 +156,21 @@ void TradingRoom::MakeExchageElements(std::vector<ExchangeElement> aEx[2], std::
 					bTreatSingly = pItem->nType == GW_ItemSlotBase::EQUIP ||
 						((GW_ItemSlotBundle*)pItem)->nNumber == prItem.second;
 
-					//i = 0, aEx0: Remove Item, i = 1, aEx0: Add Item
+					//If bTreatSingly is true (Equips or Recharables), exchange GW_ItemSlotBase directly, or exchange by ItemIDs.
+					//aEx0: "Remove Item" when i = 0, otherwise "Add Item".
 					elem.m_pItem = bTreatSingly ? (i == 0 ? pItem : ZSharedPtr<GW_ItemSlotBase>(pItem->MakeClone())) : nullptr;
 					elem.m_nItemID = bTreatSingly ? 0 : pItem->nItemID;
 					elem.m_nCount = prItem.second * (i == 0 ? -1 : 1);
 					aEx[0].push_back(elem);
-					//i = 0, aEx1: Add Item, i = 1, aEx1: Remove Item
+
+					//aEx1: "Add Item" when i = 0, otherwise "Remove Item".
 					elem.m_pItem = bTreatSingly ? (i == 1 ? pItem : ZSharedPtr<GW_ItemSlotBase>(pItem->MakeClone())) : nullptr;
 					elem.m_nCount *= -1;
 					aEx[1].push_back(elem);
 				}
 			}
 
-	//Sorting by item count so that deletions are executed first to maintain correct item nPOSs.
+	//Sorting by item count so that deletions are performed first to maintain correct item nPOSs.
 	std::sort(aEx[0].begin(), aEx[0].end(), [](const ExchangeElement& e1, const ExchangeElement&e2) {
 		return e1.m_nCount < e2.m_nCount; });
 	std::sort(aEx[1].begin(), aEx[1].end(), [](const ExchangeElement& e1, const ExchangeElement&e2) {
@@ -193,12 +195,12 @@ int TradingRoom::DoTrade()
 	std::vector<BackupItem> aBackup[2];
 
 	MakeExchageElements(aEx, amBackupItemTrading);
-	int nTradingAmount = (-anMoneyTrading[0] + anMoneyTrading[1]);
-	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nTradingAmount, aEx[0], &aChangLog[0], nullptr, aBackup[0], false);
+	int nTradingMoneyAmount = (-anMoneyTrading[0] + anMoneyTrading[1]);
+	int nExchangeRes = QWUInventory::Exchange(m_apUser[0], nTradingMoneyAmount, aEx[0], &aChangLog[0], nullptr, aBackup[0], false);
 	if (!nExchangeRes)
-		nExchangeRes = QWUInventory::Exchange(m_apUser[1], nTradingAmount * -1, aEx[1], &aChangLog[1], nullptr, aBackup[1], false);
+		nExchangeRes = QWUInventory::Exchange(m_apUser[1], nTradingMoneyAmount * -1, aEx[1], &aChangLog[1], nullptr, aBackup[1], false);
 
-	//Exchanging with 2nd player failed then we should restore all items of 1st player.
+	//Exchanging failed on 2nd player, then we should restore all items of 1st player.
 	if (nExchangeRes) 
 	{
 		m_apUser[0]->SendCharacterStat(true, QWUser::SetMoney(m_apUser[0], anBackupMoneyTrading[0]));
@@ -207,7 +209,7 @@ int TradingRoom::DoTrade()
 		QWUInventory::RestoreFromTemp(m_apUser[1], amBackupItemTrading[1]);
 		return TradingResult::res_Trading_Exchange_Failed;
 	}
-	else //Exchanging success, release all backup items.
+	else //Exchanging succeed, release all backup items.
 	{
 		QWUInventory::SendInventoryOperation(m_apUser[0], true, aChangLog[0]);
 		QWUInventory::SendInventoryOperation(m_apUser[1], true, aChangLog[1]);

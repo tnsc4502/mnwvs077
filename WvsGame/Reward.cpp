@@ -117,7 +117,7 @@ std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* a
 		dItemRate = 1.0;
 
 	int nDiff = 0, 
-		nRange = 0;
+		nAmount = 0;
 
 	unsigned int unRndBase = 0, 
 		unRndRes = 0;
@@ -155,14 +155,14 @@ std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* a
 		{
 			//Decide the drop number.
 			nDiff = pInfo->m_nMax - pInfo->m_nMin;
-			nRange = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
+			nAmount = pInfo->m_nMin + (nDiff == 0 ? 0 : ((unsigned int)Rand32::GetInstance()->Random()) % nDiff);
 
 			//Create Reward
 			ZUniquePtr<Reward> pReward = AllocObj(Reward);
 			if (pInfo->m_nItemID == 0)
 			{
-				nRange = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
-				pReward->SetMoney(nRange);
+				nAmount = 1 + (Rand32::GetInstance()->Random() % (unsigned int)pInfo->m_nMoney);
+				pReward->SetMoney(nAmount);
 			}
 			else
 			{
@@ -172,7 +172,7 @@ std::vector<ZUniquePtr<Reward>> Reward::Create(const std::vector<RewardInfo*>* a
 				
 				pReward->SetItem(pItem);
 				if (pInfo->m_nItemID / 1000000 != GW_ItemSlotBase::EQUIP)
-					((GW_ItemSlotBundle*)pItem)->nNumber = nRange;
+					((GW_ItemSlotBundle*)pItem)->nNumber = nAmount;
 			}
 			pReward->m_pInfo = pInfo;
 			pReward->SetType(1);

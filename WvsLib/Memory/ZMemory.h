@@ -95,7 +95,7 @@ template<typename T>
 ZUniquePtr<T[]> MakeUniqueArray(int nSize)
 {
 	return ZUniquePtr<T[]>(
-		WvsArrayAllocator::GetInstance()->Allocate<T>(nSize)
+		(T*)WvsArrayAllocator::GetInstance()->Allocate<T>(nSize)
 	);
 }
 

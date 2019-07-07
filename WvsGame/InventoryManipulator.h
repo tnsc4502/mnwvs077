@@ -47,14 +47,13 @@ public:
 
 	//給定nItemID, nCount加入玩家背包
 	static bool RawAddItem(GA_Character* pCharacterData, int nTI, int nItemID, int nCount, std::vector<ChangeLog>* aChangeLog, int *nIncRet, std::vector<BackupItem>* paBackupItem = nullptr);
-	static bool RawRemoveItem(GA_Character* pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int *nDecRet, ZSharedPtr<GW_ItemSlotBase> *ppItemRemoved);
+	static bool RawRemoveItem(GA_Character* pCharacterData, int nTI, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog, int *nDecRet, ZSharedPtr<GW_ItemSlotBase> *ppItemRemoved = nullptr, ZSharedPtr<GW_ItemSlotBase> *ppBackupItem = nullptr);
 	static bool RawWasteItem(GA_Character* pCharacterData, int nPOS, int nCount, std::vector<ChangeLog>* aChangeLog);
 	static bool RawRechargeItem(GA_Character* pCharacterData, int nPOS, std::vector<ChangeLog>* aChangeLog);
 	static int RawExchange(GA_Character* pCharacterData, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<ChangeLog>* aLogAdd, std::vector<ChangeLog>* aLogRemove, std::vector<ChangeLog>* aLogDefault, std::vector<BackupItem>& aBackupItem);
 
-	//在Exchange失敗的時候進行恢復
+	//Rolling back modified slots when "Exchange" failed.
 	static void RestoreBackupItem(GA_Character* pCharacterData, std::vector<BackupItem>& aBackupItem);
-	//static void ReleaseBackupItem(std::vector<BackupItem>& aBackupItem);
 	static void RestoreTradingInventory(GA_Character* pCharacterData, std::map<int, int> mBackupItemTrading[6], std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
 	static void InsertChangeLog(std::vector<ChangeLog>& aChangeLog, int nChange, int nTI, int nPOS, const ZSharedPtr<GW_ItemSlotBase>& pi, int nPOS2, int nNumber);
 	static void MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog> &aChangeLog);

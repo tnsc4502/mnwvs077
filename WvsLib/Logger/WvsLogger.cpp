@@ -1,11 +1,13 @@
 #include <cstdarg>
+#include <thread>
 #include "WvsLogger.h"
 #include "boost\lockfree\queue.hpp"
-#include "..\Memory\MemoryPoolMan.hpp"
-#include <thread>
+#include "..\String\StringUtility.h"
+#include "..\Memory\ZMemory.h"
 
-//Win Only
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 
 std::mutex WvsLogger::m_mtxConsoleGuard;
 std::condition_variable WvsLogger::m_cv;
@@ -15,7 +17,9 @@ WvsLogger* WvsLogger::pInstnace = AllocObj( WvsLogger );
 
 void WvsLogger::StartMonitoring()
 {
+#ifdef _WIN32
 	auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 	WvsLogData *pData;
 	while (1)
 	{
@@ -24,11 +28,11 @@ void WvsLogger::StartMonitoring()
 			m_cv.wait(lk);
 		if (g_qMsgQueue.pop(pData))
 		{
+#ifdef _WIN32
 			SetConsoleTextAttribute(hConsole, pData->m_nConsoleColor);
-			printf("%s", pData->m_strData.c_str());
+#endif
+			fputs(pData->m_strData.c_str(), stdout);
 			FreeObj(pData);
-			//delete pData;
-			//SetConsoleTextAttribute(hConsole, WvsLogger::LEVEL_NORMAL);
 		}
 	}
 }
@@ -42,9 +46,6 @@ WvsLogger::WvsLogger()
 
 WvsLogger::~WvsLogger()
 {
-	/*WvsLogData* pData = nullptr;
-	while (g_qMsgQueue.pop(pData))
-		delete pData;*/
 }
 
 void WvsLogger::PushLogImpl(int nConsoleColor, const std::string & strLog)
@@ -52,83 +53,32 @@ void WvsLogger::PushLogImpl(int nConsoleColor, const std::string & strLog)
 	WvsLogData* pLogData = AllocObj(WvsLogData);
 	pLogData->m_nConsoleColor = nConsoleColor;
 	pLogData->m_strData.assign(strLog);
-	m_cv.notify_all();
 	g_qMsgQueue.push(pLogData);
-}
-
-void WvsLogger::LogRaw(int nConsoleColor, const std::string & strLog)
-{
-	if (!pInstnace)
-		pInstnace = AllocObj(WvsLogger);
-
-	pInstnace->PushLogImpl(nConsoleColor, strLog);
-}
-
-void WvsLogger::LogRaw(const std::string & strLog)
-{
-	if(!pInstnace)
-		pInstnace = AllocObj(WvsLogger);
-
-	LogRaw(LEVEL_NORMAL, strLog);
-}
-
-void WvsLogger::LogFormat(const std::string format, ...)
-{
-	int final_n, n = ((int)format.size()) * 2, nOldSz = 0;
-	char* formatted = nullptr;
-	va_list ap;
-	while (1)
-	{
-		if (formatted)
-			FreeArray(formatted);
-		nOldSz = n;
-		formatted = AllocArray(char, n);
-		va_start(ap, format);
-		final_n = vsnprintf(&formatted[0], n, format.c_str(), ap);
-		va_end(ap);
-		if (final_n < 0 || final_n >= n)
-			n += abs(final_n - n + 1);
-		else
-			break;
-	}
-
-	WvsLogData* pLogData = AllocObj(WvsLogData);
-	pLogData->m_nConsoleColor = LEVEL_NORMAL;
-	pLogData->m_strData = formatted;
-	FreeArray(formatted);
 	m_cv.notify_all();
-	g_qMsgQueue.push(pLogData);
 }
 
-//Don't pass reference or pointer of "format"
-void WvsLogger::LogFormat(int nConsoleColor, const std::string format, ...)
+void WvsLogger::LogRaw(int nConsoleColor, const char *sFormat)
 {
-	int final_n, n = ((int)format.size()) * 2, nOldSz = 0;
-	char* formatted = nullptr;
-	va_list ap;
-	while (1)
-	{
-		if (formatted)
-			FreeArray(formatted);
-		nOldSz = n;
+	pInstnace->PushLogImpl(nConsoleColor, sFormat);
+}
 
-		formatted = AllocArray(char, n);
-		//strcpy(&formatted[0], format.c_str());
-		va_start(ap, format);
-		final_n = vsnprintf(&formatted[0], n, format.c_str(), ap);
-		va_end(ap);
-		if (final_n < 0 || final_n >= n)
-			n += abs(final_n - n + 1);
-		else
-			break;
-	}
+void WvsLogger::LogRaw(const char *sFormat)
+{
+	pInstnace->PushLogImpl(LEVEL_NORMAL, sFormat);
+}
 
-	WvsLogData* pLogData = AllocObj(WvsLogData);
-	pLogData->m_nConsoleColor = nConsoleColor;
-	pLogData->m_strData = formatted;
-	FreeArray(formatted);
-	m_cv.notify_all();
-	g_qMsgQueue.push(pLogData);
+void WvsLogger::LogFormat(const char *sFormat, ...)
+{
+	ZUniquePtr<char[]> sFormatted;
+	STRUTILITY_PARSE_VAR_LIST(sFormat, sFormatted);
+	pInstnace->PushLogImpl(LEVEL_NORMAL, (char*)sFormatted);
+}
+
+void WvsLogger::LogFormat(int nConsoleColor, const char *sFormat, ...)
+{
+	ZUniquePtr<char[]> sFormatted;
+	STRUTILITY_PARSE_VAR_LIST(sFormat, sFormatted);
+	pInstnace->PushLogImpl(nConsoleColor, (char*)sFormatted);
 }
 
 WvsLogger::WvsLogData::WvsLogData()

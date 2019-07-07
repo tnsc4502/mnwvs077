@@ -65,7 +65,6 @@ int main(int argc, char **argv)
 		WvsLogger::LogRaw(GET_STRING("Common_No_CommandLine_Provided"));
 		return -1;
 	}
-
 	StringPool::Init();
 	WvsException::RegisterUnhandledExceptionFilter("WvsGame", UnhandledExcpetionHandler);
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);

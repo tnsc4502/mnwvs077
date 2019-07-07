@@ -240,7 +240,7 @@ public:
 		}
 	};
 
-	inline T * Allocate()
+	inline T* Allocate()
 	{
 		return (T*)ALLOC_AND_CONSTRUCT<!std::is_array<T>::value>::alloc(this);
 	}
@@ -250,7 +250,7 @@ public:
 		ALLOC_AND_CONSTRUCT<!std::is_array<T>::value>::free(this, reinterpret_cast<T*>(p));
 	}
 
-	inline static WvsSingleObjectAllocator<T>  *GetInstance() 
+	inline static WvsSingleObjectAllocator<T> *GetInstance() 
 	{
 		static WvsSingleObjectAllocator<T> *p = new WvsSingleObjectAllocator<T>;
 		return p;
@@ -259,38 +259,13 @@ public:
 	template<class... Args>
 	inline T* AllocateWithCtor(Args&&... args)
 	{
-		std::lock_guard<std::mutex> lock__(m_mtxLock);
-		void *pRet = nullptr;
-		const int SIZE = sizeof(T) + 4;
-
-		if (SIZE > 8192 * 8)	pRet = new T (std::forward<Args>(args)...);
-		else
-		{
-			BIND_ALLOCATOR(0, SIZE, 32)
-			BIND_ALLOCATOR(1, SIZE, 64)
-			BIND_ALLOCATOR(2, SIZE, 128)
-			BIND_ALLOCATOR(3, SIZE, 256)
-			BIND_ALLOCATOR(4, SIZE, 512)
-			BIND_ALLOCATOR(5, SIZE, 1024)
-			BIND_ALLOCATOR(6, SIZE, 2048)
-			BIND_ALLOCATOR(7, SIZE, 4096)
-			BIND_ALLOCATOR(8, SIZE, 8192)
-			BIND_ALLOCATOR(9, SIZE, 8192 * 2)
-			BIND_ALLOCATOR(10, SIZE, 8192 * 4)
-			BIND_ALLOCATOR(11, SIZE, 8192 * 8);
-		}
-		if (pRet)
-		{
-			*((int*)pRet) = SIZE;
-			pRet = (unsigned char*)pRet + 4;
-			new(pRet) T(std::forward<Args>(args)...);
-		}
+		void *pRet = (void*)(((unsigned char*)ResourceMgr(true, nullptr)) + 4);
+		new(pRet) T(std::forward<Args>(args)...);
 		return (T*)pRet;
 	}
 };
 
-
-//This allocator won't call constructor to initliaze every element.
+//This allocator won't call constructor to initliaze each element.
 class WvsArrayAllocator
 {
 	std::mutex m_mtxLock;

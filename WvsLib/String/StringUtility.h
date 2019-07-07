@@ -1,10 +1,25 @@
 #pragma once
 
+#include <cstdarg>
 #include <vector>
 #include <string>
 
 class StringUtility
 {
+#define STRUTILITY_PARSE_VAR_LIST(sFormat, sFormatted) \
+	int nPrinted, nAlloc = (int)strlen(sFormat) * 2;\
+	va_list ap;\
+	while (1) { \
+		sFormatted.reset(AllocArray(char, nAlloc));\
+		va_start(ap, sFormat);\
+		nPrinted = vsnprintf(&sFormatted[0], nAlloc, sFormat, ap);\
+		va_end(ap);\
+		if (nPrinted < 0 || nPrinted >= nAlloc)\
+			nAlloc += abs(nPrinted - nAlloc + 1);\
+		else\
+			break;\
+	}
+
 public:
 	static void Split(const std::string & str, std::vector<std::string>& result, const std::string & delimeter);
 	static void Split(const std::string & str, std::vector<int>& result, const std::string & delimeter);
@@ -25,4 +40,5 @@ public:
 	}
 
 	static std::string& Replace(std::string& str, const std::string& from, const std::string& to);
+	static std::string Format(const char *sFormat, ...);
 };

@@ -2619,7 +2619,7 @@ void User::OnPortalScrollUseRequest(InPacket *iPacket)
 		);
 
 		/*if (nDecCount != 1)
-			throw "Incorrect portal-scroll-item use request";*/
+			throw "Invalid portal-scroll-item use request.";*/
 		
 		QWUInventory::SendInventoryOperation(this, true, aChangeLog);
 		SendCharacterStat(true, 0);
