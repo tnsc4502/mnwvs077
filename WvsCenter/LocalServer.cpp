@@ -73,7 +73,7 @@ int ProcessLocalServerPacket(LocalServer* pSrv, InPacket *iPacket)
 
 void LocalServer::OnPacket(InPacket *iPacket)
 {
-	WvsLogger::LogRaw("[WvsCenter][LocalServer::OnPacket]封包接收：");
+	WvsLogger::LogRaw("[WvsCenter][LocalServer::OnPacket]Packet received: ");
 	iPacket->Print();
 	int nResult = ProcessLocalServerPacket(this, iPacket);
 
@@ -171,13 +171,17 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 
 void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 {
-	auto serverType = iPacket->Decode1();
-	SetServerType(serverType);
-	const char* pInstanceName = (serverType == ServerConstants::SRV_LOGIN ? "WvsLogin" : (serverType == ServerConstants::SRV_GAME ? "WvsGame" : "WvsShop"));
-	WvsLogger::LogFormat("[WvsCenter][LocalServer::OnRegisterCenterRequest]收到新的[%s][%d]連線請求。\n", pInstanceName, serverType);
+	auto nServerType = iPacket->Decode1();
+	SetServerType(nServerType);
+	const char* sInstanceName = (
+		nServerType == ServerConstants::SRV_LOGIN ? "WvsLogin" : 
+		(nServerType == ServerConstants::SRV_GAME ? "WvsGame" : "WvsShop")
+	);
+
+	WvsLogger::LogFormat("[WvsCenter][LocalServer::OnRegisterCenterRequest]A connection request is received, instance information: [%s][%d].\n", sInstanceName, nServerType);
 	int nChannel = WvsWorld::CHANNELID_SHOP;
 
-	if (serverType == ServerConstants::SRV_GAME)
+	if (nServerType == ServerConstants::SRV_GAME)
 	{
 		nChannel = iPacket->Decode1();
 		WvsBase::GetInstance<WvsCenter>()->RegisterChannel(nChannel, shared_from_this(), iPacket);
@@ -188,7 +192,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 	oPacket.Encode2(CenterSendPacketFlag::RegisterCenterAck);
 	oPacket.Encode1(1); //Success;
 
-	if (serverType == ServerConstants::SRV_GAME) 
+	if (nServerType == ServerConstants::SRV_GAME)
 	{
 		oPacket.Encode1(WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 		for (int i = 1; i <= 5; ++i)
@@ -199,7 +203,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 			));
 	}
 
-	if (serverType == ServerConstants::SRV_LOGIN)
+	if (nServerType == ServerConstants::SRV_LOGIN)
 	{
 		auto pWorld = WvsWorld::GetInstance();
 		oPacket.Encode1(pWorld->GetWorldInfo().nWorldID);
@@ -210,7 +214,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
 	}
 	
-	if (serverType == ServerConstants::SRV_SHOP)
+	if (nServerType == ServerConstants::SRV_SHOP)
 		WvsBase::GetInstance<WvsCenter>()->RegisterCashShop(shared_from_this(), iPacket);
 
 	SendPacket(&oPacket);
@@ -329,7 +333,7 @@ void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)
 	{
 		WvsLogger::LogFormat(
 			WvsLogger::LEVEL_ERROR, 
-			"[WvsCenter][LocalServer::OnRequstGameServerInfo]異常：客戶端嘗試連線至不存在的頻道伺服器[WvsGame: %02d]或者登入不存在的角色[AccountID = %d, CharacterID = %d]。\n", 
+			"[WvsCenter][LocalServer::OnRequstGameServerInfo]Warning: A client is trying to connect to an inexistent channel server [WvsGame: %02d] or login to an inexistent account [AccountID = %d, CharacterID = %d].\n", 
 			nChannelID,
 			nAccountID,
 			nCharacterID);
@@ -392,14 +396,14 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 
 		if(!pAuthEntry)
 		{
-			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]異常：嘗試登入未認證角色[CharacterID = %d]。\n",	nCharacterID);
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]Warning: A client is trying to login to a character without authentications. [CharacterID = %d].\n",	nCharacterID);
 			return;
 		}
 
 		if (pMigratedInUser)
 		{
 			WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
-			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]異常：嘗試登入已經登入的角色[CharacterID = %d]。\n", nCharacterID);
+			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]Warning: A client is trying to login to a character that has already logged into the game server. [CharacterID = %d].\n", nCharacterID);
 			return;
 		}
 

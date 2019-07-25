@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 		pCfgLoader = ConfigLoader::Get(argv[1]);
 	else
 	{
-		WvsLogger::LogRaw(GET_STRING("Common_No_CommandLine_Provided"));
+		WvsLogger::LogRaw("Please run this program with command line, and provide the path of the config file.\n");
 		return -1;
 	}
 	StringPool::Init();

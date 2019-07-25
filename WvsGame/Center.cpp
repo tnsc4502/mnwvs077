@@ -53,12 +53,12 @@ int Center::GetWorldID() const
 
 void Center::OnNotifyCenterDisconnected(SocketBase *pSocket)
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Disconnected));
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsGame]Disconnected from WvsCenter (closed by remote server).\n");
 }
 
 void Center::OnConnected()
 {
-	WvsLogger::LogRaw(GET_STRING(GameSrv_System_Center_Connected));
+	WvsLogger::LogRaw("[WvsGame][Center::OnConnect]Successfully connected to center server.\n");
 
 	//¦VCenter Serverµo°eHand Shake«Ê¥]
 	OutPacket oPacket;
@@ -114,7 +114,7 @@ void Center::OnPacket(InPacket *iPacket)
 				WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1; //Channel 0 is reserved for Center
 
 			char aBuffer[128];
-			sprintf_s(aBuffer, GET_STRING(GameSrv_System_Application_Title),
+			sprintf_s(aBuffer, "MapleStory Server[WvsGame][TWMS][% 03d][WorldID:% 02d][ChannelID:% 02d]",
 				ServerConstants::kGameVersion,
 				nWorldID,
 				WvsBase::GetInstance<WvsGame>()->GetChannelID());
@@ -122,7 +122,7 @@ void Center::OnPacket(InPacket *iPacket)
 
 			for (int i = 1; i <= 5; ++i)
 				GW_ItemSlotBase::SetInitSN(i, iPacket->Decode8());
-			WvsLogger::LogRaw(GET_STRING(GameSrv_System_Center_Connection_Accepted));
+			WvsLogger::LogRaw("[Center][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
 			break;
 		}
 		case CenterSendPacketFlag::CenterMigrateInResult:
@@ -165,7 +165,7 @@ void Center::OnClosed()
 
 void Center::OnConnectFailed()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Connection_Rejected));
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[Center][RegisterCenterAck]Center has rejected the connection request, WvsGame server may not work properly.\n");
 	OnDisconnect();
 }
 

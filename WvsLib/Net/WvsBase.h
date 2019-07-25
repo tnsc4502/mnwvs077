@@ -16,7 +16,7 @@ private:
 	template<typename SOCKET_TYPE>
 	void OnAccepted(std::shared_ptr<SOCKET_TYPE> pAcceptedSocket, const std::error_code& ec)
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "[WvsBase]新的連線成功建立。\n");
+		WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "[WvsBase]A new connection is established.\n");
 		OnSocketConnected((SocketBase*)(pAcceptedSocket.get()));
 		
 		pAcceptedSocket->SetSocketDisconnectedCallBack(std::bind(&WvsBase::OnSocketDisconnected, this, std::placeholders::_1));

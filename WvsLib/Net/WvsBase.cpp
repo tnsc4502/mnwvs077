@@ -37,7 +37,7 @@ void WvsBase::Init()
 
 void WvsBase::CreateAcceptor(short nPort)
 {
-	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, GET_STRING(Lib_WvsBase_Acceptor_Created), nPort);
+	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "[WvsBase::CreateAcceptor]WvsApp server instance is successfully initialized and listening on port %d.\n", nPort);
 	asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), nPort);
 	m_pAcceptor = new asio::ip::tcp::acceptor(m_IOService, endpoint);
 }
@@ -53,7 +53,7 @@ void WvsBase::OnSocketDisconnected(SocketBase *pSocket)
 	auto findIter = m_mSocketList.find(pSocket->GetSocketID());
 	if (findIter == m_mSocketList.end())
 		return;
-	WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, GET_STRING(Lib_WvsBase_Socket_Disconnected), pSocket->GetSocketID());
+	WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "[WvsBase::OnSocketDisconnected]Socket is disconnected from server [Socket ID : %u].\n", pSocket->GetSocketID());
 	OnNotifySocketDisconnected(pSocket);
 	m_mSocketList.erase(pSocket->GetSocketID());
 }

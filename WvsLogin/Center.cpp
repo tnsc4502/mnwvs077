@@ -28,13 +28,13 @@ void Center::SetCenterIndex(int idx)
 
 void Center::OnConnected()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][Center::OnConnect]成功連線到Center Server！\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][Center::OnConnect]Successfully connected to center server.\n");
 
-	//向Center Server發送Hand Shake封包
+	//Encoding handshake packets for Center
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketFlag::Center_RegisterCenterRequest);
 
-	//WvsLogin的ServerType為SVR_LOGIN
+	//WvsLogin => SVR_LOGIN
 	oPacket.Encode1(ServerConstants::ServerType::SRV_LOGIN);
 
 	SendPacket(&oPacket); 
@@ -43,7 +43,7 @@ void Center::OnConnected()
 
 void Center::OnPacket(InPacket *iPacket)
 {
-	WvsLogger::LogRaw("[WvsLogin][Center::OnPacket]封包接收：");
+	WvsLogger::LogRaw("[WvsLogin][Center::OnPacket]Packet received: \n");
 	iPacket->Print();
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
@@ -53,10 +53,10 @@ void Center::OnPacket(InPacket *iPacket)
 		auto result = iPacket->Decode1();
 		if (!result)
 		{
-			WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][RegisterCenterAck][錯誤]Center Server拒絕當前LocalServer連接，程式即將終止。\n");
+			WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][RegisterCenterAck]Center rejected the connection request, WvsLogin server may not work properly.\n");
 			exit(0);
 		}
-		WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][RegisterCenterAck]Center Server 認證完成，與世界伺服器連線成功建立。\n");
+		WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
 		OnUpdateWorldInfo(iPacket);
 		break;
 	}
@@ -99,12 +99,12 @@ void Center::OnUpdateWorldInfo(InPacket *iPacket)
 	m_WorldInfo.nEventType = iPacket->Decode1();
 	m_WorldInfo.strWorldDesc = iPacket->DecodeStr();
 	m_WorldInfo.strEventDesc = iPacket->DecodeStr();
-	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][Center::OnUpdateWorld]遊戲伺服器世界資訊更新。\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][Center::OnUpdateWorld]World information is updated by remote notification.\n");
 }
 
 void Center::OnConnectFailed()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][Center::OnConnect]無法連線到Center Server，可能是服務尚未啟動或者確認連線資訊。\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][Center::OnConnect]Unable to connect to Center Server (Remote service unavailable).\n");
 	OnDisconnect();
 }
 
@@ -117,9 +117,9 @@ void Center::OnCharacterListResponse(InPacket *iPacket)
 	oPacket.Encode1(0);
 	oPacket.Encode4(1000000);
 
-	WvsLogger::LogRaw("[WvsLogin][Center::OnCharacterListResponse]玩家擁有角色清單封包 : ");
-	iPacket->Print();
-	WvsLogger::LogRaw("\n");
+	//WvsLogger::LogRaw("[WvsLogin][Center::OnCharacterListResponse]Packet of character list: ");
+	//iPacket->Print();
+	//WvsLogger::LogRaw("\n");
 
 	oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
 
@@ -207,5 +207,5 @@ void Center::OnCheckDuplicatedIDResult(InPacket *iPacket)
 
 void Center::OnNotifyCenterDisconnected(SocketBase * pSocket)
 {
-	WvsLogger::LogRaw("[WvsLogin][Center]與Center Server中斷連線。\n");
+	WvsLogger::LogRaw("[WvsLogin][Center::OnNotifyCenterDisconnected]Disconnected from WvsCenter (closed by remote server).\n");
 }

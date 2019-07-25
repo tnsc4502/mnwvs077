@@ -437,7 +437,7 @@ void SkillInfo::LoadMCGuardian()
 
 void SkillInfo::IterateSkillInfo()
 {
-	WvsLogger::LogRaw(GET_STRING(GameSrv_SkillInfo_Init));
+	WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]On iterating all skills....\n");
 	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
@@ -474,7 +474,7 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
 	{
 		stWzResMan->ReleaseMemory();
-		WvsLogger::LogRaw(GET_STRING(GameSrv_SkillInfo_Init_Done));
+		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded.\n");
 	}
 }
 

@@ -56,11 +56,11 @@ void WvsShop::CenterAliveMonitor()
 {
 	if (m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eConnecting))
 		return;
-	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, "=================定期檢查Center Server連線程序=================\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, "--------------------Periodically reconnecting to WvsCenter--------------------\n");
 	int centerSize = m_pCfgLoader->IntValue("CenterCount");
 	if (m_pCenterInstance && m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eClosed))
 	{
-		WvsLogger::LogFormat("Center Server %d 連線失敗，嘗試重新連線。\n", 0);
+		WvsLogger::LogFormat("Failed connecting to Center Server %d, reconnection has been scheduled.\n", 0);
 		m_pCenterWorkThread->detach();
 		*m_pCenterWorkThread = (std::thread(&WvsShop::ConnectToCenter, this));
 	}

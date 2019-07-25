@@ -19,7 +19,7 @@ WvsCenter::~WvsCenter()
 
 void WvsCenter::OnNotifySocketDisconnected(SocketBase *pSocket)
 {
-	printf("[WvsCenter][WvsCenter::OnNotifySocketDisconnected]頻道伺服器[WvsGame]中斷連線，告知WvsLogin變更。\n");
+	printf("[WvsCenter][WvsCenter::OnNotifySocketDisconnected]A local server is disconnected, now preparing to notify WvsLogin server.\n");
 	if (pSocket->GetServerType() == ServerConstants::SRV_GAME)
 	{
 		auto iter = m_mChannel.begin();
@@ -107,7 +107,7 @@ void WvsCenter::RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pSe
 	pEntry->SetLocalSocket(pServer);
 	pEntry->SetExternalIP(iPacket->Decode4());
 	pEntry->SetExternalPort(iPacket->Decode2());
-	printf("[WvsCenter][WvsCenter::RegisterChannel]新的頻道伺服器[Channel ID = %d][WvsGame]註冊成功，IP : ", nChannelID);
+	printf("[WvsCenter][WvsCenter::RegisterChannel]A WvsGame server is successfully registered. [Channel ID = %d][WvsGame], remote IP: ", nChannelID);
 	auto ip = pEntry->GetExternalIP();
 	for (int i = 0; i < 4; ++i)
 		printf("%d ", (int)((char*)&ip)[i]);
@@ -123,7 +123,7 @@ void WvsCenter::RegisterCashShop(std::shared_ptr<SocketBase>& pServer, InPacket 
 	pEntry->SetLocalSocket(pServer);
 	pEntry->SetExternalIP(iPacket->Decode4());
 	pEntry->SetExternalPort(iPacket->Decode2());
-	printf("[WvsCenter][WvsCenter::RegisterCashShop]新的商城伺服器[WvsShop]註冊成功。\n");
+	printf("[WvsCenter][WvsCenter::RegisterCashShop]A WvsShop server is successfully registered. \n");
 
 	SetShop(pEntry);
 	RestoreConnectedUser(pServer, WvsWorld::CHANNELID_SHOP, iPacket);

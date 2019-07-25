@@ -33,18 +33,18 @@ void ItemInfo::Initialize()
 {
 	IterateMapString(nullptr);
 	LoadItemSellPriceByLv();
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_ItemName));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateItemString>]On iterating all item names....\n");
 	IterateItemString(nullptr);
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_ItemName_Done));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateItemString>]Item names are completely loaded.\n");
 
 	static auto& eqpWz = stWzResMan->GetWz(Wz::Character);
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Equip));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateEquipItem>]On iterating all equip items....\n");
 	IterateEquipItem(&eqpWz);
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Equip_Done));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateEquipItem>]Equip items are completely loaded.\n");
 
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Bundle));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateBundleItem>]On iterating all bundle items....\n");
 	IterateBundleItem();
-	WvsLogger::LogRaw(GET_STRING(GameSrv_ItemInfo_Init_Bundle_Done));
+	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateBundleItem>]Bundle items are completely loaded.\n");
 	//IterateCashItem();
 	IteratePetItem();
 	RegisterSpecificItems();

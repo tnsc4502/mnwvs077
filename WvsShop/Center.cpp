@@ -33,7 +33,7 @@ void Center::SetCenterIndex(int idx)
 
 void Center::OnConnected()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsShop][Center::OnConnect]成功連線到Center Server！\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsShop][Center::OnConnect]Successfully connected to center server.\n");
 
 	//向Center Server發送Hand Shake封包
 	OutPacket oPacket;
@@ -66,7 +66,7 @@ void Center::OnConnected()
 
 void Center::OnPacket(InPacket *iPacket)
 {
-	WvsLogger::LogRaw("[WvsShop][Center::OnPacket]封包接收：");
+	WvsLogger::LogRaw("[WvsShop][Center::OnPacket]Packet received: ");
 	iPacket->Print();
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
@@ -76,10 +76,10 @@ void Center::OnPacket(InPacket *iPacket)
 			auto result = iPacket->Decode1();
 			if (!result)
 			{
-				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][RegisterCenterAck][錯誤]Center Server拒絕當前LocalServer連接，程式即將終止。\n");
+				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][RegisterCenterAck]Center rejected the connection request, WvsShop server may not work properly.\n");
 				exit(0);
 			}
-			WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsShop][RegisterCenterAck]Center Server 認證完成，與世界伺服器連線成功建立。\n");
+			WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsShop][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
 			//OnUpdateWorldInfo(iPacket);
 			break;
 		}
@@ -111,7 +111,7 @@ void Center::OnClosed()
 
 void Center::OnConnectFailed()
 {
-	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][Center::OnConnect]無法連線到Center Server，可能是服務尚未啟動或者確認連線資訊。\n");
+	WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][Center::OnConnect]Unable to connect to Center Server (Remote service unavailable).\n");
 	OnDisconnect();
 }
 
@@ -122,7 +122,7 @@ const WorldInfo & Center::GetWorldInfo()
 
 void Center::OnNotifyCenterDisconnected(SocketBase * pSocket)
 {
-	WvsLogger::LogRaw("[WvsLogin][Center]與Center Server中斷連線。\n");
+	WvsLogger::LogRaw("[WvsShop]Disconnected from WvsCenter (closed by remote server).\n");
 }
 
 void Center::OnCenterMigrateInResult(InPacket *iPacket)

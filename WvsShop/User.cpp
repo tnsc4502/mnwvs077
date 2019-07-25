@@ -63,7 +63,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 
 User::~User()
 {
-	WvsLogger::LogRaw("Migrate Out, Encoding Character data to center.\n");
+	WvsLogger::LogRaw("Migrated out, encoding Character data to center.\n");
 	OutPacket oPacket;
 	oPacket.Encode2((short)ShopInternalPacketFlag::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
@@ -318,7 +318,7 @@ void User::OnRequestBuyCashItem(InPacket * iPacket)
 		if (pItem)
 		{
 			/*
-			Sending packets to Center, request it to charge cash points and save the item.
+			Sending packets to Center, requests it to charge cash points and save the item.
 			*/
 			OutPacket oPacket;
 			oPacket.Encode2((short)ShopInternalPacketFlag::RequestBuyCashItem);

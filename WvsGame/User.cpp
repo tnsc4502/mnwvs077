@@ -2923,7 +2923,7 @@ void User::OnAcceptQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc
 {
 	if (!QuestMan::GetInstance()->CheckStartDemand(nQuestID, this))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_User_Check_StartDemand_Failed),
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[User][OnAcceptQuest]Unable to pass start-demand checking, user name: %s, quest id: %d\n",
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
 		return;
@@ -2936,7 +2936,7 @@ void User::OnCompleteQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, N
 {
 	if (!QuestMan::GetInstance()->CheckCompleteDemand(nQuestID, this))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_User_Check_CompleteDemand_Failed),
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[User][OnCompleteQuest]Unable to pass complete-demand checking, user name: %s, quest id: %d\n",
 			m_pCharacterData->strName.c_str(),
 			nQuestID);
 		return;

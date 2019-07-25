@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 		pConfigLoader = ConfigLoader::Get(argv[1]);
 	else
 	{
-		std::cout << "Please run this program with command line, and given the config file path." << std::endl;
+		std::cout << "Please run this program with command line, and provide a path of config file." << std::endl;
 		return -1;
 	}
 	StringPool::Init();

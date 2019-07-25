@@ -47,10 +47,10 @@ void WvsGame::CenterAliveMonitor()
 {
 	if (m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eConnecting))
 		return;
-	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, GET_STRING(GameSrv_System_Alive_Monitor));
+	WvsLogger::LogRaw(WvsLogger::LEVEL_WARNING, "--------------------Periodically reconnecting to WvsCenter--------------------\n");
 	if (m_pCenterInstance && m_pCenterInstance->CheckSocketStatus(SocketBase::SocketStatus::eClosed))
 	{
-		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Alive_Monitor_Connect_Failed), 0);
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Failed connecting to Center Server %d, reconnection has been scheduled.\n", 0);
 		m_pCenterWorkThread->detach();
 		*m_pCenterWorkThread = std::thread(&WvsGame::ConnectToCenter, this, 0);
 	}
