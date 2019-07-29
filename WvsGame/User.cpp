@@ -399,7 +399,7 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 			int nBulletConsume = pLevel ? pLevel->m_nBulletCount : 1;
 			//Try Consume Item.
 			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-			if ((ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, nBulletConsume), aChangeLog))
+			if (!pBullet || (ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, nBulletConsume), aChangeLog))
 				|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, std::max(1, nBulletConsume), &aChangeLog, nDecCount, nullptr)))
 			{
 				SendNoticeMessage("Invalid Attack.");

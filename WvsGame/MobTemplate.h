@@ -55,7 +55,7 @@ public:
 	const std::vector<RewardInfo*>& GetMobReward();
 	static MobTemplate* GetMobTemplate(int dwTemplateID);
 	static void RegisterMob(int dwTemplateID);
-	static int GetElementAttribute(const char *s, int *aElemAttr);
+	static int GetElementAttribute(const std::string& s, int *aElemAttr);
 	static int GetMagicAttackElementAttribute(const char *s, int *nElemAttr);
 	void MakeSkillContext();
 	int GetSkillIndex(int nSkillID, int nSLV);

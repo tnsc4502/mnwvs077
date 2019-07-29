@@ -131,108 +131,50 @@ int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterDat
 	return 0;
 }
 
+int SkillInfo::GetElementAttribute(const char cAttr)
+{
+	switch (cAttr)
+	{
+		case 'i':
+		case 'I':
+			return ElementAttribute::e_ElemAttr_Ice;
+		case 'f':
+		case 'F':
+			return ElementAttribute::e_ElemAttr_Fire;
+		case 'l':
+		case 'L':
+			return ElementAttribute::e_ElemAttr_Lightning;
+		case 's':
+		case 'S':
+			return ElementAttribute::e_ElemAttr_Poison;
+		case 'h':
+		case 'H':
+			return ElementAttribute::e_ElemAttr_Holy;
+		case 'd':
+		case 'D':
+			return ElementAttribute::e_ElemAttr_Dark;
+		case 'u':
+		case 'U':
+			return ElementAttribute::e_ElemAttr_U;
+		default:
+			return 0;
+	}
+}
+
 int SkillInfo::GetElementAttribute(const char *s, int *nElemAttr)
 {
-	signed int v2; // ecx@1
-	int result; // eax@1
-	int v4; // ecx@6
-	int v5; // ecx@7
-	int v6; // ecx@16
-	int v7; // ecx@17
-	int v8; // ecx@18
-	int v9; // ecx@25
-	int v10; // ecx@26
+	/*
+	105 = i, 73 = I result = 1 (Ice)
+	102 = f, 70 = F result = 2 (Fire)
+	108 = l, 76 = L result = 3 (Lightning)
+	115 = s, 83 = S result = 4 (Poison)
+	104 = h, 72 = H result = 5 (Holy)
+	100 = d, 68 = D result = 6 (Dark)
+	117 = u, 85 = U result = 7
+	*/
 
-	v2 = *s;
-	result = 1;
-	if (v2 > 85)
-	{
-		if (v2 > 108)
-		{
-			v9 = v2 - 112;
-			if (!v9)
-				goto LABEL_31;
-			v10 = v9 - 3;
-			if (!v10)
-			{
-			LABEL_30:
-				*nElemAttr = 4;
-				return result;
-			}
-			if (v10 == 2)
-			{
-			LABEL_29:
-				*nElemAttr = 7;
-				return result;
-			}
-		}
-		else
-		{
-			if (v2 == 108)
-				goto LABEL_24;
-			v6 = v2 - 100;
-			if (!v6)
-				goto LABEL_23;
-			v7 = v6 - 2;
-			if (!v7)
-				goto LABEL_22;
-			v8 = v7 - 2;
-			if (!v8)
-				goto LABEL_21;
-			if (v8 == 1)
-				goto LABEL_20;
-		}
-		return 0;
-	}
-	if (v2 == 85)
-		goto LABEL_29;
-	if (v2 <= 73)
-	{
-		if (v2 != 73)
-		{
-			if (*s)
-			{
-				v4 = v2 - 68;
-				if (v4)
-				{
-					v5 = v4 - 2;
-					if (v5)
-					{
-						if (v5 != 2)
-							return 0;
-					LABEL_21:
-						*nElemAttr = 5;
-						return result;
-					}
-				LABEL_22:
-					*nElemAttr = 2;
-					return result;
-				}
-			LABEL_23:
-				*nElemAttr = 6;
-				return result;
-			}
-			goto LABEL_31;
-		}
-	LABEL_20:
-		*nElemAttr = 1;
-		return result;
-	}
-	if (v2 == 76)
-	{
-	LABEL_24:
-		*nElemAttr = 3;
-		return result;
-	}
-	if (v2 != 80)
-	{
-		if (v2 != 83)
-			return 0;
-		goto LABEL_30;
-	}
-LABEL_31:
-	*nElemAttr = 0;
-	return result;
+	*nElemAttr = GetElementAttribute(*s); 
+	return *nElemAttr ? true : false;
 }
 
 int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID, int *pnIncMPCon)
@@ -258,59 +200,33 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 		*pnIncMPCon = 0;
 	if (pLevel && pnIncMPCon)
 	{
-		if (nSkillID <= 2121007)
+		switch (nSkillID)
 		{
-			if (nSkillID < 2121006)
-			{
-				if (nSkillID <= 2111006)
-				{
-					if (nSkillID != 2111006
-						&& (nSkillID < 2001004
-							|| nSkillID > 2001005
-							&& (nSkillID <= 2101003 || nSkillID > 2101005 && (nSkillID <= 2111001 || nSkillID > 2111003))))
-					{
-						goto LABEL_37;
-					}
-					goto LABEL_36;
-				}
-				if (nSkillID != 2121001)
-				{
-					bCheck = nSkillID == 2121003;
-					goto LABEL_24;
-				}
-			}
-			goto LABEL_36;
+			case 2001004:
+			case 2001005:
+
+			case 2101004:
+			case 2101005:
+			case 2111002:
+			case 2111003:
+			case 2111006:
+			case 2121001:
+			case 2121003:
+			case 2121006:
+			case 2121007:
+
+			case 2201004:
+			case 2201005:
+			case 2211002:
+			case 2211003:
+			case 2211006:
+			case 2221001:
+			case 2221003:
+			case 2221006:
+			case 2221007:
+				*pnIncMPCon = pLevel->m_nX;
+				break;
 		}
-		if (nSkillID > 2221001)
-		{
-			if (nSkillID != 2221003 && (nSkillID <= 2221005 || nSkillID > 2221007))
-				goto LABEL_37; //2221002 2221004 2221005 2221008 ~
-			goto LABEL_36; //2221003
-		}
-		if (nSkillID == 2221001)
-		{
-		LABEL_36:
-			*pnIncMPCon = pLevel->m_nX;
-			goto LABEL_37;
-		}
-		if (nSkillID >= 2201004)
-		{
-			if (nSkillID <= 2201005)
-				goto LABEL_36; //2211005
-			if (nSkillID > 2211001)
-			{
-				if (nSkillID > 2211003)
-				{
-					bCheck = nSkillID == 2211006;
-				LABEL_24:
-					if (!bCheck)
-						goto LABEL_37; //2211004 2211005
-					goto LABEL_36; //2211006
-				}
-				goto LABEL_36; //2211002
-			}
-		}
-	LABEL_37:
 		nRet = pLevel->m_nY;
 	}
 	return nRet;

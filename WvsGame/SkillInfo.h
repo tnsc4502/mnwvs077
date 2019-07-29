@@ -22,6 +22,18 @@ class SkillInfo
 	std::map<int, MCGuardianEntry*> m_mMCGuardian;
 
 public:
+	enum ElementAttribute
+	{
+		e_ElemAttr_None = 0x00,
+		e_ElemAttr_Ice,
+		e_ElemAttr_Fire,
+		e_ElemAttr_Lightning,
+		e_ElemAttr_Poison,
+		e_ElemAttr_Holy,
+		e_ElemAttr_Dark,
+		e_ElemAttr_U, //Unknown [u, U]
+	};
+
 	SkillInfo();
 	~SkillInfo();
 
@@ -36,7 +48,8 @@ public:
 	static SkillInfo* GetInstance();
 	static bool IsValidRootName(const std::string& sName);
 	int GetBundleItemMaxPerSlot(int nItemID, GA_Character* pCharacterData);
-	int GetElementAttribute(const char *s, int *nElemAttr);
+	static int GetElementAttribute(const char cAttr);
+	static int GetElementAttribute(const char *s, int *nElemAttr);
 	int GetAmplification(GA_Character* pCharacter, int nJob, int nSkillID, int *pnIncMPCon);
 	int GetResistance(int nSLV, int nJob, int nElement);
 	void LoadMobSkill();

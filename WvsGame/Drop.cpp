@@ -1,11 +1,13 @@
 #include "Drop.h"
-#include "..\Database\GW_ItemSlotBase.h"
-#include "..\WvsLib\Net\PacketFlags\DropPacketFlags.hpp"
 #include "Reward.h"
 #include "User.h"
 #include "Pet.h"
 #include "QWUQuestRecord.h"
 #include "QWUser.h"
+#include "ItemInfo.h"
+
+#include "..\Database\GW_ItemSlotBase.h"
+#include "..\WvsLib\Net\PacketFlags\DropPacketFlags.hpp"
 
 Drop::Drop()
 {
@@ -69,7 +71,7 @@ bool Drop::IsShowTo(FieldObj *pUser_)
 	auto pUser = (User*)pUser_;
 	if (!pUser || QWUser::GetHP(pUser) == 0)
 		return false;
-	if (!m_usQRKey)
+	if (!m_usQRKey || (m_pItem && !ItemInfo::GetInstance()->IsQuestItem(m_pItem->nItemID)))
 		return true;
 
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());

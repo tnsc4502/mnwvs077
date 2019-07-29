@@ -3,6 +3,7 @@
 #include "User.h"
 #include "QuestMan.h"
 #include "QWUQuestRecord.h"
+#include "SkillInfo.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -116,9 +117,9 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 			);
 	}
 
-	bool bFly = (info["fly"] == empty);
-	bool bMove = (info["move"] == empty);
-	bool bJump = (info["jump"] == empty);
+	bool bFly = (info["fly"] != empty);
+	bool bMove = (info["move"] != empty);
+	bool bJump = (info["jump"] != empty);
 	if (bFly)
 		pTemplate->m_nMoveAbility = 3;
 	else if (bJump)
@@ -133,163 +134,41 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	(*m_MobTemplates)[dwTemplateID] = pTemplate;
 }
 
-int MobTemplate::GetElementAttribute(const char *s, int *aElemAttr)
+int MobTemplate::GetElementAttribute(const std::string& s, int *aElemAttr)
 {
-	const char *v2; 
-	unsigned __int16 v3;
-	unsigned __int16 v4;
-	int v5; 
-	bool v6;
-	int v7; 
-	int v8; 
+	/*
+	The return value seems dispensable.
+	*/
+	int nSize = (int)s.size(), nLevel = 0;
+	char cAttr = 0, nAttr = 0;
 
-	if (!s)
-		return 1;
-	v2 = s;
-	if (!*s)
-		return 1;
-	while (1)
+	/*
+	"s" should be consisted of pairs that each pair contains one alphabetic and at least one numeral digit.
+	While at least one numberal digit is anticipated, giving no digit is legal, and nLevel will be ZERO.
+	*/
+	if (!nSize)
+		return true;
+	
+	for (int i = 0; i < nSize; )
 	{
-		v3 = *v2;
-		v4 = v2[1];
-		++v2;
-		v5 = 0;
-		if (!v4)
-			goto LABEL_40;
-		do
-		{
-			if (v4 < 0x30u)
-				break;
-			if (v4 > 0x39u)
-				break;
-			v5 = v4 + 10 * v5 - 48;
-			++v2;
-			v4 = *v2;
-		} while (*v2);
-		if (!v5)
-			LABEL_40:
-		v5 = 0;
-		if ((signed int)v3 > 100)
-			break;
-		if (v3 == 100)
-			goto LABEL_41;
-		if ((signed int)v3 > 76)
-		{
-			v7 = v3 - 80;
-			v6 = v3 == 80;
-			goto LABEL_25;
-		}
-		if (v3 == 76)
-			goto LABEL_31;
-		if (v3 == 68)
-		{
-		LABEL_41:
-			aElemAttr[6] = v5;
-			goto LABEL_34;
-		}
-		if (v3 == 70)
-			goto LABEL_33;
-		if (v3 == 72)
-			goto LABEL_32;
-		if (v3 != 73)
-			return 0;
-	LABEL_17:
-		aElemAttr[1] = v5;
-	LABEL_34:
-		if (!*v2)
-			return 1;
+		nLevel = 0;
+		cAttr = s[i++];
+
+		/* Parse numeral digit(s) into nLevel. */
+		while (i < nSize && s[i] >= '0' && s[i] <= '9')
+			(nLevel *= 10) += (s[i++] - '0');
+
+		/* Parse element attribute character. Where P and U are unknown meaning. (P = Physical ? ( = 0))*/
+		nAttr = SkillInfo::GetElementAttribute(cAttr);
+		if (nAttr || (cAttr == 'p' || cAttr == 'P'))
+			aElemAttr[nAttr] = nLevel;
 	}
-	if (v3 == 102)
-	{
-	LABEL_33:
-		aElemAttr[2] = v5;
-		goto LABEL_34;
-	}
-	if (v3 == 104)
-	{
-	LABEL_32:
-		aElemAttr[5] = v5;
-		goto LABEL_34;
-	}
-	if (v3 == 105)
-		goto LABEL_17;
-	if (v3 == 108)
-	{
-	LABEL_31:
-		aElemAttr[3] = v5;
-		goto LABEL_34;
-	}
-	v7 = v3 - 112;
-	v6 = v3 == 112;
-LABEL_25:
-	if (v6)
-	{
-		*aElemAttr = v5;
-		goto LABEL_34;
-	}
-	v8 = v7 - 3;
-	if (!v8)
-	{
-		aElemAttr[4] = v5;
-		goto LABEL_34;
-	}
-	if (v8 == 2)
-	{
-		aElemAttr[7] = v5;
-		goto LABEL_34;
-	}
-	return 0;
+	return true;
 }
 
 int MobTemplate::GetMagicAttackElementAttribute(const char * s, int * nElemAttr)
 {
-	signed int v2; // ecx@1
-	int result; // eax@1
-
-	v2 = *s;
-	result = 1;
-	if (v2 > 83)
-	{
-		if (v2 == 102)
-			goto LABEL_17;
-		if (v2 == 105)
-		{
-		LABEL_16:
-			*nElemAttr = 1;
-			return result;
-		}
-		if (v2 == 108)
-		{
-		LABEL_15:
-			*nElemAttr = 3;
-			return result;
-		}
-		if (v2 != 115)
-			return 0;
-	LABEL_14:
-		*nElemAttr = 4;
-		return result;
-	}
-	if (v2 == 83)
-		goto LABEL_14;
-	if (!*s)
-	{
-		*nElemAttr = 0;
-		return result;
-	}
-	if (v2 != 70)
-	{
-		if (v2 != 73)
-		{
-			if (v2 != 76)
-				return 0;
-			goto LABEL_15;
-		}
-		goto LABEL_16;
-	}
-LABEL_17:
-	*nElemAttr = 2;
-	return result;
+	return SkillInfo::GetElementAttribute(s, nElemAttr);
 }
 
 void MobTemplate::MakeSkillContext()

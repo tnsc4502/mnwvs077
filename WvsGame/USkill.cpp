@@ -42,11 +42,14 @@ int nSkillID = pSkill->GetSkillID(), tDelay = 0;\
 int nDuration = (nForcedSetTime > tCur) ? (nForcedSetTime - tCur) : (pSkillLVLData->m_nTime ? pSkillLVLData->m_nTime : (INT_MAX)) ;\
 
 /*
-此MACRO作為註冊TemporaryStat(TS)用。
-每個TS一定都要先呼叫此MACRO後，再補上自己需要的屬性。
-此限制帶來的好處是User::Update檢測每個TS的時候，可以查看時間是否已經逾時，也追蹤Reason技能(n##name)。
-同時也會將n, r, t都放到m_mSetByTS中，並以TS_FLAG作為key。
-當bResetBySkill為true時，表示以清除指定技能帶來的TS，會將n, r, t都設定為0，並且將m_mSetByTS對應的值清空。
+This MARCO is for TemporaryStat (TS) registration.
+Using this MARCO to apply TSs to users benefits "User::Update" that will enable it the ability to check remaining time and trace applied skill (Reason, n##name) easily.
+
+At same time, n##name, r##name and t##name will all be put into m_mSetByTS (in SecondaryStat), 
+and the access key would be a TS_FLAG.
+
+When bResetBySkill is set, it would set n##name, r##name and t##name to ZERO,
+and erase the KV pair in m_mSetByTS.
 */
 
 #define REGISTER_TS(name, value)\
