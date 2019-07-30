@@ -189,7 +189,8 @@ static int pmain(lua_State* L)
  return 0;
 }
 
-int main(int argc, char* argv[])
+//Only for standalone lua vm.
+int main_(int argc, char* argv[])
 {
  lua_State* L;
  int i=doargs(argc,argv);

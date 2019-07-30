@@ -100,8 +100,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WVSSHOP;_DEBUG;_WIN32_WINNT=0x0601;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Common\;..\Library\boost_1_63_0</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WVSSHOP;_DEBUG;ASIO_STANDALONE;_CONSOLE;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Library\asio\;..\Library\boost_1_63_0</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,8 +135,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_WVSSHOP;NDEBUG;_WIN32_WINNT=0x0601;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Common\;..\Library\boost_1_63_0</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WVSSHOP;NDEBUG;ASIO_STANDALONE;_CONSOLE;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Library\asio\;..\Library\boost_1_63_0</AdditionalIncludeDirectories>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

@@ -6,7 +6,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
-#include <cmath>
+#include <algorithm>
 
 GuildBBSMan::GuildBBSMan()
 {

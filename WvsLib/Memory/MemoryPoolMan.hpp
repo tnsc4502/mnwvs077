@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Arena.h"
-#include "boost\pool\pool.hpp"
-#include "boost\pool\singleton_pool.hpp"
+//#include "boost\pool\pool.hpp"
+//#include "boost\pool\singleton_pool.hpp"
 #include "MemoryPool.h"
 /*
 簡單記憶體配置池，用於管理讀取Wz時的記憶體消耗

@@ -24,6 +24,7 @@ const std::string & ScriptMan::SearchScriptNameByFunc(const std::string& sType, 
 	return findIter->second;
 }
 
+#pragma warning(disable:4503) //Disable warning of exceeded name-length of m_mFuncToFile.
 void ScriptMan::RegisterScriptFunc(const std::string& sType, const std::string & sScriptPath)
 {
 	auto &mFileTable = m_mFileToFunc[sType];
@@ -62,6 +63,11 @@ void ScriptMan::RegisterScriptFunc(const std::string& sType, const std::string &
 	lua_pop(L, 1);
 
 	lua_close(L);
+
+	/*
+	Raw release.
+	Prevent unknown memory leakage.
+	*/
 	pScript->~Script();
 	WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(pScript);
 	//FreeObj(pScript);

@@ -1,7 +1,7 @@
 #pragma once
-#include "..\Net\asio.hpp"
 #include <set>
 #include <mutex>
+#include "asio.hpp"
 
 class OutPacket;
 class InPacket;
@@ -17,10 +17,6 @@ public:
 	};
 
 private:
-	struct SocketDisconnectedNotifier
-	{
-
-	};
 
 	static std::mutex stSocketRecordMtx;
 	static std::set<unsigned int> stSocketIDRecord;
@@ -37,13 +33,13 @@ private:
 	unsigned char* aRecvIV, *aSendIV;
 	SocketStatus m_eSocketStatus = SocketStatus::eClosed;
 
-	//Note : this flag indicate what this socket is for, when the flag is true, that means the socket is for local server.
-	//You should note that local server won't encrypt and decrypt packets, and won't send game server info.
+	//Note : this flag indicates the role of this socket (true = local server).
+	//You should note that the local server won't encrypt and decrypt packets, and won't send game server info.
 	bool bIsLocalServer = false;
 
 	void EncodeHandShakeInfo(OutPacket *oPacket);
 
-	//用於釋放封包的Buffer資源 (該資源乃經由Arena配置)
+	//Decrease reference counter of given shared packet. 
 	void OnSendPacketFinished(const std::error_code &ec, std::size_t bytes_transferred, unsigned char *buffer, void *pPacket);
 	void OnReceive(const std::error_code &ec, std::size_t bytes_transferred, unsigned char* buffer);
 	void ProcessPacket(const std::error_code &ec, std::size_t bytes_transferred, unsigned char* buffer, int nPacketLen);
@@ -69,7 +65,6 @@ public:
 	unsigned int GetSocketID() const;
 	unsigned char GetServerType();
 	void SetServerType(unsigned char type);
-
 	void SetSocketDisconnectedCallBack(const std::function<void(SocketBase *)>& fObject);
 
 	void Init();

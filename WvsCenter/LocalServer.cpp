@@ -74,7 +74,7 @@ int ProcessLocalServerPacket(LocalServer* pSrv, InPacket *iPacket)
 void LocalServer::OnPacket(InPacket *iPacket)
 {
 	WvsLogger::LogRaw("[WvsCenter][LocalServer::OnPacket]Packet received: ");
-	iPacket->Print();
+	//iPacket->Print();
 	int nResult = ProcessLocalServerPacket(this, iPacket);
 
 	if (nResult != -1)

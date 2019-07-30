@@ -23,6 +23,7 @@ class Field;
 class ScriptMan
 {
 	std::recursive_mutex m_mtxLock;
+
 	std::map<std::string, std::map<std::string, std::string>> m_mFuncToFile;
 	std::map<std::string, std::map<std::string, std::vector<std::string>>> m_mFileToFunc;
 

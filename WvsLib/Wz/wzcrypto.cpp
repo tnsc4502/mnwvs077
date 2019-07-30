@@ -6,6 +6,8 @@
 #include "wzmain.hpp"
 #include "..\Common\CryptoConstants.hpp"
 
+#include <intrin.h> //For VS 2017.
+
 namespace WZ {
 uint8_t * Key = 0;
 uint8_t * AKey = 0;

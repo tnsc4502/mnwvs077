@@ -11,6 +11,8 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
+#include <algorithm>
+
 QWUSkillRecord::QWUSkillRecord()
 {
 }

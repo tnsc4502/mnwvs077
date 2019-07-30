@@ -24,7 +24,7 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
 
-
+#include <algorithm>
 /*
 This MACRO defines some variables that are required by REGISTER_TS
 Please define this in the beginning section of every DoActiveSkill_XXX

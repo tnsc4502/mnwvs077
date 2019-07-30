@@ -101,7 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_WVSLOGIN;_DEBUG;_CONSOLE;ASIO_STANDALONE;ASIO_MSVC=_MSC_VER;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Library\Foundation\include;..\Common\;..\Library\boost_1_63_0\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Library\Foundation\include;..\Library\asio;..\Library\boost_1_63_0\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_WVSLOGIN;NDEBUG;_CONSOLE;ASIO_STANDALONE;ASIO_MSVC=_MSC_VER;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Common\;..\Library\boost_1_63_0\;..\Library\poco-1.7.8-all\Data\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Library\poco-1.7.8-all\Foundation\include;..\Library\asio;..\Library\boost_1_63_0\;..\Library\poco-1.7.8-all\Data\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

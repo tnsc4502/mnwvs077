@@ -30,7 +30,7 @@ void LoginSocket::CheckLoginState(int nState)
 
 void LoginSocket::OnPacket(InPacket *iPacket)
 {
-	WvsLogger::LogRaw("[WvsLogin][LoginSocket::OnPacket]«Ê¥]±µ¦¬¡G");
+	WvsLogger::LogRaw("[WvsLogin][LoginSocket::OnPacket]Received Packet: ");
 	iPacket->Print();
 	int nType = (unsigned short)iPacket->Decode2();
 

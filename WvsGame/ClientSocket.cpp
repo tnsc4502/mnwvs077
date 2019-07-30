@@ -77,7 +77,7 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 			if (nType != UserRecvPacketFlag::User_OnFuncKeyMappedModified
 				&& nType != NPCRecvPacketFlags::NPC_OnMoveRequest
 				&& nType != MobRecvPacketFlag::Mob_OnMove) {
-				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]«Ê¥]±µ¦¬¡G");
+				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]Received Packet: ");
 				iPacket->Print();
 			}
 			nType = ProcessUserPacket(pUser, iPacket);

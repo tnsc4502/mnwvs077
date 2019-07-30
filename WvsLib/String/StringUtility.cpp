@@ -1,6 +1,8 @@
 #include "StringUtility.h"
-#include <Windows.h>
 #include "..\Memory\ZMemory.h"
+
+#include <algorithm>
+#include <Windows.h>
 
 void StringUtility::Split(const std::string & str, std::vector<std::string>& result, const std::string & delimeter)
 {
