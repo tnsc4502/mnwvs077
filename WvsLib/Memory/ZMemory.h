@@ -11,7 +11,7 @@ static void ZRelease(void *p)
 static void ZReleaseArray(void *p)
 {
 	if (p)
-		WvsArrayAllocator::GetInstance()->Free<unsigned char>(p);
+		WvsArrayAllocator::GetInstance()->Free<char>(p);
 }
 
 template<typename T>

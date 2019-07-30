@@ -111,45 +111,40 @@ private:
 namespace WVS_ALLOCATOR
 {
 	//For object allocations.
-	static MemoryPool<char[32]>  __gsg0{ 32 * 2048 };
-	static MemoryPool<char[64]>  __gsg1{ 64 * 1024 };
-	static MemoryPool<char[128]> __gsg2{ 128 * 512 };
-	static MemoryPool<char[256]> __gsg3{ 256 * 512 };
-	static MemoryPool<char[512]> __gsg4{ 512 * 512 };
-	static MemoryPool<char[1024]> __gsg5{ 1024 * 512 };
-	static MemoryPool<char[2048]> __gsg6{ 2048 * 512 };
-	static MemoryPool<char[4096]> __gsg7{ 4096 * 512 };
-	static MemoryPool<char[8192]> __gsg8{ 8192 * 512 };
-	static MemoryPool<char[8192 * 2]> __gsg9{ 8192 * 2 * 512 };
-	static MemoryPool<char[8192 * 4]> __gsg10{ 8192 * 4 * 512 };
-	static MemoryPool<char[8192 * 8]> __gsg11{ 8192 * 8 * 512 };
-
+	extern MemoryPool<char[32]>  __gsg0;
+	extern MemoryPool<char[64]>  __gsg1;
+	extern MemoryPool<char[128]> __gsg2;
+	extern MemoryPool<char[256]> __gsg3;
+	extern MemoryPool<char[512]> __gsg4;
+	extern MemoryPool<char[1024]> __gsg5;
+	extern MemoryPool<char[2048]> __gsg6;
+	extern MemoryPool<char[4096]> __gsg7;
+	extern MemoryPool<char[8192]> __gsg8;
+	extern MemoryPool<char[8192 * 2]> __gsg9;
+	extern MemoryPool<char[8192 * 4]> __gsg10;
+	extern MemoryPool<char[8192 * 8]> __gsg11;
+	 
 	//For array allocations.
-	static MemoryPool<char[32]> __gMemPool32{ 32 * 2048 };
-	static MemoryPool<char[64]> __gMemPool64{ 64 * 1024 };
-	static MemoryPool<char[128]> __gMemPool128{ 128 * 512 };
-	static MemoryPool<char[256]> __gMemPool256{ 256 * 512 };
-	static MemoryPool<char[512]> __gMemPool512{ 512 * 512 };
-	static MemoryPool<char[1024]> __gMemPool1024{ 1024 * 512 };
-	static MemoryPool<char[2048]> __gMemPool2048{ 2048 * 512 };
+	extern MemoryPool<char[32]> __gMemPool32;
+	extern MemoryPool<char[64]> __gMemPool64;
+	extern MemoryPool<char[128]> __gMemPool128;
+	extern MemoryPool<char[256]> __gMemPool256;
+	extern MemoryPool<char[512]> __gMemPool512;
+	extern MemoryPool<char[1024]> __gMemPool1024;
+	extern MemoryPool<char[2048]> __gMemPool2048;
 
-	static void* apAllocator[12] =
-	{
-		&__gsg0, &__gsg1, &__gsg2, &__gsg3,
-		&__gsg4, &__gsg5, &__gsg6, &__gsg7,
-		&__gsg8, &__gsg9, &__gsg10, &__gsg11
-	};
+	extern void* apAllocator[12] ;
 }
 
 template<typename T>
 class WvsSingleObjectAllocator
 {
-	std::mutex m_mtxLock;
+	//std::mutex m_mtxLock;
 
 public:
 	inline void * ResourceMgr(bool allocate = true, void *pDel = nullptr)
 	{
-		std::lock_guard<std::mutex> lock__(m_mtxLock);
+		//std::lock_guard<std::mutex> lock__(m_mtxLock);
 		const int SIZE = sizeof(T) + 4;
 		void *pRet = nullptr;
 		if (allocate)

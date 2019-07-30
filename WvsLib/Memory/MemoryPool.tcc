@@ -130,7 +130,7 @@ template <typename T>
 inline typename MemoryPool<T>::pointer
 MemoryPool<T>::allocate(size_type n, const_pointer hint)
 {
-  //std::lock_guard<std::mutex> lock_(m_mtxLock);
+  std::lock_guard<std::mutex> lock_(m_mtxLock);
   if (freeSlots_ != nullptr) {
     pointer result = reinterpret_cast<pointer>(freeSlots_);
     freeSlots_ = freeSlots_->next;
@@ -147,7 +147,7 @@ template <typename T>
 inline void
 MemoryPool<T>::deallocate(pointer p, size_type n)
 {
-  //std::lock_guard<std::mutex> lock_(m_mtxLock);
+  std::lock_guard<std::mutex> lock_(m_mtxLock);
   if (p != nullptr) {
     reinterpret_cast<slot_pointer_>(p)->next = freeSlots_;
     freeSlots_ = reinterpret_cast<slot_pointer_>(p);

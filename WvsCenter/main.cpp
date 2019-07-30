@@ -13,8 +13,6 @@
 #include "..\WvsLib\Exception\WvsException.h"
 #include "..\WvsLib\String\StringPool.h"
 
-#include "..\Database\GA_Character.hpp"
-
 void ConnectionAcceptorThread(short nPort)
 {
 	WvsCenter *centerServer = WvsBase::GetInstance<WvsCenter>();
@@ -35,12 +33,6 @@ int main(int argc, char **argv)
 	}
 	StringPool::Init();
 	WvsUnified::InitDB(pConfigLoader);
-	for (int i = 0; i < 100; ++i)
-	{
-		GA_Character *chr = AllocObj( GA_Character );
-		chr->Load(5);
-		FreeObj(chr);
-	}
 	WvsWorld::GetInstance()->SetConfigLoader(pConfigLoader);
 	WvsBase::GetInstance<WvsCenter>()->Init();
 	WvsWorld::GetInstance()->InitializeWorld();
