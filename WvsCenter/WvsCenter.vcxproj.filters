@@ -55,6 +55,7 @@
     <ClCompile Include="GuildBBSMan.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="CenterApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsCenter.h">
@@ -96,5 +97,6 @@
     <ClInclude Include="GuildBBSMan.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="CenterApp.h" />
   </ItemGroup>
 </Project>

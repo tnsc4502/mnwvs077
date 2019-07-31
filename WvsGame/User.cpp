@@ -1849,7 +1849,7 @@ void User::Update()
 	{
 		if (m_tLastAliveCheckRespondTime == -1)
 		{
-			WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "Alive check timeouted, User: [%d][%s]\n", GetUserID(), GetName().c_str());
+			WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "Alive check timed out, User: [%d][%s]\n", GetUserID(), GetName().c_str());
 			m_pSocket->GetSocket().close();
 			return;
 		}

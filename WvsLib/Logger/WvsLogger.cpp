@@ -13,7 +13,12 @@ std::mutex WvsLogger::m_mtxConsoleGuard;
 std::condition_variable WvsLogger::m_cv;
 
 boost::lockfree::queue<WvsLogger::WvsLogData*> g_qMsgQueue(WvsLogger::MAX_MSG_QUEUE_CAPACITY);
-WvsLogger* WvsLogger::pInstnace = AllocObj( WvsLogger );
+
+WvsLogger* WvsLogger::GetInstance()
+{
+	static WvsLogger* pInstnace = AllocObj(WvsLogger);
+	return pInstnace;
+}
 
 void WvsLogger::StartMonitoring()
 {
@@ -31,7 +36,10 @@ void WvsLogger::StartMonitoring()
 #ifdef _WIN32
 			SetConsoleTextAttribute(hConsole, pData->m_nConsoleColor);
 #endif
-			fputs(pData->m_strData.c_str(), stdout);
+			if (!GetInstance()->m_pForward)
+				fputs(pData->m_strData.c_str(), stdout);
+			else
+				GetInstance()->m_pForward(pData->m_nConsoleColor, pData->m_strData);
 			FreeObj(pData);
 		}
 	}
@@ -59,26 +67,31 @@ void WvsLogger::PushLogImpl(int nConsoleColor, const std::string & strLog)
 
 void WvsLogger::LogRaw(int nConsoleColor, const char *sFormat)
 {
-	pInstnace->PushLogImpl(nConsoleColor, sFormat);
+	GetInstance()->PushLogImpl(nConsoleColor, sFormat);
 }
 
 void WvsLogger::LogRaw(const char *sFormat)
 {
-	pInstnace->PushLogImpl(LEVEL_NORMAL, sFormat);
+	GetInstance()->PushLogImpl(LEVEL_NORMAL, sFormat);
 }
 
 void WvsLogger::LogFormat(const char *sFormat, ...)
 {
 	ZUniquePtr<char[]> sFormatted;
 	STRUTILITY_PARSE_VAR_LIST(sFormat, sFormatted);
-	pInstnace->PushLogImpl(LEVEL_NORMAL, (char*)sFormatted);
+	GetInstance()->PushLogImpl(LEVEL_NORMAL, (char*)sFormatted);
 }
 
 void WvsLogger::LogFormat(int nConsoleColor, const char *sFormat, ...)
 {
 	ZUniquePtr<char[]> sFormatted;
 	STRUTILITY_PARSE_VAR_LIST(sFormat, sFormatted);
-	pInstnace->PushLogImpl(nConsoleColor, (char*)sFormatted);
+	GetInstance()->PushLogImpl(nConsoleColor, (char*)sFormatted);
+}
+
+void WvsLogger::SetForwardFunc(MESSAGE_FORWARD_FUNC pFunc)
+{
+	GetInstance()->m_pForward = pFunc;
 }
 
 WvsLogger::WvsLogData::WvsLogData()

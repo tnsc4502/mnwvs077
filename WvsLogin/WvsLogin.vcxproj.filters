@@ -14,6 +14,7 @@
     <ClCompile Include="Center.cpp">
       <Filter>Login</Filter>
     </ClCompile>
+    <ClCompile Include="LoginApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Login">
@@ -33,5 +34,6 @@
     <ClInclude Include="LoginEntry.h">
       <Filter>Login</Filter>
     </ClInclude>
+    <ClInclude Include="LoginApp.h" />
   </ItemGroup>
 </Project>

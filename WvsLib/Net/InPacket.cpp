@@ -78,9 +78,17 @@ void InPacket::DecodeBuffer(unsigned char* dst, int size)
 
 void InPacket::Print()
 {
-	for (int i = 0; i < nPacketSize; ++i)
-		WvsLogger::LogFormat("0x%02X ", (int)aBuff[i]);
-	WvsLogger::LogRaw("\n");
+	std::string sOutput;
+	char aBuffer[6] = { 0 };
+	for (int i = 0; i < nPacketSize; ++i) 
+	{
+		sprintf_s(aBuffer, "0x%02X ", (int)aBuff[i]);
+		sOutput += aBuffer;
+	}
+		//WvsLogger::LogFormat("0x%02X ", (int)aBuff[i]);
+	sOutput += "\n";
+	WvsLogger::LogRaw(sOutput.c_str());
+	//WvsLogger::LogRaw("\n");
 }
 
 unsigned char* InPacket::GetPacket() const

@@ -7,6 +7,9 @@
 class WvsLogger
 {
 public:
+	typedef void(*MESSAGE_FORWARD_FUNC)(int nLogLevel, const std::string& sMessage);
+	MESSAGE_FORWARD_FUNC m_pForward = nullptr;
+
 	ALLOW_PRIVATE_ALLOC
 
 	WvsLogger();
@@ -15,8 +18,7 @@ public:
 	static std::mutex m_mtxConsoleGuard; 
 	static std::condition_variable m_cv;
 	static void StartMonitoring();
-
-	static WvsLogger* pInstnace;
+	static WvsLogger* GetInstance();
 
 	void PushLogImpl(int nConsoleColor, const std::string& strLog);
 
@@ -85,5 +87,7 @@ public:
 
 	static void LogFormat(const char *sFormat, ...);
 	static void LogFormat(int nConsoleColor, const char *sFormat, ...);
+
+	static void SetForwardFunc(MESSAGE_FORWARD_FUNC pFunc);
 };
 

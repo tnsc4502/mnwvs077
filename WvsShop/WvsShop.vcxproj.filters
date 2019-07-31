@@ -26,6 +26,7 @@
     <ClCompile Include="..\WvsGame\ItemInfo.cpp">
       <Filter>InGame\Item</Filter>
     </ClCompile>
+    <ClCompile Include="ShopApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shop">
@@ -60,5 +61,6 @@
     <ClInclude Include="..\WvsGame\ItemInfo.h">
       <Filter>InGame\Item</Filter>
     </ClInclude>
+    <ClInclude Include="ShopApp.h" />
   </ItemGroup>
 </Project>

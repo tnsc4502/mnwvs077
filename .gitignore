@@ -4,12 +4,14 @@
 *.pdb
 *.wz____
 *.iml
+*.ipch
 Release/
 Debug/
 Library/boost_1_63_0/
 Library/poco-1.7.8-all/
 Library/asio/
 x64/
+ipch/
 .idea/
 *.rtf
 *.txt

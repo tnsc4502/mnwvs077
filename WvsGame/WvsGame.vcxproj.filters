@@ -417,6 +417,7 @@
     <ClInclude Include="WarriorSkills.h">
       <Filter>WvsGame\InGame\Skill\SkillConstants</Filter>
     </ClInclude>
+    <ClInclude Include="GameApp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -690,5 +691,6 @@
     <ClCompile Include="ScriptPortal.cpp">
       <Filter>WvsGame\InGame\Script</Filter>
     </ClCompile>
+    <ClCompile Include="GameApp.cpp" />
   </ItemGroup>
 </Project>
