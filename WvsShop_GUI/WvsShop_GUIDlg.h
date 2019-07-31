@@ -38,6 +38,7 @@ public:
 	CRichEditCtrl m_ConsoleOutput;
 	CEdit m_CommandInput;
 	CStatic m_InputBoxCaption;
+	CRichEditCtrl m_CommandLog;
 	afx_msg void OnEnChangeEdit1();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	void AppendMessage(int nLogLevel, const std::string& sMsg);

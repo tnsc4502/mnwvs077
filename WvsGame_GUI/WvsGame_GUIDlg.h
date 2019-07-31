@@ -41,4 +41,7 @@ public:
 	afx_msg void OnEnChangeEdit1();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	void AppendMessage(int nLogLevel, const std::string& sMsg);
+	CStatic m_CommandLogLabel;
+	CStatic m_ServerLogLabel;
+	CRichEditCtrl m_CommandLog;
 };

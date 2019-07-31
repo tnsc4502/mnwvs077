@@ -360,6 +360,7 @@
     <ClCompile Include="Center.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CommandManager.cpp" />
+    <ClCompile Include="CommandPrompt.cpp" />
     <ClCompile Include="ContinentMan.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Drop.cpp" />

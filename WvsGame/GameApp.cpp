@@ -103,7 +103,3 @@ void GameApp::InitializeService(int argc, char** argv)
 		io.run(ec);
 	}
 }
-
-void GameApp::OnCommandPromptInput(std::string& sInput)
-{
-}

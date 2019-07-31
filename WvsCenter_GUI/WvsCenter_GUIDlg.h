@@ -35,7 +35,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	CRichEditCtrl m_ConsoleOutput;
+	CRichEditCtrl m_ConsoleOutput, m_CommandLog;
 	CEdit m_CommandInput;
 	CStatic m_InputBoxCaption;
 	afx_msg void OnEnChangeEdit1();

@@ -188,6 +188,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WvsLogin_GUI.h" />
+    <ClInclude Include="WvsLogin_GUIDlg.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
