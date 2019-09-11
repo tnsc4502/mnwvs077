@@ -272,9 +272,11 @@ void CWvsLogin_GUIDlg::AppendMessage(int nLogLevel, const std::string & sMsg)
 			cf.crTextColor = RGB(0xFF, 0x58, 0x09);
 	}
 
+	int nOriginalLine = pEdit->GetLineCount();
 	pEdit->SetSelectionCharFormat(cf);
 	int nLength = pEdit->GetTextLength();
 	pEdit->SetSel(nLength, nLength);
 	pEdit->ReplaceSel(CString(sMsg.c_str() + nSkipOffset));
-	pEdit->LineScroll(1);
+	int nWrittenLine = pEdit->GetLineCount();
+	pEdit->LineScroll(nWrittenLine - nOriginalLine);
 }

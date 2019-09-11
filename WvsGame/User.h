@@ -160,6 +160,7 @@ public:
 	static void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamageMobCount, int nDamagedCountPerMob);
 	static ZSharedPtr<User> FindUser(int nUserID);
 	static ZSharedPtr<User> FindUserByName(const std::string& strName);
+	static void Broadcast(OutPacket *oPacket);
 
 	User(ClientSocket *pSocket, InPacket *iPacket);
 	void EncodeCharacterDataInternal(OutPacket *oPacket);
@@ -257,6 +258,7 @@ public:
 	void OnSkillLearnItemUseRequest(InPacket *iPacket);
 	void SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLevel, bool bItemUsed, bool bSucceed);
 	void OnPortalScrollUseRequest(InPacket *iPacket);
+	void OnConsumeCashItemUseRequest(InPacket *iPacket);
 
 	//Message
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);

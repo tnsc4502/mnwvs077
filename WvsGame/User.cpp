@@ -77,6 +77,7 @@
 #include "DropPool.h"
 #include "WvsPhysicalSpace2D.h"
 #include "AdminSkills.h"
+#include "UserCashItemImpl.h"
 
 #define REGISTER_TS_BY_MOB(name, value) \
 tsFlag |= GET_TS_FLAG(##name); \
@@ -659,6 +660,9 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
 			OnOpenEntrustedShop(iPacket);
+			break;
+		case UserRecvPacketFlag::User_OnConsumeCashItemUseRequest:
+			OnConsumeCashItemUseRequest(iPacket);
 			break;
 		default:
 			iPacket->RestorePacket();
@@ -2627,6 +2631,86 @@ void User::OnPortalScrollUseRequest(InPacket *iPacket)
 	}
 }
 
+void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+
+	int nPOS = iPacket->Decode2();
+	int nItemID = iPacket->Decode4();
+	auto pItem = m_pCharacterData->GetItem(GW_ItemSlotBase::CASH, nPOS);
+	if (!pItem || pItem->nItemID != nItemID)
+	{
+	INVALID_CONSUME_CASHITEM:
+		SendCharacterStat(true, 0);
+		return;
+	}
+
+	int nType = ItemInfo::GetConsumeCashItemType(nItemID), nResult = 0;
+	switch (nType)
+	{
+		case ItemInfo::CashItemType::CashItemType_SetPetName:
+			break;
+		case ItemInfo::CashItemType::CashItemType_SendMemo:
+			break;
+		case ItemInfo::CashItemType::CashItemType_StatChange:
+			break;
+		case ItemInfo::CashItemType::CashItemType_SkillChange:
+			break;
+		case ItemInfo::CashItemType::CashItemType_SetItemName:
+			break;
+		case ItemInfo::CashItemType::CashItemType_ItemProtector:
+			break;
+		case ItemInfo::CashItemType::CashItemType_Incubator:
+			break;
+		case ItemInfo::CashItemType::CashItemType_ShopScanner:
+			break;
+		case ItemInfo::CashItemType::CashItemType_MapTransfer:
+			break;
+		case ItemInfo::CashItemType::CashItemType_ADBoard:
+			break;
+		
+		//Skip MapleTVs (which do not exist in TW ver.) impl.
+
+		case ItemInfo::CashItemType::CashItemType_Morph:
+			break;
+		case ItemInfo::CashItemType::CashItemType_AvatarMegaphone:
+			break;
+		case ItemInfo::CashItemType::CashItemType_NameChange:
+			break;
+		case ItemInfo::CashItemType::CashItemType_TransferWorld:
+			break;
+		case ItemInfo::CashItemType::CashItemType_PetFood:
+			break;
+		case ItemInfo::CashItemType::CashItemType_SpeakerChannel:
+			nResult = UserCashItemImpl::ConsumeSpeakerChannel(this, iPacket);
+			break;
+		case ItemInfo::CashItemType::CashItemType_SpeakerWorld:
+			break;
+		case ItemInfo::CashItemType::CashItemType_Weather:
+			break;
+		case ItemInfo::CashItemType::CashItemType_JukeBox:
+			break;
+	}
+	if (nResult)
+	{
+		int nDecCount = 0;
+		std::vector<InventoryManipulator::ChangeLog> aLog;
+		bool bRemove = QWUInventory::RawRemoveItem(
+			this, GW_ItemSlotBase::CASH, nPOS, 1, &aLog, nDecCount, nullptr
+		);
+		if (!bRemove)
+		{
+			SendNoticeMessage(GET_STRING(GameSrv_User_Invalid_ConsumeItem_Usage));
+			//Log to files or send some packets to the Center.
+		}
+		QWUInventory::SendInventoryOperation(
+			this, true, aLog
+		);
+	}
+	else
+		goto INVALID_CONSUME_CASHITEM;
+}
+
 void User::OnMigrateOut()
 {
 	//LeaveField();
@@ -2662,6 +2746,14 @@ ZSharedPtr<User> User::FindUser(int nUserID)
 ZSharedPtr<User> User::FindUserByName(const std::string & strName)
 {
 	return WvsGame::GetInstance<WvsGame>()->FindUserByName(strName);
+}
+
+void User::Broadcast(OutPacket *oPacket)
+{
+	std::lock_guard<std::recursive_mutex>(WvsBase::GetInstance<WvsGame>()->GetUserLock());
+	auto& mUser = WvsBase::GetInstance<WvsGame>()->GetConnectedUser();
+	for (auto& prUser : mUser)
+		prUser.second->SendPacket(oPacket);
 }
 
 void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest)

@@ -495,7 +495,7 @@ int ItemInfo::GetItemSlotType(int nItemID)
 bool ItemInfo::IsTreatSingly(int nItemID, long long int liExpireDate)
 {
 	int nItemHeader = GetItemSlotType(nItemID);
-	return ((nItemHeader != 2 && nItemHeader != 3 && nItemHeader != 4)
+	return ((nItemHeader != 2 && nItemHeader != 3 && nItemHeader != 4 && nItemHeader != 5)
 		|| IsRechargable(nItemID)
 		/*|| liExpireDate != 0*/);
 }
@@ -707,6 +707,149 @@ bool ItemInfo::IsPet(int nItemID)
 	int nTI = GetItemSlotType(nItemID);
 	int nPrefix = nItemID / 1000;
 	return nTI == GW_ItemSlotBase::CASH && (nPrefix % 10 == 0);
+}
+
+int ItemInfo::GetCashSlotItemType(int nItemID)
+{
+	switch (nItemID / 10000)
+	{
+		case 500:
+			return 8; //Unable to find an item with ID 500xxxx?
+		case 501:
+			return CashItemType::CashItemType_Effect;
+		case 502:
+			return CashItemType::CashItemType_ThrowingStar;
+		case 503:
+			return CashItemType::CashItemType_EntrustedShop;
+		case 507:
+			if (nItemID % 10000 / 1000 == 1)
+				return CashItemType::CashItemType_SpeakerChannel;
+			else if (nItemID % 10000 / 1000 == 2)
+				return CashItemType::CashItemType_SpeakerWorld;
+			else
+			{
+				if (nItemID % 10000 / 1000 != 5)
+					return CashItemType::CashItemType_None;
+				if (nItemID % 10)
+				{
+					switch (nItemID % 10)
+					{
+					case 1:
+						return CashItemType::CashItemType_MapleSoleTV;
+					case 2:
+						return CashItemType::CashItemType_MapleLoveTV;
+					case 3:
+						return CashItemType::CashItemType_MegaTV;
+					case 4:
+						return CashItemType::CashItemType_MegaSoleTV;
+					default:
+						return nItemID % 10 != 5 ?
+							CashItemType::CashItemType_None : CashItemType::CashItemType_MegaLoveTV;
+					}
+				}
+				else
+					return CashItemType::CashItemType_MapleTV;
+			}
+		case 512:
+			return CashItemType::CashItemType_Weather;
+		case 517:
+			return nItemID % 10000 != 0 ? 
+				CashItemType::CashItemType_None : CashItemType::CashItemType_SetPetName;
+		case 508:
+			return CashItemType::CashItemType_MessageBox;
+		case 520:
+			return CashItemType::CashItemType_MoneyPocket;
+		case 510:
+			return CashItemType::CashItemType_JukeBox;
+		case 509:
+			return CashItemType::CashItemType_SendMemo;
+		case 504:
+			return CashItemType::CashItemType_MapTransfer;
+		case 505:
+			if (!(nItemID % 10))
+				return CashItemType::CashItemType_StatChange;
+			if (nItemID % 10 > 0 && nItemID % 10 <= 4)
+				return CashItemType::CashItemType_SkillChange;
+			return CashItemType::CashItemType_None;
+		case 506:
+			if (nItemID % 10)
+			{
+				if (nItemID % 10 == 1)
+					return CashItemType::CashItemType_ItemProtector;
+				else
+					return nItemID % 10 != 2 ?
+						CashItemType::CashItemType_None : CashItemType::CashItemType_Incubator;
+			}
+			else
+				return CashItemType::CashItemType_SetItemName;
+		case 519:
+			return CashItemType::CashItemType_PetSkill;
+		case 516:
+			return CashItemType::CashItemType_Emotion;
+		case 515:
+			if (nItemID / 1000 == 5150 || nItemID / 1000 == 5151)
+				return 1;
+			if (nItemID / 1000 == 5152)
+				return nItemID / 100 != 51520 ?
+				CashItemType::CashItemType_None : CashItemType::CashItemType_FaceStyleCoupon;
+			if (nItemID / 1000 == 5153)
+				return CashItemType::CashItemType_SkinCareCoupon;
+			else
+				return nItemID / 1000 != 5154 ? 
+				CashItemType::CashItemType_None : CashItemType::CashItemType_HairStyleCoupon;
+		case 514:
+			return CashItemType::CashItemType_PersonalStore;
+		case 518:
+			return CashItemType::CashItemType_WaterOfLife;
+		case 513:
+			return CashItemType::CashItemType_Charm;
+		case 523:
+			return CashItemType::CashItemType_ShopScanner;
+		case 533:
+			return CashItemType::CashItemType_DeliveryTicket;
+		case 537:
+			return CashItemType::CashItemType_ADBoard;
+		case 522:
+			return CashItemType::CashItemType_GachaponTicket;
+		case 524:
+			return CashItemType::CashItemType_PetFood;
+		case 525:
+			return CashItemType::CashItemType_WeddingTicket;
+		case 530:
+			return CashItemType::CashItemType_Morph;
+		case 538:
+			return CashItemType::CashItemType_EvolutionRock;
+		case 539:
+			return CashItemType::CashItemType_AvatarMegaphone;
+		case 540:
+			if (nItemID / 1000 == 5400)
+				return CashItemType::CashItemType_NameChange;
+			if (nItemID / 1000 == 5401)
+				return CashItemType::CashItemType_TransferWorld;
+			return CashItemType::CashItemType_None;
+		case 542:
+			if (nItemID / 1000 == 5420)
+				return CashItemType::CashItemType_MembershipCoupon;
+			return CashItemType::CashItemType_None;
+		default:
+			return CashItemType::CashItemType_None;
+	}
+}
+
+int ItemInfo::GetConsumeCashItemType(int nItemID)
+{
+	int nResult = GetCashSlotItemType(nItemID);
+	if (nResult >= CashItemType::CashItemType_MapleTV) 
+	{
+		if (nResult <= CashItemType::CashItemType_MegaLoveTV)
+			return nResult;
+		if (nResult == CashItemType::CashItemType_NameChange
+			|| nResult == CashItemType::CashItemType_TransferWorld)
+			return nResult;
+		return 0;
+	}
+
+	return nResult;
 }
 
 #ifdef _WVSGAME

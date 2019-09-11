@@ -53,9 +53,10 @@ void UnhandledExcpetionHandler()
 	WvsBase::GetInstance<WvsGame>()->ShutdownService();
 }
 
+#include "Field.h"
+
 void GameApp::InitializeService(int argc, char** argv)
 {
-
 	ConfigLoader* pCfgLoader = nullptr;
 	if (argc > 1)
 		pCfgLoader = ConfigLoader::Get(argv[1]);

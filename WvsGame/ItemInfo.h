@@ -49,6 +49,54 @@ public:
 		ITEMVARIATION_GACHAPON
 	};
 
+	enum CashItemType
+	{
+		CashItemType_None = 0x00,
+		CashItemType_HairStyleCoupon = 0x01,
+		CashItemType_FaceStyleCoupon = 0x02,
+		CashItemType_SkinCareCoupon = 0x03,
+		CashItemType_PersonalStore = 0x04,
+		CashItemType_WaterOfLife = 0x05,
+		CashItemType_Emotion = 0x06,
+		CashItemType_Charm = 0x07,
+		CashItemType_Effect = 0x09,
+		CashItemType_ThrowingStar = 0x0A,
+		CashItemType_EntrustedShop = 0x0B,
+		CashItemType_SpeakerChannel = 0x0C,
+		CashItemType_SpeakerWorld = 0x0D,
+		CashItemType_Weather = 0x0E,
+		CashItemType_SetPetName = 0x0F,
+		CashItemType_MessageBox = 0x10,
+		CashItemType_MoneyPocket = 0x11, 
+		CashItemType_JukeBox = 0x12,
+		CashItemType_SendMemo = 0x13,
+		CashItemType_MapTransfer = 0x14,
+		CashItemType_StatChange = 0x15,
+		CashItemType_SkillChange = 0x16,
+		CashItemType_SetItemName = 0x17,
+		CashItemType_ItemProtector = 0x18,
+		CashItemType_Incubator = 0x19,
+		CashItemType_PetSkill = 0x1A, 
+		CashItemType_ShopScanner = 0x1B,
+		CashItemType_ADBoard = 0x1C, 
+		CashItemType_GachaponTicket = 0x1D,
+		CashItemType_PetFood = 0x1E,
+		CashItemType_Morph = 0x1F, 
+		CashItemType_WeddingTicket = 0x20,
+		CashItemType_DeliveryTicket = 0x22,
+		CashItemType_EvolutionRock = 0x23,
+		CashItemType_AvatarMegaphone = 0x24,
+		CashItemType_MapleTV = 0x28,
+		CashItemType_MapleSoleTV = 0x29,
+		CashItemType_MapleLoveTV = 0x2A,
+		CashItemType_MegaTV = 0x2B,
+		CashItemType_MegaSoleTV = 0x2C,
+		CashItemType_MegaLoveTV = 0x2D,
+		CashItemType_NameChange = 0x2E,
+		CashItemType_MembershipCoupon = 0x2F,
+		CashItemType_TransferWorld = 0x32,
+	};
+
 	ItemInfo();
 	~ItemInfo();
 
@@ -114,6 +162,8 @@ public:
 	static bool IsLongcoat(int nItemID);
 	static bool IsCap(int nItemID);
 	static bool IsPet(int nItemID);
+	static int GetCashSlotItemType(int nItemID);
+	static int GetConsumeCashItemType(int nItemID);
 #ifdef _WVSGAME
 	static int GetWeaponMastery(GA_Character* pCharacter, int nWeaponID, int nSkillID, int nAttackType, int *pnACCInc, int *pnPADInc);
 	static int GetWeaponType(int nItemID);

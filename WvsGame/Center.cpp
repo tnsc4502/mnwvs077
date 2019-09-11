@@ -118,7 +118,7 @@ void Center::OnPacket(InPacket *iPacket)
 				ServerConstants::kGameVersion,
 				nWorldID,
 				WvsBase::GetInstance<WvsGame>()->GetChannelID());
-			SetConsoleTitleA(aBuffer);
+			SetWindowTextA(GetActiveWindow(), aBuffer);
 
 			for (int i = 1; i <= 5; ++i)
 				GW_ItemSlotBase::SetInitSN(i, iPacket->Decode8());

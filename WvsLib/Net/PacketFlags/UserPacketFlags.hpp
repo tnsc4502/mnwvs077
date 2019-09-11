@@ -2,16 +2,23 @@
 #ifndef USER_FLAG
 #define USER_FLAG
 
+namespace BroadcastMsgType 
+{
+	enum //BroadcastMsgType
+	{
+		e_BroadcastMsg_Speaker = 0x02,
+	};
+}
+
 #include "PacketFlags.hpp"
 
 #define MAKE_USER_SEND_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static UserSendPacketFlag flagName {value, #flagName}; } const static int flagName = value
 #define MAKE_USER_RECV_PACKET_FLAG(flagName, value) namespace FlagInstances{ const static UserRecvPacketFlag flagName {value, #flagName}; } const static int flagName = value
 
 MAKE_FLAG_COLLECTION_BODY(UserSendPacketFlag)
-//以下開始註冊封包Opcode Flag
+//Start to register packet flags.
 
-//對應Client的WvsContext::OnPacket
-
+//Corresponding to WvsContext::OnPacket in the client.
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnTransferChannel, 8);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnAliveCheckRequest, 9);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnInventoryOperation, 22);
@@ -54,14 +61,14 @@ MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnImitatedNPCData, 64);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnGuildBBSResult, 68);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnAvatarMegaPacket, 73);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnMacroSysDataInit, 76);
-//WvsContext::OnPacket 已知部分結束
+//WvsContext::OnPacket 
 
 //80~100 => Field::OnPacket
 
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnMakeEnterFieldPacket, 101);
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnMakeLeaveFieldPacket, 102);
 
-//對應Client的UserCommon::OnPacket
+//Corresponding to UserCommon::OnPacket
 MAKE_USER_SEND_PACKET_FLAG(UserCommon_OnChat, 103);
 MAKE_USER_SEND_PACKET_FLAG(UserCommon_OnADBoard, 104);
 MAKE_USER_SEND_PACKET_FLAG(UserCommon_OnMiniRoomBalloon, 105);
@@ -81,7 +88,7 @@ MAKE_USER_SEND_PACKET_FLAG(UserCommon_Pet_OnActionCommand, 115);
 //116~121 Summoned::OnPacket
 
 
-//對應Client的UserRemote::OnPacket
+//Corresponding to UserRemote::OnPacket
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnMove, 123);
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnMeleeAttack, 124);
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnShootAttack, 125);
@@ -103,7 +110,7 @@ MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnGuildMarkChanged, 140);
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnThrowGrenade, 141);
 MAKE_USER_SEND_PACKET_FLAG(UserRemote_OnSitResult, 141);
 
-//對應Client的UserLocal::OnPacket
+//Corresponding to UserLocal::OnPacket
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnSitResult, 142); 
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnEffect, 143);
 MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnTeleport, 144);
@@ -118,7 +125,7 @@ MAKE_USER_SEND_PACKET_FLAG(UserLocal_OnSkillCooltimeSet, 155);
 
 
 MAKE_USER_SEND_PACKET_FLAG(User_OnFuncKeyMapped, 249);
-//結束Opcode Flag註冊
+//Registration ended.
 FLAG_COLLECTION_BODY_END
 
 //Start Recv

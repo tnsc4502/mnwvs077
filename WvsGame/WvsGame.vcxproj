@@ -344,6 +344,7 @@
     <ClInclude Include="UMiniRoom.h" />
     <ClInclude Include="UpgradeItem.h" />
     <ClInclude Include="User.h" />
+    <ClInclude Include="UserCashItemImpl.h" />
     <ClInclude Include="USkill.h" />
     <ClInclude Include="WarriorSkills.h" />
     <ClInclude Include="WvsGame.h" />
@@ -440,6 +441,7 @@
     <ClCompile Include="UMiniRoom.cpp" />
     <ClCompile Include="UpgradeItem.cpp" />
     <ClCompile Include="User.cpp" />
+    <ClCompile Include="UserCashItemImpl.cpp" />
     <ClCompile Include="USkill.cpp" />
     <ClCompile Include="WvsGame.cpp" />
     <ClCompile Include="WvsPhysicalSpace2D.cpp" />

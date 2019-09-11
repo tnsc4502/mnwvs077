@@ -114,12 +114,14 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	try 
 	{
-		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
+		//09/12/2019 modified, for CASH ITEMs (nTI = 5) support.
+		auto pSN = (nType == GW_ItemSlotType::CASH ? &liCashItemSN : &liItemSN);
+		if (*pSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
-			liItemSN *= -1;
+			*pSN *= -1;
 			queryStatement << "UPDATE " << strTableName
 				<< " Set CharacterID = -1 Where CharacterID = " << nCharacterID
-				<< " and " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
+				<< " and " + sSNColumnName + " = " << *pSN;
 			queryStatement.execute();
 			return;
 		}

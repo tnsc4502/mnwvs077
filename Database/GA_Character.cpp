@@ -206,7 +206,7 @@ void GA_Character::SaveInventoryRemovedRecord()
 	for (int i = 1; i <= 5; ++i)
 	{
 		for (const auto& liSN : mItemRemovedRecord[i])
-			if (i == 1)
+			if (i == GW_ItemSlotBase::EQUIP)
 			{
 				equipRemovedInstance.liItemSN = liSN * -1;
 				equipRemovedInstance.nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
@@ -214,7 +214,10 @@ void GA_Character::SaveInventoryRemovedRecord()
 			}
 			else
 			{
-				bundleRemovedInstance.liItemSN = liSN * -1;
+				if(i == GW_ItemSlotBase::CASH)
+					bundleRemovedInstance.liCashItemSN = liSN * -1;
+				else
+					bundleRemovedInstance.liItemSN = liSN * -1;
 				bundleRemovedInstance.nType = (GW_ItemSlotBase::GW_ItemSlotType)(i);
 				bundleRemovedInstance.Save(nCharacterID, true);
 			}
@@ -280,6 +283,10 @@ void GA_Character::RemoveItem(int nTI, int nPOS)
 		mItemSlot[nTI].erase(pItem->nPOS);
 		if (pItem->liItemSN != -1)
 			mItemRemovedRecord[nTI].insert(pItem->liItemSN);
+
+		//09/12/2019 added, for CASH ITEMs.
+		else if(nTI == GW_ItemSlotBase::CASH && pItem->liCashItemSN != -1)
+			mItemRemovedRecord[nTI].insert(pItem->liCashItemSN);
 	}
 }
 
@@ -637,7 +644,9 @@ void GA_Character::DecodeItemSlot(InPacket *iPacket, bool bForInternal)
 void GA_Character::DecodeInventoryRemovedRecord(InPacket * iPacket)
 {
 	long long int liItemSN_ = -1;
-	for (int i = 1; i <= 4; ++i)
+
+	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
+	for (int i = 1; i <= 5; ++i) 
 		while ((liItemSN_ = iPacket->Decode8()), liItemSN_ != -1)
 			mItemRemovedRecord[i].insert(liItemSN_);
 }
@@ -780,7 +789,8 @@ void GA_Character::EncodeItemSlot(OutPacket *oPacket, bool bForInternal)
 
 void GA_Character::EncodeInventoryRemovedRecord(OutPacket * oPacket)
 {
-	for (int i = 1; i <= 4; ++i)
+	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
+	for (int i = 1; i <= 5; ++i)
 	{
 		for (const auto& liSN : mItemRemovedRecord[i])
 			oPacket->Encode8(liSN);
