@@ -14,5 +14,7 @@ class UserCashItemImpl
 public:
 
 	static int ConsumeSpeakerChannel(User *pUser, InPacket *iPacket);
+	static int ConsumeSpeakerWorld(User *pUser, int nCashItemType, InPacket *iPacket);
+	static int ConsumeAvatarMegaphone(User *pUser, int nItemID, InPacket *iPacket);
 };
 

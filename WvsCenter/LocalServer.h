@@ -31,6 +31,7 @@ public:
 	void OnRequestMigrateCashShop(InPacket *iPacket);
 	void OnGameClientDisconnected(InPacket *iPacket);
 	void OnCheckMigrationStateAck(InPacket *iPacket);
+	void OnBroadcastPacket(InPacket *iPacket);
 	
 	//Cash Shop
 	void OnRequestBuyCashItem(InPacket *iPacket);

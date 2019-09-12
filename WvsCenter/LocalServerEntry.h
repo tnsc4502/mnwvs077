@@ -11,7 +11,7 @@ public:
 	LocalServerEntry();
 	~LocalServerEntry();
 
-	void SetExternalIP(int ipInDWORD);
+	void SetExternalIP(int dwIPv4);
 	void SetExternalPort(short port);
 
 	int GetExternalIP() const;

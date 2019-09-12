@@ -9,14 +9,14 @@ LocalServerEntry::~LocalServerEntry()
 {
 }
 
-void LocalServerEntry::SetExternalIP(int ipInDWORD)
+void LocalServerEntry::SetExternalIP(int dwIPv4)
 {
-	nExternalIP = ipInDWORD;
+	nExternalIP = dwIPv4;
 }
 
-void LocalServerEntry::SetExternalPort(short port)
+void LocalServerEntry::SetExternalPort(short nPort)
 {
-	nExternalPort = port;
+	nExternalPort = nPort;
 }
 
 int LocalServerEntry::GetExternalIP() const

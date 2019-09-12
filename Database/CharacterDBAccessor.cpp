@@ -249,6 +249,11 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		cashItemInfo.bLocked = true;
 		cashItemInfo.nGWItemSlotInstanceType = pItem->nInstanceType;
 		cashItemInfo.Save(true);
+
+		//09/12/2019 added. fix for bundled items.
+		if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet)
+			((GW_ItemSlotBundle*)pItem)->nNumber = cashItemInfo.nNumber;
+
 		pItem->Save(nCharacterID);
 
 		oPacket.Encode4(account.QueryCash(1));

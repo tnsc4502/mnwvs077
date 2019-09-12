@@ -2674,6 +2674,7 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		case ItemInfo::CashItemType::CashItemType_Morph:
 			break;
 		case ItemInfo::CashItemType::CashItemType_AvatarMegaphone:
+			nResult = UserCashItemImpl::ConsumeAvatarMegaphone(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_NameChange:
 			break;
@@ -2685,6 +2686,9 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 			nResult = UserCashItemImpl::ConsumeSpeakerChannel(this, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_SpeakerWorld:
+		case ItemInfo::CashItemType::CashItemType_SpeakerHeart:
+		case ItemInfo::CashItemType::CashItemType_SpeakerSkull:
+			nResult = UserCashItemImpl::ConsumeSpeakerWorld(this, nType, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_Weather:
 			break;

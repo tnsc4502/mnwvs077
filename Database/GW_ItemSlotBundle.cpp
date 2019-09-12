@@ -14,7 +14,7 @@ GW_ItemSlotBundle::~GW_ItemSlotBundle()
 {
 }
 
-void GW_ItemSlotBundle::LoadAll(int nType, int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+void GW_ItemSlotBundle::LoadAll(int nType, int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
 	std::string strTableName = "",
 		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN");

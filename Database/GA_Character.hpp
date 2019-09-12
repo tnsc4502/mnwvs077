@@ -67,7 +67,9 @@ public:
 	std::map<int, int> mItemTrading[6];
 
 	//For recording the liItemSN of the item which was dropped or removed.
-	std::set<long long int> mItemRemovedRecord[6];
+	//09/12/2019 change T from long long int to std::pair<long long int, bool> 
+	//where the bool value represents "bIsCash".
+	std::set<std::pair<long long int, bool>> mItemRemovedRecord[6];
 
 	void Load(int nCharacterID);
 	void LoadCharacter(int nCharacterID);

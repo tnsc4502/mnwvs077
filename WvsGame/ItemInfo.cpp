@@ -726,6 +726,10 @@ int ItemInfo::GetCashSlotItemType(int nItemID)
 				return CashItemType::CashItemType_SpeakerChannel;
 			else if (nItemID % 10000 / 1000 == 2)
 				return CashItemType::CashItemType_SpeakerWorld;
+			else if (nItemID % 10000 / 1000 == 3)
+				return CashItemType::CashItemType_SpeakerHeart;
+			else if (nItemID % 10000 / 1000 == 4)
+				return CashItemType::CashItemType_SpeakerSkull;
 			else
 			{
 				if (nItemID % 10000 / 1000 != 5)

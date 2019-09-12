@@ -166,6 +166,9 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 		case GameSrvSendPacketFlag::CheckMigrationState:
 			OnCheckMigrationStateAck(iPacket);
 			break;
+		case GameSrvSendPacketFlag::BroadcastPacket:
+			OnBroadcastPacket(iPacket);
+			break;
 	}
 }
 
@@ -540,6 +543,35 @@ void LocalServer::OnCheckMigrationStateAck(InPacket *iPacket)
 		WvsWorld::GetInstance()->RemoveUser(nCharacterID, 0, 0, 0);
 		WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
 	}
+}
+
+void LocalServer::OnBroadcastPacket(InPacket *iPacket)
+{
+	int nGameSrvCount = iPacket->Decode1();
+	OutPacket oPacket;
+	oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+	oPacket.Encode4(-1); //nUserID --> -1 = broadcast to all.
+	oPacket.EncodeBuffer(
+		iPacket->GetPacket() + iPacket->GetReadCount() + nGameSrvCount,
+		iPacket->GetPacketSize() - iPacket->GetReadCount() - nGameSrvCount
+	); //remember to substract nGameSrvCount ( = bytes for channel ids).
+
+	LocalServerEntry *pChannel = nullptr;
+	//Broadcast to all.
+	if (nGameSrvCount == 0)
+		for (int i = 0; i < ServerConstants::kMaxChannelCount; ++i) 
+		{
+			pChannel = WvsBase::GetInstance<WvsCenter>()->GetChannel(i);
+			if (pChannel)
+				pChannel->GetLocalSocket()->SendPacket(&oPacket);
+		}
+	else //Broadcast to specified game server(s).
+		for (int i = 0; i < nGameSrvCount; ++i)
+		{
+			pChannel = WvsBase::GetInstance<WvsCenter>()->GetChannel(iPacket->Decode1());
+			if(pChannel)
+				pChannel->GetLocalSocket()->SendPacket(&oPacket);
+		}
 }
 
 void LocalServer::OnRequestBuyCashItem(InPacket *iPacket)

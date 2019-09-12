@@ -36,10 +36,10 @@ GW_ItemSlotEquip::~GW_ItemSlotEquip()
 {
 }
 
-void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
 	std::string sTableName = "ItemSlot_EQP";
-	if (bIsCash)
+	if (bCash)
 		sTableName = "CashItem_EQP";
 
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -51,7 +51,7 @@ void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSh
 		auto pItem = MakeShared<GW_ItemSlotEquip>();
 		pItem->nCharacterID = recordSet["CharacterID"];
 
-		if (bIsCash)
+		if (bCash)
 			pItem->liCashItemSN = recordSet["CashItemSN"];
 		else
 			pItem->liItemSN = recordSet["ItemSN"];
@@ -142,10 +142,16 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 
 	try 
 	{
-		if (liItemSN < -1 && bRemoveRecord) //DROPPED or DELETED
+		std::string sTableName = (bIsCash ? "CashItem_EQP" : "ItemSlot_EQP");
+		std::string sColumnName = (bIsCash ? "CashItemSN" : "ItemSN");
+		auto pSN = (bIsCash ? &liCashItemSN : &liItemSN);
+
+		if (*pSN < -1 && bRemoveRecord) //DROPPED or DELETED
 		{
-			liItemSN *= -1;
-			queryStatement << "UPDATE ItemSlot_EQP Set CharacterID = -1 Where CharacterID = " << nCharacterID << " and ItemSN = " << liItemSN;
+			*pSN *= -1;
+			queryStatement << "UPDATE " << sTableName << " Set CharacterID = -1 " <<
+				" Where CharacterID = "	<< nCharacterID << 
+				" AND " << sColumnName << " = " << *pSN;
 
 			//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Del SQL = %s\n", queryStatement.toString().c_str());
 			queryStatement.execute();
@@ -158,11 +164,8 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 			if (bIsCash && liCashItemSN == -1)
 				liCashItemSN = IncItemSN(GW_ItemSlotType::CASH);
 
-			std::string sTableName = (bIsCash ? "CashItem_EQP" : "ItemSlot_EQP");
-			std::string sColumnName = (bIsCash ? "CashItemSN" : "ItemSN");
-
 			queryStatement << "INSERT INTO " << sTableName << " (" << sColumnName <<", ItemID, CharacterID, ExpireDate, Attribute, POS, RUC, CUC, Cuttable, I_STR, I_DEX, I_INT, I_LUK, I_MaxHP, I_MaxMP, I_PAD, I_MAD, I_PDD, I_MDD, I_ACC, I_EVA, I_Speed, I_Craft, I_Jump) VALUES("
-				<< (bIsCash ? liCashItemSN : liItemSN) << ", "
+				<< *pSN << ", "
 				<< nItemID << ", "
 				<< nCharacterID << ", "
 				<< liExpireDate << ", "
@@ -188,7 +191,7 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 				<< nJump << ")";
 
 			queryStatement << " ON DUPLICATE KEY UPDATE " 
-				<< sColumnName << " = " << (bIsCash ? liCashItemSN : liItemSN) << ", "
+				<< sColumnName << " = " << *pSN << ", "
 				<< "CharacterID = " << nCharacterID << ", "
 				<< "ExpireDate = '" << liExpireDate << "', "
 				<< "Attribute = " << nAttribute << ", "

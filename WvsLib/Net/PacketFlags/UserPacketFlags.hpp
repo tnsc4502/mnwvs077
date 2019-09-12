@@ -6,7 +6,10 @@ namespace BroadcastMsgType
 {
 	enum //BroadcastMsgType
 	{
-		e_BroadcastMsg_Speaker = 0x02,
+		e_BroadcastMsg_SpeakerChannel = 0x02,
+		e_BroadcastMsg_SpeakerWorld = 0x03,
+		e_BroadcastMsg_SpeakerHeart = 0x08,
+		e_BroadcastMsg_SpeakerSkull = 0x09,
 	};
 }
 

@@ -25,6 +25,7 @@ MAKE_GAME_SRV_PACKET_FLAG(EntrustedShopRequest, 0x600B);
 MAKE_GAME_SRV_PACKET_FLAG(GameClientDisconnected, 0x600C);
 MAKE_GAME_SRV_PACKET_FLAG(CheckMigrationState, 0x600D);
 MAKE_GAME_SRV_PACKET_FLAG(GuildBBSRequest, 0x600E);
+MAKE_GAME_SRV_PACKET_FLAG(BroadcastPacket, 0x600F);
 
 
 //Flags to Game

@@ -218,11 +218,7 @@ void Center::OnRemoteBroadcasting(InPacket *iPacket)
 		iPacket->GetPacketSize() - iPacket->GetReadCount()
 	);
 	if (nUserID == -1)
-	{
-		auto& mConnectedUser = WvsBase::GetInstance<WvsGame>()->GetConnectedUser();
-		for (auto& prUser : mConnectedUser)
-			prUser.second->SendPacket(&oPacket);
-	}
+		User::Broadcast(&oPacket);
 	else
 	{
 		auto pUser = User::FindUser(nUserID);

@@ -198,14 +198,20 @@ void GW_ItemSlotBase::EncodeTradingPosition(OutPacket *oPacket) const
 	oPacket->Encode1((char)nEncodePos);
 }
 
-void GW_ItemSlotBase::LoadAll(int nType, int nCharacterID, bool bIsCash, bool bIsPet, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+void GW_ItemSlotBase::LoadAll(int nType, int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
-	if (nType == GW_ItemSlotBase::EQUIP)
-		GW_ItemSlotEquip::LoadAll(nCharacterID, bIsCash, mRes);
-	else if(!bIsPet)
-		GW_ItemSlotBundle::LoadAll(nType, nCharacterID, bIsCash, mRes);
-	else
-		GW_ItemSlotPet::LoadAll(nCharacterID, bIsCash, mRes);
+	if (nType == GW_ItemSlotBase::EQUIP) 
+	{
+		//cash equips are loaded from different sql table, so tagging is required.
+		GW_ItemSlotEquip::LoadAll(nCharacterID, false, mRes);
+		GW_ItemSlotEquip::LoadAll(nCharacterID, true, mRes);
+	}
+	else 
+	{
+		GW_ItemSlotBundle::LoadAll(nType, nCharacterID, mRes);
+		if(nType == GW_ItemSlotType::CASH)
+			GW_ItemSlotPet::LoadAll(nCharacterID, mRes);
+	}
 }
 
 void GW_ItemSlotBase::DecodeInventoryPosition(InPacket * iPacket) 

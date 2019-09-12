@@ -17,7 +17,7 @@ GW_ItemSlotPet::~GW_ItemSlotPet()
 {
 }
 
-void GW_ItemSlotPet::LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
+void GW_ItemSlotPet::LoadAll(int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
 	queryStatement << "SELECT * FROM CashItem_Pet Where CharacterID = " << nCharacterID << " AND POS < " << GW_ItemSlotBase::LOCK_POS;

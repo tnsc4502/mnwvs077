@@ -65,8 +65,9 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, ZSh
 		short nPOS = pCharacterData->FindEmptySlotPosition(nTI);
 		if (nPOS > 0) 
 		{
+			//09/12/2019 modified, record restoration of cash items is ignored.
 			if (pItem->liItemSN != -1)
-				pCharacterData->mItemRemovedRecord[nTI].erase(pItem->liItemSN);
+				pCharacterData->mItemRemovedRecord[nTI].erase({ pItem->liItemSN, false });
 			itemSlot[nPOS] = pItem;
 			pItem->nPOS = nPOS;
 			if (pItem->liItemSN <= 0)
@@ -164,8 +165,9 @@ bool InventoryManipulator::RawAddItem(GA_Character *pCharacterData, int nTI, ZSh
 			nSlotInc = nNumber > nMaxPerSlot ? nMaxPerSlot : (nNumber); //The maximum quantity allowd to set.
 			((GW_ItemSlotBundle*)pClone)->nNumber = nSlotInc;
 
+			//09/12/2019 modified, record restoration of cash items is ignored.
 			if(pClone->liItemSN != -1)
-				pCharacterData->mItemRemovedRecord[nTI].erase(pClone->liItemSN);
+				pCharacterData->mItemRemovedRecord[nTI].erase({ pClone->liItemSN, false });
 			if (paBackupItem)
 				(*paBackupItem).push_back({ nTI, nPOS, nullptr });
 			itemSlot[nPOS] = pClone;
@@ -430,7 +432,8 @@ void InventoryManipulator::RestoreBackupItem(GA_Character * pCharacterData, std:
 		else 
 		{
 			pCharacterData->SetItem(refItemBackup.m_nTI, refItemBackup.m_nPOS, refItemBackup.m_pItem);
-			pCharacterData->mItemRemovedRecord[refItemBackup.m_nTI].erase(refItemBackup.m_pItem->liItemSN);
+			//09/12/2019 modified, record restoration of cash items is ignored.
+			pCharacterData->mItemRemovedRecord[refItemBackup.m_nTI].erase({ refItemBackup.m_pItem->liItemSN, false });
 			aBackupItem.erase(aBackupItem.begin() + i);
 			continue;
 		}

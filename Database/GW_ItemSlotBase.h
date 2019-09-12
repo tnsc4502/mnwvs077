@@ -69,7 +69,7 @@ public:
 
 	virtual GW_ItemSlotBase* MakeClone() const = 0;
 
-	static void LoadAll(int nType, int nCharacterID, bool bIsCash, bool bIsPet, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
+	static void LoadAll(int nType, int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
 	virtual void Load(ATOMIC_COUNT_TYPE SN) = 0;
 	virtual void Save(int nCharacterID, bool bRemoveRecord = false) = 0;
 

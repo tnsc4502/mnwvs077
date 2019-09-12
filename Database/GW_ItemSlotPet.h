@@ -23,7 +23,7 @@ struct GW_ItemSlotPet : public GW_ItemSlotBase
 	GW_ItemSlotPet();
 	~GW_ItemSlotPet();
 
-	static void LoadAll(int nCharacterID, bool bIsCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
+	static void LoadAll(int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
 	void Load(ATOMIC_COUNT_TYPE SN);
 	void Save(int nCharacterID, bool bRemoveRecord = false);
 

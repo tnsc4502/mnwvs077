@@ -205,19 +205,24 @@ void GA_Character::SaveInventoryRemovedRecord()
 	bundleRemovedInstance.nCharacterID = nCharacterID;
 	for (int i = 1; i <= 5; ++i)
 	{
-		for (const auto& liSN : mItemRemovedRecord[i])
+		for (const auto& prRecord : mItemRemovedRecord[i])
 			if (i == GW_ItemSlotBase::EQUIP)
 			{
-				equipRemovedInstance.liItemSN = liSN * -1;
+				//Cash equips.
+				if (prRecord.second)
+					equipRemovedInstance.liCashItemSN = prRecord.first * -1;
+				else
+					equipRemovedInstance.liItemSN = prRecord.first * -1;
+
 				equipRemovedInstance.nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
 				equipRemovedInstance.Save(nCharacterID, true);
 			}
 			else
 			{
 				if(i == GW_ItemSlotBase::CASH)
-					bundleRemovedInstance.liCashItemSN = liSN * -1;
+					bundleRemovedInstance.liCashItemSN = prRecord.first * -1;
 				else
-					bundleRemovedInstance.liItemSN = liSN * -1;
+					bundleRemovedInstance.liItemSN = prRecord.first * -1;
 				bundleRemovedInstance.nType = (GW_ItemSlotBase::GW_ItemSlotType)(i);
 				bundleRemovedInstance.Save(nCharacterID, true);
 			}
@@ -282,11 +287,11 @@ void GA_Character::RemoveItem(int nTI, int nPOS)
 	{
 		mItemSlot[nTI].erase(pItem->nPOS);
 		if (pItem->liItemSN != -1)
-			mItemRemovedRecord[nTI].insert(pItem->liItemSN);
+			mItemRemovedRecord[nTI].insert({ pItem->liItemSN, false });
 
 		//09/12/2019 added, for CASH ITEMs.
 		else if(nTI == GW_ItemSlotBase::CASH && pItem->liCashItemSN != -1)
-			mItemRemovedRecord[nTI].insert(pItem->liCashItemSN);
+			mItemRemovedRecord[nTI].insert({ pItem->liCashItemSN, true });
 	}
 }
 
@@ -648,7 +653,7 @@ void GA_Character::DecodeInventoryRemovedRecord(InPacket * iPacket)
 	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
 	for (int i = 1; i <= 5; ++i) 
 		while ((liItemSN_ = iPacket->Decode8()), liItemSN_ != -1)
-			mItemRemovedRecord[i].insert(liItemSN_);
+			mItemRemovedRecord[i].insert({ liItemSN_, iPacket->Decode1() ? true : false });
 }
 
 void GA_Character::DecodeAvatarLook(InPacket * iPacket)
@@ -792,8 +797,11 @@ void GA_Character::EncodeInventoryRemovedRecord(OutPacket * oPacket)
 	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
 	for (int i = 1; i <= 5; ++i)
 	{
-		for (const auto& liSN : mItemRemovedRecord[i])
-			oPacket->Encode8(liSN);
+		for (const auto& prRecord : mItemRemovedRecord[i]) 
+		{
+			oPacket->Encode8(prRecord.first);
+			oPacket->Encode1(prRecord.second);
+		}
 		oPacket->Encode8(-1);
 	}
 }
@@ -811,13 +819,11 @@ GA_Character::ATOMIC_COUNT_TYPE GA_Character::InitCharacterID()
 
 void GA_Character::LoadItemSlot()
 {
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::EQUIP, nCharacterID, false, false, mItemSlot[1]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::EQUIP, nCharacterID, true, false, mItemSlot[1]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CONSUME, nCharacterID, false, false, mItemSlot[2]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::INSTALL, nCharacterID, false, false, mItemSlot[3]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::ETC, nCharacterID, false, false, mItemSlot[4]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CASH, nCharacterID, true, false, mItemSlot[5]);
-	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CASH, nCharacterID, true, true, mItemSlot[5]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::EQUIP, nCharacterID, mItemSlot[1]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CONSUME, nCharacterID, mItemSlot[2]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::INSTALL, nCharacterID, mItemSlot[3]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::ETC, nCharacterID, mItemSlot[4]);
+	GW_ItemSlotBase::LoadAll(GW_ItemSlotBase::CASH, nCharacterID, mItemSlot[5]);
 }
 
 void GA_Character::LoadSkillRecord()
