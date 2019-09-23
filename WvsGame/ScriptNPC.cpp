@@ -120,6 +120,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			}
 			break;
 		}
+		case ScriptType::OnAskAcceptDecline:
 		case ScriptType::OnAskYesNo:
 		{
 			nAction = iPacket->Decode1();

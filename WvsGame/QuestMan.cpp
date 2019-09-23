@@ -208,6 +208,9 @@ bool QuestMan::IsAutoCompleteQuest(int nQuestID)
 
 bool QuestMan::CheckStartDemand(int nQuestID, User * pUser)
 {
+	if (QWUQuestRecord::GetState(pUser, nQuestID) != 0)
+		return false;
+
 	auto findIter = m_mStartDemand.find(nQuestID);
 	if (findIter == m_mStartDemand.end())
 		return false;
@@ -270,6 +273,9 @@ bool QuestMan::CheckStartDemand(int nQuestID, User * pUser)
 
 bool QuestMan::CheckCompleteDemand(int nQuestID, User * pUser)
 {
+	if (QWUQuestRecord::GetState(pUser, nQuestID) != 1)
+		return false;
+
 	auto findIter = m_mCompleteDemand.find(nQuestID);
 	if (findIter == m_mCompleteDemand.end())
 		return false;

@@ -27,7 +27,7 @@ class ScriptNPC
 		OnInitialQuiz = 0x05,
 		OnInitialSpeedQuiz = 0x09,
 		OnICQuiz = 0x0A,
-		OnAskAcceptDecline = 0x11,
+		OnAskAcceptDecline = 0x0B,
 	};
 public:
 	ScriptNPC();

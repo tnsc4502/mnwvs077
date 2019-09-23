@@ -61,6 +61,7 @@ int UserCashItemImpl::ConsumeSpeakerWorld(User *pUser, int nCashItemType, InPack
 	oPacket.Encode1(pUser->GetChannelID());
 	oPacket.Encode1(iPacket->Decode1() != 0 ? 1 : 0);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	return 1;
 }
 
 int UserCashItemImpl::ConsumeAvatarMegaphone(User *pUser, int nItemID, InPacket *iPacket)

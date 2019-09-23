@@ -280,6 +280,7 @@ public:
 	void OnCompleteQuest(InPacket *iPacket, int nQuestID, int dwTemplateID, Npc *pNpc, bool bIsAutoComplete);
 	void OnResignQuest(InPacket *iPacket, int nQuestID);
 	void OnLostQuestItem(InPacket *iPacket, int nQuestID);
+	void OnScriptLinkedQuest(InPacket *iPacket, int nQuestID, int dwTemplateID, Npc *pNpc, int nScriptActCategory);
 	void TryQuestStartAct(int nQuestID, int nNpcID, Npc *pNpc);
 	void TryQuestCompleteAct(int nQuestID, Npc *pNpc);
 	bool TryExchange(const std::vector<ActItem*>& aActItem);

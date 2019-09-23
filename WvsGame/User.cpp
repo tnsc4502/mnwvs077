@@ -2952,65 +2952,37 @@ void User::OnQuestRequest(InPacket * iPacket)
 		}*/
 	}
 
+	enum QuestActionType
+	{
+		Action_LostQuestItem = 0x00,
+		Action_AcceptQuest,
+		Action_CompleteQuest,
+		Action_ResignQuest,
+		Action_ScriptStart,
+		Action_ScriptEnd,
+	};
+
 	WvsLogger::LogFormat("OnQuestRequest npc id = %d, quest action = %d, pNpc == nullptr ? %d\n", 
 		nNpcID, 
 		(int)nAction,
 		(int)(pNpc == nullptr));
 	switch (nAction)
 	{
-		case 0:
+		case QuestActionType::Action_LostQuestItem:
 			OnLostQuestItem(iPacket, nQuestID);
 			break;
-		case 1:
+		case QuestActionType::Action_AcceptQuest:
 			OnAcceptQuest(iPacket, nQuestID, nNpcID, pNpc);
 			break;
-		case 2:
+		case QuestActionType::Action_CompleteQuest:
 			OnCompleteQuest(iPacket, nQuestID, nNpcID, pNpc, QuestMan::GetInstance()->IsAutoCompleteQuest(nQuestID));
 			break;
-		case 3:
+		case QuestActionType::Action_ResignQuest:
 			OnResignQuest(iPacket, nQuestID);
 			break;
-		case 4:
-		case 5:
-			{
-				auto pScript = ScriptMan::GetInstance()->CreateScript(
-					"./DataSrv/Script/Quest/" + std::to_string(nQuestID) + ".lua",
-					{ nNpcID, m_pField }
-				);
-				if (pScript == nullptr)
-				{
-					auto pAct = nAction == 4 ? 
-						QuestMan::GetInstance()->GetStartAct(nQuestID) :
-						QuestMan::GetInstance()->GetCompleteAct(nQuestID);
-
-					auto sScriptName = pAct ? "s_" + pAct->sScriptName : "";
-					auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
-						"Portal",
-						sScriptName
-					);
-
-					pScript = ScriptMan::GetInstance()->CreateScript(
-						sScriptFile,
-						{ 0, m_pField }
-					);
-
-					if (pScript)
-					{
-						SetScript(pScript);
-						pScript->Run(sScriptName);
-					}
-					else
-						SendChatMessage(0, "Unable to execute quest script: quest id = [" + std::to_string(nQuestID) + "], default script name = ["+ sScriptName + "].");
-					return;
-				}
-				SetScript(pScript);
-				pScript->PushInteger("questID", nQuestID);
-
-				if(nAction == 4)
-					pScript->Run("start");
-				else
-					pScript->Run("complete");
-			}
+		case QuestActionType::Action_ScriptStart:
+		case QuestActionType::Action_ScriptEnd:
+			OnScriptLinkedQuest(iPacket, nQuestID, nNpcID, pNpc, nAction == QuestActionType::Action_ScriptEnd);
 			break;
 	}
 }
@@ -3072,6 +3044,54 @@ void User::OnLostQuestItem(InPacket * iPacket, int nQuestID)
 		SendNoticeMessage(GET_STRING(GameSrv_User_Insufficient_SlotCount));
 		SendCharacterStat(false, 0);
 	}
+}
+
+void User::OnScriptLinkedQuest(InPacket * iPacket, int nQuestID, int dwTemplateID, Npc * pNpc, int nScriptActCategory)
+{
+	if ((!nScriptActCategory && !QuestMan::GetInstance()->CheckStartDemand(nQuestID, this))
+		|| !QuestMan::GetInstance()->CheckCompleteDemand(nQuestID, this))
+	{
+		SendNoticeMessage(GET_STRING(GameSrv_User_QuestDemand_Check_Failed));
+		SendCharacterStat(false, 0);
+		return;
+	}
+	auto pScript = ScriptMan::GetInstance()->CreateScript(
+		"./DataSrv/Script/Quest/" + std::to_string(nQuestID) + ".lua",
+		{ dwTemplateID, m_pField }
+	);
+	if (pScript == nullptr)
+	{
+		auto pAct = !nScriptActCategory ?
+			QuestMan::GetInstance()->GetStartAct(nQuestID) :
+			QuestMan::GetInstance()->GetCompleteAct(nQuestID);
+
+		auto sScriptName = pAct ? "s_" + pAct->sScriptName : "";
+		auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
+			"Portal",
+			sScriptName
+		);
+
+		pScript = ScriptMan::GetInstance()->CreateScript(
+			sScriptFile,
+			{ 0, m_pField }
+		);
+
+		if (pScript)
+		{
+			SetScript(pScript);
+			pScript->Run(sScriptName);
+		}
+		else
+			SendChatMessage(0, "Unable to execute quest script: quest id = [" + std::to_string(nQuestID) + "], default script name = [" + sScriptName + "].");
+		return;
+	}
+	SetScript(pScript);
+	pScript->PushInteger("questID", nQuestID);
+
+	if (!nScriptActCategory)
+		pScript->Run("start");
+	else
+		pScript->Run("complete");
 }
 
 void User::TryQuestStartAct(int nQuestID, int nNpcID, Npc * pNpc)
