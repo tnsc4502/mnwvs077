@@ -16,7 +16,7 @@ boost::lockfree::queue<WvsLogger::WvsLogData*> g_qMsgQueue(WvsLogger::MAX_MSG_QU
 
 WvsLogger* WvsLogger::GetInstance()
 {
-	static WvsLogger* pInstnace = AllocObj(WvsLogger);
+	static WvsLogger* pInstnace = new (WvsLogger);
 	return pInstnace;
 }
 

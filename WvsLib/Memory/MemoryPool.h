@@ -42,6 +42,7 @@ public:
 	typedef const T&        const_reference;
 	typedef size_t          size_type;
 	typedef ptrdiff_t       difference_type;
+	const int UnitSize;
 	//   typedef std::false_type propagate_on_container_copy_assignment;
 	//   typedef std::true_type  propagate_on_container_move_assignment;
 	//   typedef std::true_type  propagate_on_container_swap;
@@ -53,6 +54,7 @@ public:
 	size_t BlockSize;
 
 	/* Member functions */
+	MemoryPool(int nUnitSize, int nBlockSize) noexcept;
 	MemoryPool(int nBlockSize) noexcept;
 	MemoryPool(const MemoryPool& memoryPool) noexcept;
 	MemoryPool(MemoryPool&& memoryPool) noexcept;
@@ -78,10 +80,11 @@ public:
 	template <class... Args> pointer newElement(Args&&... args);
 	template <class U, class... Args> pointer newElementCtor(Args&&... args);
 	void deleteElement(pointer p);
+	void allocateBlock();
 
 private:
 	union Slot_ {
-		value_type element;
+		//value_type element;
 		Slot_* next;
 	};
 
@@ -95,154 +98,105 @@ private:
 	slot_pointer_ freeSlots_;
 
 	size_type padPointer(data_pointer_ p, size_type align) const noexcept;
-	void allocateBlock();
 
 	//static_assert(BlockSize >= 2 * sizeof(slot_type_), "BlockSize too small.");
 };
 
-
 #include "MemoryPool.tcc"
 #include <type_traits>
 
-#define BIND_ALLOCATOR(n, sz, n1) if(sz < n1) pRet = WVS_ALLOCATOR::__gsg##n.newElement(); else
-#define BIND_ALLOCATOR_CTOR(n, sz, n1) if(sz < n1) pRet = WVS_ALLOCATOR::__gsg##n.newElementCtor<T>(std::forward<Args>(args)...); else
-#define BIND_DEALLOCATOR(n, sz, n1)  if(sz < n1) WVS_ALLOCATOR::__gsg##n.deallocate((decltype(WVS_ALLOCATOR::__gsg##n)::pointer)pDel); else
-
-namespace WVS_ALLOCATOR
+constexpr size_t GetAlignedPoolPos(const size_t nAlloc)
 {
-	//For object allocations.
-	extern MemoryPool<char[32]>  __gsg0;
-	extern MemoryPool<char[64]>  __gsg1;
-	extern MemoryPool<char[128]> __gsg2;
-	extern MemoryPool<char[256]> __gsg3;
-	extern MemoryPool<char[512]> __gsg4;
-	extern MemoryPool<char[1024]> __gsg5;
-	extern MemoryPool<char[2048]> __gsg6;
-	extern MemoryPool<char[4096]> __gsg7;
-	extern MemoryPool<char[8192]> __gsg8;
-	extern MemoryPool<char[8192 * 2]> __gsg9;
-	extern MemoryPool<char[8192 * 4]> __gsg10;
-	extern MemoryPool<char[8192 * 8]> __gsg11;
-	 
-	//For array allocations.
-	extern MemoryPool<char[32]> __gMemPool32;
-	extern MemoryPool<char[64]> __gMemPool64;
-	extern MemoryPool<char[128]> __gMemPool128;
-	extern MemoryPool<char[256]> __gMemPool256;
-	extern MemoryPool<char[512]> __gMemPool512;
-	extern MemoryPool<char[1024]> __gMemPool1024;
-	extern MemoryPool<char[2048]> __gMemPool2048;
-
-	extern void* apAllocator[12] ;
+	return ((nAlloc < 2) ? 0 : 1 + GetAlignedPoolPos(nAlloc / 2));
 }
+
+constexpr size_t Pow2(const size_t nPower)
+{
+	return nPower == 0 ? 1 : 2 * Pow2(nPower - 1);
+}
+
+class MemoryPoolMan
+{
+public:
+	static const size_t MAX_ALLOC_SIZE = 8192 * 8;
+	static const size_t INITIAL_BLOCK_NUM = 128;
+	static const size_t MAX_POOL_NUM = GetAlignedPoolPos(MAX_ALLOC_SIZE) + 1; // extra one for 0~1 byte
+
+private:
+	MemoryPool<char>* m_apPool[MAX_POOL_NUM];
+	MemoryPool<char>* m_apArrayPool[MAX_POOL_NUM];
+	MemoryPoolMan();
+
+public:
+	static MemoryPoolMan* GetInstance() 
+	{
+		static MemoryPoolMan* pInstance = new MemoryPoolMan;
+		return pInstance;
+	}
+
+	MemoryPool<char>* GetPool(size_t nPos);
+	MemoryPool<char>* GetArrayPool(size_t nPos);
+};
 
 template<typename T>
 class WvsSingleObjectAllocator
 {
-	//std::mutex m_mtxLock;
-
 public:
-	inline void * ResourceMgr(bool allocate = true, void *pDel = nullptr)
+	inline void* ResourceMgr(bool bAllocate = true, void *pDel = nullptr)
 	{
-		//std::lock_guard<std::mutex> lock__(m_mtxLock);
-		const int SIZE = sizeof(T) + 4;
 		void *pRet = nullptr;
-		if (allocate)
+		if (bAllocate)
 		{
-			if (SIZE > 8192 * 8)
-				pRet = ::operator new(SIZE);
-			else
+			const size_t nAllocSize = sizeof(T) + 2;
+			const size_t nAlignPos = GetAlignedPoolPos(nAllocSize);
+			const size_t nAllocPos = (nAllocSize > Pow2(nAlignPos) ? nAlignPos + 1 : nAlignPos);
+
+			if (nAllocSize > MemoryPoolMan::MAX_ALLOC_SIZE)
 			{
-				BIND_ALLOCATOR(0, SIZE, 32)
-				BIND_ALLOCATOR(1, SIZE, 64)
-				BIND_ALLOCATOR(2, SIZE, 128)
-				BIND_ALLOCATOR(3, SIZE, 256)
-				BIND_ALLOCATOR(4, SIZE, 512)
-				BIND_ALLOCATOR(5, SIZE, 1024)
-				BIND_ALLOCATOR(6, SIZE, 2048)
-				BIND_ALLOCATOR(7, SIZE, 4096)
-				BIND_ALLOCATOR(8, SIZE, 8192)
-				BIND_ALLOCATOR(9, SIZE, 8192 * 2)
-				BIND_ALLOCATOR(10, SIZE, 8192 * 4)
-				BIND_ALLOCATOR(11, SIZE, 8192 * 8);
+				pRet = new char[nAllocSize];
+				*((unsigned char*)pRet) = 0xFF;
+				return pRet;
 			}
+			else
+				pRet = MemoryPoolMan::GetInstance()->GetPool(nAllocPos)->allocate();
+
 			if (pRet)
-				*((int*)pRet) = SIZE;
+				*((unsigned char*)pRet) = (unsigned char)nAllocPos;
 		}
 		else
 		{
-			int nRelease = *(int*)pDel;
-			if (nRelease > 8192 * 8)
-				::operator delete(pDel, nRelease);
+			size_t nAllocPos = *(unsigned char*)pDel;
+			if (nAllocPos == 0xFF)
+			{
+				delete[] pDel;
+				return nullptr;
+			}
 
-			BIND_DEALLOCATOR(0, nRelease, 32)
-			BIND_DEALLOCATOR(1, nRelease, 64)
-			BIND_DEALLOCATOR(2, nRelease, 128)
-			BIND_DEALLOCATOR(3, nRelease, 256)
-			BIND_DEALLOCATOR(4, nRelease, 512)
-			BIND_DEALLOCATOR(5, nRelease, 1024)
-			BIND_DEALLOCATOR(6, nRelease, 2048)
-			BIND_DEALLOCATOR(7, nRelease, 4096)
-			BIND_DEALLOCATOR(8, nRelease, 8192)
-			BIND_DEALLOCATOR(9, nRelease, 8192 * 2)
-			BIND_DEALLOCATOR(10, nRelease, 8192 * 4)
-			BIND_DEALLOCATOR(11, nRelease, 8192 * 8);
+			MemoryPoolMan::GetInstance()->GetPool(nAllocPos)->deallocate((char*)pDel);
 		}
 		return pRet;
 	}
 
 public:
-	template<bool bConstructor>
-	struct ALLOC_AND_CONSTRUCT 
+	template<class... Args>
+	inline T* AllocateWithCtor(Args&&... args)
 	{
-		template<typename T>
-		inline static void free(WvsSingleObjectAllocator* t, T* res)
-		{
-			static_assert("Unexpected behavior.");
-		}
-	};
-
-	template<>
-	struct ALLOC_AND_CONSTRUCT<false>
-	{
-		inline static void* alloc(WvsSingleObjectAllocator* t, int nSize)
-		{
-			return (void*)((unsigned char*)t->ResourceMgr(true) + 4);
-		}
-
-		inline static void free(WvsSingleObjectAllocator* t, T* res)
-		{
-			res = (T*)(((unsigned char*)res) - 4);
-			t->ResourceMgr(false, res);
-		}
-	};
-
-	template<>
-	struct ALLOC_AND_CONSTRUCT<true>
-	{
-		inline static void* alloc(WvsSingleObjectAllocator* t)
-		{
-			T* res = (T*)((unsigned char*)t->ResourceMgr(true) + 4);
-			new(res) T();
-			return res;
-		}
-
-		inline static void free(WvsSingleObjectAllocator* t, T* res)
-		{
-			res->~T();
-			res = (T*)(((unsigned char*)res) - 4);
-			t->ResourceMgr(false, res);
-		}
-	};
+		void *pRet = (void*)(((unsigned char*)ResourceMgr(true, nullptr)) + 2);
+		new(pRet) T(std::forward<Args>(args)...);
+		return (T*)pRet;
+	}
 
 	inline T* Allocate()
 	{
-		return (T*)ALLOC_AND_CONSTRUCT<!std::is_array<T>::value>::alloc(this);
+		T* res = (T*)((unsigned char*)ResourceMgr(true) + 2);
+		new(res) T();
+		return res;
 	}
 
 	inline void Free(void *p)
 	{
-		ALLOC_AND_CONSTRUCT<!std::is_array<T>::value>::free(this, reinterpret_cast<T*>(p));
+		((T*)(p))->~T();
+		ResourceMgr(false, ((unsigned char*)p) - 2);
 	}
 
 	inline static WvsSingleObjectAllocator<T> *GetInstance() 
@@ -250,87 +204,59 @@ public:
 		static WvsSingleObjectAllocator<T> *p = new WvsSingleObjectAllocator<T>;
 		return p;
 	}
-
-	template<class... Args>
-	inline T* AllocateWithCtor(Args&&... args)
-	{
-		void *pRet = (void*)(((unsigned char*)ResourceMgr(true, nullptr)) + 4);
-		new(pRet) T(std::forward<Args>(args)...);
-		return (T*)pRet;
-	}
 };
 
 //This allocator won't call constructor to initliaze each element.
 class WvsArrayAllocator
 {
-	std::mutex m_mtxLock;
-
 private:
 	template<typename T>
-	inline void * ResourceMgr(bool allocate = true, int nSize = 1, void *pDel = nullptr)
+	inline void * ResourceMgr(bool bAllocate = true, int nSize = 1, void *pDel = nullptr)
 	{
-		std::lock_guard<std::mutex> lock__(m_mtxLock);
-		const int N = (int)nSize;
 		void *pRet = nullptr;
-		if (allocate)
+		if (bAllocate)
 		{
-			if (N <= 32)
-				pRet = WVS_ALLOCATOR::__gMemPool32.newElement();
-			else if (N > 32 && N <= 64)
-				pRet = WVS_ALLOCATOR::__gMemPool64.newElement();
-			else if (N > 64 && N <= 128)
-				pRet = WVS_ALLOCATOR::__gMemPool128.newElement();
-			else if (N > 128 && N <= 256)
-				pRet = WVS_ALLOCATOR::__gMemPool256.newElement();
-			else if (N > 256 && N <= 512)
-				pRet = WVS_ALLOCATOR::__gMemPool512.newElement();
-			else if (N > 512 && N <= 1024)
-				pRet = WVS_ALLOCATOR::__gMemPool1024.newElement();
-			else if (N > 1024 && N <= 2048)
-				pRet = WVS_ALLOCATOR::__gMemPool2048.newElement();
+			const size_t nAllocSize = nSize + 2;
+			const size_t nAlignPos = GetAlignedPoolPos(nAllocSize);
+			const size_t nAllocPos = (nAllocSize > Pow2(nAlignPos) ? nAlignPos + 1 : nAlignPos);
+
+			if (nAllocSize > MemoryPoolMan::MAX_ALLOC_SIZE)
+			{
+				pRet = new char[nAllocSize];
+				*((unsigned char*)pRet) = 0xFF;
+				return pRet;
+			}
 			else
-				pRet = new char[N];
+				pRet = MemoryPoolMan::GetInstance()->GetArrayPool(nAllocPos)->allocate();
 
 			if (pRet)
-			{
-				*(int*)pRet = N;
-				pRet = (unsigned char*)pRet + 4;
-			}
+				*((unsigned char*)pRet) = (unsigned char)nAllocPos;
 		}
 		else
 		{
-			if (N <= 32)
-				WVS_ALLOCATOR::__gMemPool32.deallocate((decltype(WVS_ALLOCATOR::__gMemPool32)::pointer)pDel);
-			else if (N > 32 && N <= 64)
-				WVS_ALLOCATOR::__gMemPool64.deallocate((decltype(WVS_ALLOCATOR::__gMemPool64)::pointer)pDel);
-			else if (N > 64 && N <= 128)
-				WVS_ALLOCATOR::__gMemPool128.deallocate((decltype(WVS_ALLOCATOR::__gMemPool128)::pointer)pDel);
-			else if (N > 128 && N <= 256)
-				WVS_ALLOCATOR::__gMemPool256.deallocate((decltype(WVS_ALLOCATOR::__gMemPool256)::pointer)pDel);
-			else if (N > 256 && N <= 512)
-				WVS_ALLOCATOR::__gMemPool512.deallocate((decltype(WVS_ALLOCATOR::__gMemPool512)::pointer)pDel);
-			else if (N > 512 && N <= 1024)
-				WVS_ALLOCATOR::__gMemPool1024.deallocate((decltype(WVS_ALLOCATOR::__gMemPool1024)::pointer)pDel);
-			else if (N > 1024 && N <= 2048)
-				WVS_ALLOCATOR::__gMemPool2048.deallocate((decltype(WVS_ALLOCATOR::__gMemPool2048)::pointer)pDel);
-			else
-				::operator delete[] ((unsigned char*)pDel);
+			size_t nAllocPos = *(unsigned char*)pDel;
+			if (nAllocPos == 0xFF)
+			{
+				delete[] pDel;
+				return nullptr;
+			}
+
+			MemoryPoolMan::GetInstance()->GetArrayPool(nAllocPos)->deallocate((char*)pDel);
 		}
 		return pRet;
 	}
 
 public:
-
 	template<typename T>
-	inline void * Allocate(int nSize)
+	inline void* Allocate(int nSize)
 	{
-		return ResourceMgr<T>(true, nSize * sizeof(T) + 4);
+		return (unsigned char*)ResourceMgr<T>(true, nSize * sizeof(T)) + 2;
 	}
 
 	template<typename T>
 	inline void Free(void *p)
 	{
-		p = ((unsigned char*)p) - 4;
+		p = ((unsigned char*)p) - 2;
 		ResourceMgr<T>(false, *(int*)p, p);
 	}
 

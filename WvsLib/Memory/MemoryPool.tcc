@@ -34,6 +34,18 @@ const noexcept
 
 template <typename T>
 MemoryPool<T>::MemoryPool(int nBlockSize) noexcept
+ : UnitSize(sizeof(slot_type_))
+{
+  BlockSize = (size_t)pow(2, ceil(log2(nBlockSize)) + 1);
+  currentBlock_ = nullptr;
+  currentSlot_ = nullptr;
+  lastSlot_ = nullptr;
+  freeSlots_ = nullptr;
+}
+
+template <typename T>
+MemoryPool<T>::MemoryPool(int nUnitSize, int nBlockSize) noexcept
+ : UnitSize(nUnitSize)
 {
   BlockSize = (size_t)pow(2, ceil(log2(nBlockSize)) + 1);
   currentBlock_ = nullptr;
@@ -120,10 +132,10 @@ MemoryPool<T>::allocateBlock()
   currentBlock_ = reinterpret_cast<slot_pointer_>(newBlock);
   // Pad block body to staisfy the alignment requirements for elements
   data_pointer_ body = newBlock + sizeof(slot_pointer_);
-  size_type bodyPadding = padPointer(body, alignof(slot_type_));
+  size_type bodyPadding = padPointer(body, UnitSize);
   currentSlot_ = reinterpret_cast<slot_pointer_>(body + bodyPadding);
   lastSlot_ = reinterpret_cast<slot_pointer_>
-              (newBlock + BlockSize - sizeof(slot_type_) + 1);
+              (newBlock + BlockSize - UnitSize + 1);
 }
 
 template <typename T>
@@ -133,13 +145,15 @@ MemoryPool<T>::allocate(size_type n, const_pointer hint)
   std::lock_guard<std::mutex> lock_(m_mtxLock);
   if (freeSlots_ != nullptr) {
     pointer result = reinterpret_cast<pointer>(freeSlots_);
-    freeSlots_ = freeSlots_->next;
+    freeSlots_ = ((slot_pointer_)((char*)freeSlots_))->next;
     return result;
   }
   else {
     if (currentSlot_ >= lastSlot_)
       allocateBlock();
-    return reinterpret_cast<pointer>(currentSlot_++);
+	auto pRet = currentSlot_;
+	currentSlot_ = (Slot_*)(((unsigned char*)currentSlot_) + UnitSize);
+    return reinterpret_cast<pointer>(pRet);
   }
 }
 
@@ -149,7 +163,7 @@ MemoryPool<T>::deallocate(pointer p, size_type n)
 {
   std::lock_guard<std::mutex> lock_(m_mtxLock);
   if (p != nullptr) {
-    reinterpret_cast<slot_pointer_>(p)->next = freeSlots_;
+    reinterpret_cast<slot_pointer_>((char*)p)->next = freeSlots_;
     freeSlots_ = reinterpret_cast<slot_pointer_>(p);
   }
 }
@@ -160,7 +174,7 @@ MemoryPool<T>::max_size()
 const noexcept
 {
   size_type maxBlocks = -1 / BlockSize;
-  return (BlockSize - sizeof(data_pointer_)) / sizeof(slot_type_) * maxBlocks;
+  return (BlockSize - sizeof(data_pointer_)) / sizeof(UnitSize) * maxBlocks;
 }
 
 template <typename T>
