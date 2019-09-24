@@ -50,7 +50,8 @@ void ItemInfo::Initialize()
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
 	RegisterSetHalloweenItem();
-	stWzResMan->ReleaseMemory();
+	stWzResMan->Unmount("./Game/Item.wz");
+	//stWzResMan->ReleaseMemory();
 	//WvsLogger::LogRaw("[ItemInfo::Initialize]釋放ItemInfo所有Wz記憶體[ReleaseMemory Done]....\n");
 }
 
@@ -58,33 +59,33 @@ void ItemInfo::LoadItemSellPriceByLv()
 {
 	auto& info = stWzResMan->GetWz(Wz::Item)["ItemSellPriceStandard"]["400"];
 	for (auto& lvl : info)
-		m_mItemSellPriceByLv[atoi(lvl.Name().c_str())] = (int)lvl;
+		m_mItemSellPriceByLv[atoi(lvl.GetName().c_str())] = (int)lvl;
 }
 
 void ItemInfo::IterateMapString(void *dataNode)
 {
-	static WZ::Node Img[] = {
-		stWzResMan->GetWz(Wz::String)["Map"]
+	static WzIterator Img[] = {
+		WzResMan::GetInstance()->GetWz(Wz::String)["Map"]
 	};
 	if (dataNode == nullptr)
 		for (auto& img : Img)
 			IterateMapString((void*)&img);
 	else
 	{
-		auto& dataImg = (*((WZ::Node*)dataNode));
+		auto& dataImg = (*((WzIterator*)dataNode));
 		for (auto& img : dataImg)
 		{
-			if (!isdigit(img.Name()[0]) || atoi(img.Name().c_str()) < 1000)
+			if (!isdigit(img.GetName()[0]) || atoi(img.GetName().c_str()) < 1000)
 				IterateMapString((void*)&img);
 			else
-				m_mMapString[atoi(img.Name().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["mapName"]).c_str());
+				m_mMapString[atoi(img.GetName().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["mapName"]).c_str());
 		}
 	}
 }
 
 void ItemInfo::IterateItemString(void *dataNode)
 {
-	static WZ::Node Img[] = { 
+	static WzIterator Img[] = { 
 		stWzResMan->GetWz(Wz::String)["Eqp"], 
 		stWzResMan->GetWz(Wz::String)["Etc"], 
 		stWzResMan->GetWz(Wz::String)["Consume"], 
@@ -97,36 +98,36 @@ void ItemInfo::IterateItemString(void *dataNode)
 			IterateItemString((void*)&img);
 	else
 	{
-		auto& dataImg = (*((WZ::Node*)dataNode));
+		auto& dataImg = (*((WzIterator*)dataNode));
 		for (auto& img : dataImg)
 		{
-			if (!isdigit(img.Name()[0]) || atoi(img.Name().c_str()) < 1000)
+			if (!isdigit(img.GetName()[0]) || atoi(img.GetName().c_str()) < 1000)
 				IterateItemString((void*)&img);
 
 			else
-				m_mItemString[atoi(img.Name().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["name"]).c_str());
+				m_mItemString[atoi(img.GetName().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["name"]).c_str());
 		}
 	}
 }
 
 void ItemInfo::IterateEquipItem(void *dataNode)
 {
-	auto& dataImg = (*((WZ::Node*)dataNode));
+	auto& dataImg = (*((WzIterator*)dataNode));
 	int nItemID = 0;
 	
 	for (auto& data : dataImg)
 	{
-		if (data.Name() == "Hair" || data.Name() == "Face" || data.Name() == "Afterimage")
+		if (data.GetName() == "Hair" || data.GetName() == "Face" || data.GetName() == "Afterimage")
 			continue;
-		if (!isdigit(data.Name()[0])) //展開資料夾
+		if (!isdigit(data.GetName()[0])) //展開資料夾
 		{
 			clock_t tStart = clock();
 			IterateEquipItem((void*)(&data));
-			//printf("%s loading : %.2fs\n", data.Name().c_str(), (double)(clock() - tStart) / CLOCKS_PER_SEC);
+			//printf("%s loading : %.2fs\n", data.GetName().c_str(), (double)(clock() - tStart) / CLOCKS_PER_SEC);
 		}
 		else
 		{
-			nItemID = atoi(data.Name().c_str());
+			nItemID = atoi(data.GetName().c_str());
 			if (nItemID < 20000)
 				continue;
 			EquipItem* pNewEquip = AllocObj(EquipItem);
@@ -141,10 +142,12 @@ void ItemInfo::IterateEquipItem(void *dataNode)
 void ItemInfo::IterateBundleItem()
 {
 #undef max
-	static WZ::Node Img[] = { stWzResMan->GetWz(Wz::Item)["Cash"]
-		, stWzResMan->GetWz(Wz::Item)["Consume"]
-		, stWzResMan->GetWz(Wz::Item)["Etc"]
-		, stWzResMan->GetWz(Wz::Item)["Install"] };
+	static WzIterator Img[] = { 
+		stWzResMan->GetWz(Wz::Item)["Cash"], 
+		stWzResMan->GetWz(Wz::Item)["Consume"], 
+		stWzResMan->GetWz(Wz::Item)["Etc"], 
+		stWzResMan->GetWz(Wz::Item)["Install"] 
+	};
 	for (auto& baseImg : Img)
 	{
 		for (auto& dir : baseImg)
@@ -152,7 +155,7 @@ void ItemInfo::IterateBundleItem()
 			for (auto& item : dir)
 			{
 				auto& infoImg = item["info"];
-				int nItemID = atoi(item.Name().c_str());
+				int nItemID = atoi(item.GetName().c_str());
 				BundleItem* pNewBundle = AllocObj( BundleItem );
 				LoadAbilityStat(pNewBundle->abilityStat, (void*)&infoImg);
 				if (pNewBundle->abilityStat.bCash)
@@ -225,7 +228,7 @@ void ItemInfo::IteratePetItem()
 	auto& img = stWzResMan->GetWz(Wz::Item)["Pet"];
 	for (auto& item : img)
 	{
-		int nItemID = atoi(item.Name().c_str());
+		int nItemID = atoi(item.GetName().c_str());
 		CashItem *pItem = AllocObj(CashItem);
 		pItem->bIsPet = true;
 		m_mCashItem.insert({ nItemID, pItem });
@@ -240,8 +243,8 @@ void ItemInfo::IterateCashItem()
 	{
 		for (auto& item : subImg)
 		{
-			int nItemID = atoi(item.Name().c_str());
-			std::cout << "Item = " << nItemID << std::endl;
+			int nItemID = atoi(item.GetName().c_str());
+			//std::cout << "Item = " << nItemID << std::endl;
 			CashItem *pItem = AllocObj(CashItem);
 			m_mCashItem.insert({ nItemID, pItem });
 		}
@@ -263,7 +266,7 @@ void ItemInfo::RegisterSetHalloweenItem()
 void ItemInfo::RegisterEquipItemInfo(EquipItem * pEqpItem, int nItemID, void * pProp)
 {
 #undef max
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 
 	LoadIncrementStat(pEqpItem->incStat, (void*)&infoImg);
 	LoadAbilityStat(pEqpItem->abilityStat, (void*)&infoImg);
@@ -311,7 +314,7 @@ void ItemInfo::RegisterEquipItemInfo(EquipItem * pEqpItem, int nItemID, void * p
 
 void ItemInfo::RegisterUpgradeItem(int nItemID, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 	UpgradeItem *pNewUpgradeItem = AllocObj(UpgradeItem);
 
 	pNewUpgradeItem->nItemID = nItemID;
@@ -325,19 +328,19 @@ void ItemInfo::RegisterPortalScrollItem(int nItemID, void * pProp)
 {
 	PortalScrollItem *pNewPortalScrollItem = AllocObj(PortalScrollItem);
 	pNewPortalScrollItem->nItemID = nItemID;
-	auto& specImg = (*((WZ::Node*)pProp))["spec"];
+	auto& specImg = (*((WzIterator*)pProp))["spec"];
 	for (auto& effect : specImg)
-		pNewPortalScrollItem->spec.insert({ effect.Name(), (int)effect });
+		pNewPortalScrollItem->spec.insert({ effect.GetName(), (int)effect });
 	m_mPortalScrollItem[nItemID] = pNewPortalScrollItem;
 }
 
 void ItemInfo::RegisterMobSummonItem(int nItemID, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 	MobSummonItem *pNewMobSummonItem = AllocObj(MobSummonItem);
 	pNewMobSummonItem->nItemID = nItemID;
 	pNewMobSummonItem->nType = infoImg["type"];
-	auto& mobImg = (*((WZ::Node*)pProp))["mob"];
+	auto& mobImg = (*((WzIterator*)pProp))["mob"];
 	for (auto& mob : mobImg) 
 		pNewMobSummonItem->lMob.push_back({ atoi(((std::string)mob["id"]).c_str()), (int)(mob["prob"]) });
 	m_mMobSummonItem[nItemID] = pNewMobSummonItem;
@@ -345,19 +348,19 @@ void ItemInfo::RegisterMobSummonItem(int nItemID, void * pProp)
 
 void ItemInfo::RegisterPetFoodItem(int nItemID, void * pProp)
 {
-	auto& specImg = (*((WZ::Node*)pProp))["spec"];
+	auto& specImg = (*((WzIterator*)pProp))["spec"];
 	PetFoodItem *pNewFoodItem = AllocObj(PetFoodItem);
 	pNewFoodItem->nItemID = nItemID;
 	pNewFoodItem->niRepleteness = specImg["inc"];
 	for (auto& petID : specImg)
-		if (isdigit(petID.Name()[0]))
+		if (isdigit(petID.GetName()[0]))
 			pNewFoodItem->ldwPet.push_back((int)petID);
 	m_mPetFoodItem[nItemID] = pNewFoodItem;
 }
 
 void ItemInfo::RegisterTamingMobFoodItem(int nItemID, void * pProp)
 {
-	auto& specImg = (*((WZ::Node*)pProp))["spec"];
+	auto& specImg = (*((WzIterator*)pProp))["spec"];
 	TamingMobFoodItem *pNewTamingMobFoodItem = AllocObj(TamingMobFoodItem);
 	pNewTamingMobFoodItem->nItemID = nItemID;
 	pNewTamingMobFoodItem->niFatigue = specImg["incFatigue"];
@@ -366,7 +369,7 @@ void ItemInfo::RegisterTamingMobFoodItem(int nItemID, void * pProp)
 
 void ItemInfo::RegisterBridleItem(int nItemID, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 	BridleItem *pNewBridleItem = AllocObj(BridleItem);
 	pNewBridleItem->nItemID = nItemID;
 	pNewBridleItem->dwTargetMobID = infoImg["mob"];
@@ -381,7 +384,7 @@ void ItemInfo::RegisterBridleItem(int nItemID, void * pProp)
 
 void ItemInfo::RegisterPortableChairItem(int nItemID, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 	PortableChairItem *pNewPortableChairItem = AllocObj(PortableChairItem);
 	pNewPortableChairItem->nItemID = nItemID;
 	pNewPortableChairItem->nReqLevel = infoImg["reqLevel"];
@@ -392,7 +395,7 @@ void ItemInfo::RegisterPortableChairItem(int nItemID, void * pProp)
 
 void ItemInfo::RegisterSkillLearnItem(int nItemID, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp))["info"];
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
 	SkillLearnItem *pNewSkillLearnItem = AllocObj(SkillLearnItem);
 	pNewSkillLearnItem->nItemID = nItemID;
 	pNewSkillLearnItem->nMasterLevel = infoImg["masterLevel"];
@@ -409,9 +412,9 @@ void ItemInfo::RegisterStateChangeItem(int nItemID, void * pProp)
 {
 	StateChangeItem *pNewStateChangeItem = AllocObj(StateChangeItem);
 	pNewStateChangeItem->nItemID = nItemID;
-	auto& specImg = (*((WZ::Node*)pProp))["spec"];
+	auto& specImg = (*((WzIterator*)pProp))["spec"];
 	for(auto& effect : specImg)
-		pNewStateChangeItem->spec.insert({ effect.Name(), (int)effect });
+		pNewStateChangeItem->spec.insert({ effect.GetName(), (int)effect });
 	m_mStateChangeItem[nItemID] = pNewStateChangeItem;
 }
 
@@ -549,7 +552,7 @@ long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 	std::string sMonth = sDate.substr(4, 2);
 	std::string sDay = sDate.substr(6, 2);
 	std::string sHour = sDate.substr(8, 2);
-	SYSTEMTIME sysTime;
+	/*SYSTEMTIME sysTime;
 	sysTime.wYear = atoi(sYear.c_str());
 	sysTime.wMonth = atoi(sMonth.c_str());
 	sysTime.wDay = atoi(sDay.c_str());
@@ -559,8 +562,8 @@ long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 	sysTime.wMinute = 0;
 	sysTime.wDayOfWeek = 0;
 	FILETIME ft;
-	SystemTimeToFileTime(&sysTime, &ft);
-	return *((long long int*)&ft);
+	SystemTimeToFileTime(&sysTime, &ft);*/
+	return 0;
 }
 
 const std::string & ItemInfo::GetItemName(int nItemID)
@@ -963,7 +966,7 @@ int ItemInfo::GetCriticalSkillLevel(GA_Character * pCharacter, int nWeaponID, in
 
 void ItemInfo::LoadIncrementStat(BasicIncrementStat & refStat, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp));
+	auto& infoImg = (*((WzIterator*)pProp));
 	refStat.niSTR = infoImg["incSTR"];
 	refStat.niDEX = infoImg["incDEX"];
 	refStat.niINT = infoImg["incINT"];
@@ -984,7 +987,7 @@ void ItemInfo::LoadIncrementStat(BasicIncrementStat & refStat, void * pProp)
 
 void ItemInfo::LoadAbilityStat(BasicAbilityStat & refStat, void * pProp)
 {
-	auto& infoImg = (*((WZ::Node*)pProp));	
+	auto& infoImg = (*((WzIterator*)pProp));	
 	refStat.nAttribute = atoi(((std::string)infoImg["bagType"]).c_str());
 	refStat.nAttribute |= atoi(((std::string)infoImg["notSale"]).c_str()) * ItemAttribute::eNotSale;
 	refStat.nAttribute |= atoi(((std::string)infoImg["expireOnLogout"]).c_str()) * ItemAttribute::eExpireOnLogout;

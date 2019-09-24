@@ -200,16 +200,20 @@
     <ClInclude Include="String\StringPool.h" />
     <ClInclude Include="String\StringUtility.h" />
     <ClInclude Include="Task\AsyncScheduler.h" />
-    <ClInclude Include="Wz\ImgAccessor.h" />
-    <ClInclude Include="Wz\mapfile.hpp" />
-    <ClInclude Include="Wz\sprite.hpp" />
-    <ClInclude Include="Wz\spritedata.hpp" />
-    <ClInclude Include="Wz\wz.hpp" />
-    <ClInclude Include="Wz\WzAES.hpp" />
-    <ClInclude Include="Wz\wzcrypto.hpp" />
-    <ClInclude Include="Wz\wzimg.hpp" />
-    <ClInclude Include="Wz\wzmain.hpp" />
+    <ClInclude Include="Wz\StandardFileSystem.h" />
+    <ClInclude Include="Wz\WzAESKeyGen.h" />
+    <ClInclude Include="Wz\WzArchive.h" />
+    <ClInclude Include="Wz\WzDelayedVariant.h" />
+    <ClInclude Include="Wz\WzFileSystem.h" />
+    <ClInclude Include="Wz\WzIterator.h" />
+    <ClInclude Include="Wz\WzMappedFileStream.h" />
+    <ClInclude Include="Wz\WzNameSpace.h" />
+    <ClInclude Include="Wz\WzNameSpaceProperty.h" />
+    <ClInclude Include="Wz\WzPackage.h" />
+    <ClInclude Include="Wz\WzProperty.h" />
     <ClInclude Include="Wz\WzResMan.hpp" />
+    <ClInclude Include="Wz\WzStream.h" />
+    <ClInclude Include="Wz\WzStreamCodec.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\ConfigLoader.cpp" />
@@ -286,14 +290,19 @@
     <ClCompile Include="String\StringPool.cpp" />
     <ClCompile Include="String\StringUtility.cpp" />
     <ClCompile Include="Task\AsyncScheduler.cpp" />
-    <ClCompile Include="Wz\ImgAccessor.cpp" />
-    <ClCompile Include="Wz\mapfile.cpp" />
-    <ClCompile Include="Wz\WzAES.cpp" />
-    <ClCompile Include="Wz\wzcrypto.cpp" />
-    <ClCompile Include="Wz\wzimg.cpp" />
-    <ClCompile Include="Wz\wzmain.cpp" />
-    <ClCompile Include="Wz\wznode.cpp" />
+    <ClCompile Include="Wz\WzAESKeyGen.cpp" />
+    <ClCompile Include="Wz\WzArchive.cpp" />
+    <ClCompile Include="Wz\WzDelayedVariant.cpp" />
+    <ClCompile Include="Wz\WzFileSystem.cpp" />
+    <ClCompile Include="Wz\WzIterator.cpp" />
+    <ClCompile Include="Wz\WzMappedFileStream.cpp" />
+    <ClCompile Include="Wz\WzNameSpace.cpp" />
+    <ClCompile Include="Wz\WzNameSpaceProperty.cpp" />
+    <ClCompile Include="Wz\WzPackage.cpp" />
+    <ClCompile Include="Wz\WzProperty.cpp" />
     <ClCompile Include="Wz\WzResMan.cpp" />
+    <ClCompile Include="Wz\WzStream.cpp" />
+    <ClCompile Include="Wz\WzStreamCodec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Memory\MemoryPool.tcc" />

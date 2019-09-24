@@ -14,7 +14,7 @@
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 
 static int ms_annStandardPDD[5][255];
 
@@ -37,18 +37,18 @@ CalcDamage::~CalcDamage()
 
 void CalcDamage::LoadStandardPDD()
 {
-	static WZ::ImgAccessor img("./DataSrv/StandardPDD");
-	static auto empty = WZ::Node();
+	static WzIterator img = stWzResMan->GetItem("StandardPDD.img");
+	static auto empty = img.end();
 	int nJobCategory = 0, nLastValue = 0;
 	for (auto& node : img)
 	{
-		nJobCategory = atoi(node.Name().c_str());
+		nJobCategory = atoi(node.GetName().c_str());
 		if (nJobCategory < 0 || nJobCategory > 5)
 			continue;
 		for (int i = 0; i < 256; ++i)
 		{
 			auto& v = node[std::to_string(i)];
-			if (v.Name() != "" && v != empty)
+			if (v != empty)
 				nLastValue = v;
 			ms_annStandardPDD[nJobCategory][i] = nLastValue;
 		}

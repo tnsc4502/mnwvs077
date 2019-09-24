@@ -1,4 +1,5 @@
 #include "LifePool.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Random\Rand32.h"
@@ -89,7 +90,7 @@ void LifePool::Init(Field* pField, int nFieldID)
 	//mapWz.ReleaseData();
 }
 
-void LifePool::SetFieldObjAttribute(FieldObj* pFieldObj, WZ::Node& dataNode)
+void LifePool::SetFieldObjAttribute(FieldObj* pFieldObj, WzIterator& dataNode)
 {
 	try 
 	{
@@ -119,7 +120,7 @@ int LifePool::GetMaxMobCapacity() const
 	return m_nMobCapacityMax;
 }
 
-void LifePool::LoadNpcData(WZ::Node& dataNode)
+void LifePool::LoadNpcData(WzIterator& dataNode)
 {
 	Npc npc;
 	SetFieldObjAttribute(&npc, dataNode);
@@ -127,14 +128,14 @@ void LifePool::LoadNpcData(WZ::Node& dataNode)
 	m_lNpc.push_back(npc);
 }
 
-void LifePool::LoadMobData(WZ::Node& dataNode)
+void LifePool::LoadMobData(WzIterator& dataNode)
 {
 	MobGen* pMobGen = AllocObj(MobGen);
 	SetFieldObjAttribute(&(pMobGen->mob), dataNode);
 
 	pMobGen->mob.SetMobTemplate(MobTemplate::GetMobTemplate(pMobGen->mob.GetTemplateID()));
 	pMobGen->nRegenInterval = (int)dataNode["mobTime"];
-	pMobGen->nTeamForMCarnival = dataNode["team"] == WZ::Node() ? -1 : (int)dataNode["team"];
+	pMobGen->nTeamForMCarnival = dataNode["team"] != dataNode.end() ? (int)dataNode["team"] : -1;
 	pMobGen->nRegenAfter = (pMobGen->nRegenInterval == -1 ? 0 : 
 		GameDateTime::GetTime() + (pMobGen->nRegenInterval * 1000));
 	pMobGen->mob.SetMobGen(pMobGen);

@@ -29,7 +29,7 @@ const CSCommodity * ShopInfo::GetCSCommodity(int nSN) const
 
 void ShopInfo::LoadCommodity(void * pCashPackage, bool bCheckValid)
 {
-	auto& refPackage = *((WZ::Node*)pCashPackage);
+	auto& refPackage = *((WzIterator*)pCashPackage);
 	for (auto& item : refPackage)
 	{
 		CSCommodity& commodity = m_mOriginalCommodity[(int)item["SN"]];

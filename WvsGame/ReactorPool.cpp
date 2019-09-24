@@ -27,7 +27,7 @@ ReactorPool::~ReactorPool()
 void ReactorPool::Init(Field * pField, void * pImg)
 {
 	m_pField = pField;
-	auto& reactorImg = *((WZ::Node*)pImg);
+	auto& reactorImg = *((WzIterator*)pImg);
 	for (auto& reactor : reactorImg)
 	{
 		ReactorGen newGen;

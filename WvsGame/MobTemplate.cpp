@@ -6,10 +6,9 @@
 #include "SkillInfo.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 
 std::map<int, MobTemplate*>* MobTemplate::m_MobTemplates = new std::map<int, MobTemplate*>();
-
-WZ::Node* MobTemplate::m_MobWzProperty = &(stWzResMan->GetWz(Wz::Mob));
 
 MobTemplate::MobTemplate()
 {
@@ -41,14 +40,14 @@ MobTemplate* MobTemplate::GetMobTemplate(int dwTemplateID)
 void MobTemplate::RegisterMob(int dwTemplateID)
 {
 #undef max
-	m_MobWzProperty = &(stWzResMan->GetWz(Wz::Mob));
+	static auto& m_MobWzProperty = stWzResMan->GetWz(Wz::Mob);
 	std::string templateID = std::to_string(dwTemplateID);
-	auto empty = WZ::Node();
+	auto empty = m_MobWzProperty.end();
 
 	while (templateID.length() < 7)
 		templateID = "0" + templateID;
-	auto& mobNode = (*m_MobWzProperty)[templateID];
-	if (mobNode == WZ::Node())
+	auto& mobNode = (m_MobWzProperty)[templateID];
+	if (mobNode == empty)
 		return;
 
 	auto& info = mobNode["info"];
@@ -96,7 +95,7 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	for (int i = 1; ; ++i)
 	{
 		auto& atkNode = mobNode["attack" + std::to_string(i)];
-		if (atkNode == empty || atkNode.Name() == "")
+		if (atkNode == empty || atkNode.GetName() == "")
 			break;
 		pTemplate->m_aAttackInfo.push_back({});
 		auto& attackInfo = pTemplate->m_aAttackInfo.back();

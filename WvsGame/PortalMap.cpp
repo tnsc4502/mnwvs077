@@ -21,11 +21,11 @@ PortalMap::~PortalMap()
 */
 void PortalMap::RestorePortal(Field * pField, void* pImg)
 {
-	WZ::Node & pPropPortal = *((WZ::Node*)pImg);
+	WzIterator & pPropPortal = *((WzIterator*)pImg);
 	for (auto& portalNode : pPropPortal)
 	{
 		Portal* newPortal = AllocObjCtor(Portal)(
-			atoi(portalNode.Name().c_str()),
+			atoi(portalNode.GetName().c_str()),
 			(int)portalNode["pt"],
 			(int)portalNode["tm"],
 			(int)portalNode["x"],

@@ -57,11 +57,11 @@ aes.Encrypt(data,output,3); // note data and output must be at least 48 bytes!
 
 // todo - replace all types with u1byte, u4byte, etc
 
-class AES {
+class WzAESKeyGen {
 public:
     // the constructor - makes sure local things are initialized
     // it if fails, throws the string "Tables failed to initialize"
-    AES(void);
+    WzAESKeyGen(void);
 
     // multiple block encryption/decryption modes
     // See http://en.wikipedia.org/wiki/Block_cipher_modes_of_operation

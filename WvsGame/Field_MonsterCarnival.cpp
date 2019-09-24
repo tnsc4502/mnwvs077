@@ -32,8 +32,8 @@
 Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	: Field(pData, nFieldID)
 {
-	auto empty = WZ::Node();
-	auto& mc = (*((WZ::Node*)pData))["monsterCarnival"];
+	auto& mc = (*((WzIterator*)pData))["monsterCarnival"];
+	auto empty = mc.end();
 	m_nTimeDefault = mc["timeDefault"];
 	m_nTimeExpand = mc["timeExpand"];
 	m_nTimeMessage = mc["timeMessage"];
@@ -51,7 +51,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = mobGenPos[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty || node.GetName() == "")
 			break;
 		MobGenPos pos;
 		pos.nX = node["x"];
@@ -78,7 +78,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = mob[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		MCMob mob;
 		mob.nID = node["id"];
@@ -93,7 +93,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = skill[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		m_anSkillID.push_back(node);
 	}
@@ -102,7 +102,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = guardianGenPos[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		GuardianGenPos pos;
 		pos.nX = node["x"];
@@ -130,7 +130,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = guardian[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		m_anGuardianID.push_back(node);
 	}
@@ -141,7 +141,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = diff[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		m_anRewardRange.push_back(node);
 	}
@@ -150,7 +150,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = range[std::to_string(i)];
-		if (node == empty || node.Name() == "")
+		if (node == empty)
 			break;
 		RewardRate rate;
 		rate.dWinCoin = node["wInCoin"]; //Is that typo?

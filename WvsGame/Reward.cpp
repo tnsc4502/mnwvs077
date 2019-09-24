@@ -1,7 +1,7 @@
 #include "Reward.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\Database\GW_ItemSlotBase.h"
@@ -31,30 +31,30 @@ Reward::~Reward()
 
 void Reward::LoadReward()
 {
-	WZ::ImgAccessor img("./DataSrv/Reward");
+	auto& img = stWzResMan->GetItem("./Reward.img");
 	stMobRewardInfo.clear();
 	bool bMobReward = false;
 	for (auto& mobNode : img)
 	{
-		bMobReward = mobNode.Name()[0] == 'm';
-		int nTemplateID = atoi(mobNode.Name().substr(1, mobNode.Name().size() - 1).c_str());
+		bMobReward = mobNode.GetName()[0] == 'm';
+		int nTemplateID = atoi(mobNode.GetName().substr(1, mobNode.GetName().size() - 1).c_str());
 		unsigned int unTotalWeight = 0;
 		for (auto& rewardNode : mobNode)
 		{
 			RewardInfo* pInfo = AllocObj(RewardInfo);
 			for (auto& node : rewardNode)
 			{
-				if (node.Name() == "prob") {
+				if (node.GetName() == "prob") {
 					std::string strProb = node;
 					auto dProb = atof(strProb.substr(4, strProb.size() - 4).c_str()) * 1000000000.0;
 					pInfo->m_unWeight = (unsigned int)dProb;
 				}
-				else if (node.Name() == "money") 
+				else if (node.GetName() == "money")
 				{
 					pInfo->m_nMoney = (int)node;
 					pInfo->m_nType = 0;
 				}
-				else if (node.Name() == "item")
+				else if (node.GetName() == "item")
 				{
 					pInfo->m_nType = 1;
 					pInfo->m_nItemID = (int)node;
@@ -72,13 +72,13 @@ void Reward::LoadReward()
 						}
 					}
 				}
-				else if (node.Name() == "min")
+				else if (node.GetName() == "min")
 					pInfo->m_nMin = (int)node;
-				else if (node.Name() == "max")
+				else if (node.GetName() == "max")
 					pInfo->m_nMax = (int)node;
-				else if (node.Name() == "period")
+				else if (node.GetName() == "period")
 					pInfo->m_nPeriod = (int)node;
-				else if (node.Name() == "premium")
+				else if (node.GetName() == "premium")
 					pInfo->m_bPremiumMap = ((int)node == 1);
 			}
 

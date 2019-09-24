@@ -9,7 +9,7 @@
 #include "ReactorPool.h"
 #include "FieldSetEventManager.h"
 #include <functional>
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
@@ -24,23 +24,23 @@
 
 void FieldSet::LoadReactorAction(void *pAction)
 {
-	auto& wzNode = *((WZ::Node*)pAction);
+	auto& wzNode = *((WzIterator*)pAction);
 	for (auto& eachField : wzNode)
 		for(auto& subNode : eachField)
-			LoadEachAction(&subNode, atoi(eachField.Name().c_str()));
+			LoadEachAction(&subNode, atoi(eachField.GetName().c_str()));
 }
 
 void FieldSet::LoadEachAction(void *pSub, int nFieldIdx)
 {
-	auto& wzNode = *((WZ::Node*)pSub);
-	auto empty = WZ::Node();
+	auto& wzNode = *((WzIterator*)pSub);
+	auto empty = wzNode.end();
 	ActionInfo info;
 	int nVal = 0;
 	std::string sVal = "";
 	info.nFieldIdx = nFieldIdx;
 	for (auto& dataNode : wzNode)
 	{
-		if (dataNode.Name() == "info")
+		if (dataNode.GetName() == "info")
 		{
 			info.nActionType = dataNode["type"];
 			if (info.nActionType == -1)
@@ -48,7 +48,7 @@ void FieldSet::LoadEachAction(void *pSub, int nFieldIdx)
 			for (int i = 0; ; ++i)
 			{
 				auto& subNode = dataNode[std::to_string(i)];
-				if (subNode.Name() == "" || subNode == empty)
+				if (subNode == empty)
 					break;
 
 				sVal = ((std::string)subNode);
@@ -65,7 +65,7 @@ void FieldSet::LoadEachAction(void *pSub, int nFieldIdx)
 		else
 		{
 			info.ari.push_back({});
-			info.ari.back().sName = dataNode.Name();
+			info.ari.back().sName = dataNode.GetName();
 			info.ari.back().nEventState = dataNode;
 		}
 	}
@@ -136,7 +136,7 @@ void FieldSet::InitConfig()
 	if (sFieldSetInfo != "")
 	{
 		m_aReactorActionInfo.clear();
-		WZ::ImgAccessor img("./DataSrv/FieldSet");
+		auto& img = stWzResMan->GetItem("./FieldSet.img");
 		LoadReactorAction(&(img[sFieldSetInfo]["action"]));
 	}
 

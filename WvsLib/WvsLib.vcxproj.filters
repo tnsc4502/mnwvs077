@@ -43,6 +43,15 @@
     <Filter Include="Exception">
       <UniqueIdentifier>{c0ac25b8-30a9-47cf-9a6f-78720cdd52d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Wz\NameSpace">
+      <UniqueIdentifier>{4dd63e77-42ed-44e7-9d9f-f332a3a69058}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wz\PCOM">
+      <UniqueIdentifier>{014cdf6a-a210-4ae0-ae64-0761a73fa9f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wz\Common">
+      <UniqueIdentifier>{509e448a-954a-4aa5-a40e-e5d0aa4fe78d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Memory\Arena.h">
@@ -159,33 +168,6 @@
     <ClInclude Include="Evaluator\exprtk.hpp">
       <Filter>Evaluator</Filter>
     </ClInclude>
-    <ClInclude Include="Wz\mapfile.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\sprite.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\spritedata.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\wz.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\WzAES.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\wzcrypto.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\wzimg.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\wzmain.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
-    <ClInclude Include="Wz\WzResMan.hpp">
-      <Filter>Wz</Filter>
-    </ClInclude>
     <ClInclude Include="Crypto\aesopt.h">
       <Filter>Crypto</Filter>
     </ClInclude>
@@ -279,9 +261,6 @@
     <ClInclude Include="Common\WvsLoginConstants.hpp">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Wz\ImgAccessor.h">
-      <Filter>Wz</Filter>
-    </ClInclude>
     <ClInclude Include="Net\PacketFlags\SummonedPacketFlags.hpp">
       <Filter>Net\PacketFlags</Filter>
     </ClInclude>
@@ -314,6 +293,48 @@
     </ClInclude>
     <ClInclude Include="String\StringPool.h">
       <Filter>String</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\StandardFileSystem.h">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzAESKeyGen.h">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzArchive.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzFileSystem.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzIterator.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzNameSpace.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzNameSpaceProperty.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzPackage.h">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzResMan.hpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzStream.h">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzStreamCodec.h">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzProperty.h">
+      <Filter>Wz\PCOM</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzDelayedVariant.h">
+      <Filter>Wz\PCOM</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzMappedFileStream.h">
+      <Filter>Wz\Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -440,27 +461,6 @@
     <ClCompile Include="Evaluator\Evaluator.cpp">
       <Filter>Evaluator</Filter>
     </ClCompile>
-    <ClCompile Include="Wz\mapfile.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\WzAES.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\wzcrypto.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\wzimg.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\wzmain.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\wznode.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
-    <ClCompile Include="Wz\WzResMan.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
     <ClCompile Include="Crypto\aescrypt.c">
       <Filter>Crypto</Filter>
     </ClCompile>
@@ -533,9 +533,6 @@
     <ClCompile Include="Common\ConfigLoader.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Wz\ImgAccessor.cpp">
-      <Filter>Wz</Filter>
-    </ClCompile>
     <ClCompile Include="Net\PacketFlags\SummonedPacketFlags.cpp">
       <Filter>Net\PacketFlags</Filter>
     </ClCompile>
@@ -562,6 +559,45 @@
     </ClCompile>
     <ClCompile Include="String\StringPool.cpp">
       <Filter>String</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzAESKeyGen.cpp">
+      <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzArchive.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzFileSystem.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzIterator.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzNameSpace.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzNameSpaceProperty.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzPackage.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzResMan.cpp">
+      <Filter>Wz\NameSpace</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzStream.cpp">
+      <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzStreamCodec.cpp">
+      <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzProperty.cpp">
+      <Filter>Wz\PCOM</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzDelayedVariant.cpp">
+      <Filter>Wz\PCOM</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzMappedFileStream.cpp">
+      <Filter>Wz\Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

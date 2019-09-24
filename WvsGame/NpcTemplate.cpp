@@ -3,7 +3,7 @@
 #include "ItemInfo.h"
 #include "SkillInfo.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 std::map<int, NpcTemplate*> NpcTemplate::m_mNpcTemplates;
@@ -22,14 +22,14 @@ void NpcTemplate::Load()
 	auto& refWz = stWzResMan->GetWz(Wz::Npc);
 	for (auto& refNpc : refWz)
 	{
-		RegisterNpc(atoi(refNpc.Name().c_str()), &refNpc);
+		RegisterNpc(atoi(refNpc.GetName().c_str()), &refNpc);
 	}
 }
 
 void NpcTemplate::LoadShop()
 {
 #undef max
-	static WZ::ImgAccessor img("./DataSrv/NpcShop");
+	static auto& img = stWzResMan->GetItem("./NpcShop.img");
 	std::string sNpcTemplateName = std::to_string(m_nTemplateID);
 	while (sNpcTemplateName.size() < 7)
 		sNpcTemplateName = "0" + sNpcTemplateName;
@@ -60,7 +60,7 @@ void NpcTemplate::LoadShop()
 
 void NpcTemplate::RegisterNpc(int nNpcID, void *pProp)
 {
-	auto data = *((WZ::Node*)pProp);
+	auto data = *((WzIterator*)pProp);
 	NpcTemplate *pTemplate = AllocObj(NpcTemplate);
 	pTemplate->m_nTemplateID = nNpcID;
 	//pTemplate->m_aShopItem = GetInstance()->GetShopItemList(nNpcID);

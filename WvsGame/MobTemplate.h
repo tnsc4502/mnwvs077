@@ -1,7 +1,7 @@
 #pragma once
 #include "FieldRect.h"
+#include <vector>
 #include <map>
-#include "..\WvsLib\Wz\WzResMan.hpp"
 
 struct RewardInfo;
 class User;
@@ -9,7 +9,6 @@ class User;
 class MobTemplate
 {
 	static std::map<int, MobTemplate*>* m_MobTemplates;
-	static WZ::Node* m_MobWzProperty;
 
 public:
 	const static int MAX_DAMAGED_ELEM_ATTR = 8;

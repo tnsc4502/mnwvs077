@@ -1,7 +1,7 @@
 #include "ReactorTemplate.h"
 #include "Reward.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 std::map<int, ReactorTemplate*> ReactorTemplate::m_mReactorTemplate;
@@ -15,8 +15,8 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 	if (m_mReactorTemplate.find(nTemplateID) != m_mReactorTemplate.end())
 		return;
 
-	auto& ref = *((WZ::Node*)pImg);
-	auto empty = WZ::Node();
+	auto& ref = *((WzIterator*)pImg);
+	auto empty = ref.end();
 	ReactorTemplate *pTemplate = AllocObj(ReactorTemplate);
 	pTemplate->m_nTemplateID = nTemplateID;
 
@@ -37,9 +37,9 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 
 	//Load link template
 	auto& linkNode = ref["info"]["link"];
-	if (linkNode != empty && linkNode.Name() != "")
+	if (linkNode != empty && linkNode.GetName() != "")
 	{
-		RegisterReactor(linkNode, &((*((WZ::Node*)pRoot))[(std::string)linkNode]), pRoot);
+		RegisterReactor(linkNode, &((*((WzIterator*)pRoot))[(std::string)linkNode]), pRoot);
 		auto itLinkTemplate = m_mReactorTemplate.find(linkNode);
 		if (itLinkTemplate != m_mReactorTemplate.end()) 
 		{
@@ -61,9 +61,9 @@ void ReactorTemplate::RegisterReactor(int nTemplateID, void *pImg, void *pRoot)
 
 void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 {
-	auto& ref_ = (*((WZ::Node*)pImg));
+	auto& ref_ = (*((WzIterator*)pImg));
 	auto& ref = ref_["event"];
-	auto empty = WZ::Node();
+	auto empty = ref.end();
 	if (ref == empty)
 		return;
 
@@ -99,7 +99,7 @@ void ReactorTemplate::LoadEvent(StateInfo * pInfo, void * pImg)
 		for (int x = 0; ; ++x)
 		{
 			auto& argNode = node[std::to_string(x)];
-			if (argNode == empty || argNode.Name() == "")
+			if (argNode == empty || argNode.GetName() == "")
 				break;
 			eventInfo.m_anArg.push_back((int)argNode);
 		}
@@ -120,9 +120,9 @@ void ReactorTemplate::LoadAction(ReactorTemplate* pTemplate, const std::string& 
 			if (c != '-' && (c < '0' || c > '9')) return false;
 		return true;
 	};
-	static WZ::ImgAccessor img("./DataSrv/ReactorAction");
+	static auto& img = stWzResMan->GetItem("./ReactorAction.img");
 	auto& actionNode = img[sAction];
-	auto empty = WZ::Node();
+	auto empty = actionNode.end();
 	pTemplate->m_aActionInfo.clear();
 	if (actionNode != img.end())
 		for (auto& action : actionNode)
@@ -136,7 +136,7 @@ void ReactorTemplate::LoadAction(ReactorTemplate* pTemplate, const std::string& 
 			for (int i = 0; ; ++i)
 			{
 				auto& argNode = action[std::to_string(i)];
-				if (argNode == empty || argNode.Name() == "")
+				if (argNode == empty || argNode.GetName() == "")
 					break;
 				if (funcIsNumber((std::string)argNode))
 					info.anArgs.push_back((int)argNode);
@@ -154,7 +154,7 @@ void ReactorTemplate::Load()
 {
 	auto& ref = stWzResMan->GetWz(Wz::Reactor);
 	for (auto& reactor : ref)
-		RegisterReactor(atoi(reactor.Name().c_str()), &reactor, &ref);
+		RegisterReactor(atoi(reactor.GetName().c_str()), &reactor, &ref);
 }
 
 ReactorTemplate * ReactorTemplate::GetReactorTemplate(int nTemplateID)

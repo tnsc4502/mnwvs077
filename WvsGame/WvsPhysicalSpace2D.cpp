@@ -4,6 +4,7 @@
 #include "StaticFoothold.h"
 #include "FootholdTree.h"
 #include "AttrFoothold.h"
+#include <Windows.h>
 
 const FieldRect & WvsPhysicalSpace2D::GetRect() const
 {
@@ -225,18 +226,18 @@ StaticFoothold * WvsPhysicalSpace2D::GetFootholdUnderneath(int x, int y, int * p
 
 void WvsPhysicalSpace2D::Load(void * pPropFoothold, void * pLadderRope, void * pInfo)
 {
-	auto& refPropFoothold = *((WZ::Node*)pPropFoothold);
-	auto& refLadderRope = *((WZ::Node*)pLadderRope);
-	auto& refInfo = *((WZ::Node*)pInfo);
+	auto& refPropFoothold = *((WzIterator*)pPropFoothold);
+	auto& refLadderRope = *((WzIterator*)pLadderRope);
+	auto& refInfo = *((WzIterator*)pInfo);
 
 	StaticFoothold *pFoothold = nullptr;
 	long long int lPage = 0, lZMass = 0;
 	for (auto& page : refPropFoothold)
 	{
-		lPage = atoll(page.Name().c_str());
+		lPage = atoll(page.GetName().c_str());
 		for (auto& zMass : page)
 		{
-			lZMass = atoll(zMass.Name().c_str());
+			lZMass = atoll(zMass.GetName().c_str());
 			auto massIter = m_mMassRange.find(lZMass);
 			if (massIter == m_mMassRange.end()) 
 			{
@@ -249,7 +250,7 @@ void WvsPhysicalSpace2D::Load(void * pPropFoothold, void * pLadderRope, void * p
 				pFoothold->m_pAttrFoothold = AllocObj(AttrFoothold);
 				pFoothold->m_pAttrFoothold->m_dDrag = (double)((int)foothold["drag"]) * 0.01;
 				pFoothold->m_pAttrFoothold->m_dForce = (double)((int)foothold["force"]) * 0.01;
-				pFoothold->m_nSN = atoi(foothold.Name().c_str());
+				pFoothold->m_nSN = atoi(foothold.GetName().c_str());
 				pFoothold->m_lPage = lPage;
 				pFoothold->m_lZMass = lZMass;
 				pFoothold->m_ptPos1.x = (int)foothold["x1"];
@@ -306,7 +307,7 @@ void WvsPhysicalSpace2D::Load(void * pPropFoothold, void * pLadderRope, void * p
 	}
 	if (pInfo)
 	{
-		auto& refInfo = *((WZ::Node*)pInfo);
+		auto& refInfo = *((WzIterator*)pInfo);
 		int nLeft = (int)refInfo["VRLeft"],
 			nRight = (int)refInfo["VRLeft"],
 			nTop = (int)refInfo["VRTop"],

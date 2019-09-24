@@ -5,7 +5,8 @@ struct SkillLevelData;
 
 class SkillEntry
 {
-	std::vector<SkillLevelData*> m_aLevelData;
+	static const int MAX_SKILL_ENTRY_COUNT = 40;
+	SkillLevelData* m_aLevelData[MAX_SKILL_ENTRY_COUNT];
 
 	int m_nMasterLevel, m_nMaxLevel, m_nSkillID, m_nAttackElemAttr = 0;
 	bool m_bInvisible = false;
@@ -14,9 +15,10 @@ public:
 	SkillEntry();
 	~SkillEntry();
 
+	void SetLevelData(SkillLevelData* pLevelData, int nSLV);
 	void AddLevelData(SkillLevelData* pLevelData);
 	const SkillLevelData* GetLevelData(int nLevel) const;
-	const std::vector<SkillLevelData*>& GetAllLevelData() const;
+	const SkillLevelData** GetAllLevelData() const;
 
 	void SetMasterLevel(int nLevel);
 	void SetMaxLevel(int nLevel);

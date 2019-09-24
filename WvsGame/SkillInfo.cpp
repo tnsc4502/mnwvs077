@@ -28,9 +28,10 @@
 #include <thread>
 #include <unordered_map>
 
+auto t1 = std::chrono::high_resolution_clock::now();
 
 #define CHECK_SKILL_ATTRIBUTE(var, attribute) if(attributeSet.find(#attribute) != attributeSetEnd) (mappingTable[(&(var)) - pAttributeBase]=(std::string)skillCommonImg[#attribute]);
-#define PARSE_SKILLDATA(attribute) ((std::string)skillCommonImg[#attribute]) == "" ? 0 : ((int)skillCommonImg[#attribute]);
+#define PARSE_SKILLDATA(attribute) ((int)skillCommonImg[#attribute]);
 
 SkillInfo::SkillInfo()
 {
@@ -266,7 +267,7 @@ void SkillInfo::LoadMobSkill()
 	{
 		pEntry = AllocObj(MobSkillEntry);
 		LoadMobSkillLeveData(pEntry, &(mobSkill["level"]));
-		m_mMobSKill[atoi(mobSkill.Name().c_str())] = pEntry;
+		m_mMobSKill[atoi(mobSkill.GetName().c_str())] = pEntry;
 	}
 }
 
@@ -274,10 +275,10 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 {
 #undef max
 
-	auto& skillLevelImg = *((WZ::Node*)pData);
+	auto& skillLevelImg = *((WzIterator*)pData);
 	pEntry->m_apLevelData.push_back(nullptr); //for level 0
 	MobSkillLevelData *pLevel = nullptr;
-	auto empty = WZ::Node();
+	auto empty = skillLevelImg.end();
 
 	for (auto& level : skillLevelImg)
 	{
@@ -285,7 +286,7 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 		for (int i = 0; ; ++i)
 		{
 			auto& mobIDNode = level[std::to_string(i)];
-			if (mobIDNode == empty || mobIDNode.Name() == "")
+			if (mobIDNode == empty || mobIDNode.GetName() == "")
 				break;
 			pLevel->anTemplateID.push_back((int)mobIDNode);
 		}
@@ -301,13 +302,13 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 		pLevel->nCount = std::max(1, (int)level["count"]);
 		
 		auto&lt = level["lt"];
-		if (lt != empty && lt.Name() != "")
+		if (lt != empty && lt.GetName() != "")
 		{
 			pLevel->rcAffectedArea.left = lt["x"];
 			pLevel->rcAffectedArea.top = lt["y"];
 		}
 		auto&rb = level["rb"];
-		if (rb != empty && rb.Name() != "")
+		if (rb != empty && rb.GetName() != "")
 		{
 			pLevel->rcAffectedArea.right = rb["x"];
 			pLevel->rcAffectedArea.bottom = rb["y"];
@@ -330,7 +331,7 @@ void SkillInfo::LoadMCSkill()
 		pEntry->sDesc = (std::string)node["desc"];
 		pEntry->sName = (std::string)node["name"];
 
-		m_mMCSkill.insert({ atoi(node.Name().c_str()), pEntry });
+		m_mMCSkill.insert({ atoi(node.GetName().c_str()), pEntry });
 	}
 }
 
@@ -347,22 +348,23 @@ void SkillInfo::LoadMCGuardian()
 		pEntry->sDesc = (std::string)node["desc"];
 		pEntry->sName = (std::string)node["name"];
 
-		m_mMCGuardian.insert({ atoi(node.Name().c_str()), pEntry });
+		m_mMCGuardian.insert({ atoi(node.GetName().c_str()), pEntry });
 	}
 }
 
 void SkillInfo::IterateSkillInfo()
 {
+	t1 = std::chrono::high_resolution_clock::now();
 	WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]On iterating all skills....\n");
 	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
-	static std::vector<std::pair<int, WZ::Node>> aRoot;
+	static std::vector<std::pair<int, WzIterator>> aRoot;
 	for (auto& node : skillWz)
 	{
-		if (!IsValidRootName(node.Name()))
+		if (!IsValidRootName(node.GetName()))
 			continue;
-		aRoot.push_back({ atoi(node.Name().c_str()), node["skill"] });
+		aRoot.push_back({ atoi(node.GetName().c_str()), node["skill"] });
 	}
 	m_nRootCount = (int)aRoot.size();
 	for (auto& node : aRoot)
@@ -378,18 +380,21 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
 	auto skillRootIter = m_mSkillByRootID.find(nSkillRootID);
 	if (skillRootIter == m_mSkillByRootID.end()) 
 		m_mSkillByRootID.insert({nSkillRootID, new std::map<int, SkillEntry*>() });
-	auto& skillRootImg = *((WZ::Node*)pData);
+	auto& skillRootImg = *((WzIterator*)pData);
 	int nSkillID = 0;
 	for (auto& skillImg : skillRootImg)
 	{
 		++m_nOnLoadingSkills;
-		nSkillID = atoi(skillImg.Name().c_str());
+		nSkillID = atoi(skillImg.GetName().c_str());
 		LoadSkill(nSkillRootID, nSkillID, (void*)&skillImg);
 		--m_nOnLoadingSkills;
 	}
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
 	{
-		stWzResMan->ReleaseMemory();
+		auto t2 = std::chrono::high_resolution_clock::now();
+		WvsLogger::LogFormat("%d item loaded, time = %lld\n", 0, std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
+
+		stWzResMan->Unmount("./Game/Skill.wz");
 		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded.\n");
 	}
 }
@@ -398,7 +403,7 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 {
 	int nElemAttr = 0;
 	bool bLevelStructure = false;
-	auto& skillDataImg = *((WZ::Node*)pData);
+	auto& skillDataImg = *((WzIterator*)pData);
 	std::string sElemAttr = skillDataImg["elemAttr"];
 	if (sElemAttr != "")
 		GetElementAttribute(sElemAttr.c_str(), &nElemAttr);
@@ -425,16 +430,19 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 
 void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void * pData, void *pRoot)
 {
-	auto& skillLevelImg = *((WZ::Node*)pData);
-	auto& skillData = *((WZ::Node*)pRoot);
-	WZ::Node empty;
+	auto& skillLevelImg = *((WzIterator*)pData);
+	auto& skillData = *((WzIterator*)pRoot);
+	WzIterator empty = skillData.end();
 	int nMaxLevel = pEntry->GetMaxLevel();
 	pEntry->AddLevelData(nullptr); //for lvl 0
 
 	double d = 0;
+	int nLevel = 0;
 	for (auto& skillCommonImg : skillLevelImg)
 	{
-		d = atof(skillCommonImg.Name().c_str());
+		//if(nSkillID > 1000000)
+		//	printf("IterateLevel[%s] : h%d, onLoading = %s\n", skillCommonImg.GetName().c_str(), ++nLevel, ((std::string)skillCommonImg["hs"]).c_str());
+		//d = atof(skillCommonImg.GetName().c_str());
 
 		SkillLevelData* pLevelData = AllocObj(SkillLevelData);
 		pLevelData->m_nAcc = PARSE_SKILLDATA(acc);
@@ -478,13 +486,13 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		pLevelData->m_nFixDamage = PARSE_SKILLDATA(fixdamage);
 		pLevelData->m_nCriticalDamage = PARSE_SKILLDATA(criticalDamage);
 		auto&lt = skillCommonImg["lt"];
-		if (lt != empty && lt.Name() != "")
+		if (lt != empty && lt.GetName() != "")
 		{
 			pLevelData->m_rc.left = lt["x"];
 			pLevelData->m_rc.top = lt["y"];
 		}
 		auto&rb = skillCommonImg["rb"];
-		if (rb != empty && rb.Name() != "")
+		if (rb != empty && rb.GetName() != "")
 		{
 			pLevelData->m_rc.right = rb["x"];
 			pLevelData->m_rc.bottom = rb["y"];
@@ -492,9 +500,9 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 		if (IsSummonSkill(nSkillID))
 			pLevelData->m_nMobCount = skillData["summon"]["attack1"]["info"]["mobCount"];
 
-		pEntry->AddLevelData(pLevelData);
+		pEntry->SetLevelData(pLevelData, atoi(skillCommonImg.GetName().c_str()));
 	}
-	pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);
+	//pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);
 }
 
 int SkillInfo::GetSkillLevel(GA_Character * pCharacter, int nSkillID, SkillEntry ** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot)

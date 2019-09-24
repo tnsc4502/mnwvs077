@@ -64,7 +64,7 @@ void FieldMan::FieldFactory(int nFieldID)
 	while (sField.size() < 9)
 		sField = "0" + sField;
 	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldID / 100000000)][sField];
-	if (mapWz == WZ::Node())
+	if (mapWz == mapWz.end())
 		return;
 
 	auto& infoData = mapWz["info"];
@@ -91,7 +91,7 @@ void FieldMan::LoadAreaCode()
 {
 	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["AreaCode"];
 	for (auto& area : mapWz)
-		m_mAreaCode.insert({ atoi(area.Name().c_str()), (int)area });
+		m_mAreaCode.insert({ atoi(area.GetName().c_str()), (int)area });
 }
 
 bool FieldMan::IsConnected(int nFrom, int nTo)
@@ -137,7 +137,7 @@ FieldSet * FieldMan::GetFieldSet(const std::string & sFieldSetName)
 
 void FieldMan::RestoreFoothold(Field * pField, void * pPropFoothold, void * pLadderOrRope, void * pInfo)
 {
-	auto& refInfo = *((WZ::Node*)pInfo);
+	auto& refInfo = *((WzIterator*)pInfo);
 	int nFieldLink = (nFieldLink = atoi(((std::string)refInfo["link"]).c_str()));
 	if ((nFieldLink != 0))
 	{

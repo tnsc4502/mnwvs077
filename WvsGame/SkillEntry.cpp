@@ -3,8 +3,8 @@
 
 SkillEntry::SkillEntry()
 {
+	m_nMaxLevel = 0;
 }
-
 
 SkillEntry::~SkillEntry()
 {
@@ -12,24 +12,30 @@ SkillEntry::~SkillEntry()
 		delete x;
 }
 
+void SkillEntry::SetLevelData(SkillLevelData * pLevelData, int nSLV)
+{
+	m_aLevelData[nSLV] = pLevelData;
+	m_nMaxLevel = m_nMaxLevel > nSLV ? m_nMaxLevel : nSLV;
+}
+
 void SkillEntry::AddLevelData(SkillLevelData * pLevelData)
 {
-	m_aLevelData.push_back(pLevelData);
+	//m_aLevelData.push_back(pLevelData);
 }
 
 const SkillLevelData * SkillEntry::GetLevelData(int nLevel) const
 {
 	if (nLevel < 0)
 		return nullptr;
-	if (nLevel >= (int)m_aLevelData.size())
-		return m_aLevelData.back();
+	if (nLevel > m_nMaxLevel)
+		return m_aLevelData[m_nMaxLevel];
 
 	return m_aLevelData[nLevel];
 }
 
-const std::vector<SkillLevelData*>& SkillEntry::GetAllLevelData() const
+const SkillLevelData** SkillEntry::GetAllLevelData() const
 {
-	return m_aLevelData;
+	return (const SkillLevelData**)m_aLevelData;
 }
 
 void SkillEntry::SetMasterLevel(int nLevel)

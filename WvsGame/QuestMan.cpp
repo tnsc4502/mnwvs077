@@ -41,15 +41,15 @@ void QuestMan::LoadDemand()
 	auto &questInfoImg = stWzResMan->GetWz(Wz::Quest)["QuestInfo"];
 	for (auto& questImg : questInfoImg)
 		if ((int)questImg["autoStart"] == 1)
-			m_mAutoStartQuest.insert(atoi(questImg.Name().c_str()));
+			m_mAutoStartQuest.insert(atoi(questImg.GetName().c_str()));
 		else if ((int)questImg["autoComplete"] == 1)
-			m_mAutoCompleteQuest.insert(atoi(questImg.Name().c_str()));
+			m_mAutoCompleteQuest.insert(atoi(questImg.GetName().c_str()));
 }
 
 void QuestMan::RegisterAct(void * pProp)
 {
-	auto& actImg = *((WZ::Node*)pProp);
-	unsigned short nQuestID = atoi(actImg.Name().c_str());
+	auto& actImg = *((WzIterator*)pProp);
+	unsigned short nQuestID = atoi(actImg.GetName().c_str());
 	for (auto& actNode : actImg)
 	{
 		QuestAct *pAct = AllocObj(QuestAct);
@@ -78,7 +78,7 @@ void QuestMan::RegisterAct(void * pProp)
 			pActItem->nPeriod = itemAct["period"];
 			pActItem->nProp = itemAct["prop"];
 			pActItem->nGender = 2;
-			if (itemAct["gender"])
+			if ((int)itemAct["gender"])
 				pActItem->nGender = itemAct["gender"];
 			//pActItem->strPotentialGrade = (std::string)itemAct["potentialGrade"];
 			pAct->aActItem.push_back(pActItem);
@@ -113,9 +113,9 @@ void QuestMan::RegisterAct(void * pProp)
 			pAct->aActQuest.push_back(pActQuest);
 		}
 
-		if (actNode.Name() == "0")
+		if (actNode.GetName() == "0")
 			m_mStartAct.insert({ nQuestID, pAct });
-		else if (actNode.Name() == "1")
+		else if (actNode.GetName() == "1")
 			m_mCompleteAct.insert({ nQuestID, pAct });
 		else if (pAct != nullptr)
 			FreeObj(pAct);
@@ -124,8 +124,8 @@ void QuestMan::RegisterAct(void * pProp)
 
 void QuestMan::RegisterDemand(void * pProp)
 {
-	auto& demandImg = *((WZ::Node*)pProp);
-	unsigned short nQuestID = atoi(demandImg.Name().c_str());
+	auto& demandImg = *((WzIterator*)pProp);
+	unsigned short nQuestID = atoi(demandImg.GetName().c_str());
 	for (auto& demandNode : demandImg)
 	{
 		QuestDemand *pDemand = AllocObj(QuestDemand);
@@ -179,9 +179,9 @@ void QuestMan::RegisterDemand(void * pProp)
 		for (auto& skillDemand : skillNode)
 			pDemand->m_mDemandSkill[skillDemand["id"]] = ((std::string)skillDemand["level"] == "" ? 1 : (int)skillDemand["level"]);
 
-		if (demandNode.Name() == "0")
+		if (demandNode.GetName() == "0")
 			m_mStartDemand.insert({ nQuestID, pDemand });
-		else if (demandNode.Name() == "1")
+		else if (demandNode.GetName() == "1")
 			m_mCompleteDemand.insert({ nQuestID, pDemand });
 		else if (pDemand != nullptr)
 			FreeObj(pDemand);

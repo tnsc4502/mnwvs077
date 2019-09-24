@@ -25,6 +25,7 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Exception\WvsException.h"
 #include "..\WvsLib\String\StringPool.h"
+#include "..\Database\GW_ItemSlotEquip.h"
 
 BOOL WINAPI ConsoleHandler(DWORD CEvent)
 {

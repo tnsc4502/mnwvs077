@@ -5,7 +5,7 @@
 #include "FieldMan.h"
 #include "ItemInfo.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
-#include "..\WvsLib\Wz\ImgAccessor.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
@@ -29,7 +29,7 @@ ContinentMan* ContinentMan::GetInstance()
 
 void ContinentMan::Init()
 {
-	WZ::ImgAccessor img("./DataSrv/Continent");
+	auto& img = stWzResMan->GetItem("Continent.img");
 	ContiMov contiObj;
 	for (auto& conti : img)
 	{
@@ -163,8 +163,8 @@ void ContinentMan::ContiMov::Load(void *pImg)
 {
 #define GetItem(node, d) node == empty ? d : node;
 
-	auto& node = *((WZ::Node*)pImg);
-	auto empty = WZ::Node();
+	auto& node = *((WzIterator*)pImg);
+	auto empty = node.end();
 	int nDefaultFieldID = 999999999;
 
 	auto& field = node["field"];

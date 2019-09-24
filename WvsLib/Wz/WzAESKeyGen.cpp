@@ -31,7 +31,7 @@ This legalese is patterned after the zlib compression library
 
 // code to implement Advanced Encryption Standard - Rijndael
 // speed optimized version
-#include "WzAES.hpp"
+#include "WzAESKeyGen.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -536,7 +536,7 @@ void DumpHex(const uint8_t * table, int length) { // dump some hex values for de
 } // end of anonymous namespace
 
 // Key expansion code - makes local copy
-void AES::KeyExpansion(const uint8_t * key) {
+void WzAESKeyGen::KeyExpansion(const uint8_t * key) {
     assert(Nk > 0);
     int i;
     uint32_t temp, *Wb = reinterpret_cast<uint32_t *>(W); // todo not portable - Endian problems
@@ -562,7 +562,7 @@ void AES::KeyExpansion(const uint8_t * key) {
     }
 } // KeyExpansion
 
-void AES::SetParameters(int keylength, int blocklength) {
+void WzAESKeyGen::SetParameters(int keylength, int blocklength) {
     Nk = Nr = Nb = 0; // default values
 
     if ((keylength != 128) && (keylength != 192) && (keylength != 256))
@@ -583,9 +583,9 @@ void AES::SetParameters(int keylength, int blocklength) {
     Nr = parameters[((Nk - 4) / 2 + 3 * (Nb - 4) / 2)];
 } // SetParameters
 
-void AES::StartEncryption(const uint8_t * key) { KeyExpansion(key); } // StartEncryption
+void WzAESKeyGen::StartEncryption(const uint8_t * key) { KeyExpansion(key); } // StartEncryption
 
-void AES::EncryptBlock(const uint8_t * datain1,
+void WzAESKeyGen::EncryptBlock(const uint8_t * datain1,
                        uint8_t * dataout1) { // todo ? allow in place encryption
     // todo - clean up - lots of repeated macros
     // we only encrypt one block from now on
@@ -666,7 +666,7 @@ void AES::EncryptBlock(const uint8_t * datain1,
 } // Encrypt
 
 // call this to encrypt any size block
-void AES::Encrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks, BlockMode mode) {
+void WzAESKeyGen::Encrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks, BlockMode mode) {
     if (0 == numBlocks) return;
     uint32_t blocksize = Nb * 4;
     switch (mode) {
@@ -694,7 +694,7 @@ void AES::Encrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks,
     }
 } // Encrypt
 
-void AES::StartDecryption(const uint8_t * key) {
+void WzAESKeyGen::StartDecryption(const uint8_t * key) {
     KeyExpansion(key);
 
     uint8_t a0, a1, a2, a3, b0, b1, b2, b3, *W_ptr = W;
@@ -727,7 +727,7 @@ void AES::StartDecryption(const uint8_t * key) {
         for (int col = 0; col < Nb; col++) swap(WL[col + pos * Nb], WL[col + (Nr - pos) * Nb]);
 } // StartDecryption
 
-void AES::DecryptBlock(const uint8_t * datain1, uint8_t * dataout1) {
+void WzAESKeyGen::DecryptBlock(const uint8_t * datain1, uint8_t * dataout1) {
     uint32_t state[8 * 2]; // 2 buffers
     uint32_t * r_ptr = reinterpret_cast<uint32_t *>(W);
     uint32_t * dest = state;
@@ -804,7 +804,7 @@ void AES::DecryptBlock(const uint8_t * datain1, uint8_t * dataout1) {
 } // Decrypt
 
 // call this to decrypt any size block
-void AES::Decrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks, BlockMode mode) {
+void WzAESKeyGen::Decrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks, BlockMode mode) {
     if (0 == numBlocks) return;
     uint32_t blocksize = Nb * 4;
     switch (mode) {
@@ -837,7 +837,7 @@ void AES::Decrypt(const uint8_t * datain, uint8_t * dataout, uint32_t numBlocks,
     }
 } // Decrypt
 
-void AES::TransformOFB(uint8_t * buffer, uint8_t * iv, int size) {
+void WzAESKeyGen::TransformOFB(uint8_t * buffer, uint8_t * iv, int size) {
     uint8_t IV[16];
     for (int i = 0; i < 16; i++) { IV[i] = iv[i % 4]; }
     int numBlocks = size / 16 + (size % 16 != 0);
@@ -856,7 +856,7 @@ void AES::TransformOFB(uint8_t * buffer, uint8_t * iv, int size) {
     }
 }
 // the constructor - makes sure local things are initialized
-AES::AES(void) {
+WzAESKeyGen::WzAESKeyGen(void) {
     if (false == tablesInitialized) tablesInitialized = CreateAESTables(true, false);
     if (false == tablesInitialized) throw "Tables failed to initialize";
 }

@@ -4,7 +4,6 @@
 #include "Mob.h"
 #include <atomic>
 #include <mutex>
-#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
 struct AttackInfo;
@@ -19,6 +18,7 @@ class Drop;
 class Employee;
 class MiniRoomBase;
 class Summoned;
+class WzIterator;
 
 class LifePool
 {
@@ -58,7 +58,7 @@ private:
 	bool m_bMobGenEnable = true;
 	Field* m_pField;
 
-	void SetFieldObjAttribute(FieldObj* pFieldObj, WZ::Node& dataNode);
+	void SetFieldObjAttribute(FieldObj* pFieldObj, WzIterator& dataNode);
 	void OnMobPacket(User* pUser, int nType, InPacket* iPacket);
 	void OnNpcPacket(User* pUser, int nType, InPacket* iPacket);
 public:
@@ -67,8 +67,8 @@ public:
 
 	void SetMaxMobCapacity(int max);
 	int GetMaxMobCapacity() const;
-	void LoadNpcData(WZ::Node& dataNode);
-	void LoadMobData(WZ::Node& dataNode);
+	void LoadNpcData(WzIterator& dataNode);
+	void LoadMobData(WzIterator& dataNode);
 	Npc* CreateNpc(int nTemplateID, int nX, int nY, int nFh);
 	Npc* CreateNpc(const Npc&);
 	void TryCreateMob(bool bReset);

@@ -21,6 +21,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include <algorithm>
 
 #define CHECK_TS_REMOTE_N(name, size)\
 if(flag & GET_TS_FLAG(name))\

@@ -46,14 +46,14 @@ Field::Field(void *pData, int nFieldID)
 	m_pSummonedPool = AllocObjCtor(SummonedPool)(this);
 	m_pAffectedAreaPool = AllocObjCtor(AffectedAreaPool)(this);
 
-	auto& mapWz = *((WZ::Node*)pData);
+	auto& mapWz = *((WzIterator*)pData);
 	auto& infoData = mapWz["info"];
 	auto& areaData = mapWz["area"];
 	SetFieldID(nFieldID);
 	SetCould(((int)infoData["cloud"] != 0));
 	SetTown(((int)infoData["town"] != 0));
-	SetSwim(((int)infoData['swim'] != 0));
-	SetFly(((int)infoData['fly'] != 0));
+	SetSwim(((int)infoData["swim"] != 0));
+	SetFly(((int)infoData["fly"] != 0));
 	SetReturnMap(infoData["returnMap"]);
 	SetForcedReturn(infoData["forcedReturn"]);
 	SetMobRate(infoData["mobRate"]);
@@ -516,7 +516,7 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 
 void Field::LoadAreaRect(void *pData)
 {
-	auto& areaData = *((WZ::Node*)pData);
+	auto& areaData = *((WzIterator*)pData);
 	FieldRect rect;
 	for (auto& area : areaData)
 	{
@@ -524,7 +524,7 @@ void Field::LoadAreaRect(void *pData)
 		rect.top = area["y1"];
 		rect.right = area["x2"];
 		rect.bottom = area["y2"];
-		m_mAreaRect[area.Name()] = rect;
+		m_mAreaRect[area.GetName()] = rect;
 	}
 }
 
