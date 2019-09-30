@@ -50,7 +50,8 @@ void ItemInfo::Initialize()
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
 	RegisterSetHalloweenItem();
-	stWzResMan->Unmount("./Game/Item.wz");
+
+	//stWzResMan->Unmount("./Game/Item.wz");
 	//stWzResMan->ReleaseMemory();
 	//WvsLogger::LogRaw("[ItemInfo::Initialize]釋放ItemInfo所有Wz記憶體[ReleaseMemory Done]....\n");
 }

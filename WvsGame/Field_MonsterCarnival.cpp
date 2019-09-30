@@ -51,7 +51,7 @@ Field_MonsterCarnival::Field_MonsterCarnival(void *pData, int nFieldID)
 	for (int i = 0; ; ++i)
 	{
 		auto& node = mobGenPos[std::to_string(i)];
-		if (node == empty || node.GetName() == "")
+		if (node == empty)
 			break;
 		MobGenPos pos;
 		pos.nX = node["x"];

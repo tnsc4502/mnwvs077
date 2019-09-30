@@ -28,5 +28,7 @@ struct WzDelayedVariant
 
 	//(Raw)Type in the file ==> For encoding
 	int fType;
+
+	~WzDelayedVariant();
 };
 

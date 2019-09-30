@@ -16,6 +16,16 @@ WzMappedFileStream::WzMappedFileStream(const std::wstring& sArchivePath)
 	m_pStream = m_pFileBase;
 }
 
+WzMappedFileStream::WzMappedFileStream(const WzMappedFileStream & rhs)
+{
+	m_hFile = nullptr;
+	m_pFileBase = rhs.m_pFileBase;
+	m_pStream = rhs.m_pStream;
+	m_bEncrypted = rhs.m_bEncrypted;
+	m_ulLength = rhs.m_ulLength;
+	m_uStreamPos = rhs.m_uStreamPos;
+}
+
 WzMappedFileStream::~WzMappedFileStream()
 {
 	CloseHandle(m_hFile);
@@ -45,6 +55,16 @@ unsigned long long int WzMappedFileStream::GetLength() const
 void WzMappedFileStream::SetLength(unsigned long long int ulLength)
 {
 	m_ulLength = ulLength;
+}
+
+void WzMappedFileStream::SetEncrypted(bool bEncrypted)
+{
+	m_bEncrypted = bEncrypted;
+}
+
+bool WzMappedFileStream::Encrypted() const
+{
+	return m_bEncrypted;
 }
 
 void WzMappedFileStream::Read(char* pBuffer, unsigned int uSize)

@@ -2,22 +2,11 @@
 
 WzIterator::WzIterator()
 {
-	m_pIterProp = nullptr;
 	m_pIterNS = nullptr;
-}
-
-WzIterator::WzIterator(WzProperty* pNextProp, WzProperty::PropContainerType::iterator& it, WzProperty::PropContainerType::iterator& itEnd)
-{
-	m_pIterProp = pNextProp;
-	m_pIterNS = nullptr;
-	m_itProp = it;
-	++m_itProp;
-	m_itEndProp = itEnd;
 }
 
 WzIterator::WzIterator(WzNameSpace* pNextNS, WzNameSpace::NameSpaceContainerType::iterator& it, WzNameSpace::NameSpaceContainerType::iterator& itEnd)
 {
-	m_pIterProp = nullptr;
 	m_pIterNS = pNextNS;
 	m_itNS = it;
 	++m_itNS;
@@ -26,18 +15,9 @@ WzIterator::WzIterator(WzNameSpace* pNextNS, WzNameSpace::NameSpaceContainerType
 
 WzIterator::WzIterator(WzNameSpace *pTopProperty)
 {
-	if (pTopProperty->GetProperty())
-	{
-		m_pIterNS = nullptr;
-		m_pIterProp = pTopProperty->GetProperty();
-		m_itProp = m_pIterProp->m_mChild.begin();
-	}
-	else
-	{
-		m_pIterProp = nullptr;
-		m_pIterNS = pTopProperty;
-		m_itNS = m_pIterNS->m_mChild.begin();
-	}
+	m_pIterNS = pTopProperty;
+	m_itNS = m_pIterNS->m_mChild.begin();
+	m_itEndNS = m_pIterNS->m_mChild.end();
 }
 
 WzIterator::~WzIterator()
@@ -46,27 +26,17 @@ WzIterator::~WzIterator()
 
 WzIterator WzIterator::operator[](const std::string& sName)
 {
-	if (!m_pIterProp && !m_pIterNS)
+	if (!m_pIterNS)
 		return end();
 
-	auto pProp = m_pIterProp;
-	if (pProp || (pProp = m_pIterNS->GetProperty()))
-	{
-		auto findIter = pProp->m_mChild.find(sName);
-		if (findIter == pProp->m_mChild.end())
-			return end();
+	auto pNameSpace = (m_pIterNS->GetProperty() ? m_pIterNS->GetProperty() : m_pIterNS);
 
-		return WzIterator(findIter->second, findIter, pProp->m_mChild.end());
-	}
-	else
-	{
-		auto findIter = m_pIterNS->m_mChild.find(sName);
-		if (findIter == m_pIterNS->m_mChild.end())
-			return end();
+	auto findIter = pNameSpace->m_mChild.find(sName);
+	if (findIter == pNameSpace->m_mChild.end())
+		return end();
 
-		findIter->second->OnGetItem();
-		return WzIterator(findIter->second, findIter, m_pIterNS->m_mChild.end());
-	}
+	findIter->second->OnGetItem();
+	return WzIterator(findIter->second, findIter, pNameSpace->m_mChild.end());
 }
 
 WzIterator WzIterator::operator[](const char* sName)
@@ -76,58 +46,33 @@ WzIterator WzIterator::operator[](const char* sName)
 
 WzIterator WzIterator::begin()
 {
-	auto pProp = m_pIterProp;
-	if (pProp || (m_pIterNS && (pProp = m_pIterNS->GetProperty())))
-	{
-		if (pProp->m_mChild.size() == 0)
-			return end();
+	auto pProp = (m_pIterNS && m_pIterNS->GetProperty() ? m_pIterNS->GetProperty() : m_pIterNS);
 
-		auto pChild = pProp->m_mChild.begin()->second;
-		return WzIterator(pChild, pProp->m_mChild.begin(), pProp->m_mChild.end());
-	}
-	else if(m_pIterNS)
-	{
-		/*if (m_pIterNS->GetProperty())
-			return WzIterator(m_pIterNS);*/
+	if (!pProp || pProp->m_mChild.size() == 0)
+		return end();
 
-		if (m_pIterNS->m_mChild.size() == 0)
-			return end();
-
-		auto pChild = m_pIterNS->m_mChild.begin()->second;
-		pChild->OnGetItem();
-		return WzIterator(pChild, m_pIterNS->m_mChild.begin(), m_pIterNS->m_mChild.end());
-	}
-	return end();
+	auto pChild = pProp->m_mChild.begin()->second;
+	pChild->OnGetItem();
+	return WzIterator(pChild, pProp->m_mChild.begin(), pProp->m_mChild.end());
 }
 
-WzIterator WzIterator::end()
+const WzIterator& WzIterator::end()
 {
-	return WzIterator();
+	static WzIterator empty;
+	return empty;
 }
 
 WzIterator& WzIterator::operator++()
 {
-	if (m_pIterProp)
+	if (m_itNS == m_itEndNS)
+		*this = end();
+	else
 	{
-		if (m_itProp == m_itEndProp)
-			*this = end();
-		else
-		{
-			m_pIterProp = m_itProp->second;
-			++m_itProp;
-		}
+		m_pIterNS = m_itNS->second;
+		m_pIterNS->OnGetItem();
+		++m_itNS;
 	}
-	else if (m_pIterNS)
-	{
-		if (m_itNS == m_itEndNS)
-			*this = end();
-		else
-		{
-			m_pIterNS = m_itNS->second;
-			m_pIterNS->OnGetItem();
-			++m_itNS;
-		}
-	}
+
 	return *this;
 }
 
@@ -138,24 +83,26 @@ WzIterator& WzIterator::operator*()
 
 const std::string & WzIterator::GetName()
 {
-	return m_pIterProp ? m_pIterProp->GetName() : m_pIterNS->GetName();
+	return m_pIterNS->GetName();
 }
 
 bool WzIterator::operator!=(const WzIterator & rhs)
 {
-	return (m_pIterProp != rhs.m_pIterProp || m_pIterNS != rhs.m_pIterNS);
+	return !operator==(rhs);
 }
 
-bool WzIterator::operator==(const WzIterator& rhs)
+bool WzIterator::operator==(const WzIterator & rhs)
 {
-	return !operator!=(rhs);
+	return (m_pIterNS == rhs.m_pIterNS);
 }
 
 WzIterator::operator int()
 {
-	if (!m_pIterProp)
+	WzProperty* pProp = (m_pIterNS ? m_pIterNS->GetProperty() : nullptr);
+	if (!pProp)
 		return 0;
-	auto& m_wzVariant = m_pIterProp->GetVariant();
+
+	auto& m_wzVariant = pProp->GetVariant();
 	if (m_wzVariant.vType == WzDelayedVariant::vt_Filtered_Long ||
 		m_wzVariant.vType == WzDelayedVariant::vt_Filtered_Integer ||
 		m_wzVariant.vType == WzDelayedVariant::vt_Int16)
@@ -173,9 +120,11 @@ WzIterator::operator int()
 
 WzIterator::operator unsigned long long()
 {
-	if (!m_pIterProp)
+	WzProperty* pProp = (m_pIterNS ? m_pIterNS->GetProperty() : nullptr);
+	if (!pProp)
 		return 0;
-	auto& m_wzVariant = m_pIterProp->GetVariant();
+
+	auto& m_wzVariant = pProp->GetVariant();
 	if (m_wzVariant.vType == WzDelayedVariant::vt_Filtered_Long ||
 		m_wzVariant.vType == WzDelayedVariant::vt_Filtered_Integer ||
 		m_wzVariant.vType == WzDelayedVariant::vt_Int16)
@@ -193,9 +142,11 @@ WzIterator::operator unsigned long long()
 
 WzIterator::operator double()
 {
-	if (!m_pIterProp)
+	WzProperty* pProp = (m_pIterNS ? m_pIterNS->GetProperty() : nullptr);
+	if (!pProp)
 		return 0;
-	auto& m_wzVariant = m_pIterProp->GetVariant();
+
+	auto& m_wzVariant = pProp->GetVariant();
 	if (m_wzVariant.vType == WzDelayedVariant::vt_Double64)
 		return m_wzVariant.uData.dData;
 
@@ -217,9 +168,11 @@ WzIterator::operator float()
 WzIterator::operator const std::string&()
 {
 	static std::string sEmpty;
-	if (!m_pIterProp)
+	WzProperty* pProp = (m_pIterNS ? m_pIterNS->GetProperty() : nullptr);
+	if (!pProp)
 		return sEmpty;
-	auto& m_wzVariant = m_pIterProp->GetVariant();
+
+	auto& m_wzVariant = pProp->GetVariant();
 	if (m_wzVariant.vType == WzDelayedVariant::vt_String)
 		return m_wzVariant.sData;
 
@@ -235,4 +188,15 @@ WzIterator::operator const std::string&()
 			m_wzVariant.sData = std::to_string(m_wzVariant.uData.dData);
 	}
 	return m_wzVariant.sData;
+}
+
+std::vector<std::string> WzIterator::EnumerateChildName()
+{
+	std::vector<std::string> aRet;
+	auto pNameSpace = (m_pIterNS->GetProperty() ? m_pIterNS->GetProperty() : m_pIterNS);
+
+	if (pNameSpace)
+		for (auto& prChild : pNameSpace->m_mChild)
+			aRet.push_back(prChild.first);
+	return aRet;
 }

@@ -5,7 +5,7 @@
 class WzPackage : public WzNameSpace
 {
 private:
-	unsigned int LoadPos(unsigned int uBegin, unsigned int uKey);
+	unsigned int LoadPos(void *pStream, unsigned int uBegin, unsigned int uKey);
 
 public:
 	WzPackage(WzArchive *pArchive, WzNameSpaceType nNameSpaceType, const std::string& sName, unsigned int uBeginPos);

@@ -71,26 +71,25 @@ void WzStreamCodec::Init()
 	}
 }
 
-std::string WzStreamCodec::DecodeString(WzArchive *pArchive)
+std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 {
 	static std::codecvt_utf8<char16_t> conv;
-	static char in[0x10000];
-	static char16_t ws[0x8000];
-	static char ns[0x10000];
+	char16_t ws[0x8000];
+	char ns[0x10000];
 	int nLen = 0;
 
-	pArchive->Read((char*)&nLen, 1);
+	pStream->Read((char*)&nLen, 1);
 	char cLen = ((char*)&nLen)[0];
 	if (cLen > 0)
 	{
 		if (cLen == 127)
-			pArchive->Read((char*)&nLen, 4);
+			pStream->Read((char*)&nLen, 4);
 		nLen *= 2;
 		__m128i 
 			*m1 = reinterpret_cast<__m128i *>(ws), 
 			//Reading buffer from mapping file.
-			*m2 = reinterpret_cast<__m128i *>(pArchive->GetStream()->GetStreamPtr()),
-			*m3 = reinterpret_cast<__m128i *>(aWideWzKey[pArchive->Encrypted() ? 1 : 0]);
+			*m2 = reinterpret_cast<__m128i *>(pStream->GetStreamPtr()),
+			*m3 = reinterpret_cast<__m128i *>(aWideWzKey[pStream->Encrypted() ? 1 : 0]);
 
 		for (int i = 0; i <= nLen >> 3; ++i)
 			_mm_storeu_si128(m1 + i, _mm_xor_si128(_mm_loadu_si128(m2 + i), _mm_loadu_si128(m3 + i)));
@@ -103,22 +102,48 @@ std::string WzStreamCodec::DecodeString(WzArchive *pArchive)
 	else
 	{
 		if (cLen == -128)
-			pArchive->Read((char*)&nLen, 4);
+			pStream->Read((char*)&nLen, 4);
 		else
 			nLen = cLen * -1;
 
 		__m128i 
 			*m1 = reinterpret_cast<__m128i *>(ns),
 			//Reading buffer from mapping file.
-			*m2 = reinterpret_cast<__m128i *>(pArchive->GetStream()->GetStreamPtr()),
-			*m3 = reinterpret_cast<__m128i *>(aWzKey[pArchive->Encrypted() ? 1 : 0]);
+			*m2 = reinterpret_cast<__m128i *>(pStream->GetStreamPtr()),
+			*m3 = reinterpret_cast<__m128i *>(aWzKey[pStream->Encrypted() ? 1 : 0]);
 
 		for (int i = 0; i <= nLen >> 4; ++i)
 			_mm_storeu_si128(m1 + i, _mm_xor_si128(_mm_loadu_si128(m2 + i), _mm_loadu_si128(m3 + i)));
 	}
 	//Offset the stream position if you use MappingFile (Becuase there is no call to "Read").
-	pArchive->GetStream()->SetPosition(pArchive->GetStream()->GetPosition() + nLen);
+	pStream->SetPosition(pStream->GetPosition() + nLen);
 
 	ns[nLen] = 0;
 	return std::string(ns, nLen);
+}
+
+std::string WzStreamCodec::DecodePropString(WzStreamType *pStream, unsigned int uRootPropPos)
+{
+	unsigned int nType = 0;
+	pStream->Read((char*)&nType, 1);
+	switch (nType)
+	{
+		case 0x00:
+		case 0x73:
+			return DecodeString(pStream);
+		case 0x01:
+		case 0x1B:
+		{
+			//Read offset of that foreign resource.
+			pStream->Read((char*)&nType, 4);
+			unsigned int uCurrentPos = pStream->GetPosition();
+			pStream->SetPosition(uRootPropPos + nType);
+			std::string ret = DecodeString(pStream);
+			pStream->SetPosition(uCurrentPos);
+			return ret;
+		}
+		default:
+			return "";
+			//WvsException::FatalError("Unknown type of prop string <%d>.", nType);
+	}
 }

@@ -55,23 +55,23 @@ private:
 
 	void Init()
 	{
-		m_aWzNode[(int)Wz::Base] = m_FileSystem.GetItem("./Game/Base.wz");
-		m_aWzNode[(int)Wz::Character] = m_FileSystem.GetItem("./Game/Character.wz");
-		m_aWzNode[(int)Wz::Effect] = m_FileSystem.GetItem("./Game/Effect.wz");
-		m_aWzNode[(int)Wz::Etc] = m_FileSystem.GetItem("./Game/Etc.wz");
-		m_aWzNode[(int)Wz::Item] = m_FileSystem.GetItem("./Game/Item.wz");
-		m_aWzNode[(int)Wz::Map] = m_FileSystem.GetItem("./Game/Map.wz");
-		m_aWzNode[(int)Wz::Map2] = m_FileSystem.GetItem("./Game/Map2.wz");
-		m_aWzNode[(int)Wz::Mob] = m_FileSystem.GetItem("./Game/Mob.wz");
-		m_aWzNode[(int)Wz::Mob2] = m_FileSystem.GetItem("./Game/Mob2.wz");
-		m_aWzNode[(int)Wz::Morph] = m_FileSystem.GetItem("./Game/Morph.wz");
-		m_aWzNode[(int)Wz::Npc] = m_FileSystem.GetItem("./Game/Npc.wz");
-		m_aWzNode[(int)Wz::Quest] = m_FileSystem.GetItem("./Game/Quest.wz");
-		m_aWzNode[(int)Wz::Reactor] = m_FileSystem.GetItem("./Game/Reactor.wz");
-		m_aWzNode[(int)Wz::Skill] = m_FileSystem.GetItem("./Game/Skill.wz");
-		m_aWzNode[(int)Wz::String] = m_FileSystem.GetItem("./Game/String.wz");
-		m_aWzNode[(int)Wz::TamingMob] = m_FileSystem.GetItem("./Game/TamingMob.wz");
-		m_aWzNode[(int)Wz::UI] = m_FileSystem.GetItem("./Game/UI.wz");
+		m_aWzNode[(int)Wz::Base] = m_FileSystem.GetItem("./Base.wz");
+		m_aWzNode[(int)Wz::Character] = m_FileSystem.GetItem("./Character.wz");
+		m_aWzNode[(int)Wz::Effect] = m_FileSystem.GetItem("./Effect.wz");
+		m_aWzNode[(int)Wz::Etc] = m_FileSystem.GetItem("./Etc.wz");
+		m_aWzNode[(int)Wz::Item] = m_FileSystem.GetItem("./Item.wz");
+		m_aWzNode[(int)Wz::Map] = m_FileSystem.GetItem("./Map.wz");
+		m_aWzNode[(int)Wz::Map2] = m_FileSystem.GetItem("./Map2.wz");
+		m_aWzNode[(int)Wz::Mob] = m_FileSystem.GetItem("./Mob.wz");
+		m_aWzNode[(int)Wz::Mob2] = m_FileSystem.GetItem("./Mob2.wz");
+		m_aWzNode[(int)Wz::Morph] = m_FileSystem.GetItem("./Morph.wz");
+		m_aWzNode[(int)Wz::Npc] = m_FileSystem.GetItem("./Npc.wz");
+		m_aWzNode[(int)Wz::Quest] = m_FileSystem.GetItem("./Quest.wz");
+		m_aWzNode[(int)Wz::Reactor] = m_FileSystem.GetItem("./Reactor.wz");
+		m_aWzNode[(int)Wz::Skill] = m_FileSystem.GetItem("./Skill.wz");
+		m_aWzNode[(int)Wz::String] = m_FileSystem.GetItem("./String.wz");
+		m_aWzNode[(int)Wz::TamingMob] = m_FileSystem.GetItem("./TamingMob.wz");
+		m_aWzNode[(int)Wz::UI] = m_FileSystem.GetItem("./UI.wz");
 	}
 
 public:
@@ -97,12 +97,13 @@ public:
 		m_FileSystem.Unmount(sArchiveName);
 	}
 
-	void ReleaseMemory()
+	void RemountAll()
 	{
-		//WzMemoryPoolMan::GetInstance()->Release();
-		//auto pCfg = ConfigLoader::Get("GlobalSetting.txt");
-		//WZ::AddPath(pCfg->StrValue("DataDir"));
-		//Init();
+		m_FileSystem.UnmountAll();
+		//for (int i = (int)Wz::Base; i < (int)Wz::UI; ++i)
+		//	if(m_aWzNode[i])
+		//		m_FileSystem.Unmount(m_aWzNode[i]->GetName());
+		Init();
 	}
 };
 

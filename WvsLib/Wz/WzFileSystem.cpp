@@ -14,7 +14,7 @@ WzFileSystem::WzFileSystem()
 WzFileSystem::~WzFileSystem()
 {
 	if (m_pChiper)
-		FreeObj(m_pChiper);
+		delete (m_pChiper);
 }
 
 const filesystem::path WzFileSystem::GetAbsPath(const filesystem::path& fPath) const
@@ -45,7 +45,7 @@ void WzFileSystem::Init(const filesystem::path &sPath)
 {
 	m_sFileSysPath = GetAbsPath(sPath);
 	m_bInitialized = true;
-	m_pChiper = AllocObj(CipherType);
+	m_pChiper = new (CipherType);
 }
 
 WzNameSpace* WzFileSystem::GetItem(const filesystem::path &sArchiveName)
@@ -59,8 +59,15 @@ WzNameSpace* WzFileSystem::GetItem(const filesystem::path &sArchiveName)
 
 void WzFileSystem::Unmount(const filesystem::path& sArchiveName)
 {
-	auto pItem = GetItem(sArchiveName);
-	if (pItem)
-		FreeObj(pItem);
-	m_mArchive.erase(sArchiveName);
+	auto r = m_mArchive.find(sArchiveName);
+	if (r != m_mArchive.end())
+		delete (r->second);
+	m_mArchive.erase(r);
+}
+
+void WzFileSystem::UnmountAll()
+{
+	for (auto& prChild : m_mArchive)
+		delete(prChild.second);
+	m_mArchive.clear();
 }

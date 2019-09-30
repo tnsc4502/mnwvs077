@@ -306,9 +306,6 @@
     <ClInclude Include="Wz\WzFileSystem.h">
       <Filter>Wz\NameSpace</Filter>
     </ClInclude>
-    <ClInclude Include="Wz\WzIterator.h">
-      <Filter>Wz\NameSpace</Filter>
-    </ClInclude>
     <ClInclude Include="Wz\WzNameSpace.h">
       <Filter>Wz\NameSpace</Filter>
     </ClInclude>
@@ -334,6 +331,9 @@
       <Filter>Wz\PCOM</Filter>
     </ClInclude>
     <ClInclude Include="Wz\WzMappedFileStream.h">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Wz\WzIterator.h">
       <Filter>Wz\Common</Filter>
     </ClInclude>
   </ItemGroup>
@@ -569,9 +569,6 @@
     <ClCompile Include="Wz\WzFileSystem.cpp">
       <Filter>Wz\NameSpace</Filter>
     </ClCompile>
-    <ClCompile Include="Wz\WzIterator.cpp">
-      <Filter>Wz\NameSpace</Filter>
-    </ClCompile>
     <ClCompile Include="Wz\WzNameSpace.cpp">
       <Filter>Wz\NameSpace</Filter>
     </ClCompile>
@@ -597,6 +594,9 @@
       <Filter>Wz\PCOM</Filter>
     </ClCompile>
     <ClCompile Include="Wz\WzMappedFileStream.cpp">
+      <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzIterator.cpp">
       <Filter>Wz\Common</Filter>
     </ClCompile>
   </ItemGroup>

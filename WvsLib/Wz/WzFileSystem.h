@@ -32,5 +32,6 @@ public:
 
 	WzNameSpace* GetItem(const filesystem::path& sArchiveName);
 	void Unmount(const filesystem::path& sArchiveName);
+	void UnmountAll();
 };
 

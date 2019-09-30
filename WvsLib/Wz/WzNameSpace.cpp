@@ -37,5 +37,5 @@ WzNameSpace::WzNameSpaceType WzNameSpace::GetNameSpaceType() const
 WzNameSpace::~WzNameSpace()
 {
 	for (auto& prChild : m_mChild)
-		FreeObj(prChild.second);
+		delete (prChild.second);
 }

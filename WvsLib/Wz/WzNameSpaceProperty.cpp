@@ -8,8 +8,7 @@
 //This actually is "ClipArchive" impl. in official codes.
 void WzNameSpaceProperty::ClipArchive()
 {
-	m_pArchive->SetPosition(m_uBeginPos);
-	m_pProperty = AllocObjCtor(WzProperty)(m_pArchive, GetName(), m_uBeginPos, m_uBeginPos);
+	m_pProperty = new (WzProperty)(m_pArchive, GetName(), m_uBeginPos, m_uBeginPos);
 	m_bParsed = true;
 }
 
@@ -21,7 +20,7 @@ WzNameSpaceProperty::WzNameSpaceProperty(WzArchive *pArchive, WzNameSpaceType nN
 WzNameSpaceProperty::~WzNameSpaceProperty()
 {
 	if (m_pProperty)
-		FreeObj(m_pProperty);
+		delete (m_pProperty);
 }
 
 WzProperty* WzNameSpaceProperty::GetProperty()

@@ -359,42 +359,45 @@ void SkillInfo::IterateSkillInfo()
 	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
-	static std::vector<std::pair<int, WzIterator>> aRoot;
-	for (auto& node : skillWz)
+	static std::vector<std::pair<int, std::string>> aRoot;
+	auto& aChildName = skillWz.EnumerateChildName();
+	for (auto& sName : aChildName)
 	{
-		if (!IsValidRootName(node.GetName()))
+		if (!IsValidRootName(sName))
 			continue;
-		aRoot.push_back({ atoi(node.GetName().c_str()), node["skill"] });
+
+		++m_nOnLoadingSkills;
+		aRoot.push_back({ atoi(sName.c_str()), sName });
 	}
+
 	m_nRootCount = (int)aRoot.size();
 	for (auto& node : aRoot)
 	{
 		nRootID = node.first;
-		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (void*)(&node.second));
+		std::thread t(&SkillInfo::LoadSkillRoot, this, nRootID, (node.second));
 		t.detach();
 	}
 }
 
-void SkillInfo::LoadSkillRoot(int nSkillRootID, void * pData)
+void SkillInfo::LoadSkillRoot(int nSkillRootID, const std::string& sName)
 {
+	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
 	auto skillRootIter = m_mSkillByRootID.find(nSkillRootID);
 	if (skillRootIter == m_mSkillByRootID.end()) 
 		m_mSkillByRootID.insert({nSkillRootID, new std::map<int, SkillEntry*>() });
-	auto& skillRootImg = *((WzIterator*)pData);
+	auto& skillRootImg = skillWz[sName]["skill"];
 	int nSkillID = 0;
 	for (auto& skillImg : skillRootImg)
 	{
-		++m_nOnLoadingSkills;
 		nSkillID = atoi(skillImg.GetName().c_str());
 		LoadSkill(nSkillRootID, nSkillID, (void*)&skillImg);
-		--m_nOnLoadingSkills;
 	}
+	--m_nOnLoadingSkills;
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
 	{
 		auto t2 = std::chrono::high_resolution_clock::now();
+		stWzResMan->RemountAll();
 		WvsLogger::LogFormat("%d item loaded, time = %lld\n", 0, std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
-
-		stWzResMan->Unmount("./Game/Skill.wz");
 		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded.\n");
 	}
 }

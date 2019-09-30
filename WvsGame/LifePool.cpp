@@ -132,7 +132,12 @@ void LifePool::LoadMobData(WzIterator& dataNode)
 {
 	MobGen* pMobGen = AllocObj(MobGen);
 	SetFieldObjAttribute(&(pMobGen->mob), dataNode);
-
+	if (pMobGen->mob.GetTemplateID() == 130100)
+	{
+		int a = 0;
+		++a;
+		printf("");
+	}
 	pMobGen->mob.SetMobTemplate(MobTemplate::GetMobTemplate(pMobGen->mob.GetTemplateID()));
 	pMobGen->nRegenInterval = (int)dataNode["mobTime"];
 	pMobGen->nTeamForMCarnival = dataNode["team"] != dataNode.end() ? (int)dataNode["team"] : -1;

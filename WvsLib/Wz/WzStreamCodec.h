@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
+class WzMappedFileStream;
 class WzArchive;
 
 class WzStreamCodec
@@ -16,6 +17,7 @@ public:
 	WzStreamCodec();
 	~WzStreamCodec();
 	void Init();
-	std::string DecodeString(WzArchive *pArchive);
+	std::string DecodeString(WzMappedFileStream *pStream);
+	std::string DecodePropString(WzMappedFileStream *pStream, unsigned int uRootPropPos);
 };
 
