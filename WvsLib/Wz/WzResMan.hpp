@@ -8,11 +8,6 @@
 
 #define MAPPING_WZ_NAME(name, path) m_aWzNode[(int)Wz::name] = m_FileSystem.GetItem(#name)
 
-/*
-Wz檔案之Tag
-
-By Wanger.
-*/
 enum class Wz
 {
 	Base,
@@ -34,11 +29,6 @@ enum class Wz
 	UI,
 };
 
-/*
-Wz資源存取物件
-
-By Wanger.
-*/
 class WzResMan
 {
 private:
@@ -97,14 +87,7 @@ public:
 		m_FileSystem.Unmount(sArchiveName);
 	}
 
-	void RemountAll()
-	{
-		m_FileSystem.UnmountAll();
-		//for (int i = (int)Wz::Base; i < (int)Wz::UI; ++i)
-		//	if(m_aWzNode[i])
-		//		m_FileSystem.Unmount(m_aWzNode[i]->GetName());
-		Init();
-	}
+	void RemountAll();
 };
 
 extern WzResMan *stWzResMan;

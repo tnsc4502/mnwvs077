@@ -72,8 +72,11 @@ bool WzPackage::LoadDirectory(bool bTestKey)
 		wzStream.ReadFilter<int>();
 		wzStream.ReadFilter<int>();
 		auto uPos = LoadPos(&wzStream, m_pArchive->GetBeginPos(), m_pArchive->GetArchiveKey());
-		if (uPos > m_pArchive->GetLength())
+
+		if (bTestKey && uPos > m_pArchive->GetLength())
 			return false;
+		else if(bTestKey)
+			return true;
 
 		if (!bTestKey)
 		{

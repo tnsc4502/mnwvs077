@@ -397,8 +397,7 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, const std::string& sName)
 	{
 		auto t2 = std::chrono::high_resolution_clock::now();
 		stWzResMan->RemountAll();
-		WvsLogger::LogFormat("%d item loaded, time = %lld\n", 0, std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
-		WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded.\n");
+		WvsLogger::LogFormat("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded in %lld us.\n", std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
 	}
 }
 

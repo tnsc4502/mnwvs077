@@ -420,7 +420,9 @@
     <ClInclude Include="GameApp.h">
       <Filter>WvsGame</Filter>
     </ClInclude>
-    <ClInclude Include="UserCashItemImpl.h" />
+    <ClInclude Include="UserCashItemImpl.h">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -700,6 +702,8 @@
     <ClCompile Include="CommandPrompt.cpp">
       <Filter>WvsGame</Filter>
     </ClCompile>
-    <ClCompile Include="UserCashItemImpl.cpp" />
+    <ClCompile Include="UserCashItemImpl.cpp">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

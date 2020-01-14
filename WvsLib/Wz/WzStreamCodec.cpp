@@ -2,6 +2,7 @@
 #include "WzArchive.h"
 #include "WzMappedFileStream.h"
 #include "WzAESKeyGen.h"
+#include "..\Logger\WvsLogger.h"
 #include <codecvt>
 #include <intrin.h> //For VS 2017.
 
@@ -84,9 +85,12 @@ std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 	{
 		if (cLen == 127)
 			pStream->Read((char*)&nLen, 4);
-		nLen *= 2;
+
+		if (nLen > 0x10000)
+			return "";
+
 		__m128i 
-			*m1 = reinterpret_cast<__m128i *>(ws), 
+			*m1 = reinterpret_cast<__m128i *>(ws),
 			//Reading buffer from mapping file.
 			*m2 = reinterpret_cast<__m128i *>(pStream->GetStreamPtr()),
 			*m3 = reinterpret_cast<__m128i *>(aWideWzKey[pStream->Encrypted() ? 1 : 0]);
@@ -98,6 +102,7 @@ std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 		const char16_t * fnext;
 		char * tnext;
 		conv.out(state, ws, ws + nLen, fnext, ns, ns + 0x10000, tnext);
+		nLen *= 2;
 	}
 	else
 	{
@@ -105,6 +110,9 @@ std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 			pStream->Read((char*)&nLen, 4);
 		else
 			nLen = cLen * -1;
+
+		if (nLen > 0x10000)
+			return "";
 
 		__m128i 
 			*m1 = reinterpret_cast<__m128i *>(ns),

@@ -14,6 +14,8 @@
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\String\StringPool.h"
 
+#include <windows.h>
+
 ItemInfo::ItemInfo()
 {
 }
@@ -50,7 +52,6 @@ void ItemInfo::Initialize()
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
 	RegisterSetHalloweenItem();
-
 	//stWzResMan->Unmount("./Game/Item.wz");
 	//stWzResMan->ReleaseMemory();
 	//WvsLogger::LogRaw("[ItemInfo::Initialize]釋放ItemInfo所有Wz記憶體[ReleaseMemory Done]....\n");
@@ -553,7 +554,7 @@ long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 	std::string sMonth = sDate.substr(4, 2);
 	std::string sDay = sDate.substr(6, 2);
 	std::string sHour = sDate.substr(8, 2);
-	/*SYSTEMTIME sysTime;
+	SYSTEMTIME sysTime;
 	sysTime.wYear = atoi(sYear.c_str());
 	sysTime.wMonth = atoi(sMonth.c_str());
 	sysTime.wDay = atoi(sDay.c_str());
@@ -563,7 +564,7 @@ long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 	sysTime.wMinute = 0;
 	sysTime.wDayOfWeek = 0;
 	FILETIME ft;
-	SystemTimeToFileTime(&sysTime, &ft);*/
+	SystemTimeToFileTime(&sysTime, &ft);
 	return 0;
 }
 

@@ -115,6 +115,11 @@ void FieldSet::InitConfig()
 	for (auto& nFieldID : m_aFieldID)
 	{
 		pField = FieldMan::GetInstance()->GetField(nFieldID);
+		if (!pField)
+		{
+			WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "[FieldSet::InitConfig][FieldSet %s][Field [%d] does not exist.\n", m_sFieldSetName.c_str(), nFieldID);
+			continue;
+		}
 		pField->SetFieldSet(this);
 		m_aField.push_back(pField);
 

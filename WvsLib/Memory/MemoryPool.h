@@ -61,6 +61,7 @@ public:
 	template <class U> MemoryPool(const MemoryPool<U>& memoryPool) noexcept;
 
 	~MemoryPool() noexcept;
+	void release() noexcept;
 
 	MemoryPool& operator=(const MemoryPool& memoryPool) = delete;
 	MemoryPool& operator=(MemoryPool&& memoryPool) noexcept;

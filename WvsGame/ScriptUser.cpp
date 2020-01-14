@@ -4,6 +4,7 @@
 #include "ScriptField.h"
 #include "Script.h"
 #include "User.h"
+#include "SecondaryStat.h"
 #include "QWUser.h"
 #include "PartyMan.h"
 #include "GuildMan.h"
@@ -112,6 +113,8 @@ void ScriptUser::Register(lua_State * L)
 		{ "isGuildMarkExist", TargetIsGuildMarkExist },
 		{ "incGuildCountMax", TargetIncGuildCountMax },
 		{ "message", TargetMessage },
+		{ "checkCondition", TargetCheckCondition },
+		{ "getMorphState", TargetGetMorphState },
 		{ "exception1", TargetException1 },
 		{ "exception2", TargetException2 },
 		{ NULL, NULL }
@@ -849,6 +852,40 @@ int ScriptUser::TargetMessage(lua_State * L)
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 	std::string sMsg = luaL_checkstring(L, 2);
 	self->m_pUser->SendChatMessage(5, sMsg);
+	return 1;
+}
+
+int ScriptUser::TargetCheckCondition(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	auto& pSS = self->m_pUser->GetSecondaryStat();
+	std::string res = "";
+	if (pSS->nSeal_)
+		res += "1";
+	if (pSS->nDarkness_)
+		res += "2";
+	if (pSS->nWeakness_)
+		res += "3";
+	if (pSS->nStun_)
+		res += "4";
+	if (pSS->nCurse_)
+		res += "5";
+	if (pSS->nPoison_)
+		res += "6";
+	if (pSS->nSlow_)
+		res += "7";
+	if (pSS->nAttract_)
+		res += "8";
+	if (res == "")
+		res = "0";
+	lua_pushstring(L, res.c_str());
+	return 1;
+}
+
+int ScriptUser::TargetGetMorphState(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	lua_pushinteger(L, self->m_pUser->GetSecondaryStat()->nMorph_);
 	return 1;
 }
 

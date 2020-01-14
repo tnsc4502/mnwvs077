@@ -9,6 +9,7 @@
 void WzNameSpaceProperty::ClipArchive()
 {
 	m_pProperty = new (WzProperty)(m_pArchive, GetName(), m_uBeginPos, m_uBeginPos);
+	m_pProperty->OnGetItem();
 	m_bParsed = true;
 }
 

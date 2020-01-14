@@ -84,7 +84,7 @@ void ScriptMan::ScriptFileMonitor()
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
 
-	for (auto sType : sTable)
+	for (auto& sType : sTable)
 	{
 		for (auto &file : std::experimental::filesystem::recursive_directory_iterator("./DataSrv/Script/" + sType))
 		{

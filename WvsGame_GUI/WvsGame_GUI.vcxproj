@@ -166,7 +166,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\x64\Release_Static;..\Library\poco-1.7.8-all\lib64;..\x64\Release;..\Library\boost_1_63_0\stage\lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>WvsLib.lib;WvsGame.lib;Database.lib;winmm.lib;</AdditionalDependencies>
+      <AdditionalDependencies>dbghelp.lib;WvsLib.lib;WvsGame.lib;Database.lib;winmm.lib;</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

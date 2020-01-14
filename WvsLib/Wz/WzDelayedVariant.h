@@ -5,6 +5,7 @@ struct WzDelayedVariant
 {
 	enum VariantType
 	{
+		vt_None,
 		vt_Filtered_Integer,
 		vt_Filtered_Long,
 		vt_Int16,
@@ -24,7 +25,7 @@ struct WzDelayedVariant
 	std::string sData;
 
 	//Value Type ==> For interpretation
-	VariantType vType;
+	VariantType vType = vt_None;
 
 	//(Raw)Type in the file ==> For encoding
 	int fType;

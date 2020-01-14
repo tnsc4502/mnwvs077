@@ -77,7 +77,9 @@ public:
 	static int TargetRemoveGuildMark(lua_State* L);
 	static int TargetIsGuildMarkExist(lua_State* L);
 	static int TargetIncGuildCountMax(lua_State* L);
+	static int TargetCheckCondition(lua_State* L);
 	static int TargetMessage(lua_State* L);
+	static int TargetGetMorphState(lua_State* L);
 
 	static int TargetException1(lua_State* L);
 	static int TargetException2(lua_State* L);

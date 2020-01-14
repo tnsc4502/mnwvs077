@@ -54,25 +54,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Memory\Arena.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\ArenaVector.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\BufferPool.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\MemoryBlocks.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
     <ClInclude Include="Memory\MemoryPool.h">
       <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="Memory\MemoryPoolMan.hpp">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory\stdinc.h">
       <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="Logger\WvsLogger.h">
@@ -315,9 +300,6 @@
     <ClInclude Include="Wz\WzPackage.h">
       <Filter>Wz\NameSpace</Filter>
     </ClInclude>
-    <ClInclude Include="Wz\WzResMan.hpp">
-      <Filter>Wz\NameSpace</Filter>
-    </ClInclude>
     <ClInclude Include="Wz\WzStream.h">
       <Filter>Wz\Common</Filter>
     </ClInclude>
@@ -336,17 +318,11 @@
     <ClInclude Include="Wz\WzIterator.h">
       <Filter>Wz\Common</Filter>
     </ClInclude>
+    <ClInclude Include="Wz\WzResMan.hpp">
+      <Filter>Wz\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Memory\Arena.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\BufferPool.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory\MemoryBlocks.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Memory\MemoryPoolMan.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
@@ -578,9 +554,6 @@
     <ClCompile Include="Wz\WzPackage.cpp">
       <Filter>Wz\NameSpace</Filter>
     </ClCompile>
-    <ClCompile Include="Wz\WzResMan.cpp">
-      <Filter>Wz\NameSpace</Filter>
-    </ClCompile>
     <ClCompile Include="Wz\WzStream.cpp">
       <Filter>Wz\Common</Filter>
     </ClCompile>
@@ -597,6 +570,9 @@
       <Filter>Wz\Common</Filter>
     </ClCompile>
     <ClCompile Include="Wz\WzIterator.cpp">
+      <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Wz\WzResMan.cpp">
       <Filter>Wz\Common</Filter>
     </ClCompile>
   </ItemGroup>

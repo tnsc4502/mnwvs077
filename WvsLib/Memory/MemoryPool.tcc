@@ -106,6 +106,18 @@ noexcept
 }
 
 template <typename T>
+void MemoryPool<T>::release() noexcept
+{
+  slot_pointer_ curr = currentBlock_;
+  while (curr != nullptr) {
+    slot_pointer_ prev = curr->next;
+    operator delete(reinterpret_cast<void*>(curr));
+    curr = prev;
+  }
+  currentBlock_ = freeSlots_ = currentSlot_ = lastSlot_ = nullptr;
+}
+
+template <typename T>
 inline typename MemoryPool<T>::pointer
 MemoryPool<T>::address(reference x)
 const noexcept

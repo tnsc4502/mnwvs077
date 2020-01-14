@@ -7,6 +7,12 @@
 #ifdef _WIN32
 #include <Windows.h>
 
+#pragma warning(disable:4091)
+#include <DbgHelp.h>
+#pragma warning(default:4091)
+
+#include <stdlib.h>
+
 void ExceptionCallBack_Default()
 {
 
@@ -15,7 +21,68 @@ void ExceptionCallBack_Default()
 WvsException::CALLBACK_FUNC WvsException::ms_pfCallBack = ExceptionCallBack_Default;
 std::string WvsException::ms_sAppName;
 
-long __stdcall WvsUnhandledExceptionFilter(_EXCEPTION_POINTERS *pExcp)
+struct StackTrace
+{
+	std::string FunctionName, FileName;
+	int LineNumber;
+};
+
+void DumpStackTrace(PEXCEPTION_POINTERS pExcp, FILE *pFile)
+{
+	fprintf(pFile, "[StackInfo Dump]\n");
+	HANDLE hProcess = GetCurrentProcess();
+	SymInitialize(hProcess, NULL, TRUE);
+
+	CONTEXT CR = *pExcp->ContextRecord;
+	STACKFRAME64 StackFrame;
+	memset(&StackFrame, 0, sizeof(StackFrame));
+#if defined(_WIN64)
+	int nMachineType = IMAGE_FILE_MACHINE_AMD64;
+	StackFrame.AddrPC.Offset = CR.Rip;
+	StackFrame.AddrFrame.Offset = CR.Rbp;
+	StackFrame.AddrStack.Offset = CR.Rsp;
+#else
+	int nMachineType = IMAGE_FILE_MACHINE_I386;
+	StackFrame.AddrPC.Offset = CR.Eip;
+	StackFrame.AddrFrame.Offset = CR.Ebp;
+	StackFrame.AddrStack.Offset = CR.Esp;
+#endif
+	StackFrame.AddrPC.Mode = AddrModeFlat;
+	StackFrame.AddrFrame.Mode = AddrModeFlat;
+	StackFrame.AddrStack.Mode = AddrModeFlat;
+
+	SYMBOL_INFO Symbol;
+	Symbol.MaxNameLen = 255;
+	Symbol.SizeOfStruct = sizeof(SYMBOL_INFO);
+
+	DWORD64 liAddr = 0;
+	while (StackWalk64(
+			nMachineType,
+			GetCurrentProcess(),
+			GetCurrentThread(),
+			&StackFrame,
+			&CR,
+			NULL, &
+			SymFunctionTableAccess64,
+			&SymGetModuleBase64,
+			NULL
+		))
+	{
+		liAddr = 0;
+		if (SymFromAddr(hProcess, (DWORD64)StackFrame.AddrPC.Offset, &liAddr, &Symbol))
+		{
+			IMAGEHLP_MODULE64 ModuleInfo;
+			memset(&ModuleInfo, 0, sizeof(IMAGEHLP_MODULE64));
+			ModuleInfo.SizeOfStruct = sizeof(ModuleInfo);
+			if (::SymGetModuleInfo64(hProcess, Symbol.ModBase, &ModuleInfo))
+				fprintf(pFile, "%s: ", ModuleInfo.ModuleName);
+
+			fprintf(pFile, "%s + 0x%llX\n", Symbol.Name, liAddr);
+		}
+	}
+}
+
+long __stdcall WvsUnhandledExceptionFilter(PEXCEPTION_POINTERS pExcp)
 {
 	char sFileName[128] = { 0 };
 	std::time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -37,6 +104,7 @@ long __stdcall WvsUnhandledExceptionFilter(_EXCEPTION_POINTERS *pExcp)
 		pExcp->ContextRecord->Rdx,
 		pExcp->ContextRecord->Rsi,
 		pExcp->ContextRecord->Rsp);
+	DumpStackTrace(pExcp, fp);
 	fclose(fp);
 	WvsException::ms_pfCallBack();
 	return EXCEPTION_EXECUTE_HANDLER;

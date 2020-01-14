@@ -64,6 +64,8 @@ void GameApp::InitializeService(int argc, char** argv)
 		WvsLogger::LogRaw("Please run this program with command line, and provide the path of the config file.\n");
 		exit(0);
 	}
+	
+	auto tInitStart = std::chrono::high_resolution_clock::now();
 	StringPool::Init();
 	WvsException::RegisterUnhandledExceptionFilter("WvsGame", UnhandledExcpetionHandler);
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -78,7 +80,6 @@ void GameApp::InitializeService(int argc, char** argv)
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
 	CalcDamage::LoadStandardPDD();
-	ScriptMan::GetInstance()->RegisterScriptFuncReflector();
 
 	SkillInfo::GetInstance()->LoadMobSkill();
 	SkillInfo::GetInstance()->LoadMCSkill();
@@ -92,6 +93,10 @@ void GameApp::InitializeService(int argc, char** argv)
 	std::thread thread1(ConnectionAcceptorThread, pCfgLoader->IntValue("Port"));
 	WvsBase::GetInstance<WvsGame>()->SetConfigLoader(pCfgLoader);
 	WvsBase::GetInstance<WvsGame>()->InitializeCenter();
+	ScriptMan::GetInstance()->RegisterScriptFuncReflector();
+
+	auto tInitEnd = std::chrono::high_resolution_clock::now();
+	WvsLogger::LogFormat("Game server has successfully initialized in %lld us.\n", std::chrono::duration_cast<std::chrono::microseconds>(tInitEnd - tInitStart).count());
 
 	// start the i/o work
 	asio::io_service &io = WvsBase::GetInstance<WvsGame>()->GetIOService();
