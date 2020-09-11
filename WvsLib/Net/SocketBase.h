@@ -20,22 +20,22 @@ private:
 
 	static std::mutex stSocketRecordMtx;
 	static std::set<unsigned int> stSocketIDRecord;
-	unsigned char nServerType;
-	unsigned int nSocketID;
+	unsigned char m_nServerType;
+	unsigned int m_nSocketID;
 
 	static unsigned int DesignateSocketID();
 	static void ReleaseSocketID(unsigned int nSocketID);
 
-	asio::ip::tcp::socket mSocket;
-	asio::ip::tcp::resolver mResolver;
-	std::mutex m_mMutex;
+	asio::ip::tcp::socket m_Socket;
+	asio::ip::tcp::resolver m_Resolver;
+	std::mutex m_mtxLock;
 
-	unsigned char* aRecvIV, *aSendIV;
+	unsigned char* m_aRecvIV, *m_aSendIV;
 	SocketStatus m_eSocketStatus = SocketStatus::eClosed;
 
 	//Note : this flag indicates the role of this socket (true = local server).
 	//You should note that the local server won't encrypt and decrypt packets, and won't send game server info.
-	bool bIsLocalServer = false;
+	bool m_bIsLocalServer = false;
 
 	void EncodeHandShakeInfo(OutPacket *oPacket);
 
@@ -56,7 +56,7 @@ protected:
 	virtual void OnClosed() = 0;
 
 public:
-	SocketBase(asio::io_service& serverService, bool isLocalServer = false);
+	SocketBase(asio::io_service& serverService, bool bIsLocalServer = false);
 	virtual ~SocketBase();
 
 	asio::ip::tcp::socket& GetSocket();
@@ -64,11 +64,11 @@ public:
 	bool CheckSocketStatus(SocketStatus e) const;
 	unsigned int GetSocketID() const;
 	unsigned char GetServerType();
-	void SetServerType(unsigned char type);
+	void SetServerType(unsigned char nType);
 	void SetSocketDisconnectedCallBack(const std::function<void(SocketBase *)>& fObject);
 
 	void Init();
-	void SendPacket(OutPacket *iPacket, bool handShakePacket = false);
+	void SendPacket(OutPacket *iPacket, bool bIsHandShakePacket = false);
 	void OnDisconnect();
 	virtual void OnPacket(InPacket *iPacket) = 0;
 

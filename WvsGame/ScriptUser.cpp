@@ -365,9 +365,16 @@ int ScriptUser::TargetIncMoney(lua_State * L)
 	int nVal = (int)luaL_checkinteger(L, 2);
 	int nFullOnly = (int)(lua_gettop(L) > 2 ? luaL_checkinteger(L, 3) : 0);
 
+	if (nVal < 0 && QWUser::GetMoney(self->GetUser()) < nVal * -1)
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
+
 	auto liFlag = QWUser::IncMoney(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
 	self->m_pUser->ValidateStat();
+	lua_pushinteger(L, 1);
 	return 1;
 }
 

@@ -35,6 +35,13 @@ CalcDamage::~CalcDamage()
 	FreeObj(m_pRndGen);
 }
 
+void CalcDamage::SetSeed(unsigned int uS1, unsigned int uS2, unsigned int uS3)
+{
+	m_RndGenForCharacter.Seed(uS1, uS2, uS3);
+	m_RndForCheckDamageMiss.Seed(uS1, uS2, uS3);
+	m_RndGenForMob.Seed(uS1, uS2, uS3);
+}
+
 void CalcDamage::LoadStandardPDD()
 {
 	static WzIterator img = stWzResMan->GetItem("./StandardPDD.img");
@@ -362,7 +369,7 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 {
 	unsigned int aRandom[7], nRndIdx = 0, nRnd = 0;
 	for (auto& nRnd : aRandom)
-		nRnd = (unsigned int)m_pRndGen->Random();
+		nRnd = (unsigned int)m_RndGenForCharacter.Random();
 
 	int nSkillID = pSkill ? pSkill->GetSkillID() : 0, 
 		nCriticalAttackProp = 0, 
@@ -373,7 +380,7 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 
 	int nMAD = std::min(1999, std::max(0, ss->nMAD + ss->nMAD_)), nMobPDD = 0;
 	if (ss->nMaxLevelBuff_)
-		nMAD = std::min(1999, nMAD + nMAD / ss->nMaxLevelBuff_ * 100);
+		nMAD = std::min(1999, nMAD + nMAD * ss->nMaxLevelBuff_ / 100);
 
 	int nWT = ItemInfo::GetWeaponType(nWeaponItemID),
 		nAmp = 5 * (bs->nINT / 10 + bs->nLUK / 10);
@@ -396,14 +403,21 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 
 	for (int i = 0; i < nDamagePerMob; ++i)
 	{
-		NEXT_RAND;
 		aDamage[i] = 0;
 		if (ms->bInvincible)
 			continue;
 
+		NEXT_RAND;
+		if (ms->nMImmune_ && ss->nRespectMImmune_ < (int)(nRnd % 100))
+		{
+			aDamage[i] = 1;
+			continue;
+		}
+
 		nMobPDD = std::min(999, std::max(0, ms->nEVA + ms->nEVA_));
 		if (pSkill && pSkill->GetLevelData(nSLV)->m_nFixDamage == 0)
 		{
+			NEXT_RAND;
 			damage = s * 0.5;
 			highDamage = s * 1.2;
 
@@ -412,9 +426,10 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 
 			if (nSkillID == 2301002)
 			{
-				damage = bs->nINT * 0.2;
-				highDamage = bs->nINT * 0.8;
+				damage = (double)bs->nINT * 0.2;
+				highDamage = (double)bs->nINT * 0.8;
 
+				NEXT_RAND;
 				damage += (highDamage - damage) * CURRENT_RAND;
 				calc = ((double)pSkill->GetLevelData(nSLV)->m_nHp * 0.01)
 					* (damage * 1.5 + (double)bs->nLUK)
@@ -426,13 +441,14 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 			else
 			{
 				damage = nMAD;
-				highDamage = nMAD * M;
+				highDamage = (double)nMAD * M;
 				if (damage > highDamage)
 					std::swap(damage, highDamage);
 
+				NEXT_RAND;
 				damage += (highDamage - damage) * CURRENT_RAND;
-				calc = pSkill->GetLevelData(nSLV)->m_nMad
-					* ((double)bs->nINT * 0.5 + std::pow(nMAD * 0.058, 2) + damage * 3.3)
+				calc = (double)pSkill->GetLevelData(nSLV)->m_nMad
+					* ((double)bs->nINT * 0.5 + std::pow((double)nMAD * 0.058, 2) + damage * 3.3)
 					* 0.01;
 			}
 
@@ -444,10 +460,10 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 			);
 
 			nMobPDD = std::min(1999, std::max(0, ms->nMDD + ms->nMDD_));
-			highDamage = nMobPDD * 0.5;
-			calc = nMobPDD * 0.6;
+			highDamage = (double)nMobPDD * 0.5;
+			calc = (double)nMobPDD * 0.6;
+			NEXT_RAND;
 			damage -= (highDamage + (highDamage - calc) * CURRENT_RAND);
-
 			if (ms->nMGuardUp_)
 				damage *= (double)ms->nMGuardUp_ * 0.01;
 
@@ -478,6 +494,7 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 				calc = (((double)bs->nLevel * 100.0) / ((double)(150 * nLevelDiff) + 255.0));
 				damage = calc * 0.7;
 				highDamage = calc * 1.3;
+				NEXT_RAND;
 				if ((damage + (highDamage - damage) * CURRENT_RAND >= nMobPDD))
 					aDamage[i] = pSkill->GetLevelData(nSLV)->m_nFixDamage;
 			}
@@ -641,7 +658,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 		0
 	);
 	for (auto& nRnd : aRandom)
-		nRnd = (unsigned int)m_pRndGen->Random();
+		nRnd = (unsigned int)m_RndGenForCharacter.Random();
 	int nWT = ItemInfo::GetWeaponType(nWeaponItemID);
 
 	//Basic PDD
@@ -661,7 +678,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 	int nCSLV = ItemInfo::GetWeaponMastery(cd, nWeaponItemID, nSkillID, nAttackType, nullptr, nullptr);
 	double M = ((double)nCSLV * 5.0 + 10.0) * 0.009;
 
-	if (nAction == 58)
+	if (nAction == 59)
 	{
 		nCSLV = nSLV;
 		nCriticalAttackProp = pSkill->GetLevelData(nSLV)->m_nProp;
@@ -684,14 +701,14 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 
 	for (int i = 0; i < nDamagePerMob; ++i)
 	{
-		NEXT_RAND;
 		bHighDamageAction = false;
 
 		aDamage[i] = 0;
 		if (ms->bInvincible)
 			continue;
 
-		if (ms->nPImmune_ || nSkillID == 1221011)
+		NEXT_RAND;
+		if (nSkillID == 1221011 || (ms->nPImmune_ && (int)(nRnd % 100) > ss->nRespectPImmune_))
 		{
 			aDamage[i] = 1;
 			continue;
@@ -701,6 +718,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 		{
 			highDamage = 5000.0;
 			damage = 0.0;
+			NEXT_RAND;
 			aDamage[i] = (int)std::round(99999.0 - ((highDamage - damage) * CURRENT_RAND + damage));
 			continue;
 		}
@@ -708,6 +726,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 		{
 			highDamage = 100.0;
 			damage = 0.0;
+			NEXT_RAND;
 			if ((highDamage - damage) * CURRENT_RAND + damage >= nNinjaStormProp)
 			{
 				aDamage[i] = 0;
@@ -720,6 +739,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 		{
 			damage = a * 0.7;
 			highDamage = a * 1.3;
+			NEXT_RAND;
 			if (damage + (highDamage - damage) * CURRENT_RAND < nMobPDD)
 				continue;
 
@@ -727,6 +747,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 			{
 				highDamage = 100.0;
 				damage = 0.0;
+				NEXT_RAND;
 				if (damage + (highDamage - damage) * CURRENT_RAND > 20.0)
 					continue;
 			}
@@ -739,6 +760,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 			{
 				highDamage = 5.0;
 				damage = 0.0;
+				NEXT_RAND;
 				if (damage + (highDamage - damage) * CURRENT_RAND < 3.0 ||
 					(nSkillID == 1121008 && i == 1))
 					bHighDamageAction = true;
@@ -752,6 +774,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 				if (highDamage < damage)
 					std::swap(damage, highDamage);
 
+				NEXT_RAND;
 				calc = (bs->nSTR + (highDamage - damage) * CURRENT_RAND + damage)
 					* (nSkillID != 3201003 && nSkillID != 3101003) ? 1.0 : 3.4
 					* (double)nPAD * 0.005;
@@ -782,6 +805,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 				highDamage = damage * M;
 				if (highDamage < damage)
 					std::swap(damage, highDamage);
+				NEXT_RAND;
 				if(nAction != 77 && nAction != 78)
 					calc = (((highDamage - damage) * CURRENT_RAND + damage) + bs->nSTR) * (double)nPAD * 0.005;
 				else
@@ -793,11 +817,13 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 				highDamage = damage * M;
 				if (highDamage < damage)
 					std::swap(damage, highDamage);
+				NEXT_RAND;
 				calc = (((highDamage - damage) * CURRENT_RAND + damage) + bs->nDEX) * (double)nPAD * 0.05;
 			}
 			else
 			{
 				bHighDamageAction = bHighDamageAction || (nAction >= 5 && nAction <= 15);
+				NEXT_RAND;
 				switch (nWT)
 				{
 					case 45:
@@ -892,6 +918,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 								damage = nMoneyCon * 0.5;
 								highDamage = nMoneyCon * 1.5;
 								calc = (damage + (highDamage - damage) * CURRENT_RAND) * 10;
+								NEXT_RAND;
 								if (CURRENT_RAND < pSkill->GetLevelData(nSLV)->m_nProp)
 								{
 									calc *= (double)(pSkill->GetLevelData(nSLV)->m_nX + 100) * 0.01;
@@ -952,29 +979,44 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 				m_pUser
 			);
 
-			if (nSkillID != 1311005 && nSkillID != 4111004 && nSkillID != 4211002)
+			if (nSkillID != 1311005 && nSkillID != 4111004 && nSkillID != 4211002 && nSkillID != 5121004)
 			{
 				nMobPDD = std::min(1999, std::max(0, ms->nPDD + ms->nPDD_));
 				highDamage = nMobPDD * 0.5;
 				calc = nMobPDD * 0.6;
+				NEXT_RAND;
 				damage -= (highDamage - calc) * CURRENT_RAND + highDamage;
 			}
 
 			//Basic Damage
 			highDamage = damage;
-			nMobPDD = pSkill ? pSkill->GetLevelData(nSLV)->m_nDamage : 0;
+			int nDamage = pSkill ? pSkill->GetLevelData(nSLV)->m_nDamage : 0;
 			int nComboParam = GetComboDamageParam(m_pUser, nSkillID, ss->nComboCounter_ - 1);
+
+			/*
+			Pirate stuffs here
+			*/
+			if (nSkillID == 5211004 || nSkillID == 5211005)
+			{
+				SkillEntry *pEntry = nullptr;
+				int nPirateSkillLV = SkillInfo::GetInstance()->GetSkillLevel(
+					cd, 5220001, &pEntry, 0, 0, 0, 0
+				);
+				if (nPirateSkillLV && pEntry)
+					nDamage += pEntry->GetLevelData(nPirateSkillLV)->m_nDamage;
+			}
+
 			if (nAdvancedChargeDamage && nSkillID == 1211002)
 				damage *= (double)nAdvancedChargeDamage * 0.01;
 
-			if (nMobPDD > 0)
-				damage *= (double)nMobPDD * 0.01;
+			if (nDamage > 0)
+				damage *= (double)nDamage * 0.01;
 
 			if (nComboParam)
 				damage *= (double)nComboParam * 0.01;
 
 			//Critical Damage
-			if ((nSkillID != 3211003 && nSkillID != 4111004 && nSkillID != 4221001 || nAction == 58)
+			if ((nSkillID != 3211003 && nSkillID != 4111004 && nSkillID != 4221001 || nAction == 59)
 				&& nCriticalAttackParam > 0
 				&& nCriticalAttackProp > 0
 				&& (nCSLV > 0 || ss->nSharpEyes_)
@@ -1035,6 +1077,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 				calc = (((double)bs->nLevel * 100.0) / ((double)(150 * nLevelDiff) + 255.0));
 				damage = calc * 0.7;
 				highDamage = calc * 1.3;
+				NEXT_RAND;
 				if ((damage + (highDamage - damage) * CURRENT_RAND >= nMobPDD))
 					aDamage[i] = pSkill->GetLevelData(nSLV)->m_nFixDamage;
 			}

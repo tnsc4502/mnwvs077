@@ -199,9 +199,75 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 	int nRet = 100;
 	if (pnIncMPCon)
 		*pnIncMPCon = 0;
-	if (pLevel && pnIncMPCon)
+	if (pLevel)
 	{
-		switch (nSkillID)
+		if (pnIncMPCon)
+		{
+			if (nSkillID <= 2121007)
+			{
+				if (nSkillID < 2121006)
+				{
+					if (nSkillID <= 2111006)
+					{
+						nRet = pLevel->m_nY;
+						if (
+							!(nSkillID != 2111006
+								&& (nSkillID < 2001004 || nSkillID > 2001005 && (nSkillID <= 2101003 || nSkillID > 2101005 && (nSkillID <= 2111001 || nSkillID > 2111003)))
+								)
+							)
+							*pnIncMPCon = pLevel->m_nX;
+					}
+					if (nSkillID != 2121001)
+					{
+						nRet = pLevel->m_nY;
+						if (nSkillID == 2121003)
+							*pnIncMPCon = pLevel->m_nX;
+					}
+				}
+				else
+				{
+					*pnIncMPCon = pLevel->m_nX;
+					nRet = pLevel->m_nY;
+				}
+			}
+			if (nSkillID > 2221001)
+			{
+				nRet = pLevel->m_nY;
+				if (!(nSkillID != 2221003 && (nSkillID <= 2221005 || nSkillID > 2221007)))
+					*pnIncMPCon = pLevel->m_nX;
+			}
+			if (nSkillID == 2221001)
+			{
+				*pnIncMPCon = pLevel->m_nX;
+				nRet = pLevel->m_nY;
+			}
+			if (nSkillID >= 2201004)
+			{
+				if (nSkillID <= 2201005)
+				{
+					*pnIncMPCon = pLevel->m_nX;
+					nRet = pLevel->m_nY;
+				}
+				if (nSkillID > 2211001)
+				{
+					if (nSkillID > 2211003)
+					{
+						nRet = pLevel->m_nY;
+						if (nSkillID == 2211006)
+							*pnIncMPCon = pLevel->m_nX;
+					}
+					else
+					{
+						*pnIncMPCon = pLevel->m_nX;
+						nRet = pLevel->m_nY;
+					}
+				}
+			}
+		}
+		else
+			nRet = pLevel->m_nY;
+
+		/*switch (nSkillID)
 		{
 			case 2001004:
 			case 2001005:
@@ -225,10 +291,11 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 			case 2221003:
 			case 2221006:
 			case 2221007:
-				*pnIncMPCon = pLevel->m_nX;
+				if(pnIncMPCon)
+					*pnIncMPCon = pLevel->m_nX;
 				break;
 		}
-		nRet = pLevel->m_nY;
+		nRet = pLevel->m_nY;*/
 	}
 	return nRet;
 }
@@ -542,20 +609,20 @@ bool SkillInfo::IsSummonSkill(int nSkillID)
 {
 	switch (nSkillID)
 	{
-		case WarriorSkills::DarkKnight_Beholder: // Beholder
-		case MagicSkills::Adv_Magic_Holy_SummonDragon: //
-		case MagicSkills::Highest_Magic_IL_Ifrit: //¥l³ê¤õÅ]
-		case MagicSkills::Highest_Magic_FP_Elquines: //¥l³ê¦BÅ]
-		case MagicSkills::Highest_Magic_Holy_Bahamut: //¸tÀsºë³q
-		case BowmanSkills::Sniper_GoldenEagle: //ª÷ÆN¥l³ê
-		case BowmanSkills::Marksman_Freezer: //¥l³ê»ÈÔG
-		case BowmanSkills::Ranger_SilverHawk: //»ÈÆN¥l³ê
-		case BowmanSkills::Bow_Master_Phoenix: //¥l³ê»ñ°Ä
+		case WarriorSkills::DarkKnight_Beholder:
+		case MagicSkills::Highest_Magic_IL_Ifrit:
+		case MagicSkills::Highest_Magic_FP_Elquines:
+		case MagicSkills::Highest_Magic_Holy_Bahamut:
+		case MagicSkills::Adv_Magic_Holy_SummonDragon:
+		case BowmanSkills::Sniper_GoldenEagle:
+		case BowmanSkills::Marksman_Freezer:
+		case BowmanSkills::Ranger_SilverHawk:
+		case BowmanSkills::Bow_Master_Phoenix:
 		case BowmanSkills::Sniper_Puppet:
 		case BowmanSkills::Ranger_Puppet:
-		case PirateSkills::Outlaw_Octopus: // Pirate octopus summon
-		case PirateSkills::Corsair_WrathOfTheOctopi: // wrath of the octopi
-		case PirateSkills::Outlaw_Gaviota: //®üÅÃ¬ðÀ»¶¤
+		case PirateSkills::Outlaw_Octopus:
+		case PirateSkills::Corsair_WrathOfTheOctopi:
+		case PirateSkills::Outlaw_Gaviota:
 			return true;
 	}
 	return false;
@@ -583,19 +650,22 @@ bool SkillInfo::IsPartyStatChangeSkill(int nSkillID)
 		case BowmanSkills::Bow_Master_SharpEyes:
 		case BowmanSkills::Marksman_SharpEyes:
 
-		case 1101006:
-		case 1301006:
-		case 1301007:
-		case 2101001:
-		case 2201001:
-		case 2301002:
-		case 2311003:
-		case 2311001:
-		case 2321005:
-		case 2321006:
-		case 4101004:
-		case 4111001:
-		case 4201003:
+		case WarriorSkills::Fighter_Rage:
+		case WarriorSkills::Spearman_IronWill:
+		case WarriorSkills::Spearman_HyperBody:
+		case MagicSkills::Magic_FP_Meditation:
+		case MagicSkills::Magic_IL_Meditation:
+		case MagicSkills::Magic_Holy_Heal:
+		case MagicSkills::Adv_Magic_Holy_HolySymbol:
+		case MagicSkills::Adv_Magic_Holy_Dispel:
+		case MagicSkills::Highest_Magic_Holy_HolyShield:
+		case MagicSkills::Highest_Magic_Holy_Resurrection:
+		case ThiefSkills::Hermit_MesoUp:
+		case ThiefSkills::Assassin_Haste:
+		case ThiefSkills::Bandit_Haste:
+		case PirateSkills::Buccaneer_SpeedInfusion:
+		case AdminSkills::Admin_Super_HasteSuper:
+		case AdminSkills::Admin_Super_HolySymbol:
 			return true;
 	}
 	return false;

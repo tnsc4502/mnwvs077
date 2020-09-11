@@ -132,12 +132,7 @@ void LifePool::LoadMobData(WzIterator& dataNode)
 {
 	MobGen* pMobGen = AllocObj(MobGen);
 	SetFieldObjAttribute(&(pMobGen->mob), dataNode);
-	if (pMobGen->mob.GetTemplateID() == 130100)
-	{
-		int a = 0;
-		++a;
-		printf("");
-	}
+
 	pMobGen->mob.SetMobTemplate(MobTemplate::GetMobTemplate(pMobGen->mob.GetTemplateID()));
 	pMobGen->nRegenInterval = (int)dataNode["mobTime"];
 	pMobGen->nTeamForMCarnival = dataNode["team"] != dataNode.end() ? (int)dataNode["team"] : -1;
@@ -762,10 +757,13 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 			m_pField->GetDropPool()->Remove(nID, 653);
 		}
 	}
-	for (auto& iterDmgInfo : pInfo->m_mDmgInfo)
+
+	//The sequence to traverse the damage info must be as same as the client.
+	//The original code uses std::map to store damage info, which distorted their receving-order.
+	for (auto pDmgInfo : pInfo->m_apDmgInfo)
 	{
-		auto& dmgInfo = iterDmgInfo.second;
-		auto mobIter = m_mMob.find(iterDmgInfo.first);
+		auto& dmgInfo = *pDmgInfo;
+		auto mobIter = m_mMob.find(dmgInfo.nMobID);
 		if (mobIter == m_mMob.end())
 			continue;
 		auto &pMob = mobIter->second;
@@ -823,6 +821,10 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					0,
 					0
 				);
+
+			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
+				WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
+					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);
 		}
 		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
 	}

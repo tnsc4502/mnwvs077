@@ -130,8 +130,8 @@ void User::OnQueryCashRequest()
 {
 	OutPacket oPacket;
 	oPacket.Encode2(ShopSendPacketFlag::User_QueryCashResult);
-	oPacket.Encode4(nNexonCash);
-	oPacket.Encode4(nMaplePoint);
+	oPacket.Encode4(m_nNexonCash);
+	oPacket.Encode4(m_nMaplePoint);
 	oPacket.Encode4(0);
 	oPacket.Encode4(0);
 	SendPacket(&oPacket);
@@ -214,8 +214,8 @@ void User::OnCenterResLoadLockerDone(InPacket * iPacket)
 
 void User::OnCenterResBuyDone(InPacket * iPacket)
 {
-	nNexonCash = iPacket->Decode4();
-	nMaplePoint = iPacket->Decode4();
+	m_nNexonCash = iPacket->Decode4();
+	m_nMaplePoint = iPacket->Decode4();
 
 	OutPacket oPacket;
 	oPacket.Encode2(ShopSendPacketFlag::User_CashItemResult);
@@ -233,8 +233,8 @@ void User::OnCenterResBuyDone(InPacket * iPacket)
 
 void User::OnCenterUpdateCashDone(InPacket * iPacket)
 {
-	nNexonCash = iPacket->Decode4();
-	nMaplePoint = iPacket->Decode4();
+	m_nNexonCash = iPacket->Decode4();
+	m_nMaplePoint = iPacket->Decode4();
 	iPacket->Decode4();
 	iPacket->Decode4();
 	OnQueryCashRequest();

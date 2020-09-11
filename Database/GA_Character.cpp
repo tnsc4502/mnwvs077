@@ -102,7 +102,7 @@ void GA_Character::EncodeStat(OutPacket *oPacket)
 	//oPacket->Encode1(0); //SP
 
 	oPacket->Encode4((int)mStat->nExp); //EXP
-	oPacket->Encode2(mStat->nFame);
+	oPacket->Encode2(mStat->nPOP);
 	oPacket->Encode4(0); //Gach EXP
 	oPacket->Encode4(nFieldID);
 	oPacket->Encode1(0); //Inital Spawn Point
@@ -558,7 +558,7 @@ void GA_Character::DecodeStat(InPacket *iPacket)
 	//iPacket->Decode1(); //SP
 
 	mStat->nExp = iPacket->Decode4(); //EXP
-	mStat->nFame = iPacket->Decode2();
+	mStat->nPOP = iPacket->Decode2();
 	iPacket->Decode4(); //nGachaponEXP
 	nFieldID = iPacket->Decode4();
 	iPacket->Decode1(); //Inital Spawn Point
@@ -569,7 +569,8 @@ void GA_Character::DecodeStat(InPacket *iPacket)
 
 void GA_Character::DecodeItemSlot(InPacket *iPacket, bool bForInternal)
 {
-	//bForInternal = true 代表Center與Game, Shop之前的傳遞，作用在於標記哪些物品已刪除，便於存檔時直接修改掉CharacterID
+	//"bForInternal = true" means it's communication between Center and Game (or Shop).
+	//It then marks removed items and enables us to alter database more conveniently.
 	if (bForInternal)
 		DecodeInventoryRemovedRecord(iPacket);
 

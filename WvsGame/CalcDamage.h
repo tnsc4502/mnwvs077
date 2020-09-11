@@ -1,5 +1,6 @@
 #pragma once
 #include "AttackInfo.h"
+#include "..\WvsLib\Random\Rand32.h"
 
 class User;
 class MobStat;
@@ -11,11 +12,13 @@ class CalcDamage
 {
 	User *m_pUser = nullptr;
 	Rand32 *m_pRndGen = nullptr;
+	SynchronizedRand32 m_RndGenForCharacter, m_RndForCheckDamageMiss, m_RndGenForMob;
 	int m_nInvalidCount = 0;
 
 public:
 	CalcDamage(User *pUser);
 	~CalcDamage();
+	void SetSeed(unsigned int uS1, unsigned int uS2, unsigned int uS3);
 	static void LoadStandardPDD();
 	static int GetStandardPDD(int nJobCategory, int nLevel);
 	static double GetDamageAdjustedByElemAttr(long double damage, int nAttr, long double dAdjust);

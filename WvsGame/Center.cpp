@@ -21,6 +21,7 @@
 
 #include "WvsGame.h"
 #include "User.h"
+#include "QWUser.h"
 #include "FieldMan.h"
 #include "PartyMan.h"
 #include "GuildMan.h"
@@ -156,6 +157,9 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterSendPacketFlag::GuildBBSResult:
 			OnGuildBBSResult(iPacket);
 			break;
+		case CenterSendPacketFlag::CheckGivePopularityResult:
+			OnCheckGivePopularityResult(iPacket);
+			break;
 	}
 }
 
@@ -289,6 +293,46 @@ void Center::OnGuildBBSResult(InPacket *iPacket)
 			iPacket->GetPacketSize() - iPacket->GetReadCount()
 		);
 		pUser->SendPacket(&oPacket);
+	}
+}
+
+void Center::OnCheckGivePopularityResult(InPacket * iPacket)
+{
+	int nUserID = iPacket->Decode4(), nFailedReason = 0, nInc = 0;
+	ZSharedPtr<User> pUser = User::FindUser(nUserID), pTarget = nullptr;
+	if (pUser)
+	{
+		nFailedReason = iPacket->Decode1();
+		if (!nFailedReason)
+		{
+			pTarget = User::FindUser(iPacket->Decode4());
+			nInc = iPacket->Decode1();
+			if (pTarget)
+				pTarget->SendCharacterStat(
+					false,
+					QWUser::IncPOP(pTarget, nInc != 0 ? 1 : -1, true)
+				);
+			else
+				nFailedReason = User::GivePopluarityMessage::eUserDoesNotExist;
+		}
+
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+		oPacket.Encode1(nFailedReason);
+		if (!nFailedReason)
+		{
+			oPacket.EncodeStr(pTarget->GetName());
+			oPacket.Encode1((char)nInc);
+			oPacket.Encode4((int)QWUser::GetPOP(pTarget));
+			pUser->SendPacket(&oPacket);
+
+			OutPacket oRemote;
+			oRemote.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+			oRemote.Encode1(User::GivePopluarityMessage::eUserPOPIsIncreased);
+			oRemote.EncodeStr(pUser->GetName());
+			oRemote.Encode1((char)nInc);
+			pTarget->SendPacket(&oRemote);
+		}
 	}
 }
 

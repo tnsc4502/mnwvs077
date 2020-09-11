@@ -16,8 +16,16 @@
 #include "QWUSkillRecord.h"
 #include "PartyMan.h"
 #include "Summoned.h"
-#include "AdminSkills.h"
 #include "Field.h"
+
+//Skill constants
+#include "AdminSkills.h"
+#include "MagicSkills.h"
+#include "WarriorSkills.h"
+#include "ThiefSkills.h"
+#include "BowmanSkills.h"
+#include "PirateSkills.h"
+#include "BeginnersSkills.h"
 
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -282,175 +290,135 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 	auto iter = pSS->m_mSetByTS.begin();
 	switch (nSkillID)
 	{
-		case 2001002: // magic guard
+		case MagicSkills::Magic_MagicGuard:
 			REGISTER_TS(MagicGuard, pSkillLVLData->m_nX);
 			break;
-		case 2301003: // invincible
+		case MagicSkills::Magic_Holy_Invincible:
 			REGISTER_TS(Invincible, pSkillLVLData->m_nX);
 			break;
-		case 4001003: // darksight
+		case ThiefSkills::Thief_DarkSight:
 			REGISTER_TS(DarkSight, std::max(1, pSkillLVLData->m_nX));
 			break;
-		case 4211003: // pickpocket
+		case ThiefSkills::Chief_Bandit_Pickpocket:
 			REGISTER_TS(PickPocket, pSkillLVLData->m_nX);
 			break;
-		case 4211005: // mesoguard
+		case ThiefSkills::Chief_Bandit_MesoGuard:
 			REGISTER_TS(MesoGuard, pSkillLVLData->m_nX);
 			break;
-		case 4111001: // mesoup
-			REGISTER_TS(MesoUp, pSkillLVLData->m_nX);
-			break;
-		case 4111002: // shadowpartner
+		case ThiefSkills::Hermit_ShadowPartner:
 			REGISTER_TS(ShadowPartner, pSkillLVLData->m_nX);
 			break;
-		case 3101004: // soul arrow
-		case 3201004:
+		case BowmanSkills::Hunter_SoulArrowBow:
+		case BowmanSkills::Crossbowman_SoulArrowCrossbow:
 		case 2311002: // mystic door - hacked buff icon
 			REGISTER_TS(SoulArrow, pSkillLVLData->m_nX);
 			break;
-		case 1211003:
-		case 1211004:
-		case 1211005:
-		case 1211006: // wk charges
-		case 1211007:
-		case 1211008:
-		case 1221003:
-		case 1221004:
+		case WarriorSkills::WhiteKnight_FireChargeSword:
+		case WarriorSkills::WhiteKnight_FlameChargeBW:
+		case WarriorSkills::WhiteKnight_IceChargeSword:
+		case WarriorSkills::WhiteKnight_BlizzardChargeBW:
+		case WarriorSkills::WhiteKnight_ThunderChargeSword:
+		case WarriorSkills::WhiteKnight_LightningChargeBW:
+		case WarriorSkills::Paladin_HolyChargeSword:
+		case WarriorSkills::Paladin_DivineChargeBW:
 			REGISTER_TS(WeaponCharge, pSkillLVLData->m_nX);
 			break;
-		case 1101004:
-		case 1101005: // booster
-		case 1201004:
-		case 1201005:
-		case 1301004:
-		case 1301005:
-		case 2111005: // spell booster, do these work the same?
-		case 2211005:
-		case 3101002:
-		case 3201002:
-		case 4101003:
-		case 4201002:
-		case 5101006:
-		case 5201003:
-			//WvsLogger::LogFormat("Weapon Charge, NX = %d\n", pSkillLVLData->m_nX);
+		case WarriorSkills::Fighter_SwordBooster:
+		case WarriorSkills::Fighter_AxeBooster:
+		case WarriorSkills::Page_SwordBooster:
+		case WarriorSkills::Page_BWBooster:
+		case WarriorSkills::Spearman_SpearBooster:
+		case WarriorSkills::Spearman_PoleArmBooster:
+		case MagicSkills::Adv_Magic_FP_SpellBooster:
+		case MagicSkills::Adv_Magic_IL_SpellBooster:
+		case BowmanSkills::Hunter_BowBooster:
+		case BowmanSkills::Crossbowman_CrossbowBooster:
+		case ThiefSkills::Assassin_ClawBooster:
+		case ThiefSkills::Bandit_DaggerBooster:
+		case PirateSkills::Brawler_KnucklerBooster:
+		case PirateSkills::Gunslinger_GunBooster:
 			REGISTER_TS(Booster, pSkillLVLData->m_nX);
-			break;
-			//case 5121009:
-			//	statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SPEED_INFUSION, ret.x));
-			//	break; 		
-		case 5121009:
-		case 5221010:
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.SPEED_INFUSION, Integer.valueOf(-4)));
-			break;
-		case 1101006: // rage
+			break;	
+		case WarriorSkills::Fighter_Rage:
 			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
 			break;
-		case 1121010: // enrage
+		case WarriorSkills::Hero_Enrage:
 			REGISTER_TS(PAD, pSkillLVLData->m_nPad);
 			break;
-		case 1301006: // iron will
+		case WarriorSkills::Spearman_IronWill:
 			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
-		case 1001003: // iron body
+		case WarriorSkills::Warrior_IronBody:
 			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
 			break;
-		case 2001003: // magic armor
+		case MagicSkills::Magic_MagicArmor:
 			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
 			break;
-		case 2101001: // meditation
-		case 2201001: // meditation
+		case MagicSkills::Magic_Holy_Bless:
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
+			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
+		case AdminSkills::Admin_Super_Bless:
 			REGISTER_TS(MAD, pSkillLVLData->m_nMad);
-			break;
-		case 4101004: // haste
-		case 4201003: // haste
-		case 9101001: // gm haste
-			REGISTER_TS(Speed, pSkillLVLData->m_nSpeed);
-			REGISTER_TS(Jump, pSkillLVLData->m_nJump);
-			break;
-		case 2301004: // bless
-			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
-			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
-		case 3001003: // focus
+		case BowmanSkills::Bowman_Focus:
 			REGISTER_TS(ACC, pSkillLVLData->m_nAcc);
 			REGISTER_TS(EVA, pSkillLVLData->m_nEva);
 			break;
-		case 9101003: // gm bless
-			REGISTER_TS(MAD, pSkillLVLData->m_nMad);
-		case 3121008: // concentrate
-
+		case BowmanSkills::Bow_Master_Concentrate:
 			REGISTER_TS(Concentration, pSkillLVLData->m_nX);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.WATK, Integer.valueOf(ret.watk)));
+			REGISTER_TS(PAD, pSkillLVLData->m_nPad);
 			break;
-		case 5001005: // Dash
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.DASH, Integer.valueOf(1)));
+		case PirateSkills::Pirate_Dash:
+			REGISTER_TS(Dash_Speed, 1);
+			REGISTER_TS(Dash_Jump, 1);
 			break;
-		case 1101007: // pguard
-		case 1201007:
+		case WarriorSkills::Fighter_PowerGuard:
+		case WarriorSkills::Page_PowerGuard:
 			REGISTER_TS(PowerGuard, pSkillLVLData->m_nX);
 			break;
-		case 1301007:
-		case 9101008:
+		case WarriorSkills::Spearman_HyperBody:
+		case AdminSkills::Admin_Super_HyperBody:
 			REGISTER_TS(MaxHP, pSkillLVLData->m_nX);
 			REGISTER_TS(MaxMP, pSkillLVLData->m_nY);
 			break;
-		case 1001: // recovery
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.RECOVERY, Integer.valueOf(x)));
+		case BeginnersSkills::Beginner_Recovery:
+			REGISTER_TS(Regen, pSkillLVLData->m_nX);
 			break;
-		case 1111002: // combo
+		case WarriorSkills::Crusader_ComboAttack:
 			REGISTER_TS(ComboCounter, 1);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.COMBO, Integer.valueOf(1)));
 			break;
-		case 1004: // monster riding 
+		case BeginnersSkills::Beginner_MonsterRider:
 			REGISTER_TS(RideVehicle, 1);
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.MONSTER_RIDING, Integer.valueOf(1)));
 			break;
-		case 5221006: // 4th Job - Pirate riding 
-			//statups.add(new Pair<MapleBuffStat, Integer>(MapleBuffStat.MONSTER_RIDING, 1932000));
+		case PirateSkills::Corsair_Battleship:
+			REGISTER_TS(RideVehicle, 1932000);
 			break;
-		case 1311006: //dragon roar
+		case WarriorSkills::DragonKnight_DragonRoar: //dragon roar
 			//ret.hpR = -x / 100.0;
 			break;
-		case 1311008: // dragon blood
+		case WarriorSkills::DragonKnight_DragonBlood:
 			REGISTER_TS(DragonBlood, pSkillLVLData->m_nX);
 			break;
-		case 1321007: // Beholder
-		case 2221005: // ifrit
-		case 2311006: // summon dragon
-		case 2321003: // bahamut
-		case 3121006: // phoenix
-		case 5211001: // Pirate octopus summon
-		case 5211002: // Pirate bird summon
-		case 5220002: // wrath of the octopi
-			REGISTER_TS(Summon, pSkillLVLData->m_nX);
-			break;
-		case 2311003: // hs
-		case 9101002: // GM hs
-			REGISTER_TS(HolySymbol, pSkillLVLData->m_nX);
-			break;
-		case 4121006: // spirit claw
+		case 4121006: // spirit claw?
 			REGISTER_TS(Attract, pSkillLVLData->m_nX);
 			break;
-		case 2121004:
-		case 2221004:
-		case 2321004: // Infinity
-			REGISTER_TS(Infinity, pSkillLVLData->m_nX);
-			break;
-		case 1121002:
-		case 1221002:
-		case 1321002: // Stance
+		case WarriorSkills::Hero_PowerStance:
+		case WarriorSkills::Paladin_PowerStance:
+		case WarriorSkills::DarkKnight_PowerStance:
 			REGISTER_TS(Stance, pSkillLVLData->m_nX);
 			break;
-		case 2121002: // mana reflection
-		case 2221002:
-		case 2321002:
+		case MagicSkills::Highest_Magic_FP_Infinity:
+		case MagicSkills::Highest_Magic_Holy_Infinity:
+		case MagicSkills::Highest_Magic_IL_Infinity:
+			REGISTER_TS(Infinity, pSkillLVLData->m_nX);
+			break;
+		case MagicSkills::Highest_Magic_FP_ManaReflection:
+		case MagicSkills::Highest_Magic_Holy_ManaReflection:
+		case MagicSkills::Highest_Magic_IL_ManaReflection:
 			REGISTER_TS(ManaReflection, pSkillLVLData->m_nX);
 			break;
-		case 2321005: // holy shield
-			REGISTER_TS(HolyShield, pSkillLVLData->m_nX);
-			break;
-		case 3121007: // Hamstring
+		case BowmanSkills::Bow_Master_Hamstring:
 			REGISTER_TS(HamString, pSkillLVLData->m_nX);
 			break;
-		case 3221006: // Blind
+		case BowmanSkills::Marksman_Blind:
 			REGISTER_TS(Blind, pSkillLVLData->m_nX);
 			break;
 		default:
@@ -569,23 +537,46 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 		}
 		switch (nSkillID)
 		{
-			case 1121000:
-			case 1221000:
-			case 1321000:
-			case 2121000:
-			case 2221000:
-			case 2321000:
-			case 3121000:
-			case 3221000:
-			case 4121000:
-			case 4221000:
-			case 5121000:
-			case 5221000:
+			case MagicSkills::Magic_FP_Meditation:
+			case MagicSkills::Magic_IL_Meditation:
+				REGISTER_TS(MAD, pSkillLVLData->m_nMad);
+				break;
+			case MagicSkills::Highest_Magic_Holy_HolyShield:
+				REGISTER_TS(HolyShield, pSkillLVLData->m_nX);
+				break;
+			case WarriorSkills::Hero_MapleWarrior:
+			case WarriorSkills::Paladin_MapleWarrior:
+			case WarriorSkills::DarkKnight_MapleWarrior:
+			case MagicSkills::Highest_Magic_FP_MapleWarrior:
+			case MagicSkills::Highest_Magic_IL_MapleWarrior:
+			case MagicSkills::Highest_Magic_Holy_MapleWarrior:
+			case BowmanSkills::Bow_Master_MapleWarrior:
+			case BowmanSkills::Marksman_MapleWarrior:
+			case ThiefSkills::NightsLord_MapleWarrior:
+			case ThiefSkills::Shadower_MapleWarrior:
+			case PirateSkills::Buccaneer_MapleWarrior:
+			case PirateSkills::Corsair_MapleWarrior:
 				REGISTER_TS(BasicStatUp, pSkillLVLData->m_nX);
 				break;
-			case 3121002: 
-			case 3221002: 
+			case BowmanSkills::Bow_Master_SharpEyes:
+			case BowmanSkills::Marksman_SharpEyes:
 				REGISTER_TS(SharpEyes, ((pSkillLVLData->m_nX << 8) | pSkillLVLData->m_nY));
+				break;
+			case MagicSkills::Adv_Magic_Holy_HolySymbol:
+			case AdminSkills::Admin_Super_HolySymbol:
+				REGISTER_TS(HolySymbol, pSkillLVLData->m_nX);
+				break;
+			case ThiefSkills::Hermit_MesoUp:
+				REGISTER_TS(MesoUp, pSkillLVLData->m_nX);
+				break;
+			case ThiefSkills::Assassin_Haste:
+			case ThiefSkills::Bandit_Haste:
+			case AdminSkills::Admin_Super_HasteSuper:
+				REGISTER_TS(Speed, pSkillLVLData->m_nSpeed);
+				REGISTER_TS(Jump, pSkillLVLData->m_nJump);
+				break;
+			case PirateSkills::Buccaneer_SpeedInfusion:
+				REGISTER_TS(PartyBooster, pSkillLVLData->m_nX);
 				break;
 		}
 

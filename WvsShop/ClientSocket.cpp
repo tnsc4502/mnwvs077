@@ -34,10 +34,10 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 		OnMigrateIn(iPacket);
 		break;
 	default:
-		if (pUser)
+		if (m_pUser)
 		{
 			iPacket->RestorePacket();
-			pUser->OnPacket(iPacket);
+			m_pUser->OnPacket(iPacket);
 		}
 	}
 }
@@ -66,12 +66,12 @@ void ClientSocket::OnSocketDisconnected()
 	pCenter->SendPacket(&oPacket);
 }
 
-void ClientSocket::SetUser(User *_pUser)
+void ClientSocket::SetUser(User* pUser)
 {
-	pUser = _pUser;
+	m_pUser = pUser;
 }
 
 User *ClientSocket::GetUser()
 {
-	return pUser;
+	return m_pUser;
 }

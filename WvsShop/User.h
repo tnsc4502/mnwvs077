@@ -77,7 +77,7 @@ class User
 		Send_OnCashItemResPurchaseRecordFailed = 0x9E,
 	};
 
-	int m_nChannelID, nNexonCash = 0, nMaplePoint = 0;
+	int m_nChannelID, m_nNexonCash = 0, m_nMaplePoint = 0;
 	ClientSocket *m_pSocket;
 	ZUniquePtr<GA_Character> m_pCharacterData;
 	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;

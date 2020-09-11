@@ -27,6 +27,7 @@ public:
 	void OnEntrustedShopResult(InPacket *iPacket);
 	void OnCheckMigrationState(InPacket *iPacket);
 	void OnGuildBBSResult(InPacket *iPacket);
+	void OnCheckGivePopularityResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

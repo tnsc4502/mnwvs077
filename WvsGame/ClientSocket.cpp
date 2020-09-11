@@ -71,7 +71,7 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 		OnMigrateIn(iPacket);
 		break;
 	default:
-		if (pUser)
+		if (m_pUser)
 		{
 			iPacket->RestorePacket();
 			if (nType != UserRecvPacketFlag::User_OnFuncKeyMappedModified
@@ -80,9 +80,9 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]Received Packet: ");
 				iPacket->Print();
 			}
-			nType = ProcessUserPacket(pUser, iPacket);
+			nType = ProcessUserPacket(m_pUser, iPacket);
 			if(nType != -1)
-				WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Unhandled System-Level Excpetion Has Been Caught: UserID = %d, Packet Type = %d\n", pUser->GetUserID(), nType);
+				WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "Unhandled System-Level Excpetion Has Been Caught: UserID = %d, Packet Type = %d\n", m_pUser->GetUserID(), nType);
 		}
 	}
 }
@@ -111,12 +111,12 @@ void ClientSocket::OnSocketDisconnected()
 	pCenter->SendPacket(&oPacket);
 }
 
-void ClientSocket::SetUser(User *_pUser)
+void ClientSocket::SetUser(User *pUser)
 {
-	pUser = _pUser;
+	m_pUser = pUser;
 }
 
 User *ClientSocket::GetUser()
 {
-	return pUser;
+	return m_pUser;
 }

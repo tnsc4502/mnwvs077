@@ -97,22 +97,22 @@ if(!bResetBySkill)\
 	pRef->second.push_back(&m_pSecondaryStat->nLv##name##_);\
 } else { m_pSecondaryStat->m_mSetByTS.erase(TemporaryStat::TS_##name); }
 
-User::User(ClientSocket *_pSocket, InPacket *iPacket)
+User::User(ClientSocket *pSocket, InPacket *iPacket)
 	: 
-	m_pSocket(_pSocket),
+	m_pSocket(pSocket),
 	m_pCharacterData(AllocObj(GA_Character)),
 	m_pBasicStat(AllocObj(BasicStat)),
 	m_pSecondaryStat(AllocObj(SecondaryStat)),
 	m_pCalcDamage(AllocObjCtor(CalcDamage)(this))
 {
-	_pSocket->SetUser(this);
+	pSocket->SetUser(this);
 	m_pCharacterData->nAccountID = iPacket->Decode4();
 	m_pCharacterData->DecodeCharacterData(iPacket, true);
 	m_pFuncKeyMapped.reset(MakeUnique<GW_FuncKeyMapped>(m_pCharacterData->nCharacterID));
 	m_pFuncKeyMapped->Decode(iPacket);
 
 	m_pField = (FieldMan::GetInstance()->GetField(m_pCharacterData->nFieldID));
-	if (m_pField && m_pField->GetForcedReturn() != 999999999) 
+	if (m_pField && m_pField->GetForcedReturn() && m_pField->GetForcedReturn() != 999999999)
 	{
 		auto pField = FieldMan::GetInstance()->GetField(m_pField->GetForcedReturn());
 		if (pField)
@@ -127,19 +127,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 			}
 		}
 	}
-
-	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
-	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
-	oPacket.Encode1(1); //bCharacterData
-	oPacket.Encode1(1); //bCharacterData
-	oPacket.Encode2(0);
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
-	oPacket.Encode4((unsigned int)Rand32::GetInstance()->Random());
-	EncodeCharacterData(&oPacket);
-	oPacket.Encode8(GameDateTime::GetCurrentDate()); //TIME
-	SendPacket(&oPacket);
+	SendSetFieldPacket(true);
 
 	//Internal Stats Are Encoded Outside PostCharacterDataRequest
 	DecodeInternal(iPacket);
@@ -310,6 +298,7 @@ void User::TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamag
 	{
 		int nObjectID = iPacket->Decode4();
 		auto& ref = pInfo->m_mDmgInfo[nObjectID];
+		pInfo->m_apDmgInfo.push_back(&ref);
 		ref.nDamageCount = nDamagedCountPerMob;
 		ref.nMobID = nObjectID;
 		ref.nHitAction = iPacket->Decode1();
@@ -664,6 +653,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketFlag::User_OnConsumeCashItemUseRequest:
 			OnConsumeCashItemUseRequest(iPacket);
 			break;
+		case UserRecvPacketFlag::User_OnGivePopularityRequest:
+			OnGivePopularityRequest(iPacket);
+			break;
 		default:
 			iPacket->RestorePacket();
 			//Pet Packet
@@ -678,8 +670,8 @@ void User::OnPacket(InPacket *iPacket)
 			else if (m_pField)
 				m_pField->OnPacket(this, iPacket);
 	}
-	ValidateStat();
-	SendCharacterStat(false, 0);
+	//ValidateStat();
+	//SendCharacterStat(false, 0);
 }
 
 void User::OnTransferFieldRequest(InPacket * iPacket)
@@ -749,7 +741,10 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 
 			//Process Entering
 			m_pField = pTargetField;
-			PostTransferField(nFieldID, pTargetPortal, false);
+			m_pCharacterData->mStat->nPosMap = m_pField->GetFieldID();
+			m_pCharacterData->mStat->nPortal = (pTargetPortal == nullptr ? 0x80 : pTargetPortal->GetID());
+			//PostTransferField(nFieldID, pTargetPortal, false);
+			SendSetFieldPacket(false);
 			m_pField->OnEnter(this);
 			m_pCharacterData->nFieldID = m_pField->GetFieldID();
 			SetTransferStatus(TransferStatus::eOnTransferNone);
@@ -2372,6 +2367,34 @@ void User::SendSkillCooltimeSet(int nReason, unsigned int tTime)
 	SendPacket(&oPacket);
 }
 
+void User::OnGivePopularityRequest(InPacket * iPacket)
+{
+	int nTargetID = iPacket->Decode4(), nFailedReason = 0;
+	auto pTarget = User::FindUser(nTargetID);
+	if (!pTarget)
+		nFailedReason = GivePopluarityMessage::eUserDoesNotExist;
+	else if (QWUser::GetLevel(this) < 15)
+		nFailedReason = GivePopluarityMessage::eLevelIsNotSatisfied;
+
+	OutPacket oPacket;
+	if (nFailedReason)
+	{
+		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+		oPacket.Encode1(nFailedReason);
+		SendPacket(&oPacket);
+	}
+	else
+	{
+		oPacket.Encode2(GameSrvSendPacketFlag::CheckGivePopularityRequest);
+		oPacket.Encode4((int)m_pSocket->GetSocketID());
+		oPacket.Encode4(GetUserID());
+		oPacket.Encode4(nTargetID);
+		oPacket.Encode1((char)(iPacket->Decode1() != 0));
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
@@ -2719,6 +2742,47 @@ void User::OnMigrateOut()
 {
 	//LeaveField();
 	m_pSocket->GetSocket().close();
+}
+
+void User::SendSetFieldPacket(bool bCharacterData)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
+	oPacket.Encode1(1); //bCurFieldKey
+	oPacket.Encode1(bCharacterData ? 1 : 0); //bCharacterData
+	oPacket.Encode2(0);
+
+	if (bCharacterData)
+	{
+		auto uSeed1 = (unsigned int)Rand32::GetInstance()->Random();
+		auto uSeed2 = (unsigned int)Rand32::GetInstance()->Random();
+		auto uSeed3 = (unsigned int)Rand32::GetInstance()->Random();
+
+		m_pCalcDamage->SetSeed(uSeed1, uSeed2, uSeed3);
+		//m_RndActionMan->Seed(uSeed1, uSeed2, uSeed3);
+
+		oPacket.Encode4(uSeed1);
+		oPacket.Encode4(uSeed2);
+		oPacket.Encode4(uSeed3);
+		EncodeCharacterData(&oPacket);
+		//CheckBerserk();
+		//InsertCalcDamageStat();
+	}
+	else
+	{
+		oPacket.Encode4(m_pCharacterData->mStat->nPosMap);
+		oPacket.Encode1(m_pCharacterData->mStat->nPortal);
+		oPacket.Encode2(m_pCharacterData->mStat->nHP); //HP
+		oPacket.Encode1(m_bChase);
+		if (m_bChase)
+		{
+			oPacket.Encode4(m_nTargetPosition_X);
+			oPacket.Encode4(m_nTargetPosition_Y);
+		}
+	}
+	oPacket.Encode8(GameDateTime::GetCurrentDate()); //SystemTimeToFileTime
+	SendPacket(&oPacket);
 }
 
 bool User::CanAttachAdditionalProcess()

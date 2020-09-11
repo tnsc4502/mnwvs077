@@ -9,7 +9,7 @@ class WvsCenter : public WvsBase
 private:
 	std::map<int, LocalServerEntry*> m_mChannel;
 	LocalServerEntry* m_pShopEntry = nullptr, *m_pLoginEntry = nullptr;
-	int nConnectedChannel = 0;
+	int m_nConnectedChannel = 0;
 
 public:
 	WvsCenter();

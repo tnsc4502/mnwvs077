@@ -6,6 +6,6 @@ WzResMan *stWzResMan = WzResMan::GetInstance();
 void WzResMan::RemountAll()
 {
 	m_FileSystem.UnmountAll();
-	WvsSingleObjectAllocator<WzProperty>::GetInstance()->Release();
+	//WvsSingleObjectAllocator<WzProperty>::GetInstance()->Release();
 	Init();
 }

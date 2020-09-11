@@ -296,7 +296,7 @@ long long int QWUser::GetMHP(User *pUser)
 long long int QWUser::GetPOP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	return pUser->GetCharacterData()->mStat->nFame;
+	return pUser->GetCharacterData()->mStat->nPOP;
 }
 
 long long int QWUser::GetSP(User *pUser, int nJobLevel)

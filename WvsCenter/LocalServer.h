@@ -32,6 +32,7 @@ public:
 	void OnGameClientDisconnected(InPacket *iPacket);
 	void OnCheckMigrationStateAck(InPacket *iPacket);
 	void OnBroadcastPacket(InPacket *iPacket);
+	void OnCheckGivePopularity(InPacket *iPacket);
 	
 	//Cash Shop
 	void OnRequestBuyCashItem(InPacket *iPacket);

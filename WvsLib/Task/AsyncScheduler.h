@@ -7,62 +7,59 @@
 class AsyncScheduler
 {
 public:
-	unsigned int mTimePeriod; //每幾ms執行一次?
-	bool mIsRepeat, mIsStarted, m_bTaskDone = false;
+	unsigned int m_nTimePeriod; //How frequent the timer "tick" (ms unit).
+	bool m_bRepeat, m_bStarted, m_bTaskDone = false;
 
-	Concurrency::timer<int> *mTimerInstance = nullptr;
-	Concurrency::call<int> *mCall = nullptr;
+	Concurrency::timer<int> *m_TimerInstance = nullptr;
+	Concurrency::call<int> *m_TaskCall = nullptr;
 
 public:
-	template<typename FUNC_TYPE>
-	friend static AsyncScheduler* CreateTask2(FUNC_TYPE function, unsigned int timeInMs, bool repeat);
-
-	AsyncScheduler(unsigned int timeInMs, bool repeat) :
-		mTimePeriod(timeInMs),
-		mIsRepeat(repeat),
-		mIsStarted(false)
+	AsyncScheduler(unsigned int nTimeInMs, bool bRepeat) :
+		m_nTimePeriod(nTimeInMs),
+		m_bRepeat(bRepeat),
+		m_bStarted(false)
 	{}
 
 	~AsyncScheduler()
 	{
-		FreeObj( mTimerInstance );
-		FreeObj( mCall );
+		FreeObj( m_TimerInstance );
+		FreeObj( m_TaskCall );
 	}
 
 	void Start()
 	{
-		if (!mIsRepeat && m_bTaskDone)
+		if (!m_bRepeat && m_bTaskDone)
 		{
-			mTimerInstance = AllocObjCtor(concurrency::timer<int>)(
-				mTimePeriod,
+			m_TimerInstance = AllocObjCtor(concurrency::timer<int>)(
+				m_nTimePeriod,
 				0,
-				mCall,
-				mIsRepeat);
+				m_TaskCall,
+				m_bRepeat);
 		}
 		m_bTaskDone = false;
-		mIsStarted = true;
-		mTimerInstance->start();
+		m_bStarted = true;
+		m_TimerInstance->start();
 	}
 
 	void Pause()
 	{
 		m_bTaskDone = true;
-		mIsStarted = false;
-		mTimerInstance->pause();
+		m_bStarted = false;
+		m_TimerInstance->pause();
 	}
 
 	void Abort()
 	{
-		if (mTimerInstance)
+		if (m_TimerInstance)
 		{
-			mTimerInstance->stop();
-			mIsStarted = false;
+			m_TimerInstance->stop();
+			m_bStarted = false;
 		}
 	}
 
 	bool IsStarted() const
 	{
-		return mIsStarted;
+		return m_bStarted;
 	}
 
 	bool IsTaskDone() const
@@ -73,32 +70,31 @@ public:
 	void OnTick()
 	{
 		m_bTaskDone = true;
-		if (!mIsRepeat)
+		if (!m_bRepeat)
 		{
-			mTimerInstance->stop();
-			FreeObj( mTimerInstance );
+			m_TimerInstance->stop();
+			FreeObj( m_TimerInstance );
 		}
 	}
 
 	template<typename FUNC_TYPE>
-	static AsyncScheduler* CreateTask(FUNC_TYPE function, unsigned int timeInMs, bool repeat)
+	static AsyncScheduler* CreateTask(FUNC_TYPE fTask, unsigned int timeInMs, bool repeat)
 	{
-		auto __instancePtr = AllocObjCtor(AsyncScheduler)(timeInMs, repeat);
+		auto pInstance = AllocObjCtor(AsyncScheduler)(timeInMs, repeat);
 
-		FUNC_TYPE func = function;
-		auto call = AllocObjCtor(concurrency::call<int>)(
-			[&, __instancePtr, func](int)
+		auto pTaskCall = AllocObjCtor(concurrency::call<int>)(
+			[&, pInstance, fTask](int)
 		{
-			func();
-			__instancePtr->OnTick();
+			fTask();
+			pInstance->OnTick();
 		});
-		__instancePtr->mCall = call;
+		pInstance->m_TaskCall = pTaskCall;
 
-		__instancePtr->mTimerInstance = AllocObjCtor(concurrency::timer<int>)(
-			__instancePtr->mTimePeriod,
+		pInstance->m_TimerInstance = AllocObjCtor(concurrency::timer<int>)(
+			pInstance->m_nTimePeriod,
 			0,
-			call,
-			__instancePtr->mIsRepeat);
-		return __instancePtr;
+			pTaskCall,
+			pInstance->m_bRepeat);
+		return pInstance;
 	}
 };

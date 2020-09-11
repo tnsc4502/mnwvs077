@@ -28,7 +28,7 @@ Center::~Center()
 
 void Center::SetCenterIndex(int idx)
 {
-	nCenterIndex = idx;
+	m_nCenterIndex = idx;
 }
 
 void Center::OnConnected()

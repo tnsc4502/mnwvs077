@@ -169,6 +169,9 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 		case GameSrvSendPacketFlag::BroadcastPacket:
 			OnBroadcastPacket(iPacket);
 			break;
+		case GameSrvSendPacketFlag::CheckGivePopularityRequest:
+			OnCheckGivePopularity(iPacket);
+			break;
 	}
 }
 
@@ -250,45 +253,45 @@ void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
 		nFaceID = 0,
 		nHairID = 0;
 
-	int aEquips[CharacterDBAccessor::EQP_ID_FLAG_END] = { 0 };
-	int aStats[CharacterDBAccessor::STAT_FLAG_END] = { 0 };
+	int aEquips[CharacterDBAccessor::eEQPData_POS_END] = { 0 };
+	int aStats[CharacterDBAccessor::eStatData_POS_END] = { 0 };
 
 	for (int i = 0; i < nAttr; ++i)
 	{
 		nAttrRead = iPacket->Decode4();
 		if (ItemInfo::IsWeapon(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_WeaponEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_WeaponEquip] = nAttrRead;
 		else if (ItemInfo::IsPants(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_PantsEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_PantsEquip] = nAttrRead;
 		else if (ItemInfo::IsCoat(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_CoatEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_CoatEquip] = nAttrRead;
 		else if (ItemInfo::IsCap(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_CapEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_CapEquip] = nAttrRead;
 		else if (ItemInfo::IsCape(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_CapeEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_CapeEquip] = nAttrRead;
 		else if (ItemInfo::IsFace(nAttrRead))
 			nFaceID = nAttrRead;
 		else if (ItemInfo::IsHair(nAttrRead))
 			nHairID = nAttrRead;
 		else if (ItemInfo::IsShield(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_ShieldEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_ShieldEquip] = nAttrRead;
 		else if (ItemInfo::IsShoes(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_ShoesEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_ShoesEquip] = nAttrRead;
 		else if (ItemInfo::IsLongcoat(nAttrRead))
-			aEquips[CharacterDBAccessor::EQP_ID_CoatEquip] = nAttrRead;
+			aEquips[CharacterDBAccessor::eEQPData_POS_CoatEquip] = nAttrRead;
 	}
 	CharacterDBAccessor::GetDefaultCharacterStat(aStats);
 	int nTotal = 0;
-	nTotal += (aStats[CharacterDBAccessor::STAT_Str] = std::max(0, std::min(11, (int)iPacket->Decode1())));
-	nTotal += (aStats[CharacterDBAccessor::STAT_Luk] = std::max(0, std::min(11, (int)iPacket->Decode1())));
-	nTotal += (aStats[CharacterDBAccessor::STAT_Dex] = std::max(0, std::min(11, (int)iPacket->Decode1())));
-	nTotal += (aStats[CharacterDBAccessor::STAT_Int] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::eStatData_POS_Str] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::eStatData_POS_Luk] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::eStatData_POS_Dex] = std::max(0, std::min(11, (int)iPacket->Decode1())));
+	nTotal += (aStats[CharacterDBAccessor::eStatData_POS_Int] = std::max(0, std::min(11, (int)iPacket->Decode1())));
 
 	if (nTotal > 25)
-		aStats[CharacterDBAccessor::STAT_Str] 
-		= aStats[CharacterDBAccessor::STAT_Dex]
-		= aStats[CharacterDBAccessor::STAT_Int] 
-		= aStats[CharacterDBAccessor::STAT_Luk] = 4;
+		aStats[CharacterDBAccessor::eStatData_POS_Str] 
+		= aStats[CharacterDBAccessor::eStatData_POS_Dex]
+		= aStats[CharacterDBAccessor::eStatData_POS_Int] 
+		= aStats[CharacterDBAccessor::eStatData_POS_Luk] = 4;
 
 	CharacterDBAccessor::GetInstance()->PostCreateNewCharacterRequest(
 		this, 
@@ -572,6 +575,22 @@ void LocalServer::OnBroadcastPacket(InPacket *iPacket)
 			if(pChannel)
 				pChannel->GetLocalSocket()->SendPacket(&oPacket);
 		}
+}
+
+void LocalServer::OnCheckGivePopularity(InPacket * iPacket)
+{
+	int nClientSocketID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	int nTargetID = iPacket->Decode4();
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterSendPacketFlag::CheckGivePopularityResult);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode1(0);
+	oPacket.Encode4(nTargetID);
+	oPacket.Encode1(1);
+
+	SendPacket(&oPacket);
 }
 
 void LocalServer::OnRequestBuyCashItem(InPacket *iPacket)

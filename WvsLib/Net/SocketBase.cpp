@@ -15,20 +15,20 @@ std::mutex SocketBase::stSocketRecordMtx;
 std::set<unsigned int> SocketBase::stSocketIDRecord;
 
 
-SocketBase::SocketBase(asio::io_service& serverService, bool isLocalServer)
-	: mSocket(serverService),
-	mResolver(serverService),
-	bIsLocalServer(isLocalServer),
-	nSocketID(SocketBase::DesignateSocketID()),
-	aRecvIV((unsigned char*)AllocArray(char, 16)),
-	aSendIV((unsigned char*)AllocArray(char, 16))
+SocketBase::SocketBase(asio::io_service& serverService, bool bIsLocalServer)
+	: m_Socket(serverService),
+	m_Resolver(serverService),
+	m_bIsLocalServer(bIsLocalServer),
+	m_nSocketID(SocketBase::DesignateSocketID()),
+	m_aRecvIV((unsigned char*)AllocArray(char, 16)),
+	m_aSendIV((unsigned char*)AllocArray(char, 16))
 {
 }
 
 SocketBase::~SocketBase()
 {
-	FreeArray(aRecvIV);
-	FreeArray(aSendIV);
+	FreeArray(m_aRecvIV);
+	FreeArray(m_aSendIV);
 }
 
 void SocketBase::SetSocketDisconnectedCallBack(const std::function<void(SocketBase *)>& fObject)
@@ -36,25 +36,25 @@ void SocketBase::SetSocketDisconnectedCallBack(const std::function<void(SocketBa
 	m_fSocketDisconnectedCallBack = fObject;
 }
 
-void SocketBase::SetServerType(unsigned char type)
+void SocketBase::SetServerType(unsigned char nType)
 {
-	nServerType = type;
+	m_nServerType = nType;
 }
 
 unsigned char SocketBase::GetServerType()
 {
-	return nServerType;
+	return m_nServerType;
 }
 
 void SocketBase::Init()
 {
 	asio::ip::tcp::no_delay option(true);
-	mSocket.set_option(option);
+	m_Socket.set_option(option);
 
 	std::unique_ptr<OutPacket> oPacket{ new OutPacket() };
 	EncodeHandShakeInfo(oPacket.get());
 
-	if (!bIsLocalServer)
+	if (!m_bIsLocalServer)
 		SendPacket(oPacket.get(), true);
 
 	OnWaitingPacket();
@@ -65,7 +65,7 @@ void SocketBase::OnDisconnect()
 	m_eSocketStatus = SocketStatus::eClosed;
 	ReleaseSocketID(GetSocketID());
 	m_fSocketDisconnectedCallBack(this);
-	mSocket.close();
+	m_Socket.close();
 	OnClosed();
 }
 
@@ -74,7 +74,7 @@ void SocketBase::Connect(const std::string & strAddr, short nPort)
 	m_eSocketStatus = SocketStatus::eConnecting;
 	asio::ip::tcp::resolver::query centerSrvQuery(strAddr, std::to_string(nPort));
 
-	mResolver.async_resolve(centerSrvQuery,
+	m_Resolver.async_resolve(centerSrvQuery,
 		std::bind(&SocketBase::OnResolve, std::dynamic_pointer_cast<SocketBase>(shared_from_this()),
 			std::placeholders::_1,
 			std::placeholders::_2));
@@ -152,15 +152,15 @@ void SocketBase::EncodeHandShakeInfo(OutPacket *oPacket)
 	oPacket->Encode2(0x0D);
 	oPacket->Encode2(ServerConstants::kGameVersion);
 	oPacket->EncodeStr(ServerConstants::strGameSubVersion);
-	oPacket->Encode4(*(int*)aRecvIV);
-	oPacket->Encode4(*(int*)aSendIV);
+	oPacket->Encode4(*(int*)m_aRecvIV);
+	oPacket->Encode4(*(int*)m_aSendIV);
 	oPacket->Encode1(ServerConstants::kGameLocale);
 	//oPacket->Encode1(0x00);
 }
 
 asio::ip::tcp::socket& SocketBase::GetSocket()
 {
-	return mSocket;
+	return m_Socket;
 }
 
 SocketBase::SocketStatus SocketBase::GetSocketStatus() const
@@ -173,10 +173,10 @@ bool SocketBase::CheckSocketStatus(SocketStatus e) const
 	return (m_eSocketStatus & e) == e;
 }
 
-void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
+void SocketBase::SendPacket(OutPacket *oPacket, bool bIsHandShakePacket)
 {
-	std::lock_guard<std::mutex> lock(m_mMutex);
-	if (!mSocket.is_open())
+	std::lock_guard<std::mutex> lock(m_mtxLock);
+	if (!m_Socket.is_open())
 	{
 		if(m_eSocketStatus != SocketStatus::eClosed)
 			OnDisconnect();
@@ -184,7 +184,7 @@ void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
 	}
 	oPacket->IncRefCount();
 
-	auto bufferPtr = oPacket->GetPacket();
+	auto pBuffer = oPacket->GetPacket();
 
 	/*
 	[+] 19/05/07
@@ -193,34 +193,34 @@ void SocketBase::SendPacket(OutPacket *oPacket, bool handShakePacket)
 	*/
 	if (oPacket->GetSharedPacket()->IsBroadcasting()) 
 	{
-		bufferPtr = AllocArray(unsigned char, oPacket->GetPacketSize() + OutPacket::HEADER_OFFSET) + OutPacket::HEADER_OFFSET;
-		memcpy(bufferPtr, oPacket->GetPacket(), oPacket->GetPacketSize());
-		oPacket->GetSharedPacket()->AttachBroadcastingPacket(bufferPtr - OutPacket::HEADER_OFFSET);
+		pBuffer = AllocArray(unsigned char, oPacket->GetPacketSize() + OutPacket::HEADER_OFFSET) + OutPacket::HEADER_OFFSET;
+		memcpy(pBuffer, oPacket->GetPacket(), oPacket->GetPacketSize());
+		oPacket->GetSharedPacket()->AttachBroadcastingPacket(pBuffer - OutPacket::HEADER_OFFSET);
 	}
 
-	if (!handShakePacket)
+	if (!bIsHandShakePacket)
 	{
-		WvsCrypto::create_packet_header(bufferPtr - OutPacket::HEADER_OFFSET, aSendIV, oPacket->GetPacketSize());
-		if (!bIsLocalServer)
-			WvsCrypto::encrypt(bufferPtr, aSendIV, oPacket->GetPacketSize());
-		asio::async_write(mSocket,
-			asio::buffer(bufferPtr - OutPacket::HEADER_OFFSET, oPacket->GetPacketSize() + OutPacket::HEADER_OFFSET),
+		WvsCrypto::InitializeEncryption(pBuffer - OutPacket::HEADER_OFFSET, m_aSendIV, oPacket->GetPacketSize());
+		if (!m_bIsLocalServer)
+			WvsCrypto::Encrypt(pBuffer, m_aSendIV, oPacket->GetPacketSize());
+		asio::async_write(m_Socket,
+			asio::buffer(pBuffer - OutPacket::HEADER_OFFSET, oPacket->GetPacketSize() + OutPacket::HEADER_OFFSET),
 			std::bind(&SocketBase::OnSendPacketFinished,
 				shared_from_this(), 
 				std::placeholders::_1, 
 				std::placeholders::_2, 
-				bufferPtr - (OutPacket::HEADER_OFFSET),
+				pBuffer - (OutPacket::HEADER_OFFSET),
 				oPacket->GetSharedPacket()));
 	}
 	else
 	{
-		asio::async_write(mSocket,
-			asio::buffer(bufferPtr, oPacket->GetPacketSize()),
+		asio::async_write(m_Socket,
+			asio::buffer(pBuffer, oPacket->GetPacketSize()),
 			std::bind(&SocketBase::OnSendPacketFinished,
 				shared_from_this(), 
 				std::placeholders::_1, 
 				std::placeholders::_2, 
-				bufferPtr - (OutPacket::HEADER_OFFSET),
+				pBuffer - (OutPacket::HEADER_OFFSET),
 				oPacket->GetSharedPacket()));
 	}
 }
@@ -233,7 +233,7 @@ void SocketBase::OnSendPacketFinished(const std::error_code &ec, std::size_t byt
 void SocketBase::OnWaitingPacket()
 {
 	auto buffer = AllocArray(unsigned char, 4);
-	asio::async_read(mSocket,
+	asio::async_read(m_Socket,
 		asio::buffer(buffer, 4),
 		std::bind(&SocketBase::OnReceive,
 			shared_from_this(), std::placeholders::_1, std::placeholders::_2, buffer));
@@ -243,15 +243,15 @@ void SocketBase::OnReceive(const std::error_code &ec, std::size_t bytes_transfer
 {
 	if (!ec)
 	{
-		unsigned short nPacketLen = WvsCrypto::get_packet_length(buffer);
-		if (nPacketLen < 2 || (!bIsLocalServer && nPacketLen > (768 + 1024)))
+		unsigned short nPacketLen = WvsCrypto::GetPacketLength(buffer);
+		if (nPacketLen < 2 || (!m_bIsLocalServer && nPacketLen > (768 + 1024)))
 		{
 			OnDisconnect();
 			return;
 		}
 		FreeArray(buffer);
 		buffer = AllocArray(unsigned char, nPacketLen);
-		asio::async_read(mSocket,
+		asio::async_read(m_Socket,
 			asio::buffer(buffer, nPacketLen),
 			std::bind(&SocketBase::ProcessPacket,
 				shared_from_this(), std::placeholders::_1, std::placeholders::_2, buffer, nPacketLen));
@@ -266,8 +266,8 @@ void SocketBase::ProcessPacket(const std::error_code &ec, std::size_t bytes_tran
 	{
 		unsigned short nBytes = static_cast<unsigned short>(bytes_transferred);
 
-		if (!bIsLocalServer)
-			WvsCrypto::decrypt(buffer, aRecvIV, nBytes);
+		if (!m_bIsLocalServer)
+			WvsCrypto::Decrypt(buffer, m_aRecvIV, nBytes);
 		InPacket iPacket(buffer, nBytes);
 		try 
 		{
@@ -286,5 +286,5 @@ void SocketBase::ProcessPacket(const std::error_code &ec, std::size_t bytes_tran
 
 unsigned int SocketBase::GetSocketID() const
 {
-	return nSocketID;
+	return m_nSocketID;
 }

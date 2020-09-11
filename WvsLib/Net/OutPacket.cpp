@@ -5,17 +5,17 @@
 
 void OutPacket::ExtendSize(int nExtendRate = 2)
 {
-	decltype(m_pSharedPacket->aBuff) newBuff = AllocArray(unsigned char, (m_pSharedPacket->nBuffSize * nExtendRate));
-	memcpy(newBuff, m_pSharedPacket->aBuff, m_pSharedPacket->nBuffSize);
-	FreeArray(m_pSharedPacket->aBuff);
-	m_pSharedPacket->nBuffSize *= nExtendRate;
-	m_pSharedPacket->aBuff = newBuff;
+	decltype(m_pSharedPacket->m_aBuff) newBuff = AllocArray(unsigned char, (m_pSharedPacket->m_nBuffSize * nExtendRate));
+	memcpy(newBuff, m_pSharedPacket->m_aBuff, m_pSharedPacket->m_nBuffSize);
+	FreeArray(m_pSharedPacket->m_aBuff);
+	m_pSharedPacket->m_nBuffSize *= nExtendRate;
+	m_pSharedPacket->m_aBuff = newBuff;
 }
 
 OutPacket::OutPacket()
 {
 	m_pSharedPacket = AllocObj(SharedPacket);
-	(*((long long int*)m_pSharedPacket->aBuff)) = (long long int)(m_pSharedPacket);
+	(*((long long int*)m_pSharedPacket->m_aBuff)) = (long long int)(m_pSharedPacket);
 }
 
 OutPacket::~OutPacket()
@@ -25,40 +25,40 @@ OutPacket::~OutPacket()
 
 void OutPacket::Encode1(char value)
 {
-	if (m_pSharedPacket->nPacketSize + sizeof(value) >= m_pSharedPacket->nBuffSize)
+	if (m_pSharedPacket->m_nPacketSize + sizeof(value) >= m_pSharedPacket->m_nBuffSize)
 		ExtendSize();
-	*(decltype(value)*)(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize) = value;
-	m_pSharedPacket->nPacketSize += sizeof(value);
+	*(decltype(value)*)(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize) = value;
+	m_pSharedPacket->m_nPacketSize += sizeof(value);
 }
 
 void OutPacket::Encode2(short value)
 {
-	if (m_pSharedPacket->nPacketSize + sizeof(value) >= m_pSharedPacket->nBuffSize)
+	if (m_pSharedPacket->m_nPacketSize + sizeof(value) >= m_pSharedPacket->m_nBuffSize)
 		ExtendSize();
-	*(decltype(value)*)(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize) = value;
-	m_pSharedPacket->nPacketSize += sizeof(value);
+	*(decltype(value)*)(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize) = value;
+	m_pSharedPacket->m_nPacketSize += sizeof(value);
 }
 
 void OutPacket::Encode4(int value)
 {
-	if (m_pSharedPacket->nPacketSize + sizeof(value) >= m_pSharedPacket->nBuffSize)
+	if (m_pSharedPacket->m_nPacketSize + sizeof(value) >= m_pSharedPacket->m_nBuffSize)
 		ExtendSize();
-	*(decltype(value)*)(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize) = value;
-	m_pSharedPacket->nPacketSize += sizeof(value);
+	*(decltype(value)*)(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize) = value;
+	m_pSharedPacket->m_nPacketSize += sizeof(value);
 }
 
 void OutPacket::Encode8(long long int value)
 {
-	if (m_pSharedPacket->nPacketSize + sizeof(value) >= m_pSharedPacket->nBuffSize)
+	if (m_pSharedPacket->m_nPacketSize + sizeof(value) >= m_pSharedPacket->m_nBuffSize)
 		ExtendSize();
-	*(decltype(value)*)(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize) = value;
-	m_pSharedPacket->nPacketSize += sizeof(value);
+	*(decltype(value)*)(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize) = value;
+	m_pSharedPacket->m_nPacketSize += sizeof(value);
 }
 
 void OutPacket::EncodeBuffer(unsigned char *buff, int nSize, int nZero)
 {
-	if (m_pSharedPacket->nPacketSize + nSize + nZero >= m_pSharedPacket->nBuffSize)
-		ExtendSize((int)std::ceil((m_pSharedPacket->nPacketSize + nSize + nZero) / m_pSharedPacket->nBuffSize) + 1);
+	if (m_pSharedPacket->m_nPacketSize + nSize + nZero >= m_pSharedPacket->m_nBuffSize)
+		ExtendSize((int)std::ceil((m_pSharedPacket->m_nPacketSize + nSize + nZero) / m_pSharedPacket->m_nBuffSize) + 1);
 	if (buff == nullptr) 
 	{
 		int nEncode4Count = nSize / 4;
@@ -70,8 +70,8 @@ void OutPacket::EncodeBuffer(unsigned char *buff, int nSize, int nZero)
 	}
 	else 
 	{
-		memcpy(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize, buff, nSize);
-		m_pSharedPacket->nPacketSize += nSize;
+		memcpy(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize, buff, nSize);
+		m_pSharedPacket->m_nPacketSize += nSize;
 		if (nZero > 0)
 			for (int i = 0; i < nZero; ++i)
 				Encode1(0);
@@ -81,21 +81,21 @@ void OutPacket::EncodeBuffer(unsigned char *buff, int nSize, int nZero)
 void OutPacket::EncodeStr(const std::string &str)
 {
 	Encode2((short)str.size());
-	if (m_pSharedPacket->nPacketSize + str.size() >= m_pSharedPacket->nBuffSize)
+	if (m_pSharedPacket->m_nPacketSize + str.size() >= m_pSharedPacket->m_nBuffSize)
 		ExtendSize();
-	memcpy(m_pSharedPacket->aBuff + m_pSharedPacket->nPacketSize, str.c_str(), str.size());
-	m_pSharedPacket->nPacketSize += (unsigned int)str.size();
+	memcpy(m_pSharedPacket->m_aBuff + m_pSharedPacket->m_nPacketSize, str.c_str(), str.size());
+	m_pSharedPacket->m_nPacketSize += (unsigned int)str.size();
 }
 
 void OutPacket::Release()
 {
-	FreeArray(m_pSharedPacket->aBuff);
+	FreeArray(m_pSharedPacket->m_aBuff);
 	//delete[] m_pSharedPacket->aBuff;
 }
 
 void OutPacket::Reset()
 {
-	m_pSharedPacket->nPacketSize = INITIAL_WRITE_INDEX;
+	m_pSharedPacket->m_nPacketSize = INITIAL_WRITE_INDEX;
 }
 
 void OutPacket::IncRefCount()
@@ -110,9 +110,9 @@ void OutPacket::DecRefCount()
 
 void OutPacket::Print()
 {
-	WvsLogger::LogRaw("OutPacket«Ê¥]¤º®e¡G");
-	for (unsigned int i = 0; i < m_pSharedPacket->nPacketSize; ++i)
-		WvsLogger::LogFormat("0x%02X ", (int)m_pSharedPacket->aBuff[i]);
+	WvsLogger::LogRaw("OutPacket to bytes (HEX):");
+	for (unsigned int i = 0; i < m_pSharedPacket->m_nPacketSize; ++i)
+		WvsLogger::LogFormat("0x%02X ", (int)m_pSharedPacket->m_aBuff[i]);
 	WvsLogger::LogRaw("\n");
 }
 
@@ -137,10 +137,10 @@ void OutPacket::EncodeHexString(const std::string& str)
 }
 
 OutPacket::SharedPacket::SharedPacket()
-	: aBuff(AllocArray(unsigned char, DEFAULT_BUFF_SIZE)),
-	nBuffSize(DEFAULT_BUFF_SIZE),
-	nPacketSize(INITIAL_WRITE_INDEX),
-	nRefCount(1)
+	: m_aBuff(AllocArray(unsigned char, DEFAULT_BUFF_SIZE)),
+	m_nBuffSize(DEFAULT_BUFF_SIZE),
+	m_nPacketSize(INITIAL_WRITE_INDEX),
+	m_nRefCount(1)
 {
 }
 
@@ -160,15 +160,15 @@ bool OutPacket::SharedPacket::IsBroadcasting() const
 
 void OutPacket::SharedPacket::IncRefCount()
 {
-	++nRefCount;
+	++m_nRefCount;
 }
 
 void OutPacket::SharedPacket::DecRefCount()
 {
-	if (--nRefCount <= 0)
+	if (--m_nRefCount <= 0)
 	{
-		FreeArray(aBuff);
-		for (auto p : aBroadcasted) 
+		FreeArray(m_aBuff);
+		for (auto p : m_aBroadcasted) 
 			FreeArray((unsigned char*)p);
 		//delete[] aBuff;
 		//MSMemoryPoolMan::GetInstance()->DestructArray(aBuff);
@@ -179,5 +179,5 @@ void OutPacket::SharedPacket::DecRefCount()
 
 void OutPacket::SharedPacket::AttachBroadcastingPacket(void * p)
 {
-	aBroadcasted.push_back(p);
+	m_aBroadcasted.push_back(p);
 }

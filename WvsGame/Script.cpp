@@ -37,6 +37,7 @@ void Script::Register(lua_State * L)
 		{ "currentTime", ScriptSysCurrentTime },
 		{ "compareTime", ScriptSysCompareTime },
 		{ "dayOfWeek", ScriptSysDayOfWeek },
+		{ "shuffle", ScriptSysShuffle },
 		{ NULL, NULL }
 	};
 
@@ -61,6 +62,7 @@ Script::Script(const std::string & file, int nTemplateID, Field *pField, const s
 	L(luaL_newstate())
 {
 	C = lua_newthread(L);
+	m_pUser = nullptr;
 	m_fileName = file;
 	m_nTemplateID = nTemplateID;
 	m_pField = pField;
@@ -214,6 +216,25 @@ int Script::ScriptSysDayOfWeek(lua_State * L)
 	tm tm;
 	localtime_s(&tm, &start_time);
 	lua_pushinteger(L, tm.tm_wday);
+	return 1;
+}
+
+int Script::ScriptSysShuffle(lua_State * L)
+{
+	int nBlockSize = (int)luaL_checkinteger(L, 1);
+	std::string sText = luaL_checkstring(L, 2);
+	int nTextLen = (int)sText.size(), nRndPos = 0;
+	
+	for (int i = 0; i < nTextLen; ++i)
+	{
+		nRndPos = (int)(unsigned int)((Rand32::GetInstance()->Random()) % nTextLen);
+		for (int j = 0; j < nBlockSize; ++j, ++nRndPos)
+		{
+			if (i + j >= nTextLen || nRndPos + j >= nTextLen) break;
+			std::swap(sText[i + j], sText[nRndPos + j]);
+		}
+	}
+	lua_pushstring(L, sText.c_str());
 	return 1;
 }
 

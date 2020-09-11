@@ -20,17 +20,6 @@
 #include "GA_Character.hpp"
 #include "GW_FuncKeyMapped.h"
 
-//WvsUnified CharacterDBAccessor::mDBUnified;
-
-CharacterDBAccessor::CharacterDBAccessor()
-{
-}
-
-
-CharacterDBAccessor::~CharacterDBAccessor()
-{
-}
-
 std::vector<int> CharacterDBAccessor::PostLoadCharacterListRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID)
 {
 	OutPacket oPacket;
@@ -78,24 +67,24 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 		chrEntry.mStat->nGender = nGender;
 
 		chrEntry.nFieldID = 0;
-		chrEntry.nGuildID = chrEntry.nPartyID = chrEntry.mStat->nFame = 0;
+		chrEntry.nGuildID = chrEntry.nPartyID = chrEntry.mStat->nPOP = 0;
 
 		chrEntry.mStat->nFace = nFace;
 		chrEntry.mStat->nHair = nHair;
 		chrEntry.mStat->nSkin = nSkin;
 
-		chrEntry.mStat->nStr = aStat[STAT_Str];
-		chrEntry.mStat->nDex = aStat[STAT_Dex];
-		chrEntry.mStat->nInt = aStat[STAT_Int];
-		chrEntry.mStat->nLuk = aStat[STAT_Luk];
-		chrEntry.mStat->nHP = aStat[STAT_HP];
-		chrEntry.mStat->nMP = aStat[STAT_MP];
-		chrEntry.mStat->nMaxHP = aStat[STAT_MaxHP];
-		chrEntry.mStat->nMaxMP = aStat[STAT_MaxMP];
-		chrEntry.mStat->nJob = aStat[STAT_Job];
-		chrEntry.mStat->nSubJob = aStat[STAT_SubJob];
-		chrEntry.mLevel->nLevel = aStat[STAT_Level];
-		chrEntry.mStat->nAP = aStat[STAT_AP];
+		chrEntry.mStat->nStr = aStat[eStatData_POS_Str];
+		chrEntry.mStat->nDex = aStat[eStatData_POS_Dex];
+		chrEntry.mStat->nInt = aStat[eStatData_POS_Int];
+		chrEntry.mStat->nLuk = aStat[eStatData_POS_Luk];
+		chrEntry.mStat->nHP = aStat[eStatData_POS_HP];
+		chrEntry.mStat->nMP = aStat[eStatData_POS_MP];
+		chrEntry.mStat->nMaxHP = aStat[eStatData_POS_MaxHP];
+		chrEntry.mStat->nMaxMP = aStat[eStatData_POS_MaxMP];
+		chrEntry.mStat->nJob = aStat[eStatData_POS_Job];
+		chrEntry.mStat->nSubJob = aStat[eStatData_POS_SubJob];
+		chrEntry.mLevel->nLevel = aStat[eStatData_POS_Level];
+		chrEntry.mStat->nAP = aStat[eStatData_POS_AP];
 
 		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::EQUIP] = 40;
 		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CONSUME] = 40;
@@ -103,58 +92,53 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::INSTALL] = 40;
 		chrEntry.mSlotCount->aSlotCount[GW_ItemSlotBase::CASH] = 40;
 
-		GW_ItemSlotEquip gwCapEquip;
-		gwCapEquip.nItemID = aBody[EQP_ID_CapEquip];
-		gwCapEquip.nPOS = EQP_POS_Cap;
+		GW_ItemSlotEquip *pCapEquip = AllocObj(GW_ItemSlotEquip);
+		pCapEquip->nItemID = aBody[eEQPData_POS_CapEquip];
+		pCapEquip->nPOS = eBodyEquip_POS_Cap;
 
-		GW_ItemSlotEquip gwCoatEquip;
-		gwCoatEquip.nItemID = aBody[EQP_ID_CoatEquip];
-		gwCoatEquip.nPOS = EQP_POS_Coat;
+		GW_ItemSlotEquip *pCoatEquip = AllocObj(GW_ItemSlotEquip);
+		pCoatEquip->nItemID = aBody[eEQPData_POS_CoatEquip];
+		pCoatEquip->nPOS = eBodyEquip_POS_Coat;
 
-		GW_ItemSlotEquip gwPantsEquip;
-		gwPantsEquip.nItemID = aBody[EQP_ID_PantsEquip];
-		gwPantsEquip.nPOS = EQP_POS_Pants;
+		GW_ItemSlotEquip *pPantsEquip = AllocObj(GW_ItemSlotEquip);
+		pPantsEquip->nItemID = aBody[eEQPData_POS_PantsEquip];
+		pPantsEquip->nPOS = eBodyEquip_POS_Pants;
 
-		GW_ItemSlotEquip gwWeaponEquip;
-		gwWeaponEquip.nItemID = aBody[EQP_ID_WeaponEquip];
-		gwWeaponEquip.nPOS = EQP_POS_Weapon;
-		gwWeaponEquip.nPAD = 3;
+		GW_ItemSlotEquip *pWeaponEquip = AllocObj(GW_ItemSlotEquip);
+		pWeaponEquip->nItemID = aBody[eEQPData_POS_WeaponEquip];
+		pWeaponEquip->nPOS = eBodyEquip_POS_Weapon;
+		pWeaponEquip->nPAD = 3;
 
-		GW_ItemSlotEquip gwShoesEquip;
-		gwShoesEquip.nItemID = aBody[EQP_ID_ShoesEquip];
-		gwShoesEquip.nPOS = EQP_POS_Shoes;
+		GW_ItemSlotEquip *pShoesEquip = AllocObj(GW_ItemSlotEquip);
+		pShoesEquip->nItemID = aBody[eEQPData_POS_ShoesEquip];
+		pShoesEquip->nPOS = eBodyEquip_POS_Shoes;
 
-		GW_ItemSlotEquip gwCapeEquip;
-		gwCapeEquip.nItemID = aBody[EQP_ID_CapeEquip];
-		gwCapeEquip.nPOS = EQP_POS_Cape;
+		GW_ItemSlotEquip *pCapeEquip = AllocObj(GW_ItemSlotEquip);
+		pCapeEquip->nItemID = aBody[eEQPData_POS_CapeEquip];
+		pCapeEquip->nPOS = eBodyEquip_POS_Cape;
 
-		GW_ItemSlotEquip gwShieldEquip;
-		gwShieldEquip.nItemID = aBody[EQP_ID_ShieldEquip];
-		gwShieldEquip.nPOS = EQP_POS_Shield;
+		GW_ItemSlotEquip *pShieldEquip = AllocObj(GW_ItemSlotEquip);
+		pShieldEquip->nItemID = aBody[eEQPData_POS_ShieldEquip];
+		pShieldEquip->nPOS = eBodyEquip_POS_Shield;
 
-		GW_ItemSlotEquip* equips[EQP_ID_FLAG_END] = {
-			&gwCapEquip,
-			&gwCoatEquip,
-			&gwPantsEquip,
-			&gwWeaponEquip,
-			&gwShoesEquip,
-			&gwCapeEquip,
-			&gwShieldEquip
+		GW_ItemSlotEquip* aEquips[] = {
+			pCapEquip,
+			pCoatEquip,
+			pPantsEquip,
+			pWeaponEquip,
+			pShoesEquip,
+			pCapeEquip,
+			pShieldEquip
 		};
-		int nEquipCount = sizeof(equips) / sizeof(GW_ItemSlotBase*);
+		int nEquipCount = sizeof(aEquips) / sizeof(GW_ItemSlotBase*);
 		for (int i = 0; i < nEquipCount; ++i)
-			if (equips[i]->nItemID > 0)
+			if (aEquips[i]->nItemID > 0)
 			{
-				equips[i]->nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
-				chrEntry.mItemSlot[1].insert({ equips[i]->nPOS, equips[i] });
+				aEquips[i]->nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
+				chrEntry.mItemSlot[1].insert({ aEquips[i]->nPOS, aEquips[i] });
 			}
 		chrEntry.Save(true);
 
-		//Since items here are auto-var, they will destruct automatically
-		//Prevent GA_Character from deleting those items.
-		for (int i = 0; i < nEquipCount; ++i)
-			if (equips[i]->nItemID > 0)
-				chrEntry.mItemSlot[1].erase(equips[i]->nPOS);
 		GW_FuncKeyMapped funcKeyMapped(chrEntry.nCharacterID);
 		funcKeyMapped.Save(true);
 		oPacket.Encode1(0);
@@ -169,18 +153,18 @@ void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uL
 
 void CharacterDBAccessor::GetDefaultCharacterStat(int *aStat)
 {
-	aStat[STAT_Str] = 10;
-	aStat[STAT_Dex] = 10;
-	aStat[STAT_Int] = 10;
-	aStat[STAT_Luk] = 10;
-	aStat[STAT_HP] = 50;
-	aStat[STAT_MP] = 50;
-	aStat[STAT_MaxHP] = 50;
-	aStat[STAT_MaxMP] = 50;
-	aStat[STAT_Job] = 0;
-	aStat[STAT_SubJob] = 0;
-	aStat[STAT_Level] = 1;
-	aStat[STAT_AP] = 0;
+	aStat[eStatData_POS_Str] = 10;
+	aStat[eStatData_POS_Dex] = 10;
+	aStat[eStatData_POS_Int] = 10;
+	aStat[eStatData_POS_Luk] = 10;
+	aStat[eStatData_POS_HP] = 50;
+	aStat[eStatData_POS_MP] = 50;
+	aStat[eStatData_POS_MaxHP] = 50;
+	aStat[eStatData_POS_MaxMP] = 50;
+	aStat[eStatData_POS_Job] = 0;
+	aStat[eStatData_POS_SubJob] = 0;
+	aStat[eStatData_POS_Level] = 1;
+	aStat[eStatData_POS_AP] = 0;
 }
 
 void CharacterDBAccessor::PostCharacterDataRequest(SocketBase *pSrv, int nClientSocketID, int nCharacterID, void *oPacket_)

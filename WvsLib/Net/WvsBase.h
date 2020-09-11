@@ -30,6 +30,7 @@ protected:
 
 public:
 
+	//Actually I just don't want to define GetInstance in every wvs based class.
 	template<typename WVS_TYPE>
 	static WVS_TYPE *GetInstance()
 	{
@@ -43,8 +44,8 @@ public:
 
 	void CreateAcceptor(short nPort);
 
-	//Template參數表示客戶端 (來源) 的Class型別
-	//注意Template function不可把實體跟宣告分離
+	//The template argument "SOCKET_TYPE" denotes the client implementation class.
+	//Here you should also notice that the declaration and definition of template function should not be separated.
 	template<typename SOCKET_TYPE>
 	void BeginAccept()
 	{

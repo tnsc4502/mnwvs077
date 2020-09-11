@@ -25,6 +25,7 @@ class WvsGame : public WvsBase
 	asio::io_service* m_pCenterServerService;
 	std::thread* m_pCenterWorkThread;
 	int m_nChannelID = 0, m_nCenterPort = 0;
+
 	void WvsGame::CenterAliveMonitor();
 
 public:

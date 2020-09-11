@@ -111,24 +111,26 @@ void StringPool::Init()
 			//Fetch real "key" (skip blanks)
 			auto& keyStr = aStrSplit[0];
 			while (keyStr.back() == ' ') keyStr.pop_back();
-			for (auto c : keyStr)
+			for (auto c : keyStr) 
+			{
 				if (c == ' ') ++nSubStrStart;
 				else break;
-				auto& key = ms_mStringMap[keyStr.substr(nSubStrStart, (int)keyStr.size() - nSubStrStart)];
+			}
+			auto& key = ms_mStringMap[keyStr.substr(nSubStrStart, (int)keyStr.size() - nSubStrStart)];
 
-				//Fetch real "value" (skip non " chars)
-				nSubStrStart = 0;
-				auto& valueStr = aStrSplit[1];
-				while (valueStr.back() != '\"')	valueStr.pop_back();
-				valueStr.pop_back(); //Skip "
-				for (auto c : valueStr)
-				{
-					if (c != '\"') ++nSubStrStart;
-					else break;
-				}
-				++nSubStrStart; //Skip "
-				StringUtility::Replace(valueStr, "\\n", "\n");
-				key = valueStr.substr(nSubStrStart, (int)valueStr.size() - nSubStrStart);
+			//Fetch real "value" (skip non " chars)
+			nSubStrStart = 0;
+			auto& valueStr = aStrSplit[1];
+			while (valueStr.back() != '\"')	valueStr.pop_back();
+			valueStr.pop_back(); //Skip "
+			for (auto c : valueStr)
+			{
+				if (c != '\"') ++nSubStrStart;
+				else break;
+			}
+			++nSubStrStart; //Skip "
+			StringUtility::Replace(valueStr, "\\n", "\n");
+			key = valueStr.substr(nSubStrStart, (int)valueStr.size() - nSubStrStart);
 		}
 		catch (std::exception& ex)
 		{

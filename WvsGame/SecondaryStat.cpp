@@ -16,6 +16,7 @@
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_CharacterLevel.h"
+#include "..\Database\GW_SkillRecord.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -59,8 +60,6 @@ SecondaryStat::~SecondaryStat()
 
 void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 {
-#undef min
-#undef max
 	const GW_CharacterStat *pCS = pChar->mStat;
 
 	//Set from basic stats
@@ -71,7 +70,7 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 	this->nMDD = pBS->nINT;
 	this->nEVA = pBS->nLUK / 2 + pBS->nDEX / 4;
 	if(nJobType == 3 || nJobType == 4)
-		this->nACC = (int)((double)pBS->nDEX * 0.3 + (double)pBS->nLUK * 0.6);
+		this->nACC = (int)((double)pBS->nLUK * 0.3 + (double)pBS->nDEX * 0.6);
 	else
 		this->nACC = (int)((double)pBS->nDEX * 0.8 + (double)pBS->nLUK * 0.5);
 
@@ -79,6 +78,33 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 	this->nJump = 100;
 	this->nCraft = pBS->nDEX + pBS->nLUK + pBS->nINT;
 	int nPDDIncRate = 100; //shield mastery ?
+
+	//Set from permanent skills
+	for (auto& skillRecord : pChar->mSkillRecord)
+	{
+		//Skip non-passive skills
+		if ((skillRecord.first / 1000) % 10 != 0)
+			continue;
+
+		auto pEntry = SkillInfo::GetInstance()->GetSkillByID(skillRecord.first);
+		if (pEntry)
+		{
+			auto pLevelData = pEntry->GetLevelData(skillRecord.second->nSLV);
+
+			//Ignore invalid skills and those do not have permanent effects.
+			if (!pLevelData || pLevelData->m_nProp || pLevelData->m_nTime)
+				continue;
+
+			nPAD += pLevelData->m_nPad;
+			nMAD += pLevelData->m_nMad;
+			nPDD += pLevelData->m_nPdd;
+			nMDD += pLevelData->m_nMdd;
+			nACC += pLevelData->m_nAcc;
+			nEVA += pLevelData->m_nEva;
+			nSpeed += pLevelData->m_nSpeed;
+			nJump += pLevelData->m_nJump;
+		}
+	}
 
 	//Inc from equips
 	const GW_ItemSlotEquip* pEquip, *pWeapon = nullptr;
@@ -107,15 +133,21 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 	}
 
 	//Inc from skills
-	SkillEntry *pEntry1 = nullptr, *pEntry2 = nullptr;
+	SkillEntry *pEntry1 = nullptr, *pEntry2 = nullptr, *pEntry3 = nullptr;
 	int nSLV1 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 3000000, &pEntry1, 0, 0, 0, 0);
 	int nSLV2 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 4000000, &pEntry2, 0, 0, 0, 0);
+	int nSLV3 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 5000000, &pEntry3, 0, 0, 0, 0);
 	if (nSLV1)
 		nACC += pEntry1->GetLevelData(nSLV1)->m_nX;
 	if (nSLV2)
 	{
 		nACC += pEntry2->GetLevelData(nSLV2)->m_nX;
 		nEVA += pEntry2->GetLevelData(nSLV2)->m_nY;
+	}
+	if (nSLV3)
+	{
+		nACC += pEntry3->GetLevelData(nSLV3)->m_nX;
+		nEVA += pEntry3->GetLevelData(nSLV3)->m_nY;
 	}
 
 	int nAttackType = 0, nACCInc = 0, nPADInc = 0;

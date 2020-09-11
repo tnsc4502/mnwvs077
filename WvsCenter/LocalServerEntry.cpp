@@ -1,7 +1,7 @@
 #include "LocalServerEntry.h"
 
 LocalServerEntry::LocalServerEntry()
-	: pLocalSocket(nullptr)
+	: m_pLocalSocket(nullptr)
 {
 }
 
@@ -11,20 +11,30 @@ LocalServerEntry::~LocalServerEntry()
 
 void LocalServerEntry::SetExternalIP(int dwIPv4)
 {
-	nExternalIP = dwIPv4;
+	m_nExternalIP = dwIPv4;
 }
 
 void LocalServerEntry::SetExternalPort(short nPort)
 {
-	nExternalPort = nPort;
+	m_nExternalPort = nPort;
 }
 
 int LocalServerEntry::GetExternalIP() const
 {
-	return nExternalIP;
+	return m_nExternalIP;
 }
 
 short LocalServerEntry::GetExternalPort() const
 {
-	return nExternalPort;
+	return m_nExternalPort;
+}
+
+void LocalServerEntry::SetLocalSocket(std::shared_ptr<SocketBase>& pSocket)
+{
+	m_pLocalSocket = pSocket;
+}
+
+std::shared_ptr<SocketBase>& LocalServerEntry::GetLocalSocket()
+{
+	return m_pLocalSocket;
 }

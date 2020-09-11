@@ -1,85 +1,85 @@
 #include "ConfigLoader.hpp"
 
-void ConfigLoader::ParseConfig(const std::string & cfgFileName)
+void ConfigLoader::ParseConfig(const std::string & sCfgFileName)
 {
-	aSettings.clear();
-	std::fstream cfgFile(cfgFileName, std::ios::in);
+	m_mSettings.clear();
+	std::fstream cfgFile(sCfgFileName, std::ios::in);
 	if (!cfgFile)
 	{
-		printf("Unable to open config file \"%s\"\n", cfgFileName.c_str());
+		printf("Unable to open config file \"%s\"\n", sCfgFileName.c_str());
 		return;
 	}
-	std::string line;
-	int delimiterPos = 0, leftPos = 0, rightPos = 0;
+	std::string strLine;
+	int nDelimiterPos = 0, nLeftPOS = 0, nRightPOS = 0;
 	bool bComment = false; //skip comment
-	while (std::getline(cfgFile, line))
+	while (std::getline(cfgFile, strLine))
 	{
 		bComment = false;
-		for (int i = 0; i < line.size(); ++i) 
+		for (int i = 0; i < strLine.size(); ++i) 
 		{
-			if (line[i] == ' ')
+			if (strLine[i] == ' ')
 				continue;
-			if (line[i] == '#')
+			if (strLine[i] == '#')
 				bComment = true;
 			break;
 		}
 		if (bComment)
 			continue;
-		delimiterPos = (int)line.find(cfgDelimiter, 0);
-		if (delimiterPos < 0 || delimiterPos > line.size())
+		nDelimiterPos = (int)strLine.find(ms_cCfgDelimiter, 0);
+		if (nDelimiterPos < 0 || nDelimiterPos > strLine.size())
 		{
 			//printf("Error while parsing config file, please check that each line has the format : <KEY>,<VALUE>");
 			continue;
 		}
-		leftPos = rightPos = delimiterPos;
-		++rightPos;
-		while (leftPos - 1 >= 0 && line[rightPos - 1] == ' ')--leftPos;
-		while (rightPos + 1 < line.size() && line[rightPos + 1] == ' ')++rightPos;
-		auto keyStr = line.substr(0, leftPos);
-		aSettings[keyStr] = line.substr(rightPos, line.size() - rightPos + 1);
+		nLeftPOS = nRightPOS = nDelimiterPos;
+		++nRightPOS;
+		while (nLeftPOS - 1 >= 0 && strLine[nRightPOS - 1] == ' ')--nLeftPOS;
+		while (nRightPOS + 1 < strLine.size() && strLine[nRightPOS + 1] == ' ')++nRightPOS;
+		auto sKey = strLine.substr(0, nLeftPOS);
+		m_mSettings[sKey] = strLine.substr(nRightPOS, strLine.size() - nRightPOS + 1);
 	}
 }
 
-ConfigLoader * ConfigLoader::Get(const std::string & cfgFileName)
+ConfigLoader * ConfigLoader::Get(const std::string& sCfgFileName)
 {
-	static std::map<std::string, ConfigLoader*> aCfgLoader;
+	static std::map<std::string, ConfigLoader*> s_mCfgLoader;
 
-	auto findIter = aCfgLoader.find(cfgFileName);
-	if (findIter == aCfgLoader.end())
+	auto findIter = s_mCfgLoader.find(sCfgFileName);
+	if (findIter == s_mCfgLoader.end())
 	{
 		ConfigLoader *pCfg = new ConfigLoader();
-		pCfg->LoadConfig(cfgFileName);
-		aCfgLoader[cfgFileName] = pCfg;
+		pCfg->LoadConfig(sCfgFileName);
+		s_mCfgLoader[sCfgFileName] = pCfg;
 		return pCfg;
 	}
 	return findIter->second;
 }
 
-void ConfigLoader::LoadConfig(const std::string & cfgFileName)
+void ConfigLoader::LoadConfig(const std::string& sCfgFileName)
 {
-	ParseConfig(cfgFileName);
+	ParseConfig(sCfgFileName);
 }
 
-std::string ConfigLoader::StrValue(const std::string & key)
+std::string ConfigLoader::StrValue(const std::string& sKey)
 {
-	auto findResult = aSettings.find(key);
-	if (findResult == aSettings.end())
+	auto findResult = m_mSettings.find(sKey);
+	if (findResult == m_mSettings.end())
 		return "";
 	return findResult->second;
 }
 
-int ConfigLoader::IntValue(const std::string & key)
+int ConfigLoader::IntValue(const std::string& sKey)
 {
-	auto findResult = aSettings.find(key);
-	if (findResult == aSettings.end())
+	auto findResult = m_mSettings.find(sKey);
+	if (findResult == m_mSettings.end())
 		return 0;
 	return atoi(findResult->second.c_str());
 }
 
-double ConfigLoader::DoubleValue(const std::string & key)
+double ConfigLoader::DoubleValue(const std::string& sKey)
 {
-	auto findResult = aSettings.find(key);
-	if (findResult == aSettings.end())
+	auto findResult = m_mSettings.find(sKey);
+	if (findResult == m_mSettings.end())
 		return 0;
 	return atof(findResult->second.c_str());
 }

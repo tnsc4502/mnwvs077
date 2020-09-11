@@ -14,7 +14,7 @@ struct AdminSkills {
 
 		//----------------Admin_Super<>----------------
 		static const int Admin_Super_HealDispel = 9101000; //
-		static const int Admin_Super_HasteSuper_ = 9101001; //
+		static const int Admin_Super_HasteSuper = 9101001; //
 		static const int Admin_Super_HolySymbol = 9101002; //
 		static const int Admin_Super_Bless = 9101003; //
 		static const int Admin_Super_Hide = 9101004; //

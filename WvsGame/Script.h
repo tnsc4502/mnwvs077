@@ -104,6 +104,7 @@ public:
 	static int ScriptSysCurrentTime(lua_State* L);
 	static int ScriptSysCompareTime(lua_State* L);
 	static int ScriptSysDayOfWeek(lua_State* L);
+	static int ScriptSysShuffle(lua_State* L);
 
 	//Lua Sys.
 	lua_State* GetLuaState();

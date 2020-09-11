@@ -1,5 +1,6 @@
 #include "SkillEntry.h"
 #include "SkillLevelData.h"
+#include "..\WvsLib\Memory\ZMemory.h"
 
 SkillEntry::SkillEntry()
 {
@@ -8,12 +9,14 @@ SkillEntry::SkillEntry()
 
 SkillEntry::~SkillEntry()
 {
-	for (auto& x : m_aLevelData)
-		delete x;
+	for (auto& pLevelData : m_aLevelData)
+		FreeObj(pLevelData);
 }
 
 void SkillEntry::SetLevelData(SkillLevelData * pLevelData, int nSLV)
 {
+	if (nSLV >= MAX_SKILL_ENTRY_COUNT)
+		return;
 	m_aLevelData[nSLV] = pLevelData;
 	m_nMaxLevel = m_nMaxLevel > nSLV ? m_nMaxLevel : nSLV;
 }

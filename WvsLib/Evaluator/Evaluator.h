@@ -14,10 +14,10 @@ public:
 	Evaluator(double& ref, const std::string& evalStr);
 	~Evaluator();
 
-	//註冊時的變數改變了，取得新值
+	//Recalcuate based on registered expression.
 	double Eval();
 
-	//整個重算
+	//Recalcuate on a new expression.
 	static double Eval(const std::string& evalStr, const std::string& variableName, double& var);
 };
 

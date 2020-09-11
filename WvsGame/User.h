@@ -38,14 +38,12 @@ class User : public FieldObj
 {
 public:
 
-	//User正在進行的轉換狀態
-	//TransferChannel與TransferShop 要附帶SecondaryStat::EncodeInternal以便Center做轉傳
 	enum class TransferStatus : unsigned char
 	{
-		eOnTransferNone = 0x00, //正常 
-		eOnTransferField = 0x01, //更換地圖中
-		eOnTransferChannel = 0x02, //更換頻道中
-		eOnTransferShop = 0x03, //進入商城中
+		eOnTransferNone = 0x00,
+		eOnTransferField = 0x01,
+		eOnTransferChannel = 0x02,
+		eOnTransferShop = 0x03,
 	};
 
 	enum class Message : unsigned char
@@ -90,6 +88,15 @@ public:
 		eGrade_SrvAdmin = eGrade_SuperGM | 4
 	};
 
+	enum GivePopluarityMessage : unsigned char
+	{
+		eUserDoesNotExist = 1,
+		eLevelIsNotSatisfied = 2,
+		eNotAllowed_Day = 3,
+		eNotAllowed_Month = 4,
+		eUserPOPIsIncreased = 5,
+	};
+
 private:
 	static const int MAX_PET_INDEX = 3;
 	std::recursive_mutex m_mtxUserLock, m_scriptLock;
@@ -110,7 +117,9 @@ private:
 	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;
 	int m_nInvalidDamageMissCount = 0,
 		m_nInvalidDamageCount = 0,
-		m_nActivePortableChairID = 0;
+		m_nActivePortableChairID = 0,
+		m_nTargetPosition_X = 0,
+		m_nTargetPosition_Y = 0;
 
 	unsigned int 
 		m_tLastRecoveryTime = 0,
@@ -119,7 +128,10 @@ private:
 		m_tPortableChairSittingTime = 0;
 
 	unsigned char m_nGradeCode = UserGrade::eGrade_None;
-	bool m_bDeadlyAttack = false;
+
+	bool 
+		m_bDeadlyAttack = false,
+		m_bChase = false;
 
 	//System
 	ZUniquePtr<AsyncScheduler> m_pUpdateTimer;
@@ -186,6 +198,7 @@ public:
 	void LeaveField();
 	void OnMigrateIn();
 	void OnMigrateOut();
+	void SendSetFieldPacket(bool bCharacterData);
 	bool CanAttachAdditionalProcess();
 
 	//TransferStatus
@@ -250,6 +263,7 @@ public:
 	void SetSkillCooltime(int nReason, int tDuration);
 	unsigned int GetSkillCooltime(int nReason);
 	void SendSkillCooltimeSet(int nReason, unsigned int tTime);
+	void OnGivePopularityRequest(InPacket *iPacket);
 
 	//Item Use
 	void OnStatChangeItemUseRequest(InPacket *iPacket, bool bByPet);

@@ -14,7 +14,6 @@ struct GW_CharacterStat
 		nMP = 0,
 		nMaxHP = 0,
 		nMaxMP = 0,
-		nFame = 0,
 		nJob = 0,
 		nSubJob = 0,
 		nStr = 0,
@@ -32,7 +31,9 @@ struct GW_CharacterStat
 		nFace = 0,
 		nHair = 0,
 		nSkin = 0,
-		nFaceMark = 0;
+		nFaceMark = 0,
+		nPosMap = 0,
+		nPortal = 0;
 
 	long long int nExp = 0;
 

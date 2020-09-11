@@ -9,7 +9,7 @@ class Center :
 	public SocketBase
 {
 private:
-	int nCenterIndex;
+	int m_nCenterIndex;
 	WorldInfo m_WorldInfo;
 
 	void OnConnected();

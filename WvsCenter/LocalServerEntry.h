@@ -3,9 +3,9 @@
 class LocalServerEntry
 {
 private:
-	std::shared_ptr<SocketBase> pLocalSocket;
-	int nMaxUser, nTotalUser, nExternalIP;
-	short nExternalPort;
+	std::shared_ptr<SocketBase> m_pLocalSocket;
+	int m_nMaxUserCount, m_nTotalUserCount, m_nExternalIP;
+	short m_nExternalPort;
 
 public:
 	LocalServerEntry();
@@ -17,14 +17,7 @@ public:
 	int GetExternalIP() const;
 	short GetExternalPort() const;
 
-	void SetLocalSocket(std::shared_ptr<SocketBase> &pSocket)
-	{
-		pLocalSocket = pSocket;
-	}
-
-	std::shared_ptr<SocketBase> &GetLocalSocket()
-	{
-		return pLocalSocket;
-	}
+	void SetLocalSocket(std::shared_ptr<SocketBase> &pSocket);
+	std::shared_ptr<SocketBase> &GetLocalSocket();
 };
 

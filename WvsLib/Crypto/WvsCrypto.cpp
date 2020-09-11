@@ -14,97 +14,85 @@
 namespace WvsCrypto
 {
 
-	unsigned char rotate_right(unsigned char val, unsigned short shifts)
+	unsigned char RrotateRight(unsigned char nVal, unsigned short nShifts)
 	{
-		shifts &= 7;
-		return static_cast<unsigned char>((val >> shifts) | (val << (8 - shifts)));
+		nShifts &= 7;
+		return static_cast<unsigned char>((nVal >> nShifts) | (nVal << (8 - nShifts)));
 	}
 
-	unsigned char rotate_left(unsigned char val, unsigned short shifts)
+	unsigned char RotateLeft(unsigned char nVal, unsigned short nShifts)
 	{
-		shifts &= 7;
-		return static_cast<unsigned char>((val << shifts) | (val >> (8 - shifts)));
+		nShifts &= 7;
+		return static_cast<unsigned char>((nVal << nShifts) | (nVal >> (8 - nShifts)));
 	}
 
-	void shuffle_iv(unsigned char *iv)
+	void ShuffleIV(unsigned char * aIV)
 	{
-		unsigned char new_iv[4] = { 0xF2, 0x53, 0x50, 0xC6 };
-		unsigned char input;
-		unsigned char value_input;
-		unsigned int full_iv;
-		unsigned int shift;
-		int loop_counter = 0;
+		unsigned char aNewIV[4] = { 0xF2, 0x53, 0x50, 0xC6 };
+		unsigned char nInputIndex, cInputValue;
+		unsigned int nIV, nShift;
+		int nCounter = 0;
 
-		for (; loop_counter < 4; loop_counter++)
+		for (; nCounter < 4; nCounter++)
 		{
-			input = iv[loop_counter];
-			value_input = CryptoConstants::kIvTable[input];
+			nInputIndex = aIV[nCounter];
+			cInputValue = CryptoConstants::kIvTable[nInputIndex];
 
-			new_iv[0] += (CryptoConstants::kIvTable[new_iv[1]] - input);
-			new_iv[1] -= (new_iv[2] ^ value_input);
-			new_iv[2] ^= (CryptoConstants::kIvTable[new_iv[3]] + input);
-			new_iv[3] -= (new_iv[0] - value_input);
+			aNewIV[0] += (CryptoConstants::kIvTable[aNewIV[1]] - nInputIndex);
+			aNewIV[1] -= (aNewIV[2] ^ cInputValue);
+			aNewIV[2] ^= (CryptoConstants::kIvTable[aNewIV[3]] + nInputIndex);
+			aNewIV[3] -= (aNewIV[0] - cInputValue);
 
-			full_iv = (new_iv[3] << 24) | (new_iv[2] << 16) | (new_iv[1] << 8) | new_iv[0];
-			shift = (full_iv >> 0x1D) | (full_iv << 0x03);
+			nIV = (aNewIV[3] << 24) | (aNewIV[2] << 16) | (aNewIV[1] << 8) | aNewIV[0];
+			nShift = (nIV >> 0x1D) | (nIV << 0x03);
 
-			new_iv[0] = static_cast<unsigned char>(shift & 0xFFu);
-			new_iv[1] = static_cast<unsigned char>((shift >> 8) & 0xFFu);
-			new_iv[2] = static_cast<unsigned char>((shift >> 16) & 0xFFu);
-			new_iv[3] = static_cast<unsigned char>((shift >> 24) & 0xFFu);
+			aNewIV[0] = static_cast<unsigned char>(nShift & 0xFFu);
+			aNewIV[1] = static_cast<unsigned char>((nShift >> 8) & 0xFFu);
+			aNewIV[2] = static_cast<unsigned char>((nShift >> 16) & 0xFFu);
+			aNewIV[3] = static_cast<unsigned char>((nShift >> 24) & 0xFFu);
 		}
 
 		// set iv
-		memcpy(iv, new_iv, 4);
-		memcpy(iv + 4, new_iv, 4);
-		memcpy(iv + 8, new_iv, 4);
-		memcpy(iv + 12, new_iv, 4);
+		memcpy(aIV, aNewIV, 4);
+		memcpy(aIV + 4, aNewIV, 4);
+		memcpy(aIV + 8, aNewIV, 4);
+		memcpy(aIV + 12, aNewIV, 4);
 	}
 
-	void multiplyBytes(unsigned char* out, unsigned char*in, int m, int n)
+	void MultiplyBytes(unsigned char* aBufferOut, unsigned char* aBufferIn, int m, int n)
 	{
 		for (int i = 0; i < m * n; ++i)
-		{
-			out[i] = in[i % 4];
-		}
+			aBufferOut[i] = aBufferIn[i % 4];
 	}
 
-	void aes_crypt(unsigned char *buffer, unsigned char *iv, unsigned short size)
+	void AESCrypt(unsigned char *aBuffer, unsigned char *aIV, unsigned short nSize)
 	{
-		unsigned char temp_iv[16];
-		unsigned short pos = 0;
-		unsigned short t_pos = 1456;
-		unsigned short bytes_amount;
+		unsigned char aTempIV[16];
+		unsigned short nPOS = 0, nBlockPOS = 1456, nAmount = 0;
 
 		aes_encrypt_ctx cx[1];
 		aes_init();
 
-		while (size > pos)
+		while (nSize > nPOS)
 		{
-			multiplyBytes(temp_iv, iv, 4, 4);
-
+			MultiplyBytes(aTempIV, aIV, 4, 4);
 			aes_encrypt_key256(CryptoConstants::kAesKeys, cx);
 
-			if (size > (pos + t_pos))
-			{
-				bytes_amount = t_pos;
-			}
+			if (nSize > (nPOS + nBlockPOS))
+				nAmount = nBlockPOS;
 			else
-			{
-				bytes_amount = size - pos;
-			}
+				nAmount = nSize - nPOS;
 
-			aes_ofb_crypt(buffer + pos, buffer + pos, bytes_amount, temp_iv, cx);
-
-			pos += t_pos;
-			t_pos = 1460;
+			aes_ofb_crypt(aBuffer + nPOS, aBuffer + nPOS, nAmount, aTempIV, cx);
+			nPOS += nBlockPOS;
+			nBlockPOS = 1460;
 		}
 	}
 
-	void decrypt(unsigned char *buffer, unsigned char *iv, unsigned short size)
+	void Decrypt(unsigned char *aBuffer, unsigned char *aIV, unsigned short nSize)
 	{
-		aes_crypt(buffer, iv, size);
-		shuffle_iv(iv);
+		AESCrypt(aBuffer, aIV, nSize);
+		ShuffleIV(aIV);
 
 		/*unsigned char a;
 		unsigned char b;
@@ -146,7 +134,7 @@ namespace WvsCrypto
 		}*/
 	}
 
-	void encrypt(unsigned char *buffer, unsigned char *iv, unsigned short size)
+	void Encrypt(unsigned char *aBuffer, unsigned char *aIV, unsigned short nSize)
 	{
 		/*unsigned char a;
 		unsigned char c;
@@ -182,25 +170,25 @@ namespace WvsCrypto
 			}
 		}*/
 
-		aes_crypt(buffer, iv, size);
-		shuffle_iv(iv);
+		AESCrypt(aBuffer, aIV, nSize);
+		ShuffleIV(aIV);
 	}
 
-	void create_packet_header(unsigned char *buffer, unsigned char *iv, unsigned short size)
+	void InitializeEncryption(unsigned char *aBuffer, unsigned char *aIV, unsigned short nSize)
 	{
 
-		unsigned short version = (((iv[3] << 8) | iv[2]) ^ -(ServerConstants::kGameVersion + 1));
-		size = version ^ size;
+		unsigned short nVersion = (((aIV[3] << 8) | aIV[2]) ^ -(ServerConstants::kGameVersion + 1));
+		nSize = nVersion ^ nSize;
 
-		buffer[0] = version & 0xFF;
-		buffer[1] = (version >> 8) & 0xFF;
+		aBuffer[0] = nVersion & 0xFF;
+		aBuffer[1] = (nVersion >> 8) & 0xFF;
 
-		buffer[2] = size & 0xFF;
-		buffer[3] = (size >> 8) & 0xFF;
+		aBuffer[2] = nSize & 0xFF;
+		aBuffer[3] = (nSize >> 8) & 0xFF;
 	}
 
-	unsigned short get_packet_length(unsigned char *buffer)
+	unsigned short GetPacketLength(unsigned char *aBuffer)
 	{
-		return ((*(unsigned short *)(buffer)) ^ (*(unsigned short *)(buffer + 2)));
+		return ((*(unsigned short *)(aBuffer)) ^ (*(unsigned short *)(aBuffer + 2)));
 	}
 }

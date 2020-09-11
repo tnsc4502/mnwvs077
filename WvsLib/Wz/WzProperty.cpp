@@ -38,12 +38,12 @@ void WzProperty::DelayParse()
 			if (nHeader == 9)
 			{
 				wzStream.Read((char*)&uOffset, 4);
-				pSubItem = AllocObjCtor (WzProperty)(m_pArchive, sName, wzStream.GetPosition(), m_uRootPropPos);
+				pSubItem = new (WzProperty)(m_pArchive, sName, wzStream.GetPosition(), m_uRootPropPos);
 				wzStream.SetPosition(wzStream.GetPosition() + uOffset);
 			}
 			else //Delayed value props.
 			{
-				pSubItem = AllocObjCtor(WzProperty)(sName);
+				pSubItem = new (WzProperty)(sName);
 				switch (nHeader)
 				{
 					case 19:
@@ -86,8 +86,8 @@ void WzProperty::DelayParse()
 	//else if (sType == "Canvas") {}
 	else if (sType == "Shape2D#Vector2D")
 	{
-		auto pX = AllocObjCtor(WzProperty)("x");
-		auto pY = AllocObjCtor(WzProperty)("y");
+		auto pX = new(WzProperty)("x");
+		auto pY = new(WzProperty)("y");
 		pX->m_wzVariant.vType = pY->m_wzVariant.vType = WzDelayedVariant::VariantType::vt_Filtered_Integer;
 		pX->m_wzVariant.uData.liData = wzStream.ReadFilter<int>();
 		pY->m_wzVariant.uData.liData = wzStream.ReadFilter<int>();
@@ -198,7 +198,7 @@ WzProperty::WzProperty(WzArchive* pArchive, const std::string& sPropName, unsign
 WzProperty::~WzProperty()
 {
 	for (auto& prChild : m_mChild)
-		WvsSingleObjectAllocator<WzProperty>::GetInstance()->Free(prChild.second);
+		delete (prChild.second);
 
 	m_mChild.clear(); //Prevent releasing again from WzNameSpace
 }

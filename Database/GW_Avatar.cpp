@@ -15,20 +15,34 @@ void GW_Avatar::Load(int nCharacterID)
 	nFace = recordSet["Face"];
 	nSkin = recordSet["Skin"];
 
-	//EQUIP
+	//ItemSlot_EQP
 	queryStatement.reset(GET_DB_SESSION);
 	queryStatement << "SELECT ItemSN FROM ItemSlot_EQP Where POS < 0 AND CharacterID = " << nCharacterID;
 	queryStatement.execute();
 	recordSet.reset(queryStatement);
+
+	short nPOS = 0;
 	GW_ItemSlotEquip eqp;
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
 		eqp.bIsCash = false;
 		eqp.Load(recordSet["ItemSN"]);
-		short nPOS = eqp.nPOS * -1;
+		nPOS = eqp.nPOS * -1;
 		if (nPOS < 100 || nPOS == 111)
 			mEquip.insert({ eqp.nPOS, eqp.nItemID });
-		else if (nPOS > 100) 
+	}
+
+	//CashItem_EQP
+	queryStatement.reset(GET_DB_SESSION);
+	queryStatement << "SELECT CashItemSN FROM CashItem_EQP Where POS < 0 AND CharacterID = " << nCharacterID;
+	queryStatement.execute();
+	recordSet.reset(queryStatement);
+	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
+	{
+		eqp.bIsCash = true;
+		eqp.Load(recordSet["CashItemSN"]);
+		nPOS = eqp.nPOS * -1; 
+		if (nPOS > 100)
 		{
 			auto iter = mEquip.find(nPOS);
 			if (iter != mEquip.end())
@@ -38,7 +52,6 @@ void GW_Avatar::Load(int nCharacterID)
 		}
 		else
 			mUnseenEquip.insert({ eqp.nPOS, eqp.nItemID });
-		//There should insert totem items.
 	}
 }
 

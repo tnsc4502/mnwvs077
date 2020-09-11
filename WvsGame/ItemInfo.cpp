@@ -883,13 +883,13 @@ int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSki
 				return 0;
 			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3200000, nullptr, pnACCInc);
 			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3220004, nullptr, pnPADInc);
-			return nResult1 ? nResult1 : nResult2;
+			return nResult2 ? nResult2 : nResult1;
 		case 45:
 			if (nAttackType != 1)
 				return 0;
 			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3100000, nullptr, pnACCInc);
 			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 3120005, nullptr, pnPADInc);
-			return nResult1 ? nResult1 : nResult2;
+			return nResult2 ? nResult2 : nResult1;
 		case 44:
 			if (nAttackType)
 				return 0;
@@ -916,7 +916,7 @@ int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSki
 				return 0;
 			nResult1 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1100000, nullptr, pnACCInc);
 			nResult2 = SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 1200000, nullptr, pnPADInc);
-			return nResult1 ? nResult1 : nResult2;
+			return nResult2 ? nResult2 : nResult1;
 		default:
 			if (nWT > 42 && nAttackType != 1)
 				return 0;

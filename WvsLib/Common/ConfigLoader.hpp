@@ -8,28 +8,28 @@
 class ConfigLoader
 {
 private:
-	static const char cfgDelimiter = '=';
-	std::map<std::string, std::string> aSettings;
+	static const char ms_cCfgDelimiter = '=';
+	std::map<std::string, std::string> m_mSettings;
 
 	ConfigLoader() {};
-	void ParseConfig(const std::string& cfgFileName);
+	void ParseConfig(const std::string& sCfgFileName);
 	//static ConfigLoader* GetInstance();
 
 public:
-	static ConfigLoader* Get(const std::string& cfgFileName);
 
-	void LoadConfig(const std::string& cfgFileName);
-	std::string StrValue(const std::string &key);
-	int IntValue(const std::string &key);
-	double DoubleValue(const std::string &key);
+	static ConfigLoader* Get(const std::string& sCfgFileName);
+	void LoadConfig(const std::string& sCfgFileName);
+	std::string StrValue(const std::string& sKey);
+	int IntValue(const std::string& sKey);
+	double DoubleValue(const std::string& sKey);
 
 	template<typename T>
-	inline std::vector<T> GetArray(const std::string & key)
+	inline std::vector<T> GetArray(const std::string& sKey)
 	{
-		std::vector<T> ret;
-		auto findResult = aSettings.find(key);
-		if (findResult != aSettings.end())
-			StringUtility::Split(findResult->second, ret, ",");
-		return ret;
+		std::vector<T> aRet;
+		auto findResult = m_mSettings.find(sKey);
+		if (findResult != m_mSettings.end())
+			StringUtility::Split(findResult->second, aRet, ",");
+		return aRet;
 	}
 };
