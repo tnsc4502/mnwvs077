@@ -274,7 +274,7 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 			++((MobGen*)mob.GetMobGen())->nMobCount;
 
 		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-		newMob->SetHP(1 /*newMob->GetMobTemplate()->m_lnMaxHP*/);
+		newMob->SetHP(/*1 for test purpose*/ newMob->GetMobTemplate()->m_lnMaxHP);
 		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //Mob = 5 initially ?
@@ -810,9 +810,9 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					dmgInfo.nDamageCount,
 					pInfo->m_nWeaponItemID,
 					pInfo->m_nBulletItemID,
-					pInfo->m_nSkillID == 0 ? 0 : pInfo->m_nAttackType,
+					pInfo->m_nAttackType,
 					pInfo->m_nAction,
-					false,
+					(pInfo->m_nOption & 8) != 0,
 					pSkill,
 					pInfo->m_nSLV,
 					dmgInfo.anDamageSrv,

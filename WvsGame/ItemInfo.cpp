@@ -868,15 +868,17 @@ int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSki
 	int nResult1 = 0, nResult2 = 0;
 	switch (nWT)
 	{
-	case 49:
-		if (nAttackType != 1 && (nSkillID != 5221003 || nAttackType))
-			return 0;
-		return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 5200000, nullptr, pnACCInc);;
+		case 49:
+			if (nAttackType != 1 && (nSkillID != 5221003 || nAttackType))
+				return 0;
+			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 5200000, nullptr, pnACCInc);;
 		case 48:
 			if (nAttackType && (nSkillID != 5121002 || nAttackType != 1))
 				return 0;
 			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 5100001, nullptr, pnACCInc);
 		case 47:
+			if (nAttackType != 1)
+				return 0;
 			return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 4100000, nullptr, pnACCInc);
 		case 46:
 			if (nAttackType != 1)
@@ -951,9 +953,9 @@ int ItemInfo::GetCriticalSkillLevel(GA_Character * pCharacter, int nWeaponID, in
 		if (nAttackType != 1)
 			return 0;
 		if (nWT == 45 || nWT == 46)
-			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 3000001, &pEntry, 0, 0, 0, 0);
+			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 3000001, &pEntry);
 		else if(nWT == 47)
-			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 4100001, &pEntry, 0, 0, 0, 0);
+			nCSLV = SkillInfo::GetInstance()->GetSkillLevel(pCharacter, 4100001, &pEntry);
 		if (pEntry && nCSLV > 0)
 		{
 			if (pnProp)

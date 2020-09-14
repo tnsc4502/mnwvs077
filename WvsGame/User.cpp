@@ -354,11 +354,7 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 		SkillInfo::GetInstance()->GetSkillLevel(
 			m_pCharacterData,
 			nSkillID,
-			nullptr,
-			0,
-			0,
-			0,
-			0
+			nullptr
 	));
 	if (nSkillID && !pInfo->m_nSLV)
 		return nullptr;
@@ -697,7 +693,7 @@ void User::OnTransferFieldRequest(InPacket * iPacket)
 				pReturnField->GetPortalMap()->GetRandStartPoint()->GetPortalName()
 			);
 		}
-		m_pCharacterData->mStat->nHP = 1;
+		m_pCharacterData->mStat->nHP = 50;
 		SendCharacterStat(false, BasicStat::BS_HP);
 		m_pSecondaryStat->ResetAll(this);
 		return;
@@ -899,6 +895,58 @@ void User::SetMovePosition(int x, int y, char bMoveAction, short nFSN)
 	SetPosY(y);
 	SetMoveAction(bMoveAction);
 	SetFh(nFSN);
+}
+
+bool User::InspectDamageMiss(int nDamage, void* pMobAttackInfo, void *pMob_, unsigned int *aDamageRandom)
+{
+	Mob *pMob = (Mob*)pMob_;
+	MobTemplate::MobAttackInfo *pAttackInfo = (MobTemplate::MobAttackInfo*)pMobAttackInfo;
+	bool bCheckMiss = false;
+
+	if (nDamage > 0)
+		return true;
+
+	if (pAttackInfo && pAttackInfo->bMagicAttack)
+		bCheckMiss = m_pCalcDamage->CheckMDamageMiss(
+			pMob->GetMobStat(), aDamageRandom[0]
+		);
+	else
+		bCheckMiss = m_pCalcDamage->CheckPDamageMiss(
+			pMob->GetMobStat(), aDamageRandom[0]
+		);
+
+	SkillEntry *pEntry = nullptr;
+	if (m_pCharacterData->mStat->nJob == 412 ||
+		m_pCharacterData->mStat->nJob == 422)
+	{
+		int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
+			m_pCharacterData,
+			m_pCharacterData->mStat->nJob == 412 ? 4120002 : 4220002,
+			&pEntry
+		);
+		if (nSLV &&	pEntry->GetLevelData(nSLV)->m_nProp > (int)(aDamageRandom[1] % 100))
+			bCheckMiss = true;
+	}
+
+	if ((int)(aDamageRandom[2] % 100) < pMob->GetMobStat()->nBlind_)
+		bCheckMiss = true;
+
+	if (m_pCharacterData->mStat->nJob == 112 ||
+		m_pCharacterData->mStat->nJob == 112)
+	{
+		auto& pShield = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -10);
+		int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
+			m_pCharacterData,
+			m_pCharacterData->mStat->nJob == 112 ? 1120005 : 1220006,
+			&pEntry
+		);
+		if (nSLV &&
+			pShield &&
+			pEntry->GetLevelData(nSLV)->m_nProp > (int)(aDamageRandom[3] % 1000))
+			bCheckMiss = true;
+	}
+
+	return bCheckMiss;
 }
 
 void User::UpdateAvatar()
@@ -1380,7 +1428,12 @@ void User::OnHit(InPacket *iPacket)
 		nDamageSend = nDamage,
 		nReflectType = 0;
 	bool bReflect = false,
+		bResetRnd = false,
 		bShield = false;
+
+	unsigned int aDamageRandom[4];
+	for (int i = 0; i < sizeof(aDamageRandom) / sizeof(int); ++i)
+		aDamageRandom[i] = GetCalcDamage()->GetRndGenForForCheckDamageMiss().Random();
 
 	if (nDamage < -1)
 		return;
@@ -1433,13 +1486,20 @@ void User::OnHit(InPacket *iPacket)
 			}
 		}
 		oPacket.Encode1(bStance ? 1 : 0);
-		bool bResetRnd = iPacket->Decode1() == 1;
+		bResetRnd = iPacket->Decode1() == 1;
 
 		//Damage Check
 		iPacket->Decode4();
 		for (int i = 0; i < 14; ++i)
 			iPacket->Decode4();
 		//
+	}
+
+	if (!m_pField)
+	{
+		if (nMobAttackIdx > -2 && (nDamage > 0 || bResetRnd))
+			GetCalcDamage()->GetRndGenForMob().Random();
+		return;
 	}
 
 	//IsCounterAttackPossible(nMobTemplateID, nMobID, nMobAttackIdx, nReflect, nPowerGuard, nManaRelfect != 0, ptHit, ptUserPos);
@@ -1531,11 +1591,7 @@ void User::OnHit(InPacket *iPacket)
 			int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 				m_pCharacterData,
 				4211005,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (pEntry && nSLV)
 			{
@@ -1567,11 +1623,7 @@ void User::OnHit(InPacket *iPacket)
 			int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 				m_pCharacterData,
 				nSkillID,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV) 
 			{
@@ -1638,66 +1690,17 @@ void User::OnHit(InPacket *iPacket)
 	if (pMob && pTemplate)
 	{
 		int nDamageSrv = 0, nRnd = 0;
-		bool bCheckMiss = false;
-		if (nDamageClient > 0 || (Rand32::GetInstance()->Random() % 100) > 30)
+		bool bCheckMiss = InspectDamageMiss(nDamageClient, pAttackInfo, pMob, aDamageRandom);
+
+		if (nDamageClient > 0 || (Rand32::GetInstance()->Random() % 100) > 30 || bCheckMiss)
 			m_bDeadlyAttack = false;
-		else
+		else if(++m_nInvalidDamageMissCount > 10)
 		{
-			if (pAttackInfo && pAttackInfo->bMagicAttack)
-				bCheckMiss = m_pCalcDamage->CheckMDamageMiss(
-					pMob->GetMobStat(), 0
-				);
-			else
-				bCheckMiss = m_pCalcDamage->CheckPDamageMiss(
-					pMob->GetMobStat(), 0
-				);
-			if (m_pCharacterData->mStat->nJob == 112 ||
-				m_pCharacterData->mStat->nJob == 112)
-			{
-				auto& pShield = m_pCharacterData->GetItem(GW_ItemSlotBase::EQUIP, -10);
-				int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
-					m_pCharacterData,
-					m_pCharacterData->mStat->nJob == 112 ? 1220006 : 1120005,
-					&pEntry,
-					0,
-					0,
-					0,
-					0
-				);
-				if (nSLV &&
-					pShield &&
-					pEntry->GetLevelData(nSLV)->m_nProp > (int)(Rand32::GetInstance()->Random() % 1000))
-					bCheckMiss = true;
-			}
-			if (m_pCharacterData->mStat->nJob == 412 ||
-				m_pCharacterData->mStat->nJob == 422)
-			{
-				int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
-					m_pCharacterData,
-					m_pCharacterData->mStat->nJob == 412 ? 4120002 : 4220002,
-					&pEntry,
-					0,
-					0,
-					0,
-					0
-				);
-				if (nSLV &&
-					pEntry->GetLevelData(nSLV)->m_nProp > (int)(Rand32::GetInstance()->Random() % 100))
-					bCheckMiss = true;
-			}
-
-			if ((int)(Rand32::GetInstance()->Random() % 100) < pMob->GetMobStat()->nBlind_)
-				bCheckMiss = true;
-
-			if (!bCheckMiss && ++m_nInvalidDamageMissCount > 10) 
-			{
-				m_nInvalidDamageMissCount = 0;
-				SendChatMessage(0, "Suspicious Hacking for Damage Miss Check.");
-			}
-			else
-				m_nInvalidDamageMissCount = std::max(0, m_nInvalidDamageMissCount - 1);
+			m_nInvalidDamageMissCount = 0;
+			SendChatMessage(0, "Suspicious Hacking for Damage Miss Check.");
 		}
 
+		//InspectDamage --- In official impl, if m_nGradeCode > 0, it skips damage checking
 		if (nDamageClient > 0 && pAttackInfo && pAttackInfo->bMagicAttack)
 		{
 			nDamageSrv = m_pCalcDamage->MDamage(
@@ -1707,10 +1710,24 @@ void User::OnHit(InPacket *iPacket)
 				nullptr,
 				&nRnd
 			);
+
 			if (pAttackInfo->nMagicElemAttr)
 			{
+				int nResistanceSkillID = 0, nJob = m_pBasicStat->nJob;
+				if (nJob / 10 == 13 && nJob % 10 >= 1)
+					nResistanceSkillID = 1310000;
+				else if (nJob / 10 == 21 && nJob % 10 >= 1)
+					nResistanceSkillID = 2110000;
+				else if (nJob / 10 == 22 && nJob % 10 >= 1)
+					nResistanceSkillID = 2210000;
+				else if (nJob / 10 == 23 && nJob % 10 >= 1)
+					nResistanceSkillID = 2310000;
+
+				/*
+				This resistance skill level, in official impl., comes from CalcDamageStat
+				*/
 				int nResistance = SkillInfo::GetInstance()->GetResistance(
-					pAttackInfo->nSkillLevel, 
+					!nResistanceSkillID ? 0 : SkillInfo::GetInstance()->GetSkillLevel(m_pCharacterData, nResistanceSkillID, nullptr),
 					QWUser::GetJob(this), 
 					pAttackInfo->nMagicElemAttr
 				);
@@ -1728,14 +1745,17 @@ void User::OnHit(InPacket *iPacket)
 			);
 		}
 
+		if (nMobAttackIdx > -2 && nDamage <= 0 && bResetRnd)
+			GetCalcDamage()->GetRndGenForMob().Random();
+
 		WvsLogger::LogFormat("Client Damage : %d, Server Damage : %d Miss Check = %d\n", nDamageClient, nDamageSrv, (int)bCheckMiss);
 		if ((pAttackInfo && (pAttackInfo->nMPBurn || pAttackInfo->bDeadlyAttack))
-			|| nDamageClient >= nDamageSrv || bCheckMiss)
+			|| nDamageClient <= nDamageSrv || bCheckMiss)
 		{
 			m_nInvalidDamageCount = std::max(0, m_nInvalidDamageCount - 1);
 			return;
 		}
-		else if(nDamageClient >= nDamageSrv * 1.25)
+		else if(nDamageClient >= nDamageSrv + 2)
 			++m_nInvalidDamageCount;
 
 		if (m_nInvalidDamageCount > 10)

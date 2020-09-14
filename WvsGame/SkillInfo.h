@@ -60,7 +60,7 @@ public:
 	void LoadSkillRoot(int nSkillRootID, const std::string& sName);
 	SkillEntry* LoadSkill(int nSkillRootID, int nSkillID, void* pData);
 	void LoadLevelDataByLevelNode(int nSkillID, SkillEntry* pEntry, void* pData, void *pRoot);
-	int GetSkillLevel(GA_Character* pCharacter, int nSkillID, SkillEntry** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot);
+	int GetSkillLevel(GA_Character* pCharacter, int nSkillID, SkillEntry** pEntry);
 	GW_SkillRecord* GetSkillRecord(int nSkillID, int nSLV, long long int tExpired);
 	static bool IsSummonSkill(int nSkillID);
 	static bool IsPartyStatChangeSkill(int nSkillID);

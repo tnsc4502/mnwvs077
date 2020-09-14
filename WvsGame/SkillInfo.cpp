@@ -185,13 +185,13 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 	int nSLV = 0;
 	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 211))
 	{
-		nSLV = GetSkillLevel(pCharacter, 2110001, &pEntry, 0, 0, 0, 0);
+		nSLV = GetSkillLevel(pCharacter, 2110001, &pEntry);
 		if (nSLV)
 			pLevel = pEntry->GetLevelData(nSLV);
 	}
 	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 221))
 	{
-		nSLV = GetSkillLevel(pCharacter, 2210001, &pEntry, 0, 0, 0, 0);
+		nSLV = GetSkillLevel(pCharacter, 2210001, &pEntry);
 		if (nSLV)
 			pLevel = pEntry->GetLevelData(nSLV);
 	}
@@ -574,7 +574,7 @@ void SkillInfo::LoadLevelDataByLevelNode(int nSkillID, SkillEntry * pEntry, void
 	//pEntry->SetMaxLevel((int)pEntry->GetAllLevelData().size() - 1);
 }
 
-int SkillInfo::GetSkillLevel(GA_Character * pCharacter, int nSkillID, SkillEntry ** pEntry, int bNoPvPLevelCheck, int bPureStealSLV, int bNotApplySteal, int bCheckSkillRoot)
+int SkillInfo::GetSkillLevel(GA_Character * pCharacter, int nSkillID, SkillEntry ** pEntry)
 {
 	auto pSkillTreeByJob = m_mSkillByRootID.find(nSkillID / 10000);
 	if (pSkillTreeByJob == m_mSkillByRootID.end() || pSkillTreeByJob->second == nullptr)
@@ -679,7 +679,7 @@ bool SkillInfo::IsAdminSkill(int nSkillID)
 
 int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)
 {
-	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry, 0, 0, 0, 0);
+	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry);
 	if (pnInc)
 	{
 		if (nSLV <= 0)
@@ -701,11 +701,7 @@ int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
 		nSLV = GetSkillLevel(
 			pCharacter,
 			1000002,
-			&pEntry,
-			0,
-			0,
-			0,
-			0
+			&pEntry
 		);
 		if (nSLV && pEntry)
 			return pEntry->GetLevelData(nSLV)->m_nTime;
@@ -717,11 +713,7 @@ int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4100002,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nTime;
@@ -731,11 +723,7 @@ int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4200001,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nTime;
@@ -753,11 +741,7 @@ int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
 		nSLV = GetSkillLevel(
 			pCharacter,
 			1000000,
-			&pEntry,
-			0,
-			0,
-			0,
-			0
+			&pEntry
 		);
 		if (nSLV && pEntry)
 			return pEntry->GetLevelData(nSLV)->m_nHp;
@@ -769,11 +753,7 @@ int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4100002,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nHp;
@@ -783,11 +763,7 @@ int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4200001,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nHp;
@@ -807,11 +783,7 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4100002,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nMp;
@@ -821,11 +793,7 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				4200001,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nMp;
@@ -835,11 +803,7 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				1110000,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nMp;
@@ -849,11 +813,7 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 			nSLV = GetSkillLevel(
 				pCharacter,
 				1210000,
-				&pEntry,
-				0,
-				0,
-				0,
-				0
+				&pEntry
 			);
 			if (nSLV && pEntry)
 				return pEntry->GetLevelData(nSLV)->m_nMp;
@@ -863,9 +823,6 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 		(int) ((double)GetSkillLevel(
 			pCharacter,
 			2000000,
-			&pEntry,
-			0,
-			0,
-			0,
-			0) * (double)pCharacter->mLevel->nLevel * 0.1);
+			&pEntry
+		) * (double)pCharacter->mLevel->nLevel * 0.1);
 }

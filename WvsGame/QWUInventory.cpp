@@ -111,6 +111,9 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 			}
 		}
 	}
+	if (nTI == GW_ItemSlotBase::EQUIP)
+		pUser->ValidateStat();
+
 	SendInventoryOperation(pUser, bOnExclRequest, aChangeLog);
 	pUser->SendCharacterStat(true, 0);
 	return false; //The return value is dispensable.
@@ -278,7 +281,7 @@ void QWUInventory::UpgradeEquip(User * pUser, int nUPOS, int nEPOS, int nWhiteSc
 		(SkillInfo::GetInstance()->GetSkillLevel(
 			pUser->GetCharacterData(),
 			1003,
-			&ppEntry, 0, 0, 0, 0), ppEntry))
+			&ppEntry), ppEntry))
 	{
 		auto pUItem = pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CONSUME, nUPOS);
 		GW_ItemSlotEquip* pEItem = (GW_ItemSlotEquip*)(pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::EQUIP, nEPOS));

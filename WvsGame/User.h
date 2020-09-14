@@ -220,8 +220,11 @@ public:
 	void PostPortalTeleport(int nPortalID);
 	void SetMovePosition(int x, int y, char bMoveAction, short nFSN);
 
-	//Avatar
 private:
+	//Inspection
+	bool InspectDamageMiss(int nDamage, void *pMobAttackInfo, void *pMob, unsigned int *aDamageRandom);
+
+	//Avatar
 	void UpdateAvatar();
 
 public:

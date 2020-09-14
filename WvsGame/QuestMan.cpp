@@ -251,14 +251,7 @@ bool QuestMan::CheckStartDemand(int nQuestID, User * pUser)
 
 	//Check skill req.
 	for (auto& skill : pDemand->m_mDemandSkill)
-		if (SkillInfo::GetInstance()->GetSkillLevel(
-			pUser->GetCharacterData(),
-			skill.second,
-			nullptr,
-			false,
-			false,
-			false,
-			false) < skill.second)
+		if (SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), skill.second, nullptr) < skill.second)
 			return false;
 
 	//Check item req.
@@ -321,14 +314,7 @@ bool QuestMan::CheckCompleteDemand(int nQuestID, User * pUser)
 
 	//Check skill req.
 	for (auto& skill : pDemand->m_mDemandSkill)
-		if (SkillInfo::GetInstance()->GetSkillLevel(
-			pUser->GetCharacterData(),
-			skill.second,
-			nullptr,
-			false,
-			false,
-			false,
-			false) < skill.second)
+		if (SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), skill.second, nullptr) < skill.second)
 			return false;
 
 	//Check item req.

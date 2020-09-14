@@ -226,7 +226,6 @@ int ScriptUser::TargetIncHP(lua_State * L)
 	
 	auto liFlag = QWUser::IncHP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -238,7 +237,6 @@ int ScriptUser::TargetIncMP(lua_State * L)
 
 	auto liFlag = QWUser::IncMP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -250,7 +248,6 @@ int ScriptUser::TargetIncSTR(lua_State * L)
 
 	auto liFlag = QWUser::IncSTR(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -262,7 +259,6 @@ int ScriptUser::TargetIncINT(lua_State * L)
 
 	auto liFlag = QWUser::IncINT(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -274,7 +270,6 @@ int ScriptUser::TargetIncDEX(lua_State * L)
 
 	auto liFlag = QWUser::IncDEX(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -286,7 +281,6 @@ int ScriptUser::TargetIncLUK(lua_State * L)
 
 	auto liFlag = QWUser::IncLUK(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -307,7 +301,6 @@ int ScriptUser::TargetIncSP(lua_State * L)
 		nVal, 
 		nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -319,7 +312,6 @@ int ScriptUser::TargetIncAP(lua_State * L)
 
 	auto liFlag = QWUser::IncAP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -331,7 +323,6 @@ int ScriptUser::TargetIncMMP(lua_State * L)
 
 	auto liFlag = QWUser::IncMMP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -343,7 +334,6 @@ int ScriptUser::TargetIncMHP(lua_State * L)
 
 	auto liFlag = QWUser::IncMHP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -355,7 +345,6 @@ int ScriptUser::TargetIncEXP(lua_State * L)
 
 	auto liFlag = QWUser::IncEXP(self->m_pUser, nVal, nFullOnly == 1);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 
@@ -385,7 +374,6 @@ int ScriptUser::TargetSetJob(lua_State * L)
 
 	auto liFlag = QWUser::SetJob(self->m_pUser, nVal);
 	self->m_pUser->SendCharacterStat(false, liFlag);
-	self->m_pUser->ValidateStat();
 	return 1;
 }
 

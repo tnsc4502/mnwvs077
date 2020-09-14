@@ -89,7 +89,7 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 		auto pEntry = SkillInfo::GetInstance()->GetSkillByID(skillRecord.first);
 		if (pEntry)
 		{
-			auto pLevelData = pEntry->GetLevelData(skillRecord.second->nSLV);
+			auto pLevelData = !skillRecord.second->nSLV ? nullptr : pEntry->GetLevelData(skillRecord.second->nSLV);
 
 			//Ignore invalid skills and those do not have permanent effects.
 			if (!pLevelData || pLevelData->m_nProp || pLevelData->m_nTime)
@@ -134,9 +134,9 @@ void SecondaryStat::SetFrom(GA_Character * pChar, BasicStat * pBS)
 
 	//Inc from skills
 	SkillEntry *pEntry1 = nullptr, *pEntry2 = nullptr, *pEntry3 = nullptr;
-	int nSLV1 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 3000000, &pEntry1, 0, 0, 0, 0);
-	int nSLV2 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 4000000, &pEntry2, 0, 0, 0, 0);
-	int nSLV3 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 5000000, &pEntry3, 0, 0, 0, 0);
+	int nSLV1 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 3000000, &pEntry1);
+	int nSLV2 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 4000000, &pEntry2);
+	int nSLV3 = SkillInfo::GetInstance()->GetSkillLevel(pChar, 5000000, &pEntry3);
 	if (nSLV1)
 		nACC += pEntry1->GetLevelData(nSLV1)->m_nX;
 	if (nSLV2)
@@ -286,10 +286,18 @@ void SecondaryStat::EncodeEnergyCharged(OutPacket *oPacket, TemporaryStat::TS_Fl
 
 void SecondaryStat::EncodeDash_Speed(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
 {
+	oPacket->Encode2(0);
+	oPacket->Encode8(0);
+	oPacket->Encode1(1);
+	oPacket->Encode4(0);
 }
 
 void SecondaryStat::EncodeDash_Jump(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)
 {
+	oPacket->Encode2(0);
+	oPacket->Encode8(0);
+	oPacket->Encode1(1);
+	oPacket->Encode4(0);
 }
 
 void SecondaryStat::EncodeRideVehicle(OutPacket *oPacket, TemporaryStat::TS_Flag &flag)

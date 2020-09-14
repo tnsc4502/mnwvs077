@@ -99,6 +99,8 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 			break;
 		pTemplate->m_aAttackInfo.push_back({});
 		auto& attackInfo = pTemplate->m_aAttackInfo.back();
+
+		atkNode = atkNode["info"];
 		attackInfo.nType = atkNode["type"];
 		attackInfo.nConMP = atkNode["conMP"];
 		attackInfo.nDisease = atkNode["disease"];

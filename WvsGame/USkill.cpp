@@ -217,11 +217,7 @@ void USkill::OnSkillCancelRequest(User * pUser, InPacket * iPacket)
 	int nSLV = SkillInfo::GetInstance()->GetSkillLevel(
 		pUser->GetCharacterData(),
 		nSkillID,
-		&pSkill,
-		0,
-		0,
-		0,
-		0);
+		&pSkill);
 	if (pSkill)
 	{
 		USkill::OnSkillUseRequest(
@@ -672,7 +668,7 @@ void USkill::ResetTemporaryByTime(User * pUser, const std::vector<int>& aResetRe
 	for (auto nReason : aResetReason)
 	{
 		SkillEntry* pSkill = nullptr;
-		auto nSLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nReason, &pSkill, 0, 0, 0, 0);
+		auto nSLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nReason, &pSkill);
 		if (pSkill)
 		{
 			USkill::OnSkillUseRequest(

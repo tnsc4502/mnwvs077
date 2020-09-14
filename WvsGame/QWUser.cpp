@@ -39,6 +39,8 @@ long long int QWUser::IncSTR(User *pUser, int nInc, bool bOnlyFull)
 	if (bOnlyFull && refValue + nInc < 0 || refValue + nInc > 999)
 		return 0;
 	refValue += nInc;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_STR;
 }
 
@@ -49,6 +51,8 @@ long long int QWUser::IncDEX(User *pUser, int nInc, bool bOnlyFull)
 	if (bOnlyFull && refValue + nInc < 0 || refValue + nInc > 999)
 		return 0;
 	refValue += nInc;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_DEX;
 }
 
@@ -59,6 +63,8 @@ long long int QWUser::IncLUK(User *pUser, int nInc, bool bOnlyFull)
 	if (bOnlyFull && refValue + nInc < 0 || refValue + nInc > 999)
 		return 0;
 	refValue += nInc;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_LUK;
 }
 
@@ -69,6 +75,8 @@ long long int QWUser::IncINT(User *pUser, int nInc, bool bOnlyFull)
 	if (bOnlyFull && refValue + nInc < 0 || refValue + nInc > 999)
 		return 0;
 	refValue += nInc;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_INT;
 }
 
@@ -86,6 +94,7 @@ long long int QWUser::IncMP(User *pUser, int nInc, bool bOnlyFull)
 	if (nMP >= nMaxMP)
 		nMP = nMaxMP;
 	pUser->GetCharacterData()->mStat->nMP = nMP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_MP;
 }
@@ -102,6 +111,7 @@ long long int QWUser::IncHP(User *pUser, int nInc, bool bOnlyFull)
 	if (nHP >= nMaxHP)
 		nHP = nMaxHP;
 	pUser->GetCharacterData()->mStat->nHP = nHP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_HP;
 }
@@ -116,6 +126,7 @@ long long int QWUser::IncMMP(User *pUser, int nInc, bool bOnlyFull)
 	if (nMaxMP >= 90000)
 		nMaxMP = 90000;
 	pUser->GetCharacterData()->mStat->nMaxMP = nMaxMP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_MaxMP;
 }
@@ -130,6 +141,7 @@ long long int QWUser::IncMHP(User *pUser, int nInc, bool bOnlyFull)
 	if (nMaxHP >= 90000)
 		nMaxHP = 90000;
 	pUser->GetCharacterData()->mStat->nMaxHP = nMaxHP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_MaxHP;
 }
@@ -146,6 +158,7 @@ long long int QWUser::IncPOP(User *pUser, int nInc, bool bOnlyFull)
 	if (nPOP < -30000)
 		nPOP = -30000;
 	pUser->GetCharacterData()->mStat->nPOP = nPOP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_POP;
 }
@@ -163,6 +176,8 @@ long long int QWUser::IncSP(User *pUser, int nJobLevel, int nInc, bool bOnlyFull
 		ref = 0;
 	if (ref >= 255)
 		ref = 255;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_SP;
 }
 
@@ -185,6 +200,7 @@ long long int QWUser::IncAP(User *pUser, int nInc, bool bOnlyFull)
 	if (nAP < 0)
 		nAP = 0;
 	pUser->GetCharacterData()->mStat->nAP = nAP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_AP;
 }
@@ -201,6 +217,7 @@ long long int QWUser::IncMaxHPVal(User *pUser, int nInc, bool bOnlyFull)
 	if (nMaxHP < 0)
 		nMaxHP = 0;
 	pUser->GetCharacterData()->mStat->nMaxHP = nMaxHP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_MaxHP;
 }
@@ -217,6 +234,7 @@ long long int QWUser::IncMaxMPVal(User *pUser, int nInc, bool bOnlyFull)
 	if (nMaxMP < 0)
 		nMaxMP = 0;
 	pUser->GetCharacterData()->mStat->nMaxMP = nMaxMP;
+	pUser->ValidateStat();
 
 	return BasicStat::BS_MaxMP;
 }
@@ -239,9 +257,9 @@ long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 				WvsGameConstants::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),
 				3,
 				false);
-		pUser->ValidateStat();
 		pUser->OnLevelUp();
 	}
+	pUser->ValidateStat();
 	return nRet;
 }
 
@@ -351,6 +369,8 @@ long long int QWUser::SetFace(User *pUser, int nFace)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nFace = nFace;
 	pUser->GetCharacterData()->mAvatarData->nFace = nFace;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_Face;
 }
 
@@ -359,6 +379,8 @@ long long int QWUser::SetHair(User *pUser, int nHair)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nHair = nHair;
 	pUser->GetCharacterData()->mAvatarData->nHair = nHair;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_Hair;
 }
 
@@ -367,6 +389,8 @@ long long int QWUser::SetJob(User *pUser, int nJob)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nJob = nJob;
 	QWUSkillRecord::ValidateMasterLevelForSKills(pUser);
+	pUser->ValidateStat();
+
 	return BasicStat::BS_Job;
 }
 
@@ -374,6 +398,8 @@ long long int QWUser::SetLevel(User *pUser, int nLevel)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mLevel->nLevel = nLevel;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_Level;
 }
 
@@ -382,6 +408,8 @@ long long int QWUser::SetSkin(User *pUser, int nSkin)
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetCharacterData()->mStat->nSkin = nSkin;
 	pUser->GetCharacterData()->mAvatarData->nSkin = nSkin;
+	pUser->ValidateStat();
+
 	return BasicStat::BS_Skin;
 }
 
