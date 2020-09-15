@@ -25,7 +25,7 @@ public:
 	//Static helper funcs
 	static void LoadStandardPDD();
 	static int GetStandardPDD(int nJobCategory, int nLevel);
-	static double GetDamageAdjustedByElemAttr(long double damage, int nAttr, long double dAdjust);
+	static double GetDamageAdjustedByElemAttr(double damage, int nAttr, double dAdjust);
 	static double GetDamageAdjustedByElemAttr(double damage, const SkillEntry* pSkill, int *aDamagedElemAttr, int nSLV);
 	static double GetDamageAdjustedByChargedElemAttr(double damage, int *aDamagedElemAttr, User* pUser);
 	static int GetComboDamageParam(User *pUser, int nSkillID, int nComboCounter);

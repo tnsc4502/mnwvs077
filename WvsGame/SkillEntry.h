@@ -30,6 +30,7 @@ public:
 	int GetMaxLevel() const;
 	int GetSkillID() const;
 	int GetAttackElemAttr() const;
+	int AdjustDamageDecRate(int nSLV, int nOrder, int *aDamage, bool bFinalAfterSlashBlast) const;
 	bool IsInvisible() const;
 };
 

@@ -760,6 +760,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 
 	//The sequence to traverse the damage info must be as same as the client.
 	//The original code uses std::map to store damage info, which distorted their receving-order.
+	int nOrder = 0;
 	for (auto pDmgInfo : pInfo->m_apDmgInfo)
 	{
 		auto& dmgInfo = *pDmgInfo;
@@ -821,12 +822,18 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					0,
 					0
 				);
+			
+			if (pSkill)
+				pSkill->AdjustDamageDecRate(
+					pInfo->m_nSLV, nOrder, dmgInfo.anDamageSrv, (pInfo->m_nOption & 1) != 0
+				);
 
 			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 				WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
 					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);
 		}
 		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
+		++nOrder;
 	}
 
 	//Send Attack Packet and Apply Damages to Monsters
