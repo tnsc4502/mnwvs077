@@ -535,7 +535,7 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 			continue;
 
 		if (pLevel->tInterval &&
-			tCur - (skillContext.tLastSkillUse + pLevel->tInterval) < 0)
+			tCur < (skillContext.tLastSkillUse + pLevel->tInterval))
 			continue;
 
 		if (nSkillID > 141)

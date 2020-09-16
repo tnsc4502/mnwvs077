@@ -33,7 +33,7 @@ struct AttackInfo
 	std::map<int, DamageInfo> m_mDmgInfo;
 	std::vector<DamageInfo*> m_apDmgInfo;
 	std::vector<int> anDropID, anMoneyAmount;
-	int m_bAttackInfoFlag;
+	int m_bDamageInfoFlag;
 	int GetDamagedMobCount();
 	int GetDamageCountPerMob();
 
@@ -50,6 +50,7 @@ struct AttackInfo
 		m_nType = 0,
 		m_nAttackType = 0,
 		m_nAttackSpeed = 0,
+		m_nPartyCount = 0,
 		m_tLastAttackTime = 0,
 		m_nSoulArrow = 0,
 		m_nWeaponItemID = 0,

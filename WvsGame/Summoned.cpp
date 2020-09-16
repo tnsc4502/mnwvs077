@@ -159,9 +159,9 @@ void Summoned::OnAttack(InPacket *iPacket)
 {
 	AttackInfo info;
 	int tLastAttackClient = iPacket->Decode4();
-	info.m_bAttackInfoFlag = iPacket->Decode1();
-	info.m_bLeft = (info.m_bAttackInfoFlag >> 7) & 1;
-	info.m_nAction = info.m_bAttackInfoFlag & 0x7F;
+	info.m_bDamageInfoFlag = iPacket->Decode1();
+	info.m_bLeft = (info.m_bDamageInfoFlag >> 7) & 1;
+	info.m_nAction = info.m_bDamageInfoFlag & 0x7F;
 	int nMobCount = iPacket->Decode1();
 	auto tCur = GameDateTime::GetTime();
 

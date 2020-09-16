@@ -342,8 +342,8 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 {
 	pInfo->m_nType = nType;
 	pInfo->m_bFieldKey = iPacket->Decode1();
-	pInfo->m_bAttackInfoFlag = iPacket->Decode1();
-	pInfo->m_nDamagePerMob = pInfo->m_bAttackInfoFlag & 0xF;
+	pInfo->m_bDamageInfoFlag = iPacket->Decode1();
+	pInfo->m_nDamagePerMob = pInfo->m_bDamageInfoFlag & 0xF;
 	int nSkillID = pInfo->m_nSkillID = iPacket->Decode4();
 	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
 	if (nSkillID && !pSkillEntry)
@@ -368,7 +368,9 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	pInfo->m_nDisplay = iPacket->Decode1();
 	pInfo->m_nAction = pInfo->m_nDisplay & 0x7F;
 	pInfo->m_nAttackActionType = iPacket->Decode1();
-	pInfo->m_nAttackSpeed = iPacket->Decode1();
+	int nAttackInfo = iPacket->Decode1();
+	pInfo->m_nAttackSpeed = nAttackInfo & 0xF;
+	pInfo->m_nPartyCount = nAttackInfo >> 4;
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 
 	if (nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)

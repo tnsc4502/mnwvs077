@@ -801,7 +801,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					pInfo->m_nSLV,
 					dmgInfo.anDamageSrv,
 					dmgInfo.abDamageCriticalSrv,
-					pInfo->GetDamagedMobCount(),
+					pInfo->m_nPartyCount + pInfo->GetDamagedMobCount(),
 					pInfo->m_tKeyDown
 				);
 			else //Physical Damages
@@ -940,7 +940,7 @@ void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPack
 {
 	oPacket->Encode2(pInfo->m_nType - UserRecvPacketFlag::User_OnUserAttack_MeleeAttack + UserSendPacketFlag::UserRemote_OnMeleeAttack);
 	oPacket->Encode4(pUser->GetUserID());
-	oPacket->Encode1(pInfo->m_bAttackInfoFlag);
+	oPacket->Encode1(pInfo->m_bDamageInfoFlag);
 	if (pInfo->m_nSkillID > 0 || pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_MagicAttack)
 	{
 		oPacket->Encode1(pInfo->m_nSLV);

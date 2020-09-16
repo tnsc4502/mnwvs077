@@ -111,7 +111,7 @@ double CalcDamage::GetDamageAdjustedByElemAttr(double damage, const SkillEntry *
 		if (pSkill->GetSkillID() == 2111006)
 			result = GetDamageAdjustedByElemAttr(damage * 0.5, aDamagedElemAttr[4], 1.0)
 				+ GetDamageAdjustedByElemAttr(damage * 0.5, aDamagedElemAttr[2], 1.0);
-		else if (pSkill->GetSkillID() == 2111006)
+		else if (pSkill->GetSkillID() == 2211006)
 			result = GetDamageAdjustedByElemAttr(damage * 0.5, aDamagedElemAttr[3], 1.0)
 			+ GetDamageAdjustedByElemAttr(damage * 0.5, aDamagedElemAttr[1], 1.0);
 		else
