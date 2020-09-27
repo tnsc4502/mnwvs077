@@ -39,7 +39,7 @@ void ItemInfo::Initialize()
 	IterateItemString(nullptr);
 	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateItemString>]Item names are completely loaded.\n");
 
-	static auto& eqpWz = stWzResMan->GetWz(Wz::Character);
+	static auto& eqpWz = WzResMan::GetInstance()->GetWz(Wz::Character);
 	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateEquipItem>]On iterating all equip items....\n");
 	IterateEquipItem(&eqpWz);
 	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateEquipItem>]Equip items are completely loaded.\n");
@@ -52,14 +52,13 @@ void ItemInfo::Initialize()
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
 	RegisterSetHalloweenItem();
-	//stWzResMan->Unmount("./Game/Item.wz");
-	//stWzResMan->ReleaseMemory();
-	//WvsLogger::LogRaw("[ItemInfo::Initialize]釋放ItemInfo所有Wz記憶體[ReleaseMemory Done]....\n");
+
+	WzResMan::GetInstance()->RemountAll();
 }
 
 void ItemInfo::LoadItemSellPriceByLv()
 {
-	auto& info = stWzResMan->GetWz(Wz::Item)["ItemSellPriceStandard"]["400"];
+	auto& info = WzResMan::GetInstance()->GetWz(Wz::Item)["ItemSellPriceStandard"]["400"];
 	for (auto& lvl : info)
 		m_mItemSellPriceByLv[atoi(lvl.GetName().c_str())] = (int)lvl;
 }
@@ -88,12 +87,12 @@ void ItemInfo::IterateMapString(void *dataNode)
 void ItemInfo::IterateItemString(void *dataNode)
 {
 	static WzIterator Img[] = { 
-		stWzResMan->GetWz(Wz::String)["Eqp"], 
-		stWzResMan->GetWz(Wz::String)["Etc"], 
-		stWzResMan->GetWz(Wz::String)["Consume"], 
-		stWzResMan->GetWz(Wz::String)["Ins"],
-		stWzResMan->GetWz(Wz::String)["Cash"],
-		stWzResMan->GetWz(Wz::String)["Pet"]
+		WzResMan::GetInstance()->GetWz(Wz::String)["Eqp"], 
+		WzResMan::GetInstance()->GetWz(Wz::String)["Etc"], 
+		WzResMan::GetInstance()->GetWz(Wz::String)["Consume"], 
+		WzResMan::GetInstance()->GetWz(Wz::String)["Ins"],
+		WzResMan::GetInstance()->GetWz(Wz::String)["Cash"],
+		WzResMan::GetInstance()->GetWz(Wz::String)["Pet"]
 	};
 	if (dataNode == nullptr)
 		for (auto& img : Img)
@@ -145,10 +144,10 @@ void ItemInfo::IterateBundleItem()
 {
 #undef max
 	static WzIterator Img[] = { 
-		stWzResMan->GetWz(Wz::Item)["Cash"], 
-		stWzResMan->GetWz(Wz::Item)["Consume"], 
-		stWzResMan->GetWz(Wz::Item)["Etc"], 
-		stWzResMan->GetWz(Wz::Item)["Install"] 
+		WzResMan::GetInstance()->GetWz(Wz::Item)["Cash"], 
+		WzResMan::GetInstance()->GetWz(Wz::Item)["Consume"], 
+		WzResMan::GetInstance()->GetWz(Wz::Item)["Etc"], 
+		WzResMan::GetInstance()->GetWz(Wz::Item)["Install"] 
 	};
 	for (auto& baseImg : Img)
 	{
@@ -227,7 +226,7 @@ void ItemInfo::IterateBundleItem()
 
 void ItemInfo::IteratePetItem()
 {
-	auto& img = stWzResMan->GetWz(Wz::Item)["Pet"];
+	auto& img = WzResMan::GetInstance()->GetWz(Wz::Item)["Pet"];
 	for (auto& item : img)
 	{
 		int nItemID = atoi(item.GetName().c_str());
@@ -240,7 +239,7 @@ void ItemInfo::IteratePetItem()
 
 void ItemInfo::IterateCashItem()
 {
-	auto& img = stWzResMan->GetWz(Wz::Item)["Cash"];
+	auto& img = WzResMan::GetInstance()->GetWz(Wz::Item)["Cash"];
 	for (auto& subImg : img)
 	{
 		for (auto& item : subImg)

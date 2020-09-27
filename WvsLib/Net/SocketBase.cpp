@@ -276,7 +276,7 @@ void SocketBase::ProcessPacket(const std::error_code &ec, std::size_t bytes_tran
 		catch (std::exception& ex) 
 		{
 			iPacket.RestorePacket();
-			WvsLogger::LogFormat("Exceptions Occurred When Processing Packet (nType = : %d), Excpetion Message: %s\nPacket Dump:\n", (int)iPacket.Decode2(), ex.what());
+			WvsLogger::LogFormat("Exceptions Occurred When Processing Packet (nType: %d), Excpetion Message: %s\nPacket Dump:\n", (int)iPacket.Decode2(), ex.what());
 			iPacket.Print();
 		}
 		FreeArray(buffer);

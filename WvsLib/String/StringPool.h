@@ -83,7 +83,7 @@ private:
 	static void InitializeDBStrPool();
 	static void InitializeLibStrPool();*/
 public:
-	static void Init();
+	static void Init(const std::string& sGlobalConfig);
 	static C_STR GetString(const char* pKey, const char *pFile = nullptr, int nLine = -1);
 	//static C_STR GetString(StringTag STR_TAG);
 };

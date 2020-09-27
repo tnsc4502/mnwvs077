@@ -19,7 +19,7 @@ NpcTemplate::~NpcTemplate()
 
 void NpcTemplate::Load()
 {
-	auto& refWz = stWzResMan->GetWz(Wz::Npc);
+	auto& refWz = WzResMan::GetInstance()->GetWz(Wz::Npc);
 	for (auto& refNpc : refWz)
 	{
 		RegisterNpc(atoi(refNpc.GetName().c_str()), &refNpc);
@@ -29,7 +29,7 @@ void NpcTemplate::Load()
 void NpcTemplate::LoadShop()
 {
 #undef max
-	static auto& img = stWzResMan->GetItem("./NpcShop.img");
+	static auto& img = WzResMan::GetInstance()->GetItem("./NpcShop.img");
 	std::string sNpcTemplateName = std::to_string(m_nTemplateID);
 	while (sNpcTemplateName.size() < 7)
 		sNpcTemplateName = "0" + sNpcTemplateName;

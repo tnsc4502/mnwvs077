@@ -55,7 +55,7 @@ SynchronizedRand32 & CalcDamage::GetRndGenForForCheckDamageMiss()
 
 void CalcDamage::LoadStandardPDD()
 {
-	static WzIterator img = stWzResMan->GetItem("./StandardPDD.img");
+	static WzIterator img = WzResMan::GetInstance()->GetItem("./StandardPDD.img");
 	static auto empty = img.end();
 	int nJobCategory = 0, nLastValue = 0;
 	for (auto& node : img)

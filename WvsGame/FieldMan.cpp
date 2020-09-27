@@ -11,12 +11,9 @@
 #include "ReactorPool.h"
 #include "WvsPhysicalSpace2D.h"
 
-#include <mutex>
 #include <filesystem>
 #include <fstream>
 #include <streambuf>
-
-std::mutex fieldManMutex;
 
 namespace fs = std::experimental::filesystem;
 
@@ -36,7 +33,6 @@ FieldMan * FieldMan::GetInstance()
 
 void FieldMan::RegisterField(int nFieldID)
 {
-	std::lock_guard<std::mutex> guard(fieldManMutex);
 	FieldFactory(nFieldID);
 }
 
@@ -45,7 +41,6 @@ void FieldMan::FieldFactory(int nFieldID)
 	/*if (mField[nFieldID]->GetFieldID() != 0)
 		return;*/
 		/*
-		在這裡檢查此Field的型態，舊版的在這裡根據FieldType建立不同的地圖實體
 		Field
 		Field_Tutorial
 		Field_ShowaBath
@@ -63,7 +58,7 @@ void FieldMan::FieldFactory(int nFieldID)
 	std::string sField = std::to_string(nFieldID);
 	while (sField.size() < 9)
 		sField = "0" + sField;
-	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldID / 100000000)][sField];
+	auto& mapWz = WzResMan::GetInstance()->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldID / 100000000)][sField];
 	if (mapWz == mapWz.end())
 		return;
 
@@ -89,7 +84,7 @@ void FieldMan::FieldFactory(int nFieldID)
 
 void FieldMan::LoadAreaCode()
 {
-	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["AreaCode"];
+	auto& mapWz = WzResMan::GetInstance()->GetWz(Wz::Map)["Map"]["AreaCode"];
 	for (auto& area : mapWz)
 		m_mAreaCode.insert({ atoi(area.GetName().c_str()), (int)area });
 }
@@ -117,10 +112,20 @@ void FieldMan::LoadFieldSet()
 		pFieldSet->Init(std::string{ wStr.begin(), wStr.end() });
 		m_mFieldSet[pFieldSet->GetFieldSetName()] = pFieldSet;
 	}
+	WzResMan::GetInstance()->RemountAll();
+}
+
+void FieldMan::RegisterAllField()
+{
+	for (int i = 1; i <= 9; ++i)
+		for (auto& mapWz : WzResMan::GetInstance()->GetWz(Wz::Map)["Map"]["Map" + std::to_string(i)])
+			RegisterField(atoi(mapWz.GetName().c_str()));
 }
 
 Field* FieldMan::GetField(int nFieldID)
 {
+	std::lock_guard<std::mutex> lock(m_mtxFieldMan);
+
 	auto fieldResult = m_mField.find(nFieldID);
 	if (fieldResult == m_mField.end())
 		RegisterField(nFieldID);
@@ -142,7 +147,7 @@ void FieldMan::RestoreFoothold(Field * pField, void * pPropFoothold, void * pLad
 	if ((nFieldLink != 0))
 	{
 		auto fieldStr = StringUtility::LeftPadding(std::to_string(nFieldLink), 9, '0');
-		auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldLink / 100000000)][fieldStr];
+		auto& mapWz = WzResMan::GetInstance()->GetWz(Wz::Map)["Map"]["Map" + std::to_string(nFieldLink / 100000000)][fieldStr];
 		pInfo = &(mapWz["info"]);
 		pPropFoothold = &(mapWz["foothold"]);
 	}

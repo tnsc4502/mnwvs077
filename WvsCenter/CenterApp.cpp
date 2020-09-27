@@ -7,6 +7,8 @@
 #include "WvsWorld.h"
 
 #include "..\Database\WvsUnified.h"
+#include "..\Database\GW_ItemSlotBase.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Exception\WvsException.h"
 #include "..\WvsLib\String\StringPool.h"
@@ -29,14 +31,16 @@ void CenterApp::InitializeService(int argc, char **argv)
 		std::cout << "Please run this program with command line, and provide a path of config file." << std::endl;
 		exit(0);
 	}
-	StringPool::Init();
+	WzResMan::GetInstance()->Init(pConfigLoader->StrValue("GlobalConfig"));
+	StringPool::Init(pConfigLoader->StrValue("GlobalConfig"));
 	WvsUnified::InitDB(pConfigLoader);
+	GW_ItemSlotBase::InitItemSN(pConfigLoader->IntValue("WorldID"));
 	WvsWorld::GetInstance()->SetConfigLoader(pConfigLoader);
 	WvsBase::GetInstance<WvsCenter>()->Init();
 	WvsWorld::GetInstance()->InitializeWorld();
 
 	// start the connection acceptor thread
-	std::thread thread1(ConnectionAcceptorThread, (pConfigLoader->IntValue("port")));
+	std::thread thread1(ConnectionAcceptorThread, (pConfigLoader->IntValue("Port")));
 
 	// start the i/o work
 	asio::io_service &io = WvsBase::GetInstance<WvsCenter>()->GetIOService();

@@ -29,7 +29,7 @@ ContinentMan* ContinentMan::GetInstance()
 
 void ContinentMan::Init()
 {
-	auto& img = stWzResMan->GetItem("./Continent.img");
+	auto& img = WzResMan::GetInstance()->GetItem("./Continent.img");
 	ContiMov contiObj;
 	for (auto& conti : img)
 	{

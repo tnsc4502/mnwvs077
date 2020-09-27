@@ -120,7 +120,7 @@ void ReactorTemplate::LoadAction(ReactorTemplate* pTemplate, const std::string& 
 			if (c != '-' && (c < '0' || c > '9')) return false;
 		return true;
 	};
-	static auto& img = stWzResMan->GetItem("./ReactorAction.img");
+	static auto& img = WzResMan::GetInstance()->GetItem("./ReactorAction.img");
 	auto& actionNode = img[sAction];
 	auto empty = actionNode.end();
 	pTemplate->m_aActionInfo.clear();
@@ -152,7 +152,7 @@ void ReactorTemplate::LoadAction(ReactorTemplate* pTemplate, const std::string& 
 
 void ReactorTemplate::Load()
 {
-	auto& ref = stWzResMan->GetWz(Wz::Reactor);
+	auto& ref = WzResMan::GetInstance()->GetWz(Wz::Reactor);
 	for (auto& reactor : ref)
 		RegisterReactor(atoi(reactor.GetName().c_str()), &reactor, &ref);
 }

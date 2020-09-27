@@ -18,11 +18,13 @@ class QuestMan
 
 	QuestMan();
 	~QuestMan();
-public:
+
 	void LoadAct();
 	void LoadDemand();
 	void RegisterAct(void* pProp);
 	void RegisterDemand(void* pProp);
+public:
+	void Initialize(bool bReleaseWzResource = true);
 	static QuestMan* GetInstance();
 
 	bool IsAutoStartQuest(int nQuestID);

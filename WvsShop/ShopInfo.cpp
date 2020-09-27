@@ -102,7 +102,7 @@ GW_CashItemInfo * ShopInfo::GetCashItemInfo(const CSCommodity * pCS) const
 
 void ShopInfo::Init()
 {
-	auto& wzEtc = stWzResMan->GetWz(Wz::Etc);
+	auto& wzEtc = WzResMan::GetInstance()->GetWz(Wz::Etc);
 	LoadCommodity((void*)&(wzEtc["Commodity"]), true);
 }
 

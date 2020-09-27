@@ -68,10 +68,10 @@ void StringPool::InitializeLibStrPool()
 		);
 }*/
 
-void StringPool::Init()
+void StringPool::Init(const std::string& sGlobalConfig)
 {
 	//Initialize locale setting.
-	auto pCfg = ConfigLoader::Get("GlobalSetting.txt");
+	auto pCfg = ConfigLoader::Get(sGlobalConfig);
 	std::string strLocale = pCfg->StrValue("Locale");
 	if (strLocale == "EN")
 		ms_strLocale = StringLocale::ENG;

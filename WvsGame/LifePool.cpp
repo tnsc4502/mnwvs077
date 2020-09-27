@@ -10,6 +10,8 @@
 #include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
 #include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\String\StringUtility.h"
+#include "..\WvsLib\String\StringPool.h"
 
 #include "User.h"
 #include "MobTemplate.h"
@@ -65,7 +67,7 @@ void LifePool::Init(Field* pField, int nFieldID)
 	m_nMobCapacityMin = nGenSize;
 	m_nMobCapacityMax = (int)std::ceil((double)nGenSize * 2.0 * pField->GetMobRate());
 
-	auto& mapWz = stWzResMan->GetWz(Wz::Map)["Map"]
+	auto& mapWz = WzResMan::GetInstance()->GetWz(Wz::Map)["Map"]
 		["Map" + std::to_string(nFieldID / 100000000)]
 		[StringUtility::LeftPadding(std::to_string(nFieldID), 9, '0')];
 
@@ -829,8 +831,19 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 				);
 
 			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
-				WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
-					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);
+				/*WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
+					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);*/
+				if (dmgInfo.anDamageClient[i] != dmgInfo.anDamageSrv[i])
+					pUser->SendChatMessage(0,
+						StringUtility::Format(
+							GET_STRING(GameSrv_User_Inconsistent_AttackDamage), 
+							i + 1,
+							dmgInfo.anDamageClient[i],
+							(int)dmgInfo.abDamageCriticalClient[i],
+							dmgInfo.anDamageSrv[i], 
+							(int)dmgInfo.abDamageCriticalSrv[i]
+						)
+					);
 		}
 		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
 		++nOrder;

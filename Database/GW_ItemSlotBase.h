@@ -31,9 +31,15 @@ struct GW_ItemSlotBase
 		GW_ItemSlotPet_Type = 3
 	};
 
-	static ATOMIC_COUNT_TYPE InitItemSN(GW_ItemSlotType type);
-	static ATOMIC_COUNT_TYPE GetInitItemSN(GW_ItemSlotType type, int nWorldID, int nChannelID);
+#if defined(DBLIB) || defined(_WVSCENTER)
+	static std::atomic<ATOMIC_COUNT_TYPE> ms_atEqpAtomicCounter, ms_atConAtomicCounter, ms_atInsAtomicCounter, ms_atEtcAtomicCounter, ms_atCashAtomicCounter;
+
 	static ATOMIC_COUNT_TYPE IncItemSN(GW_ItemSlotType type);
+	static ATOMIC_COUNT_TYPE InitItemSN(GW_ItemSlotType type, int nWorldID);
+	static void InitItemSN(int nWorldID);
+#endif
+
+	static ATOMIC_COUNT_TYPE GetInitItemSN(GW_ItemSlotType type, int nWorldID, int nChannelID);
 
 	static std::atomic<ATOMIC_COUNT_TYPE> ms_liSN[6];
 	static int ms_nChannelID, ms_nWorldID;

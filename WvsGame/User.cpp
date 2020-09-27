@@ -1750,7 +1750,9 @@ void User::OnHit(InPacket *iPacket)
 		if (nMobAttackIdx > -2 && nDamage <= 0 && bResetRnd)
 			GetCalcDamage()->GetRndGenForMob().Random();
 
-		WvsLogger::LogFormat("Client Damage : %d, Server Damage : %d Miss Check = %d\n", nDamageClient, nDamageSrv, (int)bCheckMiss);
+		//WvsLogger::LogFormat("Client Damage : %d, Server Damage : %d Miss Check = %d\n", nDamageClient, nDamageSrv, (int)bCheckMiss);
+		if (nDamageClient != nDamageSrv)
+			SendChatMessage(0, StringUtility::Format(GET_STRING(GameSrv_User_Inconsistent_HitDamage), nDamageClient, nDamageSrv, (int)bCheckMiss));
 		if ((pAttackInfo && (pAttackInfo->nMPBurn || pAttackInfo->bDeadlyAttack))
 			|| nDamageClient <= nDamageSrv || bCheckMiss)
 		{
@@ -1856,6 +1858,7 @@ std::recursive_mutex & User::GetLock()
 
 void User::Update()
 {
+	GW_ItemSlotBase::InitItemSN(0);
 	unsigned int tCur = GameDateTime::GetTime();
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
 

@@ -40,7 +40,7 @@ MobTemplate* MobTemplate::GetMobTemplate(int dwTemplateID)
 void MobTemplate::RegisterMob(int dwTemplateID)
 {
 #undef max
-	auto& m_MobWzProperty = stWzResMan->GetWz(Wz::Mob);
+	auto& m_MobWzProperty = WzResMan::GetInstance()->GetWz(Wz::Mob);
 	std::string templateID = std::to_string(dwTemplateID);
 	auto empty = m_MobWzProperty.end();
 

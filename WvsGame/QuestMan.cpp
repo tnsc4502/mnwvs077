@@ -27,18 +27,18 @@ QuestMan::~QuestMan()
 
 void QuestMan::LoadAct()
 {
-	auto &actImg = stWzResMan->GetWz(Wz::Quest)["Act"];
+	auto &actImg = WzResMan::GetInstance()->GetWz(Wz::Quest)["Act"];
 	for (auto& questImg : actImg)
 		RegisterAct(&questImg);
 }
 
 void QuestMan::LoadDemand()
 {
-	auto &demandImg = stWzResMan->GetWz(Wz::Quest)["Check"];
+	auto &demandImg = WzResMan::GetInstance()->GetWz(Wz::Quest)["Check"];
 	for (auto& questImg : demandImg)
 		RegisterDemand(&questImg);
 
-	auto &questInfoImg = stWzResMan->GetWz(Wz::Quest)["QuestInfo"];
+	auto &questInfoImg = WzResMan::GetInstance()->GetWz(Wz::Quest)["QuestInfo"];
 	for (auto& questImg : questInfoImg)
 		if ((int)questImg["autoStart"] == 1)
 			m_mAutoStartQuest.insert(atoi(questImg.GetName().c_str()));
@@ -186,6 +186,15 @@ void QuestMan::RegisterDemand(void * pProp)
 		else if (pDemand != nullptr)
 			FreeObj(pDemand);
 	}
+}
+
+void QuestMan::Initialize(bool bReleaseWzResource)
+{
+	LoadAct(); 
+	LoadDemand();
+
+	if (bReleaseWzResource)
+		WzResMan::GetInstance()->RemountAll();
 }
 
 QuestMan * QuestMan::GetInstance()

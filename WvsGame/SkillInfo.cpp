@@ -328,7 +328,7 @@ int SkillInfo::GetResistance(int nSLV, int nJob, int nElement)
 void SkillInfo::LoadMobSkill()
 {
 	std::set<std::string> sNode;
-	auto& mobSkillNode = stWzResMan->GetWz(Wz::Skill)["MobSkill"];
+	auto& mobSkillNode = WzResMan::GetInstance()->GetWz(Wz::Skill)["MobSkill"];
 	MobSkillEntry* pEntry = nullptr;
 	for (auto& mobSkill : mobSkillNode)
 	{
@@ -387,7 +387,7 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 
 void SkillInfo::LoadMCSkill()
 {
-	auto& mcSkillNode = stWzResMan->GetWz(Wz::Skill)["MCSkill"];
+	auto& mcSkillNode = WzResMan::GetInstance()->GetWz(Wz::Skill)["MCSkill"];
 	for (auto& node : mcSkillNode)
 	{
 		auto pEntry = AllocObj(MCSkillEntry);
@@ -404,7 +404,7 @@ void SkillInfo::LoadMCSkill()
 
 void SkillInfo::LoadMCGuardian()
 {
-	auto& mcGNode = stWzResMan->GetWz(Wz::Skill)["MCGuardian"];
+	auto& mcGNode = WzResMan::GetInstance()->GetWz(Wz::Skill)["MCGuardian"];
 	for (auto& node : mcGNode)
 	{
 		auto pEntry = AllocObj(MCGuardianEntry);
@@ -423,7 +423,7 @@ void SkillInfo::IterateSkillInfo()
 {
 	t1 = std::chrono::high_resolution_clock::now();
 	WvsLogger::LogRaw("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]On iterating all skills....\n");
-	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
+	static auto& skillWz = WzResMan::GetInstance()->GetWz(Wz::Skill);
 	bool continued = false;
 	int nRootID;
 	static std::vector<std::pair<int, std::string>> aRoot;
@@ -448,7 +448,7 @@ void SkillInfo::IterateSkillInfo()
 
 void SkillInfo::LoadSkillRoot(int nSkillRootID, const std::string& sName)
 {
-	static auto& skillWz = stWzResMan->GetWz(Wz::Skill);
+	static auto& skillWz = WzResMan::GetInstance()->GetWz(Wz::Skill);
 	auto skillRootIter = m_mSkillByRootID.find(nSkillRootID);
 	if (skillRootIter == m_mSkillByRootID.end()) 
 		m_mSkillByRootID.insert({nSkillRootID, new std::map<int, SkillEntry*>() });
@@ -463,7 +463,7 @@ void SkillInfo::LoadSkillRoot(int nSkillRootID, const std::string& sName)
 	if (m_nOnLoadingSkills == 0 && m_mSkillByRootID.size() >= m_nRootCount) 
 	{
 		auto t2 = std::chrono::high_resolution_clock::now();
-		stWzResMan->RemountAll();
+		WzResMan::GetInstance()->RemountAll();
 		WvsLogger::LogFormat("[SkillInfo::IterateSkillInfo<IterateSkillInfo>]Skill information are completely loaded in %lld us.\n", std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
 	}
 }

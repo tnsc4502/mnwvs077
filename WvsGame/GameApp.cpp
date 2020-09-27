@@ -17,6 +17,7 @@
 #include "CalcDamage.h"
 #include "ScriptMan.h"
 
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
@@ -66,12 +67,12 @@ void GameApp::InitializeService(int argc, char** argv)
 	}
 	
 	auto tInitStart = std::chrono::high_resolution_clock::now();
-	StringPool::Init();
+	WzResMan::GetInstance()->Init(pCfgLoader->StrValue("GlobalConfig"));
+	StringPool::Init(pCfgLoader->StrValue("GlobalConfig"));
 	WvsException::RegisterUnhandledExceptionFilter("WvsGame", UnhandledExcpetionHandler);
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	TimerThread::RegisterTimerPool(50, 1000);
-	QuestMan::GetInstance()->LoadAct();
-	QuestMan::GetInstance()->LoadDemand();
+	QuestMan::GetInstance()->Initialize();
 	ItemInfo::GetInstance()->Initialize();
 	Reward::LoadReward();
 	ReactorTemplate::Load();
@@ -81,10 +82,14 @@ void GameApp::InitializeService(int argc, char** argv)
 	ContinentMan::GetInstance()->Init();
 	CalcDamage::LoadStandardPDD();
 
+	if (pCfgLoader->IntValue("PreRegisterAllField"))
+		FieldMan::GetInstance()->RegisterAllField();
+
 	SkillInfo::GetInstance()->LoadMobSkill();
 	SkillInfo::GetInstance()->LoadMCSkill();
 	SkillInfo::GetInstance()->LoadMCGuardian();
 	SkillInfo::GetInstance()->IterateSkillInfo();
+
 	WvsBase::GetInstance<WvsGame>()->Init();
 	WvsBase::GetInstance<WvsGame>()->SetExternalIP(pCfgLoader->StrValue("ExternalIP"));
 	WvsBase::GetInstance<WvsGame>()->SetExternalPort(pCfgLoader->IntValue("Port"));

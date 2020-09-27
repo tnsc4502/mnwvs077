@@ -59,7 +59,7 @@ void AffectedAreaPool::Update(unsigned int tCur)
 	std::lock_guard<std::recursive_mutex> lock(m_pField->GetFieldLock());
 	for (int i = 0; i < (int)m_apAffectedArea.size(); )
 	{
-		if (tCur - m_apAffectedArea[i]->m_tEnd > 0)
+		if (tCur > m_apAffectedArea[i]->m_tEnd)
 		{
 			OutPacket oPacket;
 			m_apAffectedArea[i]->MakeLeaveFieldPacket(&oPacket);

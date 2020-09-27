@@ -107,11 +107,8 @@ void WvsCenter::RegisterChannel(int nChannelID, std::shared_ptr<SocketBase> &pSe
 	pEntry->SetLocalSocket(pServer);
 	pEntry->SetExternalIP(iPacket->Decode4());
 	pEntry->SetExternalPort(iPacket->Decode2());
-	WvsLogger::LogFormat("[WvsCenter][WvsCenter::RegisterChannel]A WvsGame server is successfully registered. [WvsGame][Channel ID = %d], remote IP: ", nChannelID);
 	auto ip = pEntry->GetExternalIP();
-	for (int i = 0; i < 4; ++i)
-		WvsLogger::LogFormat("%d ", (int)((char*)&ip)[i]);
-	WvsLogger::LogFormat("\n Port = %d\n", pEntry->GetExternalPort());
+	WvsLogger::LogFormat("[WvsCenter][WvsCenter::RegisterChannel]A WvsGame server is successfully registered. [WvsGame][Channel ID = %d], External IP: %d.%d.%d.%d, External Port: %d\n", nChannelID, (int)((char*)&ip)[0], (int)((char*)&ip)[1], (int)((char*)&ip)[2], (int)((char*)&ip)[3], pEntry->GetExternalPort());
 	m_mChannel.insert({ nChannelID, pEntry });
 	RestoreConnectedUser(pServer, nChannelID, iPacket);
 }

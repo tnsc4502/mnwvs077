@@ -60,26 +60,26 @@ void ConfigLoader::LoadConfig(const std::string& sCfgFileName)
 	ParseConfig(sCfgFileName);
 }
 
-std::string ConfigLoader::StrValue(const std::string& sKey)
+std::string ConfigLoader::StrValue(const std::string& sKey, const std::string& sDef)
 {
 	auto findResult = m_mSettings.find(sKey);
 	if (findResult == m_mSettings.end())
-		return "";
+		return sDef;
 	return findResult->second;
 }
 
-int ConfigLoader::IntValue(const std::string& sKey)
+int ConfigLoader::IntValue(const std::string& sKey, const int nDef)
 {
 	auto findResult = m_mSettings.find(sKey);
 	if (findResult == m_mSettings.end())
-		return 0;
+		return nDef;
 	return atoi(findResult->second.c_str());
 }
 
-double ConfigLoader::DoubleValue(const std::string& sKey)
+double ConfigLoader::DoubleValue(const std::string& sKey, const double dDef)
 {
 	auto findResult = m_mSettings.find(sKey);
 	if (findResult == m_mSettings.end())
-		return 0;
+		return dDef;
 	return atof(findResult->second.c_str());
 }

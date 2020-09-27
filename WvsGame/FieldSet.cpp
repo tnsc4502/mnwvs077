@@ -141,7 +141,7 @@ void FieldSet::InitConfig()
 	if (sFieldSetInfo != "")
 	{
 		m_aReactorActionInfo.clear();
-		auto& img = stWzResMan->GetItem("./FieldSet.img");
+		auto& img = WzResMan::GetInstance()->GetItem("./FieldSet.img");
 		LoadReactorAction(&(img[sFieldSetInfo]["action"]));
 	}
 

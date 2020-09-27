@@ -31,7 +31,7 @@ Reward::~Reward()
 
 void Reward::LoadReward()
 {
-	auto& img = stWzResMan->GetItem("./Reward.img");
+	auto& img = WzResMan::GetInstance()->GetItem("./Reward.img");
 	stMobRewardInfo.clear();
 	bool bMobReward = false;
 	for (auto& mobNode : img)

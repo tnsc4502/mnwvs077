@@ -2,6 +2,7 @@
 
 #include "WzFileSystem.h"
 #include "WzIterator.h"
+#include "..\Exception\WvsException.h"
 #include "..\Memory\MemoryPoolMan.hpp"
 #include "..\Common\ConfigLoader.hpp"
 #include "..\Common\ServerConstants.hpp"
@@ -34,14 +35,7 @@ class WzResMan
 private:
 	WzFileSystem m_FileSystem;
 	WzNameSpace* m_aWzNode[(int)Wz::UI + 1];
-
-	WzResMan() 
-	{
-		auto pCfg = ConfigLoader::Get("GlobalSetting.txt");
-		m_FileSystem.Init(pCfg->StrValue("DataDir"));
-		
-		Init();
-	}
+	ConfigLoader* pCfg = nullptr;
 
 	void Init()
 	{
@@ -72,6 +66,16 @@ public:
 		return sWzResMan;
 	}
 
+	void Init(const std::string& sGlobalConfigPath)
+	{
+		pCfg = ConfigLoader::Get(sGlobalConfigPath);
+		if (!pCfg || pCfg->StrValue("DataDir") == "")
+			WvsException::FatalError("[WvsLib -- WzResMan::Init]Unable to find the global config file (the path is specified as GlobalConfig in the application config) which defines the DataDir value.");
+
+		m_FileSystem.Init(pCfg->StrValue("DataDir"));
+		Init();
+	}
+
 	WzIterator GetWz(Wz wzTag)
 	{
 		return WzIterator(m_aWzNode[(int)wzTag]);
@@ -89,5 +93,3 @@ public:
 
 	void RemountAll();
 };
-
-extern WzResMan *stWzResMan;

@@ -6,6 +6,7 @@
 #include "ClientSocket.h"
 #include "ShopInfo.h"
 
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
@@ -33,6 +34,7 @@ void ShopApp::InitializeService(int argc, char** argv)
 		exit(-1);
 	}
 
+	WzResMan::GetInstance()->Init(pCfgLoader->StrValue("GlobalConfig"));
 	WvsShop *pShopServer = WvsBase::GetInstance<WvsShop>();
 	ItemInfo::GetInstance()->Initialize();
 	ShopInfo::GetInstance()->Init();
