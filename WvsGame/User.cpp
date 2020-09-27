@@ -1858,7 +1858,6 @@ std::recursive_mutex & User::GetLock()
 
 void User::Update()
 {
-	GW_ItemSlotBase::InitItemSN(0);
 	unsigned int tCur = GameDateTime::GetTime();
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
 
