@@ -73,6 +73,12 @@
     <Filter Include="WvsGame\InGame\Field\Life\Employee">
       <UniqueIdentifier>{34664c9d-019d-4cd3-a4ec-068beb0fdd7a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WvsGame\InGame\Field\Life\Pet">
+      <UniqueIdentifier>{ca7d72ec-257e-49f0-851d-c6556de721c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WvsGame\Network">
+      <UniqueIdentifier>{65fe223d-3986-4604-89ec-0c0d54aa6f96}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -155,9 +161,6 @@
     </ClInclude>
     <ClInclude Include="USkill.h">
       <Filter>WvsGame\InGame\Skill</Filter>
-    </ClInclude>
-    <ClInclude Include="AttackInfo.h">
-      <Filter>WvsGame\InGame\User</Filter>
     </ClInclude>
     <ClInclude Include="CommandManager.h">
       <Filter>WvsGame\InGame\User</Filter>
@@ -345,9 +348,6 @@
     <ClInclude Include="MobStat.h">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClInclude>
-    <ClInclude Include="Pet.h">
-      <Filter>WvsGame\InGame\User</Filter>
-    </ClInclude>
     <ClInclude Include="Trunk.h">
       <Filter>WvsGame\InGame\World</Filter>
     </ClInclude>
@@ -421,6 +421,51 @@
       <Filter>WvsGame</Filter>
     </ClInclude>
     <ClInclude Include="UserCashItemImpl.h">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClInclude>
+    <ClInclude Include="Pet.h">
+      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackInfo.h">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="SummonedPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="TownPortalPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="UserPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="AffectedAreaPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="DropPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="EmployeePacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="FieldPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="MessageBoxPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="MobPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="NPCPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="ReactorPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="ShopPacketTypes.hpp">
+      <Filter>WvsGame\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="UtilUser.h">
       <Filter>WvsGame\InGame\User</Filter>
     </ClInclude>
   </ItemGroup>
@@ -502,9 +547,6 @@
     </ClCompile>
     <ClCompile Include="USkill.cpp">
       <Filter>WvsGame\InGame\Skill</Filter>
-    </ClCompile>
-    <ClCompile Include="AttackInfo.cpp">
-      <Filter>WvsGame\InGame\User</Filter>
     </ClCompile>
     <ClCompile Include="CommandManager.cpp">
       <Filter>WvsGame\InGame\User</Filter>
@@ -651,9 +693,6 @@
     <ClCompile Include="MobStat.cpp">
       <Filter>WvsGame\InGame\Stat</Filter>
     </ClCompile>
-    <ClCompile Include="Pet.cpp">
-      <Filter>WvsGame\InGame\User</Filter>
-    </ClCompile>
     <ClCompile Include="Trunk.cpp">
       <Filter>WvsGame\InGame\World</Filter>
     </ClCompile>
@@ -703,6 +742,15 @@
       <Filter>WvsGame</Filter>
     </ClCompile>
     <ClCompile Include="UserCashItemImpl.cpp">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClCompile>
+    <ClCompile Include="Pet.cpp">
+      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+    </ClCompile>
+    <ClCompile Include="AttackInfo.cpp">
+      <Filter>WvsGame\InGame\Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="UtilUser.cpp">
       <Filter>WvsGame\InGame\User</Filter>
     </ClCompile>
   </ItemGroup>

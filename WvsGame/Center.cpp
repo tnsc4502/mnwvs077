@@ -6,11 +6,10 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
@@ -63,7 +62,7 @@ void Center::OnConnected()
 
 	//向Center Server發送Hand Shake封包
 	OutPacket oPacket;
-	oPacket.Encode2(LoginSendPacketFlag::Center_RegisterCenterRequest);
+	oPacket.Encode2(CenterRequestPacketType::RegisterCenterRequest);
 
 	//WvsGame的ServerType為SRV_GAME
 	oPacket.Encode1(ServerConstants::ServerType::SRV_GAME);
@@ -100,7 +99,7 @@ void Center::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-		case CenterSendPacketFlag::RegisterCenterAck:
+		case CenterResultPacketType::RegisterCenterAck:
 		{
 			auto result = iPacket->Decode1();
 			if (!result)
@@ -126,39 +125,42 @@ void Center::OnPacket(InPacket *iPacket)
 			WvsLogger::LogRaw("[Center][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
 			break;
 		}
-		case CenterSendPacketFlag::CenterMigrateInResult:
+		case CenterResultPacketType::CenterMigrateInResult:
 			OnCenterMigrateInResult(iPacket);
 			break;
-		case CenterSendPacketFlag::MigrateCashShopResult:
-		case CenterSendPacketFlag::TransferChannelResult:
+		case CenterResultPacketType::MigrateCashShopResult:
+		case CenterResultPacketType::TransferChannelResult:
 			OnTransferChannelResult(iPacket);
 			break;
-		case CenterSendPacketFlag::PartyResult:
+		case CenterResultPacketType::PartyResult:
 			PartyMan::GetInstance()->OnPacket(iPacket);
 			break;
-		case CenterSendPacketFlag::GuildResult:
+		case CenterResultPacketType::GuildResult:
 			GuildMan::GetInstance()->OnPacket(iPacket);
 			break;
-		case CenterSendPacketFlag::FriendResult:
+		case CenterResultPacketType::FriendResult:
 			FriendMan::GetInstance()->OnPacket(iPacket);
 			break;
-		case CenterSendPacketFlag::RemoteBroadcasting:
+		case CenterResultPacketType::RemoteBroadcasting:
 			OnRemoteBroadcasting(iPacket);
 			break;
-		case CenterSendPacketFlag::TrunkResult:
+		case CenterResultPacketType::TrunkResult:
 			OnTrunkResult(iPacket);
 			break;
-		case CenterSendPacketFlag::EntrustedShopResult:
+		case CenterResultPacketType::EntrustedShopResult:
 			OnEntrustedShopResult(iPacket);
 			break;
-		case CenterSendPacketFlag::CheckMigrationState:
+		case CenterRequestPacketType::CheckMigrationState:
 			OnCheckMigrationState(iPacket);
 			break;
-		case CenterSendPacketFlag::GuildBBSResult:
+		case CenterResultPacketType::GuildBBSResult:
 			OnGuildBBSResult(iPacket);
 			break;
-		case CenterSendPacketFlag::CheckGivePopularityResult:
+		case CenterResultPacketType::CheckGivePopularityResult:
 			OnCheckGivePopularityResult(iPacket);
+			break;
+		case CenterResultPacketType::CashItemResult:
+			OnCenterCashItemResult(iPacket);
 			break;
 	}
 }
@@ -199,14 +201,14 @@ void Center::OnTransferChannelResult(InPacket * iPacket)
 	bool bSuccess = iPacket->Decode1() == 1 ? true : false;
 	if (bSuccess)
 	{
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTransferChannel);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnTransferChannel);
 		
 		// 7 = Header(2) + nClientSocketID(4) + bSuccess(1)
 		oPacket.EncodeBuffer(iPacket->GetPacket() + 7, iPacket->GetPacketSize() - 7);
 	}
 	else
 	{
-		oPacket.Encode2(FieldSendPacketFlag::Field_OnTransferChannelReqIgnored);
+		oPacket.Encode2(FieldSendPacketType::Field_OnTransferChannelReqIgnored);
 		oPacket.Encode1(1);
 	}
 	pSocket->SendPacket(&oPacket);
@@ -249,7 +251,7 @@ void Center::OnCheckMigrationState(InPacket *iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::CheckMigrationState);
+	oPacket.Encode2(CenterResultPacketType::CheckMigrationStateResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
 	auto pUser = User::FindUser(nCharacterID);
@@ -287,7 +289,7 @@ void Center::OnGuildBBSResult(InPacket *iPacket)
 	if (pUser)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildBBSResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnGuildBBSResult);
 		oPacket.EncodeBuffer(
 			iPacket->GetPacket() + iPacket->GetReadCount(),
 			iPacket->GetPacketSize() - iPacket->GetReadCount()
@@ -317,22 +319,30 @@ void Center::OnCheckGivePopularityResult(InPacket * iPacket)
 		}
 
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnGivePopularityResult);
 		oPacket.Encode1(nFailedReason);
 		if (!nFailedReason)
 		{
 			oPacket.EncodeStr(pTarget->GetName());
 			oPacket.Encode1((char)nInc);
 			oPacket.Encode4((int)QWUser::GetPOP(pTarget));
-			pUser->SendPacket(&oPacket);
 
 			OutPacket oRemote;
-			oRemote.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+			oRemote.Encode2(UserSendPacketType::UserLocal_OnGivePopularityResult);
 			oRemote.Encode1(User::GivePopluarityMessage::eUserPOPIsIncreased);
 			oRemote.EncodeStr(pUser->GetName());
 			oRemote.Encode1((char)nInc);
 			pTarget->SendPacket(&oRemote);
 		}
+		pUser->SendPacket(&oPacket);
 	}
+}
+
+void Center::OnCenterCashItemResult(InPacket * iPacket)
+{
+	int nUserID = iPacket->Decode4();
+	auto pUser = User::FindUser(nUserID);
+	if (pUser)
+		pUser->OnCenterCashItemResult(iPacket);
 }
 

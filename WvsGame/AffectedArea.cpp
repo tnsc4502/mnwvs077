@@ -1,7 +1,7 @@
 #include "AffectedArea.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\AffectedAreaPacketFlags.hpp"
+#include "..\WvsGame\AffectedAreaPacketTypes.hpp"
 
 AffectedArea::AffectedArea()
 {
@@ -14,7 +14,7 @@ AffectedArea::~AffectedArea()
 
 void AffectedArea::MakeEnterFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2(AffectedAreaSendPacketFlag::AffectedArea_OnMakeEnterFieldPacket);
+	oPacket->Encode2(AffectedAreaSendPacketType::AffectedArea_OnMakeEnterFieldPacket);
 	oPacket->Encode4(GetFieldObjectID());
 	oPacket->Encode1(m_bMobSkill ? 1 : 0);
 	oPacket->Encode4(m_nOwnerID);
@@ -31,7 +31,7 @@ void AffectedArea::MakeEnterFieldPacket(OutPacket * oPacket)
 
 void AffectedArea::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2(AffectedAreaSendPacketFlag::AffectedArea_OnMakeLeaveFieldPacket);
+	oPacket->Encode2(AffectedAreaSendPacketType::AffectedArea_OnMakeLeaveFieldPacket);
 	oPacket->Encode4(GetFieldObjectID());
 }
 

@@ -27,6 +27,9 @@
       <Filter>InGame\Item</Filter>
     </ClCompile>
     <ClCompile Include="ShopApp.cpp" />
+    <ClCompile Include="..\WvsGame\SkillInfo.cpp">
+      <Filter>InGame\Shop</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shop">
@@ -37,6 +40,12 @@
     </Filter>
     <Filter Include="InGame\Item">
       <UniqueIdentifier>{a7785c68-f5b4-4634-9767-49c75daeab55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{d8996d11-33a8-41d8-b9bb-c41d9296ecd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="InGame\Shop">
+      <UniqueIdentifier>{10a03492-18c2-45c0-af50-a4f87e19fafb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -62,5 +71,11 @@
       <Filter>InGame\Item</Filter>
     </ClInclude>
     <ClInclude Include="ShopApp.h" />
+    <ClInclude Include="ShopPacketTypes.hpp">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WvsGame\SkillInfo.h">
+      <Filter>InGame\Shop</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

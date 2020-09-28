@@ -17,6 +17,27 @@ GW_ItemSlotPet::~GW_ItemSlotPet()
 {
 }
 
+void ConstructItemFromDBRecordSet(GW_ItemSlotPet *pItem, Poco::Data::RecordSet& recordSet)
+{
+	pItem->nCharacterID = recordSet["CharacterID"];
+	pItem->liCashItemSN = recordSet["CashItemSN"];
+	pItem->nItemID = recordSet["ItemID"];
+	pItem->liExpireDate = recordSet["ExpireDate"];
+	pItem->nAttribute = recordSet["Attribute"];
+	pItem->nPetAttribute = (short)recordSet["PetAttribute"];
+	pItem->nPOS = recordSet["POS"];
+	pItem->nLevel = (unsigned char)(unsigned short)recordSet["Level"];
+	pItem->nRepleteness = (unsigned char)(unsigned short)recordSet["Repleteness"];
+	pItem->nTameness = (short)recordSet["Tameness"];
+	pItem->usPetSkill = (unsigned short)recordSet["PetSkill"];
+	pItem->strPetName = recordSet["PetName"].toString();
+	pItem->nActiveState = (unsigned char)(unsigned short)recordSet["ActiveState"];
+	pItem->nAutoBuffSkill = recordSet["AutoBuffSkill"];
+	pItem->nPetHue = recordSet["PetHue"];
+	pItem->nGiantRate = recordSet["GiantRate"];
+	pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::CASH;
+}
+
 void GW_ItemSlotPet::LoadAll(int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
@@ -26,24 +47,7 @@ void GW_ItemSlotPet::LoadAll(int nCharacterID, std::map<int, ZSharedPtr<GW_ItemS
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
 		auto pItem = MakeShared<GW_ItemSlotPet>();
-		pItem->nCharacterID = recordSet["CharacterID"];
-		pItem->liCashItemSN = recordSet["CashItemSN"];
-		pItem->nItemID = recordSet["ItemID"];
-		pItem->liExpireDate = recordSet["ExpireDate"];
-		pItem->nAttribute = recordSet["Attribute"];
-		pItem->nPetAttribute = (short)recordSet["PetAttribute"];
-		pItem->nPOS = recordSet["POS"];
-		pItem->nLevel = (unsigned char)(unsigned short)recordSet["Level"];
-		pItem->nRepleteness = (unsigned char)(unsigned short)recordSet["Repleteness"];
-		pItem->nTameness = (short)recordSet["Tameness"];
-		pItem->usPetSkill = (unsigned short)recordSet["PetSkill"];
-		pItem->strPetName = recordSet["PetName"].toString();
-		pItem->nActiveState = (unsigned char)(unsigned short)recordSet["ActiveState"];
-		pItem->nAutoBuffSkill = recordSet["AutoBuffSkill"];
-		pItem->nPetHue = recordSet["PetHue"];
-		pItem->nGiantRate = recordSet["GiantRate"];
-
-		pItem->nType = GW_ItemSlotType::CASH;
+		ConstructItemFromDBRecordSet(pItem, recordSet);
 		mRes[pItem->nPOS] = pItem;
 	}
 }
@@ -55,27 +59,10 @@ void GW_ItemSlotPet::Load(ATOMIC_COUNT_TYPE SN)
 	queryStatement.execute();
 
 	Poco::Data::RecordSet recordSet(queryStatement);
-	nCharacterID = recordSet["CharacterID"];
-	liCashItemSN = recordSet["CashItemSN"];
-	nItemID = recordSet["ItemID"];
-	liExpireDate = recordSet["ExpireDate"];
-	nAttribute = recordSet["Attribute"];
-	nPetAttribute = (short)recordSet["PetAttribute"];
-	nPOS = recordSet["POS"];
-	nLevel = (unsigned char)(unsigned short)recordSet["Level"];
-	nRepleteness = (unsigned char)(unsigned short)recordSet["Repleteness"];
-	nTameness = (short)recordSet["Tameness"];
-	usPetSkill = (unsigned short)recordSet["PetSkill"];
-	strPetName = recordSet["PetName"].toString();
-	nActiveState = (unsigned char)(unsigned short)recordSet["ActiveState"];
-	nAutoBuffSkill = recordSet["AutoBuffSkill"];
-	nPetHue = recordSet["PetHue"];
-	nGiantRate = recordSet["GiantRate"];
-
-	nType = GW_ItemSlotType::CASH;
+	ConstructItemFromDBRecordSet(this, recordSet);
 }
 
-void GW_ItemSlotPet::Save(int nCharacterID, bool bRemoveRecord)
+void GW_ItemSlotPet::Save(int nCharacterID, bool bRemoveRecord, bool bExpired)
 {
 	if (nType != GW_ItemSlotType::CASH)
 		throw std::runtime_error("Invalid Equip Type.");

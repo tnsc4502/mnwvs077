@@ -4,7 +4,7 @@
 #include "..\WvsGame\GuildMan.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 #include <algorithm>
 
@@ -117,7 +117,7 @@ void GuildBBSMan::LoadList(void *pGuild_, int nCharacterID, InPacket *iPacket)
 		pGuild->nGuildID
 	);
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::GuildBBSResult);
+	oPacket.Encode2(CenterResultPacketType::GuildBBSResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(GuildBBSResult::res_GuildBBS_LoadEntry);
 	if (aRet.size() == 0)
@@ -166,7 +166,7 @@ void GuildBBSMan::ViewEntry(void *pGuild_, int nCharacterID, int nEntryID)
 		return;
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::GuildBBSResult);
+	oPacket.Encode2(CenterResultPacketType::GuildBBSResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(GuildBBSResult::res_GuildBBS_ViewEntry);
 	oPacket.Encode4(pEntry->m_nEntryID);

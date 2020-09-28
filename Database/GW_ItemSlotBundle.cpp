@@ -14,10 +14,28 @@ GW_ItemSlotBundle::~GW_ItemSlotBundle()
 {
 }
 
+void ConstructItemFromDBRecordSet(GW_ItemSlotBundle *pItem, int nType, Poco::Data::RecordSet& recordSet)
+{
+	pItem->nType = (GW_ItemSlotBase::GW_ItemSlotType)nType;
+	if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH)
+	{
+		pItem->liCashItemSN = recordSet["CashItemSN"];
+		pItem->bIsCash = true;
+	}
+	else
+		pItem->liItemSN = recordSet["ItemSN"];
+
+	pItem->nCharacterID = recordSet["CharacterID"];
+	pItem->nItemID = recordSet["ItemID"];
+	pItem->liExpireDate = recordSet["ExpireDate"];
+	pItem->nAttribute = recordSet["Attribute"];
+	pItem->nNumber = recordSet["Number"];
+	pItem->nPOS = recordSet["POS"];
+}
+
 void GW_ItemSlotBundle::LoadAll(int nType, int nCharacterID, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
-	std::string strTableName = "",
-		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN");
+	std::string strTableName = "";
 
 	if (nType == GW_ItemSlotType::CONSUME)
 		strTableName = "ItemSlot_CON";
@@ -38,22 +56,7 @@ void GW_ItemSlotBundle::LoadAll(int nType, int nCharacterID, std::map<int, ZShar
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
 		auto pItem = MakeShared<GW_ItemSlotBundle>();
-		pItem->nType = (GW_ItemSlotType)nType;
-		if (nType == GW_ItemSlotType::CASH)
-		{
-			pItem->liCashItemSN = recordSet[sSNColumnName];
-			pItem->bIsCash = true;
-		}
-		else
-			pItem->liItemSN = recordSet[sSNColumnName];
-
-		pItem->nCharacterID = recordSet["CharacterID"];
-		pItem->nItemID = recordSet["ItemID"];
-		pItem->liExpireDate = recordSet["ExpireDate"];
-		pItem->nAttribute = recordSet["Attribute"];
-		pItem->nNumber = recordSet["Number"];
-		pItem->nPOS = recordSet["POS"];
-
+		ConstructItemFromDBRecordSet(pItem, nType, recordSet);
 		mRes[pItem->nPOS] = pItem;
 	}
 }
@@ -78,30 +81,17 @@ void GW_ItemSlotBundle::Load(ATOMIC_COUNT_TYPE SN)
 	queryStatement.execute();
 
 	Poco::Data::RecordSet recordSet(queryStatement);
-	nCharacterID = recordSet["CharacterID"];
-
-	if (nType == GW_ItemSlotType::CASH)
-		liCashItemSN = recordSet[sSNColumnName];
-	else
-		liItemSN = recordSet[sSNColumnName];
-
-	nItemID = recordSet["ItemID"];
-	liExpireDate = recordSet["ExpireDate"];
-	nAttribute = recordSet["Attribute"];
-	nNumber = recordSet["Number"];
-	nPOS = recordSet["POS"];
-
-	if (nType == GW_ItemSlotType::CASH)
-		bIsCash = true;
+	ConstructItemFromDBRecordSet(this, nType, recordSet);
 }
 
-void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
+void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord, bool bExpired)
 {
 	std::string strTableName = "",
-		sSNColumnName = (nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN"),
-		sQuery = "";
+		sSNColumnName = nType == GW_ItemSlotType::CASH ? "CashItemSN" : "ItemSN";
 
-	if (nType == GW_ItemSlotType::CONSUME)
+	if (bExpired)
+		strTableName = "ItemExpired_Bundle";
+	else if (nType == GW_ItemSlotType::CONSUME)
 		strTableName = "ItemSlot_CON";
 	else if (nType == GW_ItemSlotType::ETC)
 		strTableName = "ItemSlot_ETC";
@@ -149,12 +139,11 @@ void GW_ItemSlotBundle::Save(int nCharacterID, bool bRemoveRecord)
 				<< "Number = '" << nNumber << "'";
 				//<< "' WHERE " + sSNColumnName + " = " << (nType == GW_ItemSlotType::CASH ? liCashItemSN : liItemSN);
 		}
-		sQuery = queryStatement.toString();
 		queryStatement.execute();
 	}
 	catch (Poco::Data::MySQL::StatementException &se) 
 	{
-		WvsLogger::LogFormat("SQL Exception Occurred: %s\nRaw Query = %s\n", se.message().c_str(), sQuery.c_str());
+		WvsLogger::LogFormat("SQL Exception Occurred: %s\nRaw Query = %s\n", se.message().c_str(), queryStatement.toString().c_str());
 	}
 }
 

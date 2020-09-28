@@ -2,11 +2,11 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
 #include "WvsGame.h"
 #include "User.h"
 #include "Script.h"
@@ -39,22 +39,22 @@ int ProcessUserPacket(User *pUser, InPacket *iPacket)
 		bExcpetionOccurred = true;
 		switch (nType)
 		{
-			case UserRecvPacketFlag::User_OnSelectNpc:
-			case UserRecvPacketFlag::User_OnScriptMessageAnswer:
+			case UserRecvPacketType::User_OnSelectNpc:
+			case UserRecvPacketType::User_OnScriptMessageAnswer:
 				if(pUser->GetScript())
 					pUser->GetScript()->Abort( );
 				//pUser->SetScript(nullptr);
 				break;
-			case UserRecvPacketFlag::User_OnMiniRoomRequest:
+			case UserRecvPacketType::User_OnMiniRoomRequest:
 				pUser->SetMiniRoom(nullptr);
 				break;
-			case UserRecvPacketFlag::User_OnStoreBankRequest:
+			case UserRecvPacketType::User_OnStoreBankRequest:
 				pUser->SetStoreBank(nullptr);
 				break;
-			case UserRecvPacketFlag::User_OnTrunkRequest:
+			case UserRecvPacketType::User_OnTrunkRequest:
 				pUser->SetTrunk(nullptr);
 				break;
-			case UserRecvPacketFlag::User_OnShopRequest:
+			case UserRecvPacketType::User_OnShopRequest:
 				pUser->SetTradingNpc(0);
 				break;
 		}
@@ -67,16 +67,16 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-	case LoginRecvPacketFlag::Client_ClientMigrateIn:
+	case LoginRecvPacketType::Client_ClientMigrateIn:
 		OnMigrateIn(iPacket);
 		break;
 	default:
 		if (m_pUser)
 		{
 			iPacket->RestorePacket();
-			if (nType != UserRecvPacketFlag::User_OnFuncKeyMappedModified
-				&& nType != NPCRecvPacketFlags::NPC_OnMoveRequest
-				&& nType != MobRecvPacketFlag::Mob_OnMove) {
+			if (nType != UserRecvPacketType::User_OnFuncKeyMappedModified
+				&& nType != NPCRecvPacketTypes::NPC_OnMoveRequest
+				&& nType != MobRecvPacketType::Mob_OnMove) {
 				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]Received Packet: ");
 				iPacket->Print();
 			}
@@ -93,7 +93,7 @@ void ClientSocket::OnMigrateIn(InPacket *iPacket)
 	m_nCharacterID = iPacket->Decode4();
 	WvsBase::GetInstance<WvsGame>()->OnUserMigrating(m_nCharacterID, GetSocketID());
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateIn);
+	oPacket.Encode2(CenterRequestPacketType::RequestMigrateIn);
 	oPacket.Encode4(GetSocketID());
 	oPacket.Encode4(m_nCharacterID);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
@@ -105,7 +105,7 @@ void ClientSocket::OnSocketDisconnected()
 	auto pCenter = WvsBase::GetInstance<WvsGame>()->GetCenter();
 	WvsBase::GetInstance<WvsGame>()->RemoveMigratingUser(m_nCharacterID);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::GameClientDisconnected);
+	oPacket.Encode2(CenterRequestPacketType::GameClientDisconnected);
 	oPacket.Encode4(GetSocketID());
 	oPacket.Encode4(m_nCharacterID);
 	pCenter->SendPacket(&oPacket);

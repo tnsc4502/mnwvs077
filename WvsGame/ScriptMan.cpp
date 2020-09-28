@@ -151,8 +151,7 @@ Script* ScriptMan::CreateScript(const std::string& sFile, const std::pair<int, F
 	else if (pScript)
 	{
 		pScript->Abort();
-		pScript->~Script();
-		WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(pScript);
+		FreeObj(pScript);
 		pScript = nullptr;
 	}
 

@@ -9,7 +9,7 @@
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\Database\GW_ItemSlotBase.h"
 
@@ -213,7 +213,7 @@ void MiniRoomBase::OnChat(User *pUser, InPacket *iPacket, int nMessageCode)
 	if (m_nCurUsers && nIdx >= 0)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_Chat);
 		if (nMessageCode < 0)
 		{
@@ -265,7 +265,7 @@ void MiniRoomBase::OnInviteBase(User *pUser, InPacket *iPacket)
 		nFailedReason = MiniRoomInviteResult::res_Invite_UnableToProcess;
 
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 	if (nFailedReason)
 	{
 		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRInviteResult);
@@ -290,7 +290,7 @@ void MiniRoomBase::OnInviteResult(User * pUser, int nResult)
 	if (m_apUser[0])
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRInviteResult);
 		oPacket.Encode1(nResult);
 		oPacket.EncodeStr(pUser->GetName());
@@ -363,7 +363,7 @@ void MiniRoomBase::DoLeave(int nIdx, int nLeaveType, bool bBroadcast)
 		if (nLeaveType)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_LeaveBase);
 			oPacket.Encode1(nIdx);
 			oPacket.Encode1(nLeaveType);
@@ -377,7 +377,7 @@ void MiniRoomBase::DoLeave(int nIdx, int nLeaveType, bool bBroadcast)
 		if (bBroadcast)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_LeaveBase);
 			oPacket.Encode1(nIdx);
 			oPacket.Encode1(GetLeaveType());
@@ -430,14 +430,14 @@ unsigned char MiniRoomBase::OnEnterBase(User *pUser, InPacket *iPacket)
 			m_anReserved[nIdx] = 0;
 			m_anLeaveRequest[nIdx] = -1;
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MREnter);
 			EncodeAvatar(nIdx, &oPacket);
 			EncodeEnter(pUser, &oPacket);
 			Broadcast(&oPacket, pUser);
 		}
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRCreateResult);
 		oPacket.Encode1(m_nType);
 		oPacket.Encode1(m_nMaxUsers);
@@ -579,7 +579,7 @@ void MiniRoomBase::Enter(User *pUser, int nSN, InPacket *iPacket, bool bTourname
 	if (nFailedReason)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(MiniRoomRequest::rq_MiniRoom_MRCreateResult); //EnterFailed
 		oPacket.Encode1(0);
 		oPacket.Encode1(nFailedReason);
@@ -601,7 +601,7 @@ MiniRoomBase* MiniRoomBase::Create(User *pUser, int nMiniRoomType, InPacket *iPa
 		return nullptr; //Error.
 
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 	oPacket.Encode1(MiniRoomBase::MiniRoomRequest::rq_MiniRoom_MRCreateResult);
 
 	try 

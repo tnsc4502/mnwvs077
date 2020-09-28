@@ -19,9 +19,8 @@
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsGame\ItemInfo.h"
 
 Trunk::Trunk()
@@ -116,7 +115,7 @@ void Trunk::OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket)
 	QWUInventory::SendInventoryOperation(pUser, true, aLog);
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+	oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
 	oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
 	oPacket.Encode4(pUser->GetAccountID());
 	oPacket.Encode4(pUser->GetUserID());
@@ -150,7 +149,7 @@ void Trunk::OnMoveTrunkToSlotRequest(User *pUser, InPacket *iPacket)
 	if (bAdd)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
 		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveTrunkToSlot);
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
@@ -169,7 +168,7 @@ void Trunk::OnMoveTrunkToSlotRequest(User *pUser, InPacket *iPacket)
 void Trunk::OnLoadDone(User *pUser, InPacket *iPacket)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_TrunkRequest);
 	oPacket.Encode1(Trunk::TrunkResult::res_Trunk_Load);
 	oPacket.Encode4(m_nTrunkTemplateID);
 	Encode(0xFFFF, &oPacket);
@@ -184,7 +183,7 @@ void Trunk::OnMoveSlotToTrunkDone(User *pUser, InPacket *iPacket)
 
 	m_aaItemSlot[nTI].push_back(m_pTradingItem);
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_TrunkRequest);
 	oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveSlotToTrunk);
 	Encode(0xFFFF, &oPacket);
 	pUser->SendPacket(&oPacket);
@@ -207,7 +206,7 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 
 		//Force put back item.
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
 		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
@@ -223,7 +222,7 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 		QWUInventory::SendInventoryOperation(pUser, true, aLog);
 
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_TrunkRequest);
 		oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveTrunkToSlot);
 		Encode(0xFFFF, &oPacket);
 		pUser->SendPacket(&oPacket);
@@ -242,7 +241,7 @@ void Trunk::OnWithdrawMoneyDone(User *pUser, InPacket *iPacket)
 		m_nMoney = iPacket->Decode4();
 
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_TrunkRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_TrunkRequest);
 		oPacket.Encode1(Trunk::TrunkResult::res_Trunk_MoveSlotToTrunk);
 		Encode(2, &oPacket);
 		pUser->SendPacket(&oPacket);
@@ -261,7 +260,7 @@ void Trunk::OnWithdrawMoney(User *pUser, InPacket *iPacket)
 			m_nMoney += (-nMoney);
 
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
 		oPacket.Encode1(TrunkRequest::rq_Trunk_WithdrawMoney);
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
@@ -319,7 +318,7 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 	TrunkDBAccessor::MoveSlotToTrunk(nAccountID, pItem->liItemSN, nTI);
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+	oPacket.Encode2(CenterResultPacketType::TrunkResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_MoveSlotToTrunk);
 	oPacket.Encode1(nTI);
@@ -352,7 +351,7 @@ void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)
 
 	TrunkDBAccessor::MoveTrunkToSlot(nAccountID, liItemSN, nTI, bTreatSingly);
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+	oPacket.Encode2(CenterResultPacketType::TrunkResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_MoveTrunkToSlot);
 	oPacket.Encode1(nTI);
@@ -373,7 +372,7 @@ void Trunk::WithdrawMoney(int nAccountID, InPacket * iPacket)
 	auto prTrunk = TrunkDBAccessor::LoadTrunk(nAccountID);
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+	oPacket.Encode2(CenterResultPacketType::TrunkResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_WithdrawMoney);
 	oPacket.Encode1(1);

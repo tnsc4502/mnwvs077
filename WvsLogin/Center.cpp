@@ -4,8 +4,8 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
@@ -32,7 +32,7 @@ void Center::OnConnected()
 
 	//Encoding handshake packets for Center
 	OutPacket oPacket;
-	oPacket.Encode2(LoginSendPacketFlag::Center_RegisterCenterRequest);
+	oPacket.Encode2(CenterRequestPacketType::RegisterCenterRequest);
 
 	//WvsLogin => SVR_LOGIN
 	oPacket.Encode1(ServerConstants::ServerType::SRV_LOGIN);
@@ -48,7 +48,7 @@ void Center::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-	case CenterSendPacketFlag::RegisterCenterAck:
+	case CenterResultPacketType::RegisterCenterAck:
 	{
 		auto result = iPacket->Decode1();
 		if (!result)
@@ -60,22 +60,22 @@ void Center::OnPacket(InPacket *iPacket)
 		OnUpdateWorldInfo(iPacket);
 		break;
 	}
-	case CenterSendPacketFlag::CenterStatChanged:
+	case CenterResultPacketType::CenterStatChanged:
 		OnUpdateChannelInfo(iPacket);
 		break;
-	case CenterSendPacketFlag::CharacterListResponse:
+	case CenterResultPacketType::CharacterListResponse:
 		OnCharacterListResponse(iPacket);
 		break;
-	case CenterSendPacketFlag::GameServerInfoResponse:
+	case CenterResultPacketType::GameServerInfoResponse:
 		OnGameServerInfoResponse(iPacket);
 		break;
-	case CenterSendPacketFlag::CreateCharacterResult:
+	case CenterResultPacketType::CreateCharacterResult:
 		OnCreateCharacterResult(iPacket);
 		break;
-	case CenterSendPacketFlag::LoginAuthResult:
+	case CenterResultPacketType::LoginAuthResult:
 		OnLoginAuthResult(iPacket);
 		break;
-	case CenterSendPacketFlag::CheckDuplicatedIDResult:
+	case CenterResultPacketType::CheckDuplicatedIDResult:
 		OnCheckDuplicatedIDResult(iPacket);
 		break;
 	}
@@ -113,7 +113,7 @@ void Center::OnCharacterListResponse(InPacket *iPacket)
 	unsigned int nLoginSocketID = iPacket->Decode4();
 	auto pSocket = WvsBase::GetInstance<WvsLogin>()->GetSocket(nLoginSocketID);
 	OutPacket oPacket;
-	oPacket.Encode2(LoginSendPacketFlag::Client_ClientSelectWorldResult);
+	oPacket.Encode2(LoginSendPacketType::Client_ClientSelectWorldResult);
 	oPacket.Encode1(0);
 	oPacket.Encode4(1000000);
 
@@ -148,7 +148,7 @@ void Center::OnGameServerInfoResponse(InPacket *iPacket)
 		return;
 	}
 	OutPacket oPacket;
-	oPacket.Encode2(LoginSendPacketFlag::Client_ClientSelectCharacterResult);
+	oPacket.Encode2(LoginSendPacketType::Client_ClientSelectCharacterResult);
 	oPacket.EncodeBuffer(
 		iPacket->GetPacket() + iPacket->GetReadCount(), 
 		iPacket->GetPacketSize() - iPacket->GetReadCount());
@@ -164,7 +164,7 @@ void Center::OnCreateCharacterResult(InPacket * iPacket)
 	if (pEntry && pSocket)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2((short)LoginSendPacketFlag::Client_ClientCreateCharacterResult);
+		oPacket.Encode2((short)LoginSendPacketType::Client_ClientCreateCharacterResult);
 		oPacket.EncodeBuffer(iPacket->GetPacket() + 6, iPacket->GetPacketSize() - 6);
 		pSocket->SendPacket(&oPacket);
 		pEntry->nLoginState = LoginState::LS_Stage_SelectedWorld; //Reset
@@ -198,7 +198,7 @@ void Center::OnCheckDuplicatedIDResult(InPacket *iPacket)
 		pEntry->nLoginState == LoginState::LS_Stage_CheckDuplicatedID)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(LoginSendPacketFlag::Client_ClientCheckDuplicatedIDResult);
+		oPacket.Encode2(LoginSendPacketType::Client_ClientCheckDuplicatedIDResult);
 		oPacket.EncodeStr(iPacket->DecodeStr());
 		oPacket.Encode1(iPacket->Decode1());
 		pSocket->SendPacket(&oPacket);

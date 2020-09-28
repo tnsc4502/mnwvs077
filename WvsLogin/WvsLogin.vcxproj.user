@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>LoginCfg0.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>./DataSrv/Config/LoginCfg0.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\x64\Release\Distribute</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

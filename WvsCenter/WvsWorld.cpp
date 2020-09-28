@@ -9,13 +9,17 @@
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsLib\Task\AsyncScheduler.h"
 
 WvsWorld::WvsWorld()
 {
+	m_pWorldTimer = AsyncScheduler::CreateTask(
+		std::bind(&WvsWorld::Update, this), 30 * 1000, true
+	);
+	m_pWorldTimer->Start();
 }
-
 
 WvsWorld::~WvsWorld()
 {
@@ -91,7 +95,7 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 		FriendMan::GetInstance()->NotifyLogout(nUserID);
 
 		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::LoginAuthResult);
+		oPacket.Encode2(CenterResultPacketType::LoginAuthResult);
 		oPacket.Encode1(LoginAuthResult::res_LoginAuth_UnRegisterMigratinon);
 		oPacket.Encode4(pwUser->m_nAccountID);
 
@@ -136,7 +140,7 @@ void WvsWorld::SendMigrationStateCheck(WorldUser *pwUser)
 	if (pSrvEntry)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::CheckMigrationState);
+		oPacket.Encode2(CenterRequestPacketType::CheckMigrationState);
 		oPacket.Encode4(pwUser->m_nCharacterID);
 		pSrvEntry->GetLocalSocket()->SendPacket(&oPacket);
 	}
@@ -169,6 +173,70 @@ bool WvsWorld::IsUserTransfering(int nUserID)
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
 	return pwUser && pwUser->m_bTransfering;
+}
+
+bool WvsWorld::CheckEventAvailabilityForUser(const std::string& sEventName, int nUserID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto eventIter = m_mUserEventRecord.find(sEventName);
+	if (eventIter == m_mUserEventRecord.end())
+		return true;
+
+	auto userIter = eventIter->second.find(nUserID);
+	if (userIter == eventIter->second.end())
+		return true;
+
+	auto tDateTime = GameDateTime::GetCurrentDate();
+	return tDateTime > userIter->second;
+}
+
+void WvsWorld::InsertNextAvailableEventTimeForUser(const std::string & sEventName, int nUserID, long long int nNextDateTime)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	m_mUserEventRecord[sEventName].insert({ nUserID, nNextDateTime });
+}
+
+void WvsWorld::ClearUserEventLog(const std::string & sEventName, bool bResetAll)
+{
+	unsigned int tCur = GameDateTime::GetTime();
+	if (tCur < m_tNextTimeToClearEeventLog)
+		return;
+
+	m_tNextTimeToClearEeventLog = tCur + 10 * 10 * 1000; //Every 10 MINS.
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+
+	auto lmdRemoveAvailableUser = [&](std::map<int, long long int>& mUserRecord) {
+		auto tDateTime = GameDateTime::GetCurrentDate();
+		for (auto iterUser = mUserRecord.begin(); iterUser != mUserRecord.end();)
+			if (tDateTime < iterUser->second) 
+			{
+				WvsLogger::LogFormat("User Event Log Timed Out! UserID = %d, NextAvailableTime = %lld\n", iterUser->first, iterUser->second);
+				iterUser = mUserRecord.erase(iterUser);
+			}
+			else
+				++iterUser;
+	};
+
+	if (sEventName == "")
+	{
+		if (bResetAll)
+			m_mUserEventRecord.clear();
+		else
+			for (auto& eventMap : m_mUserEventRecord)
+				lmdRemoveAvailableUser(eventMap.second);
+	}
+	else
+	{
+		auto iter = m_mUserEventRecord.find(sEventName);
+		if (iter == m_mUserEventRecord.end())
+			return;
+
+		if (bResetAll)
+			iter->second.clear();
+		else
+			lmdRemoveAvailableUser(iter->second);
+	}
 }
 
 WvsWorld::WorldUser* WvsWorld::GetUser(int nUserID)
@@ -210,6 +278,13 @@ void WvsWorld::RemoveAuthEntry(int nAuthCharacterID)
 		m_mAuthEntry.erase(nAuthCharacterID);
 		FreeObj(pEntry);
 	}
+}
+
+void WvsWorld::Update()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+
+	ClearUserEventLog("");
 }
 
 const WorldInfo& WvsWorld::GetWorldInfo() const

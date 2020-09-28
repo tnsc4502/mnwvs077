@@ -11,7 +11,7 @@
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 
 PersonalShop::PersonalShop()
 	: MiniRoomBase(4)
@@ -255,7 +255,7 @@ void PersonalShop::Release()
 void PersonalShop::BroadcastItemList()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 	oPacket.Encode1(PersonalShopMessgae::e_Message_ShopItemUpdated);
 	EncodeItemList(&oPacket);
 	Broadcast(&oPacket, nullptr);

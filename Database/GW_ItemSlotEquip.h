@@ -100,7 +100,7 @@ public:
 
 	static void LoadAll(int nCharacterID, bool bCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes);
 	void Load(ATOMIC_COUNT_TYPE SN);
-	void Save(int nCharacterID, bool bRemoveRecord = false);
+	void Save(int nCharacterID, bool bRemoveRecord = false, bool bExpired = false);
 
 	void Encode(OutPacket *oPacket, bool bForInternal) const;
 	void RawEncode(OutPacket *oPacket) const;

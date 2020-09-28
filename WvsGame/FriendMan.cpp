@@ -3,9 +3,8 @@
 #include "User.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\Database\GW_Friend.h"
@@ -61,7 +60,7 @@ void FriendMan::OnInviteRequest(InPacket * iPacket)
 	if (pUser)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnFriendResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnFriendResult);
 		oPacket.Encode1(FriendResult::res_Friend_Invite);
 		oPacket.Encode4(nRequestFrom);
 		oPacket.EncodeStr(strNameFrom);
@@ -96,7 +95,7 @@ void FriendMan::OnSetFriendDone(InPacket * iPacket)
 		pFriendEntry->aInShop.push_back(0);
 
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnFriendResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnFriendResult);
 		oPacket.Encode1(FriendResult::res_Friend_Load);
 		pFriendEntry->Encode(&oPacket);
 		pUser->SendPacket(&oPacket);
@@ -117,7 +116,7 @@ void FriendMan::OnLoadFriendDone(InPacket *iPacket)
 		}
 		pEntry->Decode(iPacket);
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnFriendResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnFriendResult);
 		oPacket.Encode1(FriendResult::res_Friend_Load);
 		pEntry->Encode(&oPacket);
 		pUser->SendPacket(&oPacket);
@@ -141,7 +140,7 @@ void FriendMan::OnNotify(InPacket * iPacket)
 			pEntry->aFriend[nIdx]->nChannelID = nChannelID;
 			pEntry->aInShop[nIdx] = (bShop ? 1 : 0);
 			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnFriendResult);
+			oPacket.Encode2(UserSendPacketType::UserLocal_OnFriendResult);
 			oPacket.Encode1(FriendResult::res_Friend_Notify);
 			oPacket.Encode4(nFriendID);
 			oPacket.Encode1(bShop ? 1 : 0);
@@ -176,7 +175,7 @@ void FriendMan::OnDeleteFriendRequest(User * pUser, InPacket * iPacket)
 
 	//Rejection and deletion share the same request code, no checking here.
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::FriendRequest);
+	oPacket.Encode2(CenterRequestPacketType::FriendRequest);
 	oPacket.Encode1(FriendRequest::rq_Friend_Delete);
 	oPacket.Encode4(pUser->GetUserID());
 	oPacket.Encode4(nFriendID);
@@ -196,7 +195,7 @@ void FriendMan::OnSetFriendRequest(User *pUser, InPacket *iPacket)
 				return;
 	}
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::FriendRequest);
+	oPacket.Encode2(CenterRequestPacketType::FriendRequest);
 	oPacket.Encode1(FriendMan::FriendRequest::rq_Friend_Set);
 	oPacket.Encode4(pUser->GetUserID());
 	oPacket.EncodeStr(pUser->GetName());
@@ -217,7 +216,7 @@ void FriendMan::OnAcceptFriendRequest(User *pUser, InPacket *iPacket)
 	if (pEntry && pEntry->FindIndex(nFriendID) == -1)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::FriendRequest);
+		oPacket.Encode2(CenterRequestPacketType::FriendRequest);
 		oPacket.Encode1(FriendRequest::rq_Friend_Accept);
 		oPacket.Encode4(pUser->GetUserID());
 		oPacket.Encode4(nFriendID);
@@ -318,7 +317,7 @@ void FriendMan::Notify(int nCharacterID, int nFriendID, int nChannelID, bool bSh
 		if (nIdx != -1 && pSrv)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(CenterSendPacketFlag::FriendResult);
+			oPacket.Encode2(CenterResultPacketType::FriendResult);
 			oPacket.Encode1(FriendResult::res_Friend_Notify);
 			oPacket.Encode4(nFriendID);
 			oPacket.Encode4(nCharacterID);
@@ -368,7 +367,7 @@ void FriendMan::NotifyFriendRequest(int nCharacterID, int nRequestFrom, const st
 		(pSrv = WvsBase::GetInstance<WvsCenter>()->GetChannel(pwUser->m_nChannelID)))
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::FriendResult);
+		oPacket.Encode2(CenterResultPacketType::FriendResult);
 		oPacket.Encode1(FriendResult::res_Friend_Invite);
 		oPacket.Encode4(nCharacterID);
 		oPacket.Encode4(nRequestFrom);
@@ -384,7 +383,7 @@ void FriendMan::SetFriend(InPacket *iPacket, OutPacket *oPacket)
 	auto pFriendEntry = GetFriendEntry(nCharacterID);
 	std::string strFriendName = iPacket->DecodeStr();
 
-	oPacket->Encode2(CenterSendPacketFlag::FriendResult);
+	oPacket->Encode2(CenterResultPacketType::FriendResult);
 	oPacket->Encode1(FriendResult::res_Friend_Set);
 	oPacket->Encode4(nCharacterID);
 
@@ -434,7 +433,7 @@ void FriendMan::LoadFriend(InPacket * iPacket, OutPacket * oPacket)
 	auto pEntry = GetFriendEntry(nCharacterID);
 	if (!pEntry)
 		pEntry = LoadFriendEntry(nCharacterID);
-	oPacket->Encode2(CenterSendPacketFlag::FriendResult);
+	oPacket->Encode2(CenterResultPacketType::FriendResult);
 	oPacket->Encode1(FriendResult::res_Friend_Load);
 	oPacket->Encode4(nCharacterID);
 	pEntry->Encode(oPacket);
@@ -448,7 +447,7 @@ void FriendMan::AcceptFriend(InPacket * iPacket, OutPacket * oPacket)
 	auto prInvitation = GetInvitationRequest(nCharacterID, nFriendID);
 	auto pEntry = GetFriendEntry(nCharacterID);
 
-	oPacket->Encode2(CenterSendPacketFlag::FriendResult);
+	oPacket->Encode2(CenterResultPacketType::FriendResult);
 	oPacket->Encode1(FriendResult::res_Friend_Set);
 	oPacket->Encode4(nCharacterID);
 	if (pEntry &&
@@ -496,7 +495,7 @@ void FriendMan::DeleteFriend(InPacket * iPacket, OutPacket * oPacket)
 
 	if (pEntry && RemoveFriend(pEntry, nFriendID))
 	{
-		oPacket->Encode2(CenterSendPacketFlag::FriendResult);
+		oPacket->Encode2(CenterResultPacketType::FriendResult);
 		oPacket->Encode1(FriendResult::res_Friend_Load);
 		oPacket->Encode4(nCharacterID);
 		pEntry->Encode(oPacket);

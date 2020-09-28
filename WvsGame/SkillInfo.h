@@ -62,12 +62,18 @@ public:
 	void LoadLevelDataByLevelNode(int nSkillID, SkillEntry* pEntry, void* pData, void *pRoot);
 	int GetSkillLevel(GA_Character* pCharacter, int nSkillID, SkillEntry** pEntry);
 	GW_SkillRecord* GetSkillRecord(int nSkillID, int nSLV, long long int tExpired);
-	static bool IsSummonSkill(int nSkillID);
-	static bool IsPartyStatChangeSkill(int nSkillID);
-	static bool IsAdminSkill(int nSkillID);
 	int GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry *pEntry, int *pnInc);
 	int GetEndureDuration(GA_Character* pCharacter);
 	int GetHPRecoveryUpgrade(GA_Character* pCharacter);
 	int GetMPRecoveryUpgrade(GA_Character* pCharacter);
+
+	//Helpers
+	static bool IsSummonSkill(int nSkillID);
+	static bool IsPartyStatChangeSkill(int nSkillID);
+	static bool IsAdminSkill(int nSkillID);
+	static int GetSkillRootFromSkill(int nSkillID);
+	static bool IsCorrectJobForSkillRoot(int nJob, int nSkillRoot);	
+	static bool IsSkillNeedMasterLevel(int nSkillID);
+	static bool IsKeyDownSkill(int nSkillID);
 };
 

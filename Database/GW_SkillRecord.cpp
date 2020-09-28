@@ -2,15 +2,14 @@
 #include "WvsUnified.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsGame\SkillInfo.h"
 
 void GW_SkillRecord::Encode(OutPacket * oPacket)
 {
 	oPacket->Encode4(nSkillID);
 	oPacket->Encode4(nSLV);
-	//WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "SkillID = %d, Need Master Level = %d Master Level = %d\n", nSkillID, (int)WvsGameConstants::IsSkillNeedMasterLevel(nSkillID), nMasterLevel);
-	if (WvsGameConstants::IsSkillNeedMasterLevel(nSkillID))
+	if (SkillInfo::IsSkillNeedMasterLevel(nSkillID))
 		oPacket->Encode4(nMasterLevel);
 }
 
@@ -18,7 +17,7 @@ void GW_SkillRecord::Decode(InPacket * iPacket)
 {
 	nSkillID = iPacket->Decode4();	
 	nSLV = iPacket->Decode4();
-	if (WvsGameConstants::IsSkillNeedMasterLevel(nSkillID))
+	if (SkillInfo::IsSkillNeedMasterLevel(nSkillID))
 		nMasterLevel = iPacket->Decode4();
 }
 

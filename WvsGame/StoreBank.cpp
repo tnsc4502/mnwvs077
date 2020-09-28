@@ -7,8 +7,8 @@
 #include "BackupItem.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\WvsCenter\EntrustedShopMan.h"
@@ -45,7 +45,7 @@ void StoreBank::OnPacket(InPacket *iPacket)
 void StoreBank::OnSelectStoreBankNPC()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_StoreBankRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_StoreBankRequest);
 	oPacket.Encode1(StoreBankResult::res_OnSelectStoreBankNPC);
 	oPacket.Encode1(0);
 	m_pUser->SendPacket(&oPacket);
@@ -54,7 +54,7 @@ void StoreBank::OnSelectStoreBankNPC()
 void StoreBank::OnOpenStoreBank()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_LoadItemRequest);
 	oPacket.Encode4(m_pUser->GetUserID());
 
@@ -83,7 +83,7 @@ void StoreBank::OnItemLoadDone(InPacket *iPacket)
 	{
 		m_liShopMoney = iPacket->Decode8();
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_StoreBankRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_StoreBankRequest);
 		oPacket.Encode1(StoreBankResult::res_OnItemLoadDone);
 		oPacket.Encode4(m_nStoreBankTemplateID);
 		oPacket.Encode1(nCount); //nSlotCount
@@ -119,7 +119,7 @@ void StoreBank::MoveItemToInventory(InPacket * iPacket)
 
 	ZSharedPtr<GW_ItemSlotBase> pClone;
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
 	oPacket.Encode4(m_pUser->GetUserID());
 	oPacket.Encode8(0);
@@ -159,7 +159,7 @@ void StoreBank::MoveItemToInventory(InPacket * iPacket)
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 
 		OutPacket oCloseBank;
-		oCloseBank.Encode2(FieldSendPacketFlag::Field_StoreBankMessage);
+		oCloseBank.Encode2(FieldSendPacketType::Field_StoreBankMessage);
 		oCloseBank.Encode1(StoreBankResult::res_OnItemRestoredToSlot);
 		m_pUser->SendPacket(&oCloseBank);
 		m_pUser->FlushCharacterData();

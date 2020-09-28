@@ -239,6 +239,7 @@
     <ClInclude Include="ActSkill.h" />
     <ClInclude Include="AdminSkills.h" />
     <ClInclude Include="AffectedArea.h" />
+    <ClInclude Include="AffectedAreaPacketTypes.hpp" />
     <ClInclude Include="AffectedAreaPool.h" />
     <ClInclude Include="AttackInfo.h" />
     <ClInclude Include="AttrFoothold.h" />
@@ -257,14 +258,17 @@
     <ClInclude Include="ContinentMan.h" />
     <ClInclude Include="Controller.h" />
     <ClInclude Include="Drop.h" />
+    <ClInclude Include="DropPacketTypes.hpp" />
     <ClInclude Include="DropPool.h" />
     <ClInclude Include="Employee.h" />
+    <ClInclude Include="EmployeePacketTypes.hpp" />
     <ClInclude Include="EntrustedShop.h" />
     <ClInclude Include="EquipItem.h" />
     <ClInclude Include="ExchangeElement.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="FieldMan.h" />
     <ClInclude Include="FieldObj.h" />
+    <ClInclude Include="FieldPacketTypes.hpp" />
     <ClInclude Include="FieldPoint.h" />
     <ClInclude Include="ActSP.h" />
     <ClInclude Include="FieldRect.h" />
@@ -281,8 +285,10 @@
     <ClInclude Include="MagicSkills.h" />
     <ClInclude Include="MCGuardianEntry.h" />
     <ClInclude Include="MCSkillEntry.h" />
+    <ClInclude Include="MessageBoxPacketTypes.hpp" />
     <ClInclude Include="MiniRoomBase.h" />
     <ClInclude Include="Mob.h" />
+    <ClInclude Include="MobPacketTypes.hpp" />
     <ClInclude Include="MobSkillEntry.h" />
     <ClInclude Include="MobSkillLevelData.h" />
     <ClInclude Include="MobStat.h" />
@@ -290,6 +296,7 @@
     <ClInclude Include="MobTemplate.h" />
     <ClInclude Include="MovePath.h" />
     <ClInclude Include="NPC.h" />
+    <ClInclude Include="NPCPacketTypes.hpp" />
     <ClInclude Include="NpcTemplate.h" />
     <ClInclude Include="PartyMan.h" />
     <ClInclude Include="PersonalShop.h" />
@@ -309,6 +316,7 @@
     <ClInclude Include="QWUSkillRecord.h" />
     <ClInclude Include="Reactor.h" />
     <ClInclude Include="ReactorEventManager.h" />
+    <ClInclude Include="ReactorPacketTypes.hpp" />
     <ClInclude Include="ReactorPool.h" />
     <ClInclude Include="ReactorTemplate.h" />
     <ClInclude Include="Reward.h" />
@@ -324,6 +332,7 @@
     <ClInclude Include="ScriptQuestRecord.h" />
     <ClInclude Include="ScriptUser.h" />
     <ClInclude Include="SecondaryStat.h" />
+    <ClInclude Include="ShopPacketTypes.hpp" />
     <ClInclude Include="SkillEntry.h" />
     <ClInclude Include="SkillInfo.h" />
     <ClInclude Include="SkillLearnItem.h" />
@@ -332,12 +341,14 @@
     <ClInclude Include="StaticFoothold.h" />
     <ClInclude Include="StoreBank.h" />
     <ClInclude Include="Summoned.h" />
+    <ClInclude Include="SummonedPacketTypes.hpp" />
     <ClInclude Include="SummonedPool.h" />
     <ClInclude Include="TamingMobFoodItem.h" />
     <ClInclude Include="TemporaryStat.h" />
     <ClInclude Include="ThiefSkills.h" />
     <ClInclude Include="TimerThread.h" />
     <ClInclude Include="TownPortal.h" />
+    <ClInclude Include="TownPortalPacketTypes.hpp" />
     <ClInclude Include="TownPortalPool.h" />
     <ClInclude Include="TradingRoom.h" />
     <ClInclude Include="Trunk.h" />
@@ -345,7 +356,9 @@
     <ClInclude Include="UpgradeItem.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="UserCashItemImpl.h" />
+    <ClInclude Include="UserPacketTypes.hpp" />
     <ClInclude Include="USkill.h" />
+    <ClInclude Include="UtilUser.h" />
     <ClInclude Include="WarriorSkills.h" />
     <ClInclude Include="WvsGame.h" />
     <ClInclude Include="WvsPhysicalSpace2D.h" />
@@ -443,6 +456,7 @@
     <ClCompile Include="User.cpp" />
     <ClCompile Include="UserCashItemImpl.cpp" />
     <ClCompile Include="USkill.cpp" />
+    <ClCompile Include="UtilUser.cpp" />
     <ClCompile Include="WvsGame.cpp" />
     <ClCompile Include="WvsPhysicalSpace2D.cpp" />
   </ItemGroup>

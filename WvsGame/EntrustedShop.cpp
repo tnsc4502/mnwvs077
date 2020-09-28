@@ -15,8 +15,8 @@
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsCenter\EntrustedShopMan.h"
 
 EntrustedShop::EntrustedShop()
@@ -123,7 +123,7 @@ void EntrustedShop::OnArrangeItem(User *pUser, InPacket *iPacket)
 	OnWithdrawMoney(pUser, iPacket, false);
 
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+	oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 	oPacket.Encode1(EntrustedShopResult::res_EShop_ArrangeItem);
 	oPacket.Encode4((int)m_liEShopMoney);
 	pUser->SendPacket(&oPacket);
@@ -163,7 +163,7 @@ void EntrustedShop::OnWithdrawAll(User *pUser, InPacket *iPacket)
 		}
 
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(EntrustedShopResult::res_EShop_WithdrawAll);
 		oPacket.Encode1(bFailed ? 1 : 0);
 		pUser->SendPacket(&oPacket);
@@ -187,7 +187,7 @@ bool EntrustedShop::OnWithdrawMoney(User *pUser, InPacket *iPacket, bool bSend)
 		if (bSend)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(EntrustedShopResult::res_EShop_WithdrawMoney);
 			pUser->SendPacket(&oPacket);
 		}
@@ -290,7 +290,7 @@ void EntrustedShop::OnLeave(User *pUser, int nLeaveType)
 void EntrustedShop::EncodeItemNumberChanged(OutPacket *oPacket, std::vector<Item*>& apItem)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
-	oPacket->Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket->Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket->Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
 	oPacket->Encode4(GetEmployerID());
 	oPacket->Encode8(m_liEShopMoney);
@@ -307,7 +307,7 @@ void EntrustedShop::SendItemBackup()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest);
 	oPacket.Encode4(GetEmployerID());
 	oPacket.Encode1((char)m_aItem.size());
@@ -395,7 +395,7 @@ void EntrustedShop::CloseShop()
 		pField->GetLifePool()->RemoveEmployee(m_nEmployerID);
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop);
 	oPacket.Encode4(m_nEmployerID);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);

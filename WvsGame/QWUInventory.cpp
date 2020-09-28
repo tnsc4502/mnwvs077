@@ -253,7 +253,7 @@ int QWUInventory::Exchange(User *pUser, int nMoney, std::vector<ExchangeElement>
 void QWUInventory::SendInventoryOperation(User* pUser, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
 {
 	OutPacket oPacket;
-	InventoryManipulator::MakeInventoryOperation(&oPacket, bOnExclResult, aChangeLog);
+	oPacket.Encode1(InventoryManipulator::MakeInventoryOperation(&oPacket, bOnExclResult, aChangeLog) ? 1 : 0);
 	pUser->SendPacket(&oPacket);
 }
 

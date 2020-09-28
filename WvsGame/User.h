@@ -1,5 +1,6 @@
 #pragma once
 #include "FieldObj.h"
+#include "UtilUser.h"
 #include <mutex>
 #include <map>
 #include <set>
@@ -125,7 +126,8 @@ private:
 		m_tLastRecoveryTime = 0,
 		m_tLastAliveCheckRequestTime = 0,
 		m_tLastAliveCheckRespondTime = 0,
-		m_tPortableChairSittingTime = 0;
+		m_tPortableChairSittingTime = 0,
+		m_tNextCheckCashItemExpire = 0;
 
 	unsigned char m_nGradeCode = UserGrade::eGrade_None;
 
@@ -162,11 +164,11 @@ private:
 	//MiniRoom
 	MiniRoomBase* m_pMiniRoom = nullptr;
 	bool m_bHasOpenedEntrustedShop = false;
+
 	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	//AttackInfo* TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	//AttackInfo* TryParsingMagicAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	//AttackInfo* TryParsingShootAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
-	//AttackInfo* TryParsingBodyAttack(AttackInfo* pInfo, int nType, InPacket *iPacket);
+
+	//Check routines
+	void CheckCashItemExpire(unsigned int tCur);
 
 public:
 	static void TryParsingDamageData(AttackInfo *pInfo, InPacket *iPacket, int nDamageMobCount, int nDamagedCountPerMob);
@@ -276,6 +278,7 @@ public:
 	void SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLevel, bool bItemUsed, bool bSucceed);
 	void OnPortalScrollUseRequest(InPacket *iPacket);
 	void OnConsumeCashItemUseRequest(InPacket *iPacket);
+	void OnCenterCashItemResult(InPacket *iPacket);
 
 	//Message
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);

@@ -35,11 +35,7 @@ public:
 	void OnCheckGivePopularity(InPacket *iPacket);
 	
 	//Cash Shop
-	void OnRequestBuyCashItem(InPacket *iPacket);
-	void OnRequestLoadLocker(InPacket *iPacket);
-	void OnReuqestUpdateCash(InPacket *iPacket);
-	void OnReuqestMoveLockerToSlot(InPacket *iPacket);
-	void OnReuqestMoveSlotToLocker(InPacket *iPacket);
+	void OnCashItemRequest(InPacket *iPacket);
 
 	//World System
 	void OnPartyRequest(InPacket *iPacket);

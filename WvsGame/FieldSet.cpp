@@ -15,8 +15,8 @@
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 
 #undef GetJob
 #undef min
@@ -328,7 +328,7 @@ void FieldSet::ForceClose()
 void FieldSet::DestroyClock()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnDestroyClock);
+	oPacket.Encode2(FieldSendPacketType::Field_OnDestroyClock);
 	oPacket.GetSharedPacket()->ToggleBroadcasting();
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
@@ -370,7 +370,7 @@ void FieldSet::OnUserEnterField(User* pUser, Field *pField)
 void FieldSet::MakeClockPacket(OutPacket & oPacket)
 {
 	auto tCur = GameDateTime::GetTime();
-	oPacket.Encode2((short)FieldSendPacketFlag::Field_OnClock);
+	oPacket.Encode2((short)FieldSendPacketType::Field_OnClock);
 	oPacket.Encode1(2);
 	oPacket.Encode4((int)((m_tStartTime + m_nTimeLimit * 1000) - GameDateTime::GetTime()) / 1000 + 1);
 }
@@ -515,7 +515,7 @@ void FieldSet::CheckReactorAction(Field *pField, const std::string sReactorName,
 void FieldSet::BroadcastMsg(int nType, const std::string &sMsg, int nNPCTemplateID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnBroadcastMsg);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnBroadcastMsg);
 	oPacket.Encode1(nType);
 	oPacket.EncodeStr(sMsg);
 	oPacket.Encode4(nNPCTemplateID);

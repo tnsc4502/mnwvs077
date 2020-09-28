@@ -20,6 +20,9 @@
     <Filter Include="Login">
       <UniqueIdentifier>{777aa3c0-ac9a-42d2-bba0-56893a605bce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{ab63d364-f5ce-4073-823b-325805ba632e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsLogin.h">
@@ -35,5 +38,8 @@
       <Filter>Login</Filter>
     </ClInclude>
     <ClInclude Include="LoginApp.h" />
+    <ClInclude Include="LoginPacketTypes.hpp">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

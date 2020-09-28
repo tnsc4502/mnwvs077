@@ -12,9 +12,8 @@
 #include "StateChangeItem.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -294,7 +293,7 @@ int ScriptUser::TargetIncSP(lua_State * L)
 	auto liFlag = QWUser::IncSP(
 		self->m_pUser, 
 		(nJobLevel != -1 ? nJobLevel : 
-			WvsGameConstants::GetJobLevel(
+			UtilUser::GetJobLevel(
 				self->m_pUser->GetCharacterData()->mStat->nJob
 			)
 		),
@@ -735,7 +734,7 @@ int ScriptUser::TargetCreateNewGuild(lua_State * L)
 		return 0; //Force terminate
 	}
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnGuildResult);
 	oPacket.Encode1(GuildMan::GuildResult::res_Guild_Create);
 	self->m_pUser->SendPacket(&oPacket);
 	return 0; //Force terminate
@@ -781,7 +780,7 @@ int ScriptUser::TargetSetGuildMark(lua_State * L)
 		return 0; //Force terminate
 	}
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGuildResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnGuildResult);
 	oPacket.Encode1(GuildMan::GuildResult::res_Guild_AskMark);
 	self->m_pUser->SendPacket(&oPacket);
 	return 0;

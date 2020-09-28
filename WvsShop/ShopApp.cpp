@@ -10,7 +10,6 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
-#include "..\WvsLib\Common\WvsLoginConstants.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Exception\WvsException.h"
 #include "..\WvsGame\ItemInfo.h"

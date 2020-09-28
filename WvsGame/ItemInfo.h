@@ -192,11 +192,6 @@ private:
 	
 	void LoadIncrementStat(BasicIncrementStat& refStat, void *pProp);
 	void LoadAbilityStat(BasicAbilityStat& refStat, void *pProp);
-
-
-	/*
-	用於初始化物品的能力數值，其中v是預設數值，根據enOption來決定數值的偏差結果
-	*/
 	int GetVariation(int v, ItemVariationOption enOption);
 };
 

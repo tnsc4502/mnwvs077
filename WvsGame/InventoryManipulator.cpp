@@ -10,7 +10,7 @@
 #include "ItemInfo.h"
 #include "SkillInfo.h"
 
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -212,9 +212,10 @@ void InventoryManipulator::InsertChangeLog(std::vector<ChangeLog>& aChangeLog, i
 	aChangeLog.push_back(newLog);
 }
 
-void InventoryManipulator::MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
+bool InventoryManipulator::MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog>& aChangeLog)
 {
-	oPacket->Encode2((short)UserSendPacketFlag::UserLocal_OnInventoryOperation);
+	bool bAddMovementInfo = false;
+	oPacket->Encode2((short)UserSendPacketType::UserLocal_OnInventoryOperation);
 	oPacket->Encode1(bOnExclResult);
 	oPacket->Encode1((char)aChangeLog.size());
 	for (auto& change : aChangeLog)
@@ -226,21 +227,24 @@ void InventoryManipulator::MakeInventoryOperation(OutPacket *oPacket, int bOnExc
 		{
 			if (change.nChange == ChangeType::Change_QuantityChanged)
 				oPacket->Encode2((short)change.nNumber);
-			if (change.nChange == ChangeType::Change_SlotPOSChanged)
+			else if (change.nChange == ChangeType::Change_SlotPOSChanged)
+			{
+				if (change.nTI == GW_ItemSlotBase::EQUIP && change.nPOS < 0 || change.nPOS2 < 0)
+					bAddMovementInfo = true;
 				oPacket->Encode2((short)change.nPOS2);
-			//if (change.nChange == 3 && change.nPOS < 0);
-				//oPacket->Encode1(0);
-			//oPacket->Encode1(0);
+			}
+			else if (change.nChange == 3 && change.nTI == GW_ItemSlotBase::EQUIP && change.nPOS < 0)
+				bAddMovementInfo = true;
 		}
 		else 
 			change.pItem->RawEncode(oPacket);
 	}
-	oPacket->Encode4(0);
+	return bAddMovementInfo;
 }
 
 void InventoryManipulator::MakeItemUpgradeEffect(OutPacket *oPacket, int nCharacterID, int nEItemID, int nUItemID, bool bSuccess, bool bCursed, bool bEnchant)
 {
-	oPacket->Encode2((short)UserSendPacketFlag::UserCommon_ShowItemUpgradeEffect);
+	oPacket->Encode2((short)UserSendPacketType::UserCommon_ShowItemUpgradeEffect);
 	oPacket->Encode4(nCharacterID);
 	oPacket->Encode1(bSuccess ? 1 : (bCursed ? 2 : 0));
 	oPacket->Encode1(bEnchant);

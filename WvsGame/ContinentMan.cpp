@@ -8,7 +8,7 @@
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Random\Rand32.h"
 
@@ -83,7 +83,7 @@ void ContinentMan::SendContiPacket(int nFieldID, int nTarget, int nFlag)
 	if (pField)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_OnContiMove);
+		oPacket.Encode2(FieldSendPacketType::Field_OnContiMove);
 		oPacket.Encode1(nTarget);
 		oPacket.Encode1(nFlag);
 		pField->BroadcastPacket(&oPacket);

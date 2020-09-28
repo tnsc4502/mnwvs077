@@ -5,12 +5,13 @@
 #include "WvsLogin.h"
 #include "LoginSocket.h"
 #include "..\WvsLib\Task\AsyncScheduler.h"
-#include "..\WvsLib\Common\WvsLoginConstants.hpp"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\Database\WvsUnified.h"
 #include "..\WvsLib\Exception\WvsException.h"
+
+#include "..\WvsLogin\LoginPacketTypes.hpp"
 
 void ConnectionAcceptorThread(short nPort)
 {
@@ -32,7 +33,6 @@ void LoginApp::InitializeService(int argc, char** argv)
 		WvsLogger::LogRaw("Please run this program with command line, and given the config file path.\n");
 		exit(-1);
 	}
-
 	WvsUnified::InitDB(pConfigLoader);
 	pLoginServer->SetConfigLoader(pConfigLoader);
 	pLoginServer->Init();

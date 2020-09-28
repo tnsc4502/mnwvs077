@@ -14,13 +14,14 @@
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
+
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsShop\ShopPacketTypes.hpp"
+#include "..\WvsGame\SummonedPacketTypes.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
@@ -144,7 +145,7 @@ void User::EncodeCharacterDataInternal(OutPacket *oPacket)
 void User::FlushCharacterData()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::FlushCharacterData);
+	oPacket.Encode2(CenterRequestPacketType::FlushCharacterData);
 	EncodeCharacterDataInternal(&oPacket);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
@@ -161,7 +162,7 @@ User::~User()
 		GetFieldSet()->OnLeaveFieldSet(GetUserID());
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::RequestMigrateOut);
+	oPacket.Encode2(CenterRequestPacketType::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
@@ -231,7 +232,7 @@ FieldSet *User::GetFieldSet()
 
 void User::MakeEnterFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2((short)UserSendPacketFlag::UserRemote_OnMakeEnterFieldPacket);
+	oPacket->Encode2((short)UserSendPacketType::UserRemote_OnMakeEnterFieldPacket);
 	oPacket->Encode4(m_pCharacterData->nCharacterID);
 	oPacket->EncodeStr(m_pCharacterData->strName);
 	oPacket->EncodeStr(m_sGuildName);
@@ -285,7 +286,7 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 
 void User::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2(UserSendPacketFlag::UserRemote_OnMakeLeaveFieldPacket);
+	oPacket->Encode2(UserSendPacketType::UserRemote_OnMakeLeaveFieldPacket);
 	oPacket->Encode4(GetUserID());
 }
 
@@ -359,9 +360,9 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	if (nSkillID && !pInfo->m_nSLV)
 		return nullptr;
 
-	if (WvsGameConstants::IsRushBombSkill(nSkillID))
+	if (nSkillID == 5201002)
 		pInfo->m_pGrenade = iPacket->Decode4();
-	else if (WvsGameConstants::IsKeyDownSkill(nSkillID))
+	else if (SkillInfo::IsKeyDownSkill(nSkillID))
 		pInfo->m_tKeyDown = iPacket->Decode4();
 
 	pInfo->m_nOption = iPacket->Decode1();
@@ -373,7 +374,7 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	pInfo->m_nPartyCount = nAttackInfo >> 4;
 	pInfo->m_tLastAttackTime = iPacket->Decode4();
 
-	if (nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)
+	if (nType == UserRecvPacketType::User_OnUserAttack_ShootAttack)
 	{
 		pInfo->m_nSlot = iPacket->Decode2();
 		int nDecCount = 0;
@@ -401,6 +402,55 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 	}
 	TryParsingDamageData(pInfo, iPacket, pInfo->GetDamagedMobCount(), pInfo->GetDamageCountPerMob());
 	return pInfo;
+}
+
+void User::CheckCashItemExpire(unsigned int tCur)
+{
+	if (tCur < m_tNextCheckCashItemExpire)
+		return;
+	m_tNextCheckCashItemExpire = tCur + 3 * 60 * 1000;
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	const GW_ItemSlotEquip* pItem = nullptr;
+	auto tDateTime = GameDateTime::GetCurrentDate();
+
+	std::vector<std::pair<char, long long int>> aliExpiredSN;
+	for (auto& prItem : m_pCharacterData->mItemSlot[GW_ItemSlotBase::EQUIP])
+	{
+		pItem = prItem.second;
+		if (pItem->bIsCash && pItem->liExpireDate > 0 && tDateTime > pItem->liExpireDate) 
+		{
+			aliExpiredSN.push_back({ GW_ItemSlotBase::EQUIP, pItem->liCashItemSN });
+			m_pCharacterData->mItemRemovedRecord[GW_ItemSlotBase::EQUIP].insert({ pItem->liCashItemSN, true });
+		}
+	}
+
+	for (auto& prItem : m_pCharacterData->mItemSlot[GW_ItemSlotBase::CASH])
+	{
+		pItem = prItem.second;
+		if (!pItem->bIsPet && pItem->liExpireDate > 0 && tDateTime > pItem->liExpireDate)
+		{
+			aliExpiredSN.push_back({ GW_ItemSlotBase::CASH, pItem->liCashItemSN });
+			m_pCharacterData->mItemRemovedRecord[GW_ItemSlotBase::CASH].insert({ pItem->liCashItemSN, true });
+		}
+	}
+
+	if (aliExpiredSN.size() == 0)
+		return;
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::CashItemRequest);
+	oPacket.Encode4(m_pSocket->GetSocketID());
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode2(CenterCashItemRequestType::eExpireCashItemRequest);
+	oPacket.Encode1((int)aliExpiredSN.size());
+	for (auto& prItem : aliExpiredSN) 
+	{
+		oPacket.Encode1(prItem.first);
+		oPacket.Encode8(prItem.second);
+	}
+
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
 /*AttackInfo * User::TryParsingMeleeAttack(AttackInfo* pInfo, int nType, InPacket * iPacket)
@@ -510,159 +560,159 @@ void User::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-		case UserRecvPacketFlag::User_OnAliveCheckAck:
+		case UserRecvPacketType::User_OnAliveCheckAck:
 			m_tLastAliveCheckRespondTime = GameDateTime::GetTime();
 			break;
-		case UserRecvPacketFlag::User_OnStatChangeItemUseRequest:
+		case UserRecvPacketType::User_OnStatChangeItemUseRequest:
 			OnStatChangeItemUseRequest(iPacket, false);
 			break;
-		case UserRecvPacketFlag::User_OnStatChangeItemCancelRequest:
+		case UserRecvPacketType::User_OnStatChangeItemCancelRequest:
 			OnStatChangeItemCancelRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserChat:
+		case UserRecvPacketType::User_OnUserChat:
 			OnChat(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserTransferFieldRequest:
+		case UserRecvPacketType::User_OnUserTransferFieldRequest:
 			OnTransferFieldRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserTransferChannelRequest:
+		case UserRecvPacketType::User_OnUserTransferChannelRequest:
 			OnTransferChannelRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserMigrateToCashShopRequest:
+		case UserRecvPacketType::User_OnUserMigrateToCashShopRequest:
 			OnMigrateToCashShopRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserMoveRequest:
+		case UserRecvPacketType::User_OnUserMoveRequest:
 			m_pField->OnUserMove(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSitRequest:
+		case UserRecvPacketType::User_OnSitRequest:
 			OnSitRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSitOnPortableChairRequest:
+		case UserRecvPacketType::User_OnSitOnPortableChairRequest:
 			OnPortableChairSitRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSetActiveEffectItem:
+		case UserRecvPacketType::User_OnSetActiveEffectItem:
 			OnSetActiveEffectItem(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnChangeStatRequest:
+		case UserRecvPacketType::User_OnChangeStatRequest:
 			OnChangeStatRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserChangeSlotRequest:
+		case UserRecvPacketType::User_OnUserChangeSlotRequest:
 			QWUInventory::OnChangeSlotPositionRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSkillLearnItemUseRequest:
+		case UserRecvPacketType::User_OnSkillLearnItemUseRequest:
 			OnSkillLearnItemUseRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnPortalScrollUseRequest:
+		case UserRecvPacketType::User_OnPortalScrollUseRequest:
 			OnPortalScrollUseRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserAbilityUpRequest:
+		case UserRecvPacketType::User_OnUserAbilityUpRequest:
 			OnAbilityUpRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserSkillUpRequest:
+		case UserRecvPacketType::User_OnUserSkillUpRequest:
 			USkill::OnSkillUpRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserSkillUseRequest:
+		case UserRecvPacketType::User_OnUserSkillUseRequest:
 			USkill::OnSkillUseRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserSkillCancelRequest:
+		case UserRecvPacketType::User_OnUserSkillCancelRequest:
 			USkill::OnSkillCancelRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnDropMoneyRequest:
+		case UserRecvPacketType::User_OnDropMoneyRequest:
 			OnDropMoneyRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
-		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
-		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
-		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
+		case UserRecvPacketType::User_OnUserAttack_MeleeAttack:
+		case UserRecvPacketType::User_OnUserAttack_ShootAttack:
+		case UserRecvPacketType::User_OnUserAttack_MagicAttack:
+		case UserRecvPacketType::User_OnUserAttack_BodyAttack:
 			OnAttack(nType, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnCharacterInfoRequest:
+		case UserRecvPacketType::User_OnCharacterInfoRequest:
 			OnCharacterInfoRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnEmotion:
+		case UserRecvPacketType::User_OnEmotion:
 			OnEmotion(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSelectNpc:
+		case UserRecvPacketType::User_OnSelectNpc:
 			OnSelectNpc(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnScriptMessageAnswer:
+		case UserRecvPacketType::User_OnScriptMessageAnswer:
 			OnScriptMessageAnswer(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnQuestRequest:
+		case UserRecvPacketType::User_OnQuestRequest:
 			OnQuestRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnFuncKeyMappedModified:
+		case UserRecvPacketType::User_OnFuncKeyMappedModified:
 			OnFuncKeyMappedModified(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnShopRequest:
+		case UserRecvPacketType::User_OnShopRequest:
 			if (m_pTradingNpc)
 				m_pTradingNpc->OnShopRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnItemUpgradeRequest:
+		case UserRecvPacketType::User_OnItemUpgradeRequest:
 			QWUInventory::OnUpgradeItemRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnActivatePetRequest:
+		case UserRecvPacketType::User_OnActivatePetRequest:
 			OnActivatePetRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnPartyRequest:
+		case UserRecvPacketType::User_OnPartyRequest:
 			PartyMan::GetInstance()->OnPartyRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnPartyRequestRejected:
+		case UserRecvPacketType::User_OnPartyRequestRejected:
 			PartyMan::GetInstance()->OnPartyRequestRejected(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnGuildRequest:
+		case UserRecvPacketType::User_OnGuildRequest:
 			GuildMan::GetInstance()->OnGuildRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnGuildBBSRequest:
+		case UserRecvPacketType::User_OnGuildBBSRequest:
 			GuildMan::GetInstance()->OnGuildBBSRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnFriendRequest:
+		case UserRecvPacketType::User_OnFriendRequest:
 			FriendMan::GetInstance()->OnFriendRequest(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSendGroupMessage:
+		case UserRecvPacketType::User_OnSendGroupMessage:
 			OnSendGroupMessage(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnSendWhisperMessage:
+		case UserRecvPacketType::User_OnSendWhisperMessage:
 			OnWhisper(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnMiniRoomRequest:
+		case UserRecvPacketType::User_OnMiniRoomRequest:
 			UMiniRoom::OnMiniRoom(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnTrunkRequest:
+		case UserRecvPacketType::User_OnTrunkRequest:
 			if (m_pTrunk)
 				m_pTrunk->OnPacket(this, iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnMobSummonItemUseRequest:
+		case UserRecvPacketType::User_OnMobSummonItemUseRequest:
 			OnMobSummonItemUseRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnHit:
+		case UserRecvPacketType::User_OnHit:
 			OnHit(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnStoreBankRequest:
+		case UserRecvPacketType::User_OnStoreBankRequest:
 			if (m_pStoreBank)
 				m_pStoreBank->OnPacket(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnPortalScriptRequest:
+		case UserRecvPacketType::User_OnPortalScriptRequest:
 			OnPortalScriptRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnEntrustedShopRequest:
+		case UserRecvPacketType::User_OnEntrustedShopRequest:
 			OnOpenEntrustedShop(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnConsumeCashItemUseRequest:
+		case UserRecvPacketType::User_OnConsumeCashItemUseRequest:
 			OnConsumeCashItemUseRequest(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnGivePopularityRequest:
+		case UserRecvPacketType::User_OnGivePopularityRequest:
 			OnGivePopularityRequest(iPacket);
 			break;
 		default:
 			iPacket->RestorePacket();
 			//Pet Packet
-			if (nType >= UserRecvPacketFlag::User_OnPetMove
-				&& nType <= UserRecvPacketFlag::User_OnPetDropPickupRequest)
+			if (nType >= UserRecvPacketType::User_OnPetMove
+				&& nType <= UserRecvPacketType::User_OnPetDropPickupRequest)
 				OnPetPacket(iPacket);
 			//Summoned Packet
-			else if (nType >= FlagMin(SummonedRecvPacketFlag)
-				&& nType <= FlagMax(SummonedRecvPacketFlag))
+			else if (nType >= FlagMin(SummonedRecvPacketType)
+				&& nType <= FlagMax(SummonedRecvPacketType))
 				OnSummonedPacket(iPacket);
 			//Field Packet
 			else if (m_pField)
@@ -817,7 +867,7 @@ void User::OnTransferChannelRequest(InPacket *iPacket)
 
 	SetTransferStatus(TransferStatus::eOnTransferChannel);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::RequestTransferChannel);
+	oPacket.Encode2(CenterRequestPacketType::RequestTransferChannel);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(nChannelID);
@@ -830,7 +880,7 @@ void User::OnMigrateToCashShopRequest(InPacket * iPacket)
 	//Check if the user can attach additional process.
 	SetTransferStatus(TransferStatus::eOnTransferShop);
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::RequestTransferShop);
+	oPacket.Encode2(CenterRequestPacketType::RequestTransferShop);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -855,7 +905,7 @@ void User::OnChat(InPacket *iPacket)
 
 void User::EncodeChatMessage(OutPacket *oPacket, const std::string strMsg, bool bAdmin, bool bBallon)
 {
-	oPacket->Encode2(UserSendPacketFlag::UserCommon_OnChat);
+	oPacket->Encode2(UserSendPacketType::UserCommon_OnChat);
 	oPacket->Encode4(GetUserID());
 	oPacket->Encode1((char)bAdmin);
 	oPacket->EncodeStr(strMsg);
@@ -867,7 +917,7 @@ void User::EncodeChatMessage(OutPacket *oPacket, const std::string strMsg, bool 
 void User::PostTransferField(int dwFieldID, Portal * pPortal, int bForce)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)GameSrvSendPacketFlag::Client_SetFieldStage); //Set Stage
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnSetFieldStage); //Set Stage
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //nChannel
 
 	oPacket.Encode1(1); //bCharacterData?
@@ -885,7 +935,7 @@ void User::PostTransferField(int dwFieldID, Portal * pPortal, int bForce)
 void User::PostPortalTeleport(int nPortalID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnTeleport);
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnTeleport);
 	oPacket.Encode1(0); // bLoopback
 	oPacket.Encode1(nPortalID);
 	SendPacket(&oPacket);
@@ -994,7 +1044,7 @@ void User::OnAvatarModified()
 {
 	UpdateAvatar();
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnAvatarModified);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnAvatarModified);
 	oPacket.Encode4(GetUserID());
 	int dwAvatarModFlag = 1;
 	oPacket.Encode1(dwAvatarModFlag); //m_dwAvatarModFlag
@@ -1229,7 +1279,7 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 		PostHPToPartyMembers();
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnStatChanged);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnStatChanged);
 	oPacket.Encode1((char)bOnExclRequest);
 	oPacket.Encode1(0);
 	oPacket.Encode4((int)liFlag);
@@ -1294,7 +1344,7 @@ void User::SendCharacterStat(bool bOnExclRequest, long long int liFlag)
 void User::SendPortableChairEffect(int nSeatID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetActivePortableChair);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnSetActivePortableChair);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4(m_nActivePortableChairID);
 	m_pField->SplitSendPacket(&oPacket, this);
@@ -1305,7 +1355,7 @@ void User::SendTemporaryStatReset(TemporaryStat::TS_Flag& flag)
 	if (flag.IsEmpty())
 		return;
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTemporaryStatReset);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnTemporaryStatReset);
 	flag.Encode(&oPacket);
 	oPacket.Encode2(2000);
 	oPacket.Encode1(0);
@@ -1314,7 +1364,7 @@ void User::SendTemporaryStatReset(TemporaryStat::TS_Flag& flag)
 	SendPacket(&oPacket);
 
 	OutPacket oRemote;
-	oRemote.Encode2(UserSendPacketFlag::UserRemote_OnResetTemporaryStat);
+	oRemote.Encode2(UserSendPacketType::UserRemote_OnResetTemporaryStat);
 	oRemote.Encode4(GetUserID());
 	flag.Encode(&oRemote);
 	oRemote.Encode2(0);
@@ -1326,14 +1376,14 @@ void User::SendTemporaryStatSet(TemporaryStat::TS_Flag& flag, int tDelay)
 	if (flag.IsEmpty())
 		return;
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTemporaryStatSet);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnTemporaryStatSet);
 	m_pSecondaryStat->EncodeForLocal(&oPacket, flag);
 	oPacket.Encode2(tDelay);
 	oPacket.Encode1(0);
 	SendPacket(&oPacket);
 
 	OutPacket oForRemote;
-	oForRemote.Encode2(UserSendPacketFlag::UserRemote_OnSetTemporaryStat);
+	oForRemote.Encode2(UserSendPacketType::UserRemote_OnSetTemporaryStat);
 	oForRemote.Encode4(GetUserID());
 	m_pSecondaryStat->EncodeForRemote(&oForRemote, flag);
 	oForRemote.Encode2(tDelay);
@@ -1346,19 +1396,19 @@ void User::OnAttack(int nType, InPacket * iPacket)
 
 	switch (nType)
 	{
-		case UserRecvPacketFlag::User_OnUserAttack_MeleeAttack:
+		case UserRecvPacketType::User_OnUserAttack_MeleeAttack:
 			attackInfo.m_nAttackType = 0;
 			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
-		case UserRecvPacketFlag::User_OnUserAttack_ShootAttack:
+		case UserRecvPacketType::User_OnUserAttack_ShootAttack:
 			attackInfo.m_nAttackType = 1;
 			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
-		case UserRecvPacketFlag::User_OnUserAttack_MagicAttack:
+		case UserRecvPacketType::User_OnUserAttack_MagicAttack:
 			attackInfo.m_nAttackType = 2;
 			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
-		case UserRecvPacketFlag::User_OnUserAttack_BodyAttack:
+		case UserRecvPacketType::User_OnUserAttack_BodyAttack:
 			pResult = (TryParsingAttackInfo(&attackInfo, nType, iPacket));
 			break;
 	}
@@ -1445,7 +1495,7 @@ void User::OnHit(InPacket *iPacket)
 	MobTemplate *pTemplate = nullptr;
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnHit);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnHit);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(nMobAttackIdx);
 	oPacket.Encode4(nDamage);
@@ -1777,7 +1827,7 @@ void User::OnLevelUp()
 	SendCharacterStat(false, BasicStat::BS_HP | BasicStat::BS_MP | liFlag);
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_LevelUp);
 	m_pField->SplitSendPacket(&oPacket, this);
@@ -1789,7 +1839,7 @@ void User::OnEmotion(InPacket *iPacket)
 	if (nItemID < 8 || m_pCharacterData->GetItemByID(nItemID))
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEmotion);
+		oPacket.Encode2(UserSendPacketType::UserRemote_OnEmotion);
 		oPacket.Encode4(GetUserID());
 		oPacket.Encode4(nItemID);
 
@@ -1827,7 +1877,7 @@ void User::DecreaseEXP(bool bTown)
 		if (nLevel > 200)
 			liEXP = 0x7FFFFFFF;
 		else
-			liEXP = WvsGameConstants::m_nEXP[nLevel];
+			liEXP = UtilUser::m_nEXP[nLevel];
 		
 		if (bTown)
 			dDecRate = 0.01;
@@ -1861,6 +1911,8 @@ void User::Update()
 	unsigned int tCur = GameDateTime::GetTime();
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
 
+	CheckCashItemExpire(tCur);
+
 	if (tCur - m_tLastBackupTime >= 2 * 60 * 1000)
 	{
 		FlushCharacterData();
@@ -1880,7 +1932,7 @@ void User::Update()
 		m_tLastAliveCheckRequestTime = tCur;
 
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnAliveCheckRequest);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnAliveCheckRequest);
 		SendPacket(&oPacket);
 	}
 }
@@ -2109,7 +2161,7 @@ void User::OnSitRequest(InPacket *iPacket)
 	if (!m_pField)
 		return;
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSitResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnSitResult);
 	int nSeatID = iPacket->Decode2();
 	if (nSeatID >= 0)
 	{
@@ -2167,7 +2219,7 @@ void User::OnSetActiveEffectItem(InPacket * iPacket)
 				m_pCharacterData->nActiveEffectItemID = nItemID;
 			
 			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserRemote_OnSetActiveEffectItem);
+			oPacket.Encode2(UserSendPacketType::UserRemote_OnSetActiveEffectItem);
 			oPacket.Encode4(GetUserID());
 			oPacket.Encode4(nItemID);
 			m_pField->SplitSendPacket(&oPacket, nullptr);
@@ -2318,7 +2370,7 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 
 	std::lock_guard<std::recursive_mutex> lock(pUser->m_mtxUserLock);
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnCharacterInfo);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnCharacterInfo);
 	oPacket.Encode4(pUser->GetUserID());
 	oPacket.Encode1((char)QWUser::GetLevel(pUser));
 	oPacket.Encode2(QWUser::GetJob(pUser));
@@ -2385,7 +2437,7 @@ unsigned int User::GetSkillCooltime(int nReason)
 void User::SendSkillCooltimeSet(int nReason, unsigned int tTime)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSkillCooltimeSet);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnSkillCooltimeSet);
 	oPacket.Encode4(nReason);
 	oPacket.Encode2(tTime ? ((tTime - GameDateTime::GetTime()) / 1000) : 0);
 	SendPacket(&oPacket);
@@ -2403,13 +2455,13 @@ void User::OnGivePopularityRequest(InPacket * iPacket)
 	OutPacket oPacket;
 	if (nFailedReason)
 	{
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnGivePopularityResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnGivePopularityResult);
 		oPacket.Encode1(nFailedReason);
 		SendPacket(&oPacket);
 	}
 	else
 	{
-		oPacket.Encode2(GameSrvSendPacketFlag::CheckGivePopularityRequest);
+		oPacket.Encode2(CenterRequestPacketType::CheckGivePopularityRequest);
 		oPacket.Encode4((int)m_pSocket->GetSocketID());
 		oPacket.Encode4(GetUserID());
 		oPacket.Encode4(nTargetID);
@@ -2422,7 +2474,7 @@ void User::OnGivePopularityRequest(InPacket * iPacket)
 void User::SendUseSkillEffect(int nSkillID, int nSLV)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_OnUseSkill);
 	oPacket.Encode4(nSkillID);
@@ -2448,14 +2500,14 @@ void User::SendUseSkillEffectByParty(int nSkillID, int nSLV)
 		oPacket.Encode1(0);
 	};
 	OutPacket oPacketSelf;
-	oPacketSelf.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketSelf.Encode2(UserSendPacketType::UserLocal_OnEffect);
 	oPacketSelf.Encode1(Effect::eEffect_OnSkillAppliedByParty);
 	funcEncode(oPacketSelf, nSkillID, nSLV);
 	SendPacket(&oPacketSelf);
 
 	//For Remote
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_OnSkillAppliedByParty);
 	funcEncode(oPacket, nSkillID, nSLV);
@@ -2465,7 +2517,7 @@ void User::SendUseSkillEffectByParty(int nSkillID, int nSLV)
 void User::SendLevelUpEffect()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_LevelUp);
 	GetField()->SplitSendPacket(&oPacket, this);
@@ -2474,7 +2526,7 @@ void User::SendLevelUpEffect()
 void User::SendChangeJobEffect()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnEffect);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(Effect::eEffect_ChangeJobEffect);
 	GetField()->SplitSendPacket(&oPacket, this);
@@ -2483,7 +2535,7 @@ void User::SendChangeJobEffect()
 void User::SendPlayPortalSE()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnEffect);
 	oPacket.Encode1(Effect::eEffect_PlayPortalSE);
 	SendPacket(&oPacket);
 }
@@ -2614,7 +2666,7 @@ void User::SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLe
 		return;
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnSkillLearnItemResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnSkillLearnItemResult);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1(nItemID / 10000 == 229);
 	oPacket.Encode4(nTargetSkill);
@@ -2762,6 +2814,44 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		goto INVALID_CONSUME_CASHITEM;
 }
 
+void User::OnCenterCashItemResult(InPacket* iPacket)
+{
+	int nResultType = iPacket->Decode2();
+	switch (nResultType)
+	{
+		case CenterCashItemRequestType::eExpireCashItemRequest:
+		{
+			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+			int nSize = iPacket->Decode1(), nTI = 0, nPOS = 0, nDecCount = 0;
+			for (int i = 0; i < nSize; ++i)
+			{
+				nTI = iPacket->Decode1();
+				nPOS = m_pCharacterData->FindCashItemSlotPosition(nTI, iPacket->Decode8());
+				if (nPOS) 
+				{
+					auto pItem = m_pCharacterData->mItemSlot[nTI][nPOS];
+					if (!pItem)
+						continue;
+
+					OutPacket oPacket;
+					oPacket.Encode2(UserSendPacketType::UserLocal_OnMessage);
+					oPacket.Encode1((char)Message::eCashItemExpireMessage);
+					oPacket.Encode4(pItem->nItemID);
+					SendPacket(&oPacket);
+
+					QWUInventory::RawRemoveItem(
+						this, nTI, nPOS, 1, &aChangeLog, nDecCount, nullptr
+					);
+				}
+			}
+			QWUInventory::SendInventoryOperation(
+				this, true, aChangeLog
+			);
+			break;
+		}
+	}
+}
+
 void User::OnMigrateOut()
 {
 	//LeaveField();
@@ -2771,7 +2861,7 @@ void User::OnMigrateOut()
 void User::SendSetFieldPacket(bool bCharacterData)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::Client_SetFieldStage);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnSetFieldStage);
 	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID()); //Channel ID
 	oPacket.Encode1(1); //bCurFieldKey
 	oPacket.Encode1(bCharacterData ? 1 : 0); //bCharacterData
@@ -2852,7 +2942,7 @@ void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID
 {
 	SendCharacterStat(bOnExcelRequest, 0);
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnMessage);
 	oPacket.Encode1((char)Message::eDropPickUpMessage);
 	if (bPickedUp)
 	{
@@ -2881,7 +2971,7 @@ void User::SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID
 void User::SendDropPickUpFailPacket(bool bOnExcelRequest)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnMessage);
 	oPacket.Encode1((char)Message::eDropPickUpMessage);
 	oPacket.Encode1((char)0xFE);
 	oPacket.Encode4(0);
@@ -2897,11 +2987,8 @@ Script * User::GetScript()
 void User::SetScript(Script * pScript)
 {
 	if (m_pScript)
-	{
-		//Special..
-		m_pScript->~Script();
-		WvsSingleObjectAllocator<char[sizeof(Script)]>::GetInstance()->Free(m_pScript);
-	}
+		FreeObj(m_pScript); //Revamped MemoryPool seems work well.
+
 	m_pScript = (pScript);
 	if (m_pScript)
 		m_pScript->SetUser(this);
@@ -2923,7 +3010,7 @@ void User::OnSelectNpc(InPacket * iPacket)
 	{
 		m_nTrunkTemplateID = pNpc->GetTemplateID();
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::TrunkRequest);
+		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
 		oPacket.Encode1(Trunk::TrunkRequest::rq_Trunk_Load);
 		oPacket.Encode4(GetAccountID());
 		oPacket.Encode4(GetUserID());
@@ -2941,7 +3028,7 @@ void User::OnSelectNpc(InPacket * iPacket)
 	if (pTemplate && pTemplate->HasShop())
 	{
 		OutPacket oPacket;
-		oPacket.Encode2((int)NPCSendPacketFlags::NPC_OnNpcShopItemList);
+		oPacket.Encode2((int)NPCSendPacketTypes::NPC_OnNpcShopItemList);
 		pTemplate->EncodeShop(this, &oPacket);
 		m_pTradingNpc = pNpc;
 		SendPacket(&oPacket);
@@ -3195,7 +3282,7 @@ void User::TryQuestStartAct(int nQuestID, int nNpcID, Npc * pNpc)
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnQuestResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnQuestResult);
 	oPacket.Encode1(8);
 	oPacket.Encode2(nQuestID);
 	oPacket.Encode4(nNpcID);
@@ -3414,7 +3501,7 @@ bool User::AllowToGetQuestItem(const ActItem * pActionItem)
 void User::SendQuestResult(int nResult, int nQuestID, int dwTemplateID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnMessage);
 	oPacket.Encode1(nResult);
 	oPacket.Encode2(nQuestID);
 	oPacket.Encode4(dwTemplateID);
@@ -3426,12 +3513,12 @@ void User::SendQuestResult(int nResult, int nQuestID, int dwTemplateID)
 void User::SendQuestEndEffect()
 {
 	OutPacket oPacketLocal;
-	oPacketLocal.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketLocal.Encode2(UserSendPacketType::UserLocal_OnEffect);
 	oPacketLocal.Encode1(Effect::eEffect_QuestCompleteEffect);
 	SendPacket(&oPacketLocal);
 
 	OutPacket oPacketRemote;
-	oPacketRemote.Encode2(UserSendPacketFlag::UserLocal_OnEffect);
+	oPacketRemote.Encode2(UserSendPacketType::UserLocal_OnEffect);
 	oPacketRemote.Encode4(GetUserID());
 	oPacketRemote.Encode1(Effect::eEffect_QuestCompleteEffect);
 	GetField()->SplitSendPacket(&oPacketRemote, this);
@@ -3440,7 +3527,7 @@ void User::SendQuestEndEffect()
 void User::SendChatMessage(int nType, const std::string & sMsg)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnBroadcastMsg);
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnBroadcastMsg);
 	oPacket.Encode1((char)nType);
 	if (nType == 4)
 		oPacket.Encode1(1);
@@ -3456,7 +3543,7 @@ void User::SendNoticeMessage(const std::string & sMsg)
 void User::SendFuncKeyMapped()
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::User_OnFuncKeyMapped);
+	oPacket.Encode2((short)UserSendPacketType::User_OnFuncKeyMapped);
 	m_pFuncKeyMapped->Encode(&oPacket, false);
 	SendPacket(&oPacket);
 }
@@ -3486,7 +3573,7 @@ void User::OnFuncKeyMappedModified(InPacket * iPacket)
 		if (m_pCharacterData->GetItemCount(GW_ItemSlotBase::CONSUME, nItemID) == 0)
 			nItemID = 0;
 
-		oPacket.Encode2((short)UserSendPacketFlag::User_OnFuncKeyMapped + std::min(nType, 2));
+		oPacket.Encode2((short)UserSendPacketType::User_OnFuncKeyMapped + std::min(nType, 2));
 		oPacket.Encode4(nItemID);
 		SendPacket(&oPacket);
 	}
@@ -3684,7 +3771,7 @@ void User::PostHPToPartyMembers()
 	if (GetPartyID() == -1)
 		return;
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnReceiveHP);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnReceiveHP);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4((int)QWUser::GetHP(this));
 	oPacket.Encode4((int)m_pCharacterData->mStat->nMaxHP);
@@ -3747,7 +3834,7 @@ void User::SetGuildName(const std::string & strName)
 {
 	m_sGuildName = strName;
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnGuildNameChanged);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnGuildNameChanged);
 	oPacket.Encode4(GetUserID());
 	oPacket.EncodeStr(m_sGuildName);
 
@@ -3764,7 +3851,7 @@ void User::SetGuildMark(int nMarkBg, int nMarkBgColor, int nMark, int nMarkColor
 	m_nMarkColor = nMarkColor;
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnGuildMarkChanged);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnGuildMarkChanged);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode2(m_nMarkBg);
 	oPacket.Encode1(m_nMarkBgColor);
@@ -3791,14 +3878,14 @@ void User::OnSendGroupMessage(InPacket * iPacket)
 
 	//Send from remote server.
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::GroupMessage);
+	oPacket.Encode2(CenterRequestPacketType::GroupMessage);
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode1((char)nType);
 	oPacket.Encode1(nReceiverNum);
 	for (int i = 0; i < nReceiverNum; ++i)
 		oPacket.Encode4(iPacket->Decode4());
 
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnGroupMessage);
+	oPacket.Encode2(FieldSendPacketType::Field_OnGroupMessage);
 	oPacket.Encode1(nType);
 	oPacket.EncodeStr(GetName());
 	oPacket.EncodeStr(iPacket->DecodeStr());
@@ -3822,7 +3909,7 @@ void User::OnWhisper(InPacket * iPacket)
 		if(pUser)
 		{
 			OutPacket oPacketReply;
-			oPacketReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+			oPacketReply.Encode2(FieldSendPacketType::Field_OnWhisper);
 			if (nType == WhisperResult::e_Whisper_Type_QueryLocation)
 			{
 				//Reply to sender.
@@ -3844,7 +3931,7 @@ void User::OnWhisper(InPacket * iPacket)
 
 				//Send to the targeted user.
 				OutPacket oPacketSend;
-				oPacketSend.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+				oPacketSend.Encode2(FieldSendPacketType::Field_OnWhisper);
 				oPacketSend.Encode1(WhisperResult::e_Whisper_Res_Message_Send);
 				oPacketSend.EncodeStr(GetName());
 				oPacketSend.Encode2(GetChannelID());
@@ -3856,7 +3943,7 @@ void User::OnWhisper(InPacket * iPacket)
 		else
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(GameSrvSendPacketFlag::WhisperMessage);
+			oPacket.Encode2(CenterRequestPacketType::WhisperMessage);
 			oPacket.Encode4(GetUserID());
 			oPacket.EncodeStr(GetName());
 			oPacket.Encode1(nType);
@@ -3886,7 +3973,7 @@ void User::SetMiniRoomBalloon(bool bOpen)
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserCommon_OnMiniRoomBalloon);
+		oPacket.Encode2(UserSendPacketType::UserCommon_OnMiniRoomBalloon);
 		oPacket.Encode4(GetUserID());
 		EncodeMiniRoomBalloon(&oPacket, bOpen);
 		GetField()->SplitSendPacket(&oPacket, nullptr);
@@ -3931,7 +4018,7 @@ void User::CreateEmployee(bool bOpen)
 		))
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+			oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop);
 			oPacket.Encode4(GetUserID());
 			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -3941,7 +4028,7 @@ void User::CreateEmployee(bool bOpen)
 void User::OnOpenEntrustedShop(InPacket * iPacket)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::EntrustedShopRequest);
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
 	oPacket.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -3996,7 +4083,7 @@ void User::SetStoreBank(StoreBank *pStoreBank)
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnMessage);
 	oPacket.Encode1((char)Message::eQuestRecordMessage);
 	oPacket.Encode2(nKey);
 	oPacket.Encode1(nState);
@@ -4018,7 +4105,7 @@ void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStr
 void User::SendIncEXPMessage(bool bIsLastHit, int nIncEXP, bool bOnQuest, int nIncEXPBySMQ, int nEventPercentage, int nPartyBonusPercentage, int nPlayTimeHour, int nQuestBonusRate, int nQuestBonusRemainCount, int nPartyBonusEventRate, int nWeddingBonusEXP)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserLocal_OnMessage);
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnMessage);
 	oPacket.Encode1((char)Message::eIncEXPMessage);
 	oPacket.Encode1(bIsLastHit ? 1 : 0);
 	oPacket.Encode4(nIncEXP);
@@ -4083,19 +4170,19 @@ void User::OnMigrateIn()
 	m_aMigrateSummoned.clear();
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+	oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 	oPacket.Encode1(PartyMan::PartyRequest::rq_Party_Load);
 	oPacket.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 
 	OutPacket oPacketForGuildLoading;
-	oPacketForGuildLoading.Encode2(GameSrvSendPacketFlag::GuildRequest);
+	oPacketForGuildLoading.Encode2(CenterRequestPacketType::GuildRequest);
 	oPacketForGuildLoading.Encode1(GuildMan::GuildRequest::rq_Guild_Load);
 	oPacketForGuildLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForGuildLoading);
 
 	OutPacket oPacketForFriendLoading;
-	oPacketForFriendLoading.Encode2(GameSrvSendPacketFlag::FriendRequest);
+	oPacketForFriendLoading.Encode2(CenterRequestPacketType::FriendRequest);
 	oPacketForFriendLoading.Encode1(FriendMan::FriendRequest::rq_Friend_Load);
 	oPacketForFriendLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);

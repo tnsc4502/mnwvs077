@@ -1,6 +1,6 @@
 #pragma once
 #include "..\WvsLib\Net\WvsBase.h"
-#include "..\WvsLib\Net\WorldInfo.h"
+#include "..\WvsCenter\WorldInfo.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 
 #include "Center.h"

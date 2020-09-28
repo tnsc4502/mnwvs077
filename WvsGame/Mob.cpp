@@ -29,7 +29,7 @@
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
 
 #undef min
 #undef max
@@ -74,13 +74,13 @@ Mob::~Mob()
 
 void Mob::MakeEnterFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2(MobSendPacketFlag::Mob_OnMakeEnterFieldPacket); //MobPool::SpawnMonster
+	oPacket->Encode2(MobSendPacketType::Mob_OnMakeEnterFieldPacket); //MobPool::SpawnMonster
 	EncodeInitData(oPacket);
 }
 
 void Mob::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2(MobSendPacketFlag::Mob_OnMakeLeaveFieldPacket); //MobPool::SpawnMonster
+	oPacket->Encode2(MobSendPacketType::Mob_OnMakeLeaveFieldPacket); //MobPool::SpawnMonster
 	oPacket->Encode4(GetFieldObjectID());
 	oPacket->Encode1(1);
 }
@@ -124,7 +124,7 @@ void Mob::SendChangeControllerPacket(User* pUser, int nLevel)
 	if (nLevel)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(MobSendPacketFlag::Mob_OnMobChangeController);
+		oPacket.Encode2(MobSendPacketType::Mob_OnMobChangeController);
 		oPacket.Encode1(nLevel);
 		EncodeInitData(&oPacket, true);
 		pUser->SendPacket(&oPacket);
@@ -136,7 +136,7 @@ void Mob::SendChangeControllerPacket(User* pUser, int nLevel)
 void Mob::SendReleaseControllPacket(User* pUser, int dwMobID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(MobSendPacketFlag::Mob_OnMobChangeController);
+	oPacket.Encode2(MobSendPacketType::Mob_OnMobChangeController);
 	oPacket.Encode1(0);
 	oPacket.Encode4(dwMobID);
 	//EncodeInitData(&oPacket);
@@ -146,7 +146,7 @@ void Mob::SendReleaseControllPacket(User* pUser, int dwMobID)
 void Mob::SendSuspendReset(bool bResetSuspend)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(MobSendPacketFlag::Mob_OnSuspendReset);
+	oPacket.Encode2(MobSendPacketType::Mob_OnSuspendReset);
 	oPacket.Encode4(m_nFieldObjectID);
 	oPacket.Encode1(bResetSuspend ? 1 : 0);
 	m_pField->SplitSendPacket(&oPacket, nullptr);
@@ -822,7 +822,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 void Mob::SendMobTemporaryStatSet(int nSet, int tDelay)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(MobSendPacketFlag::Mob_OnStatSet);
+	oPacket.Encode2(MobSendPacketType::Mob_OnStatSet);
 	oPacket.Encode4(GetFieldObjectID());
 	oPacket.Encode4(nSet);
 	m_pStat->EncodeTemporary(nSet, &oPacket, GameDateTime::GetTime());
@@ -834,7 +834,7 @@ void Mob::SendMobTemporaryStatSet(int nSet, int tDelay)
 void Mob::SendMobTemporaryStatReset(int nSet)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(MobSendPacketFlag::Mob_OnStatReset);
+	oPacket.Encode2(MobSendPacketType::Mob_OnStatReset);
 	oPacket.Encode4(GetFieldObjectID());
 	oPacket.Encode4(nSet);
 	oPacket.Encode1(0);
@@ -853,7 +853,7 @@ void Mob::OnMobHit(User * pUser, long long int nDamage, int nAttackType)
 	if (GetHP() > 0)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(MobSendPacketFlag::Mob_OnHPIndicator);
+		oPacket.Encode2(MobSendPacketType::Mob_OnHPIndicator);
 		oPacket.Encode4(GetFieldObjectID());
 		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
 		pUser->SendPacket(&oPacket);
@@ -1243,7 +1243,7 @@ void Mob::UpdateMobStatChange(unsigned int tCur, int nVal, unsigned int tVal, un
 		m_liHP = nDamage;
 
 		OutPacket oPacket;
-		oPacket.Encode2(MobSendPacketFlag::Mob_OnHPIndicator);
+		oPacket.Encode2(MobSendPacketType::Mob_OnHPIndicator);
 		oPacket.Encode4(GetFieldObjectID());
 		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
 		m_pField->BroadcastPacket(&oPacket);

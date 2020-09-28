@@ -34,9 +34,6 @@
     <Filter Include="Random">
       <UniqueIdentifier>{3a470695-d4c4-41de-a4d3-6e80b2d2343d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Net\PacketFlags">
-      <UniqueIdentifier>{2361a4f5-120d-45f2-a471-6a116fbd94ba}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{a1af38c5-999e-4c01-84ff-3653c7bd56f7}</UniqueIdentifier>
     </Filter>
@@ -186,23 +183,8 @@
     <ClInclude Include="Net\SocketBase.h">
       <Filter>Net</Filter>
     </ClInclude>
-    <ClInclude Include="Net\WorldInfo.h">
-      <Filter>Net</Filter>
-    </ClInclude>
     <ClInclude Include="Net\WvsBase.h">
       <Filter>Net</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\CenterPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\FieldPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\LoginPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\PacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
     </ClInclude>
     <ClInclude Include="Random\Rand32.h">
       <Filter>Random</Filter>
@@ -213,23 +195,8 @@
     <ClInclude Include="DateTime\GameDateTime.h">
       <Filter>DateTime</Filter>
     </ClInclude>
-    <ClInclude Include="Net\PacketFlags\ShopPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\UserPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\MobPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\NPCPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
     <ClInclude Include="Task\AsyncScheduler.h">
       <Filter>Task</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\ReactorPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
     </ClInclude>
     <ClInclude Include="Common\ConfigLoader.hpp">
       <Filter>Common</Filter>
@@ -239,33 +206,6 @@
     </ClInclude>
     <ClInclude Include="Common\ServerConstants.hpp">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\WvsGameConstants.hpp">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\WvsLoginConstants.hpp">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\SummonedPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\EmployeePacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\DropPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\MessageBoxPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\AffectedAreaPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\TownPortalPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClInclude>
-    <ClInclude Include="Net\PacketFlags\GameSrvPacketFlags.hpp">
-      <Filter>Net\PacketFlags</Filter>
     </ClInclude>
     <ClInclude Include="Exception\WvsException.h">
       <Filter>Exception</Filter>
@@ -320,6 +260,9 @@
     </ClInclude>
     <ClInclude Include="Wz\WzResMan.hpp">
       <Filter>Wz\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Net\PacketTypes.hpp">
+      <Filter>Net</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -467,21 +410,6 @@
     <ClCompile Include="Net\WvsBase.cpp">
       <Filter>Net</Filter>
     </ClCompile>
-    <ClCompile Include="Net\PacketFlags\FieldPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\LoginPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\MobPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\UserPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\CenterPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
     <ClCompile Include="Random\Rand32.cpp">
       <Filter>Random</Filter>
     </ClCompile>
@@ -491,44 +419,14 @@
     <ClCompile Include="DateTime\GameDateTime.cpp">
       <Filter>DateTime</Filter>
     </ClCompile>
-    <ClCompile Include="Net\PacketFlags\ShopPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\NPCPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
     <ClCompile Include="Task\AsyncScheduler.cpp">
       <Filter>Task</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\ReactorPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
     </ClCompile>
     <ClCompile Include="Memory\MemoryPool.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
     <ClCompile Include="Common\ConfigLoader.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\SummonedPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\EmployeePacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\DropPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\MessageBoxPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\AffectedAreaPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\TownPortalPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
-    </ClCompile>
-    <ClCompile Include="Net\PacketFlags\GameSrvPacketFlags.cpp">
-      <Filter>Net\PacketFlags</Filter>
     </ClCompile>
     <ClCompile Include="Exception\WvsException.cpp">
       <Filter>Exception</Filter>
@@ -574,6 +472,9 @@
     </ClCompile>
     <ClCompile Include="Wz\WzResMan.cpp">
       <Filter>Wz\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Net\PacketTypes.cpp">
+      <Filter>Net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

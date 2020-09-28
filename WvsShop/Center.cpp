@@ -4,11 +4,10 @@
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
+#include "..\WvsShop\ShopPacketTypes.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
@@ -37,7 +36,7 @@ void Center::OnConnected()
 
 	//向Center Server發送Hand Shake封包
 	OutPacket oPacket;
-	oPacket.Encode2(LoginSendPacketFlag::Center_RegisterCenterRequest);
+	oPacket.Encode2(CenterRequestPacketType::RegisterCenterRequest);
 
 	//WvsLogin的ServerType為SVR_LOGIN
 	oPacket.Encode1(ServerConstants::ServerType::SRV_SHOP);
@@ -71,7 +70,7 @@ void Center::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-		case CenterSendPacketFlag::RegisterCenterAck:
+		case CenterResultPacketType::RegisterCenterAck:
 		{
 			auto result = iPacket->Decode1();
 			if (!result)
@@ -83,13 +82,13 @@ void Center::OnPacket(InPacket *iPacket)
 			//OnUpdateWorldInfo(iPacket);
 			break;
 		}
-		case CenterSendPacketFlag::CenterMigrateInResult:
+		case CenterResultPacketType::CenterMigrateInResult:
 			OnCenterMigrateInResult(iPacket);
 			break;
-		case CenterSendPacketFlag::TransferChannelResult:
+		case CenterResultPacketType::TransferChannelResult:
 			OnCenterMigrateOutResult(iPacket);
 			break;
-		case CenterSendPacketFlag::CashItemResult:
+		case CenterResultPacketType::CashItemResult:
 		{
 			int nClientSocketID = iPacket->Decode4();
 			int nUserID = iPacket->Decode4();
@@ -99,7 +98,7 @@ void Center::OnPacket(InPacket *iPacket)
 				pUser->OnCenterCashItemResult((unsigned short)iPacket->Decode2(), iPacket);
 		}
 		break;
-		case CenterSendPacketFlag::CheckMigrationState:
+		case CenterRequestPacketType::CheckMigrationState:
 			OnCheckMigrationState(iPacket);
 			break;
 	}
@@ -158,7 +157,7 @@ void Center::OnCenterMigrateOutResult(InPacket * iPacket)
 	bool bSuccess = iPacket->Decode1() == 1 ? true : false;
 	if (bSuccess)
 	{
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnTransferChannel);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnTransferChannel);
 
 		// 7 = Header(2) + nClientSocketID(4) + bSuccess(1)
 		oPacket.EncodeBuffer(iPacket->GetPacket() + 7, iPacket->GetPacketSize() - 7);
@@ -170,7 +169,7 @@ void Center::OnCheckMigrationState(InPacket *iPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::CheckMigrationState);
+	oPacket.Encode2(CenterResultPacketType::CheckMigrationStateResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode4(-1);
 	auto pUser = User::FindUser(nCharacterID);

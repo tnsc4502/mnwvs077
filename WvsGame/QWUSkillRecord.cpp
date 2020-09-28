@@ -3,11 +3,10 @@
 #include "SkillInfo.h"
 #include "SkillEntry.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_SkillRecord.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -46,13 +45,13 @@ void QWUSkillRecord::GetSkillRootFromJob(int nJob, std::vector<int>& aRet)
 bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel, std::vector<GW_SkillRecord*>& aChange)
 {
 	int nJob = pUser->GetCharacterData()->mStat->nJob;
-	int nSkillJob = WvsGameConstants::GetSkillRootFromSkill(nSkillID);
+	int nSkillJob = SkillInfo::GetSkillRootFromSkill(nSkillID);
 
 	if ((nJob >= nSkillJob) &&
 		((nJob < 10000 && (nJob / 100 == nSkillJob / 100)) ||
 		(nJob / 1000 == nSkillJob / 1000)))
 	{
-		int nSkillRootLevel = WvsGameConstants::GetJobLevel(nSkillJob);
+		int nSkillRootLevel = UtilUser::GetJobLevel(nSkillJob);
 		if (/*nSkillRootLevel >= 0 &&
 			nSkillRootLevel < GW_CharacterStat::EXTEND_SP_SIZE &&*/
 			(!bDecSP || pUser->GetCharacterData()->mStat->aSP[0] >= nAmount))
@@ -69,7 +68,7 @@ bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecS
 			}
 			if (pSkillRecord != nullptr 
 				&& (!bCheckMasterLevel 
-					|| (!WvsGameConstants::IsSkillNeedMasterLevel(pSkillRecord->nSkillID)
+					|| (!SkillInfo::IsSkillNeedMasterLevel(pSkillRecord->nSkillID)
 						|| (pSkillRecord->nSLV + nAmount <= pSkillRecord->nMasterLevel))
 					)
 				)
@@ -93,7 +92,7 @@ void QWUSkillRecord::SendCharacterSkillRecord(User * pUser, std::vector<GW_Skill
 {
 	WvsLogger::LogFormat(WvsLogger::LEVEL_INFO, "SendCharacterSkillRecord Called, size = %d\n", (int)aChange.size());
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnChangeSkillRecordResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnChangeSkillRecordResult);
 	oPacket.Encode1(1);
 	oPacket.Encode2((short)aChange.size());
 	for (auto pSkillRecord : aChange)

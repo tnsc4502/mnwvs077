@@ -12,8 +12,8 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\SocketBase.h"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsShop\ShopPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
 #include "GW_CharacterList.hpp"
@@ -25,7 +25,7 @@ std::vector<int> CharacterDBAccessor::PostLoadCharacterListRequest(SocketBase *p
 	OutPacket oPacket;
 	GW_CharacterList chrList;
 	chrList.Load(nAccountID, nWorldID);
-	oPacket.Encode2(CenterSendPacketFlag::CharacterListResponse);
+	oPacket.Encode2(CenterResultPacketType::CharacterListResponse);
 	oPacket.Encode4(uLocalSocketSN);
 
 	oPacket.Encode1(chrList.nCount);
@@ -44,7 +44,7 @@ std::vector<int> CharacterDBAccessor::PostLoadCharacterListRequest(SocketBase *p
 void CharacterDBAccessor::PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, const std::string & sCharacterName)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::CheckDuplicatedIDResult);
+	oPacket.Encode2(CenterResultPacketType::CheckDuplicatedIDResult);
 	oPacket.Encode4(uLocalSocketSN);
 	oPacket.Encode4(nAccountID);
 	oPacket.EncodeStr(sCharacterName);
@@ -55,7 +55,7 @@ void CharacterDBAccessor::PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSock
 void CharacterDBAccessor::PostCreateNewCharacterRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID, const std::string& strName, int nGender, int nFace, int nHair, int nSkin, const int* aBody, const int* aStat)
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CreateCharacterResult);
+	oPacket.Encode2((short)CenterResultPacketType::CreateCharacterResult);
 	oPacket.Encode4(uLocalSocketSN);
 
 	GA_Character chrEntry;
@@ -195,17 +195,18 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 	bool bIsPet = iPacket->Decode1() == 1;
 	int nPrice = iPacket->Decode4();
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::CashItemResult);
+	oPacket.Encode2(CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
+	oPacket.Encode2(CenterCashItemRequestType::eBuyCashItemRequest);
+
 	GW_Account account;
 	account.Load(nAccountID);
 
 	if (account.QueryCash(nChargeType) >= nPrice)
 	{
-		oPacket.Encode2(ShopInternalPacketFlag::OnCenterResBuyDone);
 		account.UpdateCash(nChargeType, -nPrice);
-
+		oPacket.Encode1(0); //Success
 		ZSharedPtr<GW_ItemSlotBase> pItem;
 		if (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP)
 			pItem = MakeShared<GW_ItemSlotEquip>();
@@ -238,6 +239,7 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet)
 			((GW_ItemSlotBundle*)pItem)->nNumber = cashItemInfo.nNumber;
 
+		pItem->liExpireDate = cashItemInfo.liDateExpire;
 		pItem->Save(nCharacterID);
 
 		oPacket.Encode4(account.QueryCash(1));
@@ -245,7 +247,7 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		cashItemInfo.Encode(&oPacket);
 	}
 	else
-		oPacket.Encode2(ShopInternalPacketFlag::OnCenterResBuyFailed);
+		oPacket.Encode1(1);
 
 	pSrv->SendPacket(&oPacket);
 }
@@ -258,10 +260,11 @@ void CharacterDBAccessor::PostLoadLockerRequest(SocketBase *pSrv, int uClientSoc
 	auto aRes = GW_CashItemInfo::LoadAll(nAccountID);
 	std::vector<GW_ItemSlotPet> aPet;
 	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CashItemResult);
+	oPacket.Encode2((short)CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode2(ShopInternalPacketFlag::OnCenterLoadLockerDone);
+	oPacket.Encode2(CenterCashItemRequestType::eLoadCashItemLockerRequest);
+	oPacket.Encode1(0); //FailedReason
 	oPacket.Encode2((short)aRes.size());
 	decltype(aRes) aResWithoutPet;
 	for (auto& info : aRes)
@@ -298,11 +301,12 @@ void CharacterDBAccessor::PostUpdateCashRequest(SocketBase *pSrv, int uClientSoc
 	account.Load(nAccountID);
 
 	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CashItemResult);
+	oPacket.Encode2((short)CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode2(ShopInternalPacketFlag::OnCenterUpdateCashDone);
+	oPacket.Encode2(CenterCashItemRequestType::eGetMaplePointRequest);
 
+	oPacket.Encode1(0); //FailedReason
 	oPacket.Encode4(account.nNexonCash);
 	oPacket.Encode4(account.nMaplePoint);
 	oPacket.Encode4(0);
@@ -331,10 +335,11 @@ void CharacterDBAccessor::PostMoveSlotToLockerRequest(SocketBase * pSrv, int uCl
 	pItem->Save(nCharacterID);
 
 	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CashItemResult);
+	oPacket.Encode2((short)CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode2(ShopInternalPacketFlag::OnCenterMoveToLockerDone);
+	oPacket.Encode2(CenterCashItemRequestType::eMoveCashItemStoLRequest);
+	oPacket.Encode1(0); //FailedReason
 	oPacket.Encode8(liCashItemSN);
 	oPacket.Encode1(nType);
 	cashItemInfo.Encode(&oPacket);
@@ -349,7 +354,7 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 	int nAccountID = iPacket->Decode4();
 	long long int liCashItemSN = iPacket->Decode8();
 	OutPacket oPacket;
-	oPacket.Encode2((short)CenterSendPacketFlag::CashItemResult);
+	oPacket.Encode2((short)CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
 
@@ -364,9 +369,10 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 	pItem->bIsCash = true;
 	pItem->Load(liCashItemSN);
 	auto nPOS = characterData.FindEmptySlotPosition((int)pItem->nType);
+	oPacket.Encode2((short)CenterCashItemRequestType::eMoveCashItemLtoSRequest);
 	if (!nPOS)
 	{
-		oPacket.Encode2(ShopInternalPacketFlag::OnCenterMoveToSlotFailed);
+		oPacket.Encode1(1);
 		pSrv->SendPacket(&oPacket);
 		return;
 	}
@@ -375,13 +381,46 @@ void CharacterDBAccessor::PostMoveLockerToSlotRequest(SocketBase * pSrv, int uCl
 	cashItemInfo.bLocked = false;
 	cashItemInfo.Save();
 
-	oPacket.Encode2(ShopInternalPacketFlag::OnCenterMoveToSlotDone);
+	oPacket.Encode1(0);
 	oPacket.Encode8(pItem->liItemSN);
 	//oPacket.Encode1(1);
 	oPacket.Encode2(nPOS);
 	pItem->RawEncode(&oPacket);
 	oPacket.Encode4(0);
 	oPacket.Encode4(0);
+	pSrv->SendPacket(&oPacket);
+}
+
+void CharacterDBAccessor::PostExpireCashItemRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, void * iPacket_)
+{
+	InPacket *iPacket = (InPacket*)iPacket_;
+	int nSize = iPacket->Decode1(), nTI = 0;
+
+	GW_ItemSlotBase *pItem;
+	GW_ItemSlotEquip gwEqp;
+	GW_ItemSlotBundle gwBundle;
+	gwBundle.nType = GW_ItemSlotBase::CASH;
+	gwEqp.bIsCash = gwBundle.bIsCash = true;
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterResultPacketType::CashItemResult);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode2(CenterCashItemRequestType::eExpireCashItemRequest);
+	oPacket.Encode1((char)nSize);
+
+	for (int i = 0; i < nSize; ++i)
+	{
+		pItem = &gwEqp;
+		nTI = iPacket->Decode1();
+		if (nTI == GW_ItemSlotBase::CASH)
+			pItem = &gwBundle;
+
+		pItem->Load(iPacket->Decode8());
+		pItem->Save(nCharacterID, false, true);
+		oPacket.Encode1((char)nTI);
+		oPacket.Encode8(pItem->liCashItemSN);
+	}
+
 	pSrv->SendPacket(&oPacket);
 }
 

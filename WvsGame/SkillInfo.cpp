@@ -2,11 +2,11 @@
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Random\Rand32.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_CharacterLevel.h"
 #include "..\Database\GW_SkillRecord.h"
+#include "UtilUser.h"
 #include "ItemInfo.h"
 #include "SkillEntry.h"
 #include "SkillLevelData.h"
@@ -48,6 +48,7 @@ SkillInfo::~SkillInfo()
 	return m_nOnLoadingSkills;
 }*/
 
+#ifdef _WVSGAME
 const std::map<int, std::map<int, SkillEntry*>*>& SkillInfo::GetSkills() const
 {
 	return m_mSkillByRootID;
@@ -117,79 +118,18 @@ bool SkillInfo::IsValidRootName(const std::string & sName)
 	return true;
 }
 
-int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterData)
-{
-	auto pItem = ItemInfo::GetInstance()->GetBundleItem(nItemID);
-	if (pItem != nullptr)
-	{
-		int result = pItem->nMaxPerSlot;
-		if (pCharacterData != nullptr &&  nItemID / 10000 == 207)
-		{
-			//精準暗器
-		}
-		return result == 0 ? 100 : result;
-	}
-	return 0;
-}
-
-int SkillInfo::GetElementAttribute(const char cAttr)
-{
-	switch (cAttr)
-	{
-		case 'i':
-		case 'I':
-			return ElementAttribute::e_ElemAttr_Ice;
-		case 'f':
-		case 'F':
-			return ElementAttribute::e_ElemAttr_Fire;
-		case 'l':
-		case 'L':
-			return ElementAttribute::e_ElemAttr_Lightning;
-		case 's':
-		case 'S':
-			return ElementAttribute::e_ElemAttr_Poison;
-		case 'h':
-		case 'H':
-			return ElementAttribute::e_ElemAttr_Holy;
-		case 'd':
-		case 'D':
-			return ElementAttribute::e_ElemAttr_Dark;
-		case 'u':
-		case 'U':
-			return ElementAttribute::e_ElemAttr_U;
-		default:
-			return 0;
-	}
-}
-
-int SkillInfo::GetElementAttribute(const char *s, int *nElemAttr)
-{
-	/*
-	105 = i, 73 = I result = 1 (Ice)
-	102 = f, 70 = F result = 2 (Fire)
-	108 = l, 76 = L result = 3 (Lightning)
-	115 = s, 83 = S result = 4 (Poison)
-	104 = h, 72 = H result = 5 (Holy)
-	100 = d, 68 = D result = 6 (Dark)
-	117 = u, 85 = U result = 7
-	*/
-
-	*nElemAttr = GetElementAttribute(*s); 
-	return *nElemAttr ? true : false;
-}
-
 int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID, int *pnIncMPCon)
 {
 	SkillEntry *pEntry = nullptr;
 	const SkillLevelData *pLevel = nullptr;
 	int nSLV = 0;
-	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 211))
+	if (IsCorrectJobForSkillRoot(nJob, 211))
 	{
 		nSLV = GetSkillLevel(pCharacter, 2110001, &pEntry);
 		if (nSLV)
 			pLevel = pEntry->GetLevelData(nSLV);
 	}
-	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 221))
+	if (IsCorrectJobForSkillRoot(nJob, 221))
 	{
 		nSLV = GetSkillLevel(pCharacter, 2210001, &pEntry);
 		if (nSLV)
@@ -305,17 +245,17 @@ int SkillInfo::GetResistance(int nSLV, int nJob, int nElement)
 	if (nElement <= 0 || nElement >= 8 || !nSLV)
 		return 0;
 
-	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 131))
+	if (IsCorrectJobForSkillRoot(nJob, 131))
 		return GetSkillByID(1310000)->GetLevelData(nSLV)->m_nX;
-	if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 211)) 
+	if (IsCorrectJobForSkillRoot(nJob, 211)) 
 	{
 		if(nElement == 2 || nElement == 4)
 			return GetSkillByID(2110000)->GetLevelData(nSLV)->m_nX;
 	}
 
-	if (!WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 221)) 
+	if (!IsCorrectJobForSkillRoot(nJob, 221)) 
 	{
-		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 231))
+		if (IsCorrectJobForSkillRoot(nJob, 231))
 			return GetSkillByID(2310000)->GetLevelData(nSLV)->m_nX;
 		return 0;
 	}
@@ -605,6 +545,218 @@ GW_SkillRecord * SkillInfo::GetSkillRecord(int nSkillID, int nSLV, long long int
 	return pRecord;
 }
 
+int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)
+{
+	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry);
+	if (pnInc)
+	{
+		if (nSLV <= 0)
+			*pnInc = 0;
+		else
+			*pnInc = pEntry->GetLevelData(nSLV)->m_nX;
+	}
+	if (nSLV)
+		return pEntry->GetLevelData(nSLV)->m_nMastery;
+	return 0;
+}
+
+int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if (nJob / 100 == 1)
+	{
+		nSLV = GetSkillLevel(
+			pCharacter,
+			1000002,
+			&pEntry
+		);
+		if (nSLV && pEntry)
+			return pEntry->GetLevelData(nSLV)->m_nTime;
+	}
+	else if (nJob / 100 == 4)
+	{
+		if (IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nTime;
+		}
+		else if (IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nTime;
+		}
+	}
+	return 0;
+}
+
+int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if (nJob / 100 == 1)
+	{
+		nSLV = GetSkillLevel(
+			pCharacter,
+			1000000,
+			&pEntry
+		);
+		if (nSLV && pEntry)
+			return pEntry->GetLevelData(nSLV)->m_nHp;
+	}
+	else if (nJob / 100 == 4)
+	{
+		if (IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nHp;
+		}
+		else if (IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nHp;
+		}
+	}
+	return 0;
+}
+
+int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
+{
+	int nJob = pCharacter->mStat->nJob, nSLV = 0;
+	SkillEntry *pEntry = nullptr;
+	if (nJob / 100 != 2)
+	{
+		if (IsCorrectJobForSkillRoot(nJob, 410))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4100002,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (IsCorrectJobForSkillRoot(nJob, 420))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				4200001,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (IsCorrectJobForSkillRoot(nJob, 111))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				1110000,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+		else if (IsCorrectJobForSkillRoot(nJob, 121))
+		{
+			nSLV = GetSkillLevel(
+				pCharacter,
+				1210000,
+				&pEntry
+			);
+			if (nSLV && pEntry)
+				return pEntry->GetLevelData(nSLV)->m_nMp;
+		}
+	}
+	return
+		(int)((double)GetSkillLevel(
+			pCharacter,
+			2000000,
+			&pEntry
+		) * (double)pCharacter->mLevel->nLevel * 0.1);
+}
+#endif
+
+int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterData)
+{
+	auto pItem = ItemInfo::GetInstance()->GetBundleItem(nItemID);
+	if (pItem != nullptr)
+	{
+		int result = pItem->nMaxPerSlot;
+		if (pCharacterData != nullptr &&  nItemID / 10000 == 207)
+		{
+			//精準暗器
+		}
+		return result == 0 ? 100 : result;
+	}
+	return 0;
+}
+
+int SkillInfo::GetElementAttribute(const char cAttr)
+{
+	switch (cAttr)
+	{
+	case 'i':
+	case 'I':
+		return ElementAttribute::e_ElemAttr_Ice;
+	case 'f':
+	case 'F':
+		return ElementAttribute::e_ElemAttr_Fire;
+	case 'l':
+	case 'L':
+		return ElementAttribute::e_ElemAttr_Lightning;
+	case 's':
+	case 'S':
+		return ElementAttribute::e_ElemAttr_Poison;
+	case 'h':
+	case 'H':
+		return ElementAttribute::e_ElemAttr_Holy;
+	case 'd':
+	case 'D':
+		return ElementAttribute::e_ElemAttr_Dark;
+	case 'u':
+	case 'U':
+		return ElementAttribute::e_ElemAttr_U;
+	default:
+		return 0;
+	}
+}
+
+int SkillInfo::GetElementAttribute(const char *s, int *nElemAttr)
+{
+	/*
+	105 = i, 73 = I result = 1 (Ice)
+	102 = f, 70 = F result = 2 (Fire)
+	108 = l, 76 = L result = 3 (Lightning)
+	115 = s, 83 = S result = 4 (Poison)
+	104 = h, 72 = H result = 5 (Holy)
+	100 = d, 68 = D result = 6 (Dark)
+	117 = u, 85 = U result = 7
+	*/
+
+	*nElemAttr = GetElementAttribute(*s);
+	return *nElemAttr ? true : false;
+}
+
 bool SkillInfo::IsSummonSkill(int nSkillID)
 {
 	switch (nSkillID)
@@ -677,152 +829,41 @@ bool SkillInfo::IsAdminSkill(int nSkillID)
 	return nJobRoot == 800 || nJobRoot == 900 || nJobRoot == 910;
 }
 
-int SkillInfo::GetMasteryFromSkill(GA_Character* pCharacter, int nSkillID, SkillEntry* pEntry, int* pnInc)
+int SkillInfo::GetSkillRootFromSkill(int nSkillID)
 {
-	int nSLV = GetSkillLevel(pCharacter, nSkillID, &pEntry);
-	if (pnInc)
-	{
-		if (nSLV <= 0)
-			*pnInc = 0;
-		else
-			*pnInc = pEntry->GetLevelData(nSLV)->m_nX;
-	}
-	if (nSLV)
-		return pEntry->GetLevelData(nSLV)->m_nMastery;
-	return 0;
+	int nRoot = nSkillID / 10000;
+	if (nSkillID / 10000 == 8000)
+		nRoot = nSkillID / 100;
+	return nRoot;
 }
 
-int SkillInfo::GetEndureDuration(GA_Character *pCharacter)
+bool SkillInfo::IsCorrectJobForSkillRoot(int nJob, int nSkillRoot)
 {
-	int nJob = pCharacter->mStat->nJob, nSLV = 0;
-	SkillEntry *pEntry = nullptr;
-	if (nJob / 100 == 1)
-	{
-		nSLV = GetSkillLevel(
-			pCharacter,
-			1000002,
-			&pEntry
-		);
-		if (nSLV && pEntry)
-			return pEntry->GetLevelData(nSLV)->m_nTime;
-	}
-	else if (nJob / 100 == 4)
-	{
-		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4100002,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nTime;
-		}
-		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4200001,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nTime;
-		}
-	}
-	return 0;
+	if (nSkillRoot % 100)
+		return (nSkillRoot / 10 == nJob / 10) && (nJob % 10 >= nSkillRoot % 10);
+	else
+		return (nSkillRoot / 100 == nJob / 100);
 }
 
-int SkillInfo::GetHPRecoveryUpgrade(GA_Character * pCharacter)
+bool SkillInfo::IsSkillNeedMasterLevel(int nSkillID)
 {
-	int nJob = pCharacter->mStat->nJob, nSLV = 0;
-	SkillEntry *pEntry = nullptr;
-	if (nJob / 100 == 1)
-	{
-		nSLV = GetSkillLevel(
-			pCharacter,
-			1000000,
-			&pEntry
-		);
-		if (nSLV && pEntry)
-			return pEntry->GetLevelData(nSLV)->m_nHp;
-	}
-	else if (nJob / 100 == 4)
-	{
-		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4100002,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nHp;
-		}
-		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4200001,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nHp;
-		}
-	}
-	return 0;
+	return (nSkillID / 10000 % 100 != 0) && (nSkillID / 10000 % 10 == 2);
 }
 
-int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
+bool SkillInfo::IsKeyDownSkill(int nSkillID)
 {
-	int nJob = pCharacter->mStat->nJob, nSLV = 0;
-	SkillEntry *pEntry = nullptr;
-	if(nJob / 100 != 2)
+	switch (nSkillID)
 	{
-		if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 410))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4100002,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nMp;
-		}
-		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 420))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				4200001,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nMp;
-		}
-		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 111))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				1110000,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nMp;
-		}
-		else if (WvsGameConstants::IsCorrectJobForSkillRoot(nJob, 121))
-		{
-			nSLV = GetSkillLevel(
-				pCharacter,
-				1210000,
-				&pEntry
-			);
-			if (nSLV && pEntry)
-				return pEntry->GetLevelData(nSLV)->m_nMp;
-		}
+		//Magic Attack Skills
+		case 2121001: // Big Bang
+		case 2221001:
+		case 2321001:
+
+		//Shoot Skills
+		case 3121004: // Hurricane
+		case 3221001: // Pierce
+		case 5221004: // Rapidfire
+			return true;
 	}
-	return
-		(int) ((double)GetSkillLevel(
-			pCharacter,
-			2000000,
-			&pEntry
-		) * (double)pCharacter->mLevel->nLevel * 0.1);
+	return false;
 }

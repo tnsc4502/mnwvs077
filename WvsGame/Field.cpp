@@ -1,10 +1,10 @@
 #include "Field.h"
 #include "LifePool.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\NpcPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\ReactorPacketTypes.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -384,13 +384,13 @@ void Field::SplitSendPacket(OutPacket *oPacket, User *pExcept)
 void Field::OnPacket(User* pUser, InPacket *iPacket)
 {
 	int nType = iPacket->Decode2();
-	if (nType >= FlagMin(MobRecvPacketFlag) && nType <= 0x9A)
+	if (nType >= FlagMin(MobRecvPacketType) && nType <= 0x9A)
 		m_pLifePool->OnPacket(pUser, nType, iPacket);
-	else if (nType == UserRecvPacketFlag::User_OnUserPickupRequest)
+	else if (nType == UserRecvPacketType::User_OnUserPickupRequest)
 		m_pDropPool->OnPacket(pUser, nType, iPacket);
-	else if (nType == FieldRecvPacketFlag::Field_OnContiMoveStateRequest)
+	else if (nType == FieldRecvPacketType::Field_OnContiMoveStateRequest)
 		OnContiMoveState(pUser, iPacket);
-	else if (nType >= FlagMin(ReactorRecvPacketFlag) && nType <= FlagMax(ReactorRecvPacketFlag))
+	else if (nType >= FlagMin(ReactorRecvPacketType) && nType <= FlagMax(ReactorRecvPacketType))
 		m_pReactorPool->OnPacket(pUser, nType, iPacket);
 }
 
@@ -402,7 +402,7 @@ void Field::OnUserMove(User * pUser, InPacket * iPacket)
 	auto& lastElem = movePath.m_lElem.rbegin();
 	pUser->SetMovePosition(lastElem->x, lastElem->y, lastElem->bMoveAction, lastElem->fh);
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserRemote_OnMove);
+	oPacket.Encode2(UserSendPacketType::UserRemote_OnMove);
 	oPacket.Encode4(pUser->GetUserID());
 	movePath.Encode(&oPacket);
 	this->SplitSendPacket(&oPacket, pUser);
@@ -481,7 +481,7 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 
 	//Encode Ctrl Ack Packet
 	OutPacket ctrlAckPacket;
-	ctrlAckPacket.Encode2(MobSendPacketFlag::Mob_OnCtrlAck);
+	ctrlAckPacket.Encode2(MobSendPacketType::Mob_OnCtrlAck);
 	ctrlAckPacket.Encode4(pMob->GetFieldObjectID());
 	ctrlAckPacket.Encode2(nMobCtrlSN);
 	ctrlAckPacket.Encode1(bNextAttackPossible);
@@ -491,7 +491,7 @@ void Field::OnMobMove(User * pCtrl, Mob * pMob, InPacket * iPacket)
 
 	//Encode Move Packet
 	OutPacket movePacket;
-	movePacket.Encode2(MobSendPacketFlag::Mob_OnMove); //CMob::OnMove
+	movePacket.Encode2(MobSendPacketType::Mob_OnMove); //CMob::OnMove
 	movePacket.Encode4(pMob->GetFieldObjectID());
 	movePacket.Encode1(bNextAttackPossible);
 	movePacket.Encode1(pCenterSplit);
@@ -580,7 +580,7 @@ int Field::CountUserInArea(const std::string & sArea)
 void Field::EffectScreen(const std::string& sEffect)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Screen);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket);
@@ -589,7 +589,7 @@ void Field::EffectScreen(const std::string& sEffect)
 void Field::EffectScreen(const std::string& sEffect, std::vector<int>& anCharacterID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Screen);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket, anCharacterID);
@@ -598,7 +598,7 @@ void Field::EffectScreen(const std::string& sEffect, std::vector<int>& anCharact
 void Field::EffectSound(const std::string& sEffect)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Sound);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket);
@@ -607,7 +607,7 @@ void Field::EffectSound(const std::string& sEffect)
 void Field::EffectSound(const std::string& sEffect, std::vector<int>& anCharacterID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Sound);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket, anCharacterID);
@@ -616,7 +616,7 @@ void Field::EffectSound(const std::string& sEffect, std::vector<int>& anCharacte
 void Field::EffectObject(const std::string& sEffect)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnFieldEffect);
+	oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
 	oPacket.Encode1(FieldEffect::e_FieldEffect_Object);
 	oPacket.EncodeStr(sEffect);
 	BroadcastPacket(&oPacket);
@@ -633,7 +633,7 @@ void Field::OnContiMoveState(User * pUser, InPacket * iPacket)
 	int nEventDoing = ContinentMan::GetInstance()->GetInfo(nFieldID, 0);
 	int nState = ContinentMan::GetInstance()->GetInfo(nFieldID, 1);
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_OnContiState);
+	oPacket.Encode2(FieldSendPacketType::Field_OnContiState);
 	oPacket.Encode1(nState);
 	oPacket.Encode1((char)nEventDoing);
 	pUser->SendPacket(&oPacket);

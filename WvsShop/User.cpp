@@ -15,8 +15,9 @@
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "ShopPacketTypes.hpp"
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Memory\ZMemory.h"
 
@@ -47,7 +48,7 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	//ValidateState();
 
 	OutPacket oPacket;
-	oPacket.Encode2(ShopSendPacketFlag::Client_SetCashShop);
+	oPacket.Encode2(ShopSendPacketType::Client_SetCashShop);
 	m_pCharacterData->EncodeCharacterData(&oPacket, false);
 	oPacket.EncodeStr("Maple");
 	oPacket.Encode4(0); //0082C69E NotLimited
@@ -65,7 +66,7 @@ User::~User()
 {
 	WvsLogger::LogRaw("Migrated out, encoding Character data to center.\n");
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopInternalPacketFlag::RequestMigrateOut);
+	oPacket.Encode2((short)CenterRequestPacketType::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(GetUserID());
 	oPacket.Encode4(-1);
@@ -110,7 +111,7 @@ void User::Update()
 void User::OnMigrateOutCashShop()
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopInternalPacketFlag::RequestTransferToGame);
+	oPacket.Encode2((short)CenterRequestPacketType::RequestTransferChannel);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(m_pCharacterData->nCharacterID);
 	oPacket.Encode1(m_nChannelID);
@@ -120,7 +121,7 @@ void User::OnMigrateOutCashShop()
 void User::ValidateState()
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopSendPacketFlag::Client_ValidateState);
+	oPacket.Encode2((short)ShopSendPacketType::Client_ValidateState);
 	oPacket.Encode1(1);
 	oPacket.Encode4(0);
 	SendPacket(&oPacket);
@@ -129,7 +130,7 @@ void User::ValidateState()
 void User::OnQueryCashRequest()
 {
 	OutPacket oPacket;
-	oPacket.Encode2(ShopSendPacketFlag::User_QueryCashResult);
+	oPacket.Encode2(ShopSendPacketType::User_QueryCashResult);
 	oPacket.Encode4(m_nNexonCash);
 	oPacket.Encode4(m_nMaplePoint);
 	oPacket.Encode4(0);
@@ -142,13 +143,13 @@ void User::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-		case UserRecvPacketFlag::User_OnUserTransferFieldRequest:
+		case UserRecvPacketType::User_OnUserTransferFieldRequest:
 			OnMigrateOutCashShop();
 			break;
-		case ShopRecvPacketFlag::User_OnCashItemRequest:
+		case ShopRecvPacketType::User_OnCashItemRequest:
 			OnUserCashItemRequest(iPacket);
 			break;
-		case ShopRecvPacketFlag::User_OnQueryCashReques:
+		case ShopRecvPacketType::User_OnQueryCashReques:
 			OnQueryCashRequest();
 			break;
 	}
@@ -177,19 +178,19 @@ void User::OnCenterCashItemResult(int nType, InPacket * iPacket)
 	bool bValidate = true;
 	switch (nType)
 	{
-		case ShopInternalPacketFlag::OnCenterLoadLockerDone:
+		case CenterCashItemRequestType::eLoadCashItemLockerRequest:
 			OnCenterResLoadLockerDone(iPacket);
 			break;
-		case ShopInternalPacketFlag::OnCenterResBuyDone:
+		case CenterCashItemRequestType::eBuyCashItemRequest:
 			OnCenterResBuyDone(iPacket);
 			break;
-		case ShopInternalPacketFlag::OnCenterUpdateCashDone:
+		case CenterCashItemRequestType::eGetMaplePointRequest:
 			OnCenterUpdateCashDone(iPacket);
 			break;
-		case ShopInternalPacketFlag::OnCenterMoveToSlotDone:
+		case CenterCashItemRequestType::eMoveCashItemLtoSRequest:
 			OnCenterMoveItemToSlotDone(iPacket);
 			break;
-		case ShopInternalPacketFlag::OnCenterMoveToLockerDone:
+		case CenterCashItemRequestType::eMoveCashItemStoLRequest:
 			OnCenterMoveItemToLockerDone(iPacket);
 			break;
 		default:
@@ -203,8 +204,10 @@ void User::OnCenterCashItemResult(int nType, InPacket * iPacket)
 
 void User::OnCenterResLoadLockerDone(InPacket * iPacket)
 {
+	short nFailedReason = iPacket->Decode1();
+
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopSendPacketFlag::User_CashItemResult);
+	oPacket.Encode2((short)ShopSendPacketType::User_CashItemResult);
 	oPacket.Encode1(CashItemRequest::Send_OnCashItemResLoadLockerDone);
 	oPacket.EncodeBuffer(
 		iPacket->GetPacket() + iPacket->GetReadCount(),
@@ -214,11 +217,13 @@ void User::OnCenterResLoadLockerDone(InPacket * iPacket)
 
 void User::OnCenterResBuyDone(InPacket * iPacket)
 {
+	short nFailedReason = iPacket->Decode1();
+
 	m_nNexonCash = iPacket->Decode4();
 	m_nMaplePoint = iPacket->Decode4();
 
 	OutPacket oPacket;
-	oPacket.Encode2(ShopSendPacketFlag::User_CashItemResult);
+	oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
 	oPacket.Encode1(CashItemRequest::Send_OnCashItemResBuyDone);
 
 	//Transfer GW_CashItemInfo
@@ -233,6 +238,8 @@ void User::OnCenterResBuyDone(InPacket * iPacket)
 
 void User::OnCenterUpdateCashDone(InPacket * iPacket)
 {
+	short nFailedReason = iPacket->Decode1();
+
 	m_nNexonCash = iPacket->Decode4();
 	m_nMaplePoint = iPacket->Decode4();
 	iPacket->Decode4();
@@ -242,8 +249,10 @@ void User::OnCenterUpdateCashDone(InPacket * iPacket)
 
 void User::OnCenterMoveItemToSlotDone(InPacket * iPacket)
 {
+	short nFailedReason = iPacket->Decode1();
+
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopSendPacketFlag::User_CashItemResult);
+	oPacket.Encode2((short)ShopSendPacketType::User_CashItemResult);
 	oPacket.Encode1(CashItemRequest::Send_OnCashItemResMoveLtoSDone);
 	long long int liItemSN = iPacket->Decode8();
 	oPacket.EncodeBuffer(
@@ -269,6 +278,8 @@ void User::OnCenterMoveItemToSlotDone(InPacket * iPacket)
 
 void User::OnCenterMoveItemToLockerDone(InPacket * iPacket)
 {
+	short nFailedReason = iPacket->Decode1();
+
 	auto liCashItemSN = iPacket->Decode8();
 	int nType = iPacket->Decode1();
 	short nPOS = m_pCharacterData->FindCashItemSlotPosition(nType, liCashItemSN);
@@ -276,7 +287,7 @@ void User::OnCenterMoveItemToLockerDone(InPacket * iPacket)
 		m_pCharacterData->mItemSlot[nType].erase(nPOS);
 
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopSendPacketFlag::User_CashItemResult);
+	oPacket.Encode2((short)ShopSendPacketType::User_CashItemResult);
 	oPacket.Encode1(CashItemRequest::Send_OnCashItemResMoveStoLDone);
 	oPacket.EncodeBuffer(
 		iPacket->GetPacket() + iPacket->GetReadCount(),
@@ -288,9 +299,10 @@ void User::OnCenterMoveItemToLockerDone(InPacket * iPacket)
 void User::OnRequestCenterLoadLocker()
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopInternalPacketFlag::RequestLoadLocker);
+	oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(this->m_pCharacterData->nCharacterID);
+	oPacket.Encode2((short)CenterCashItemRequestType::eLoadCashItemLockerRequest);
 	oPacket.Encode4(this->m_pCharacterData->nAccountID);
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 }
@@ -298,9 +310,10 @@ void User::OnRequestCenterLoadLocker()
 void User::OnRequestCenterUpdateCash()
 {
 	OutPacket oPacket;
-	oPacket.Encode2((short)ShopInternalPacketFlag::RequestUpdateCash);
+	oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(this->m_pCharacterData->nCharacterID);
+	oPacket.Encode2((short)CenterCashItemRequestType::eGetMaplePointRequest);
 	oPacket.Encode4(this->m_pCharacterData->nAccountID);
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 }
@@ -321,9 +334,10 @@ void User::OnRequestBuyCashItem(InPacket * iPacket)
 			Sending packets to Center, requests it to charge cash points and save the item.
 			*/
 			OutPacket oPacket;
-			oPacket.Encode2((short)ShopInternalPacketFlag::RequestBuyCashItem);
+			oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
 			oPacket.Encode4(m_pSocket->GetSocketID());
 			oPacket.Encode4(this->m_pCharacterData->nCharacterID);
+			oPacket.Encode2((short)CenterCashItemRequestType::eBuyCashItemRequest);
 			oPacket.Encode4(this->m_pCharacterData->nAccountID);
 			oPacket.Encode1(nChargeType);
 			oPacket.Encode1(pCommodity->nItemID / 1000000);
@@ -340,9 +354,10 @@ void User::OnRequestBuyCashItem(InPacket * iPacket)
 void User::OnRequestMoveItemToSlot(InPacket * iPacket)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(ShopInternalPacketFlag::RequestMoveLToS);
+	oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(this->m_pCharacterData->nCharacterID);
+	oPacket.Encode2((short)CenterCashItemRequestType::eMoveCashItemLtoSRequest);
 	oPacket.Encode4(this->m_pCharacterData->nAccountID);
 	oPacket.Encode8(iPacket->Decode8()); //liCashItemSN
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
@@ -351,9 +366,10 @@ void User::OnRequestMoveItemToSlot(InPacket * iPacket)
 void User::OnRequestMoveItemToLocker(InPacket * iPacket)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(ShopInternalPacketFlag::RequestMoveSToL);
+	oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
 	oPacket.Encode4(m_pSocket->GetSocketID());
 	oPacket.Encode4(this->m_pCharacterData->nCharacterID);
+	oPacket.Encode2((short)CenterCashItemRequestType::eMoveCashItemStoLRequest);
 	oPacket.Encode4(this->m_pCharacterData->nAccountID);
 	oPacket.Encode8(iPacket->Decode8()); //liCashItemSN
 	oPacket.Encode1(iPacket->Decode1()); //nType

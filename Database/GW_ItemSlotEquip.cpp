@@ -36,6 +36,43 @@ GW_ItemSlotEquip::~GW_ItemSlotEquip()
 {
 }
 
+void ConstructItemFromDBRecordSet(GW_ItemSlotEquip *pItem, bool bCash, Poco::Data::RecordSet& recordSet)
+{
+	pItem->nCharacterID = recordSet["CharacterID"];
+
+	if (bCash)
+		pItem->liCashItemSN = recordSet["CashItemSN"];
+	else
+		pItem->liItemSN = recordSet["ItemSN"];
+
+	pItem->nItemID = recordSet["ItemID"];
+	pItem->liExpireDate = recordSet["ExpireDate"];
+	pItem->nAttribute = recordSet["Attribute"];
+	pItem->nPOS = recordSet["POS"];
+	pItem->sTitle = recordSet["Title"].toString();
+	pItem->nRUC = (unsigned char)(unsigned short)recordSet["RUC"];
+	pItem->nCUC = (unsigned char)(unsigned short)recordSet["CUC"];
+	pItem->nCuttable = recordSet["Cuttable"];
+	pItem->nSTR = recordSet["I_STR"];
+	pItem->nDEX = recordSet["I_DEX"];
+	pItem->nINT = recordSet["I_INT"];
+	pItem->nLUK = recordSet["I_LUK"];
+	pItem->nMaxHP = recordSet["I_MaxHP"];
+	pItem->nMaxMP = recordSet["I_MaxMP"];
+	pItem->nPAD = recordSet["I_PAD"];
+	pItem->nMAD = recordSet["I_MAD"];
+	pItem->nPDD = recordSet["I_PDD"];
+	pItem->nMDD = recordSet["I_MDD"];
+	pItem->nACC = recordSet["I_ACC"];
+	pItem->nEVA = recordSet["I_EVA"];
+	pItem->nSpeed = recordSet["I_Speed"];
+	pItem->nCraft = recordSet["I_Craft"];
+	pItem->nJump = recordSet["I_Jump"];
+	pItem->nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
+
+	pItem->bIsCash = (pItem->liCashItemSN != -1);
+}
+
 void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bCash, std::map<int, ZSharedPtr<GW_ItemSlotBase>>& mRes)
 {
 	std::string sTableName = "ItemSlot_EQP";
@@ -49,39 +86,7 @@ void GW_ItemSlotEquip::LoadAll(int nCharacterID, bool bCash, std::map<int, ZShar
 	for (int i = 0; i < recordSet.rowCount(); ++i, recordSet.moveNext())
 	{
 		auto pItem = MakeShared<GW_ItemSlotEquip>();
-		pItem->nCharacterID = recordSet["CharacterID"];
-
-		if (bCash)
-			pItem->liCashItemSN = recordSet["CashItemSN"];
-		else
-			pItem->liItemSN = recordSet["ItemSN"];
-
-		pItem->nItemID = recordSet["ItemID"];
-		pItem->liExpireDate = recordSet["ExpireDate"];
-		pItem->nAttribute = recordSet["Attribute"];
-		pItem->nPOS = recordSet["POS"];
-		pItem->sTitle = recordSet["Title"].toString();
-		pItem->nRUC = (unsigned char)(unsigned short)recordSet["RUC"];
-		pItem->nCUC = (unsigned char)(unsigned short)recordSet["CUC"];
-		pItem->nCuttable = recordSet["Cuttable"];
-		pItem->nSTR = recordSet["I_STR"];
-		pItem->nDEX = recordSet["I_DEX"];
-		pItem->nINT = recordSet["I_INT"];
-		pItem->nLUK = recordSet["I_LUK"];
-		pItem->nMaxHP = recordSet["I_MaxHP"];
-		pItem->nMaxMP = recordSet["I_MaxMP"];
-		pItem->nPAD = recordSet["I_PAD"];
-		pItem->nMAD = recordSet["I_MAD"];
-		pItem->nPDD = recordSet["I_PDD"];
-		pItem->nMDD = recordSet["I_MDD"];
-		pItem->nACC = recordSet["I_ACC"];
-		pItem->nEVA = recordSet["I_EVA"];
-		pItem->nSpeed = recordSet["I_Speed"];
-		pItem->nCraft = recordSet["I_Craft"];
-		pItem->nJump = recordSet["I_Jump"];
-		pItem->nType = GW_ItemSlotType::EQUIP;
-
-		pItem->bIsCash = (pItem->liCashItemSN != -1);
+		ConstructItemFromDBRecordSet(pItem, bCash, recordSet);
 		mRes[pItem->nPOS] = pItem;
 	}
 }
@@ -98,42 +103,10 @@ void GW_ItemSlotEquip::Load(ATOMIC_COUNT_TYPE SN)
 	queryStatement << "SELECT * FROM " << sTableName << " Where " + sColumnName + " = " << SN;
 	queryStatement.execute();
 	Poco::Data::RecordSet recordSet(queryStatement);
-	nCharacterID = recordSet["CharacterID"];
-
-	if(bIsCash)
-		liCashItemSN = recordSet["CashItemSN"];
-	else
-		liItemSN = recordSet["ItemSN"];
-
-	nItemID = recordSet["ItemID"];
-	liExpireDate = recordSet["ExpireDate"];
-	nAttribute = recordSet["Attribute"];
-	nPOS = recordSet["POS"];
-	sTitle = recordSet["Title"].toString();
-	nRUC = (unsigned char)(unsigned short)recordSet["RUC"];
-	nCUC = (unsigned char)(unsigned short)recordSet["CUC"];
-	nCuttable = recordSet["Cuttable"];
-	nSTR = recordSet["I_STR"];
-	nDEX = recordSet["I_DEX"];
-	nINT = recordSet["I_INT"];
-	nLUK = recordSet["I_LUK"];
-	nMaxHP = recordSet["I_MaxHP"];
-	nMaxMP = recordSet["I_MaxMP"];
-	nPAD = recordSet["I_PAD"];
-	nMAD = recordSet["I_MAD"];
-	nPDD = recordSet["I_PDD"];
-	nMDD = recordSet["I_MDD"];
-	nACC = recordSet["I_ACC"];
-	nEVA = recordSet["I_EVA"];
-	nSpeed = recordSet["I_Speed"];
-	nCraft = recordSet["I_Craft"];
-	nJump = recordSet["I_Jump"];
-	nType = GW_ItemSlotType::EQUIP;
-
-	bIsCash = (liCashItemSN != -1);
+	ConstructItemFromDBRecordSet(this, bIsCash, recordSet);
 }
 
-void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
+void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord, bool bExpired)
 {
 	if (nType != GW_ItemSlotType::EQUIP)
 		throw std::runtime_error("Invalid Equip Type.");
@@ -142,7 +115,7 @@ void GW_ItemSlotEquip::Save(int nCharacterID, bool bRemoveRecord)
 
 	try 
 	{
-		std::string sTableName = (bIsCash ? "CashItem_EQP" : "ItemSlot_EQP");
+		std::string sTableName = (bExpired ? "ItemExpired_EQP" : (bIsCash ? "CashItem_EQP" : "ItemSlot_EQP"));
 		std::string sColumnName = (bIsCash ? "CashItemSN" : "ItemSN");
 		auto pSN = (bIsCash ? &liCashItemSN : &liItemSN);
 

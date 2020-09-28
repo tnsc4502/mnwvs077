@@ -11,8 +11,8 @@ Implementations of cash item usages.
 #include "..\WvsLib\String\StringPool.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 
 int UserCashItemImpl::ConsumeSpeakerChannel(User *pUser, InPacket *iPacket)
 {
@@ -26,7 +26,7 @@ int UserCashItemImpl::ConsumeSpeakerChannel(User *pUser, InPacket *iPacket)
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnBroadcastMsg);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnBroadcastMsg);
 	oPacket.Encode1(BroadcastMsgType::e_BroadcastMsg_SpeakerChannel);
 	oPacket.EncodeStr(sMsg);
 	User::Broadcast(&oPacket);
@@ -46,9 +46,9 @@ int UserCashItemImpl::ConsumeSpeakerWorld(User *pUser, int nCashItemType, InPack
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::BroadcastPacket);
+	oPacket.Encode2(CenterRequestPacketType::BroadcastPacket);
 	oPacket.Encode1(0); //nGameSrvCount = 0 --> broadcast to all game servers.
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnBroadcastMsg);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnBroadcastMsg);
 
 	if (nCashItemType == ItemInfo::CashItemType::CashItemType_SpeakerHeart)
 		oPacket.Encode1(BroadcastMsgType::e_BroadcastMsg_SpeakerHeart);
@@ -79,9 +79,9 @@ int UserCashItemImpl::ConsumeAvatarMegaphone(User *pUser, int nItemID, InPacket 
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::BroadcastPacket);
+	oPacket.Encode2(CenterRequestPacketType::BroadcastPacket);
 	oPacket.Encode1(0); //nGameSrvCount = 0 --> broadcast to all game servers.
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnAvatarMegaPacket);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnAvatarMegaPacket);
 	oPacket.Encode4(nItemID);
 	oPacket.EncodeStr(pUser->GetName());
 	oPacket.EncodeStr(sMsg);

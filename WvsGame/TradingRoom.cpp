@@ -12,7 +12,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 
 TradingRoom::TradingRoom()
 	: MiniRoomBase(2)
@@ -77,7 +77,7 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 		for (int i = 0; i < m_nMaxUsers; ++i)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(TradingRequest::rq_Trading_PutItem);
 			oPacket.Encode1(i != nIdx);
 			oPacket.Encode1(nTradingPOS);
@@ -104,7 +104,7 @@ void TradingRoom::OnPutMoney(User *pUser, InPacket *iPacket)
 		for (int i = 0; i < m_nCurUsers; ++i)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+			oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 			oPacket.Encode1(TradingRequest::rq_Trading_PutMoney);
 			oPacket.Encode1(i != nIdx);
 			oPacket.Encode4(nMoney);
@@ -129,7 +129,7 @@ void TradingRoom::OnTrade(User *pUser, InPacket *iPacket)
 
 		auto pUserNotify = m_apUser[1 - nIdx];
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MiniRoomRequest);
+		oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 		oPacket.Encode1(TradingRequest::rq_Trading_DoTrade);
 		pUserNotify->SendPacket(&oPacket);
 

@@ -56,7 +56,7 @@ public:
 	static void RestoreBackupItem(GA_Character* pCharacterData, std::vector<BackupItem>& aBackupItem);
 	static void RestoreTradingInventory(GA_Character* pCharacterData, std::map<int, int> mBackupItemTrading[6], std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
 	static void InsertChangeLog(std::vector<ChangeLog>& aChangeLog, int nChange, int nTI, int nPOS, const ZSharedPtr<GW_ItemSlotBase>& pi, int nPOS2, int nNumber);
-	static void MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
+	static bool MakeInventoryOperation(OutPacket *oPacket, int bOnExclResult, std::vector<InventoryManipulator::ChangeLog> &aChangeLog);
 	static void MakeItemUpgradeEffect(OutPacket *oPacket, int nCharacterID, int nEItemID, int nUItemID, bool bSuccess, bool bCursed, bool bEnchant);
 };
 

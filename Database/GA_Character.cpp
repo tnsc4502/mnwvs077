@@ -17,7 +17,6 @@
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 
 GA_Character::GA_Character()
 	: mAvatarData(AllocObj(GW_Avatar)),
@@ -214,6 +213,7 @@ void GA_Character::SaveInventoryRemovedRecord()
 				else
 					equipRemovedInstance.liItemSN = prRecord.first * -1;
 
+				equipRemovedInstance.bIsCash = prRecord.second;
 				equipRemovedInstance.nType = GW_ItemSlotBase::GW_ItemSlotType::EQUIP;
 				equipRemovedInstance.Save(nCharacterID, true);
 			}

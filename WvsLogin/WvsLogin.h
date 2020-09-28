@@ -1,6 +1,5 @@
 #pragma once
 #include "..\WvsLib\Net\WvsBase.h"
-#include "..\WvsLib\Common\WvsLoginConstants.hpp"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "Center.h"
 #include <thread>
@@ -24,8 +23,7 @@ private:
 	std::map<unsigned int, int> m_mSocketIDToAccountID;
 	std::map<int, std::shared_ptr<LoginEntry>> m_mAccountIDToLoginEntry;
 
-	//紀錄Center instance是否正在連線，用於避免重連的異常
-	bool aIsConnecting[ServerConstants::kMaxNumberOfCenters];
+	bool m_aIsConnecting[ServerConstants::kMaxNumberOfCenters];
 	void CenterAliveMonitor(int idx);
 	void ConnectToCenter(int nCenterIdx);
 

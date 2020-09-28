@@ -1,6 +1,5 @@
 #pragma once
 #include "..\WvsLib\Net\SocketBase.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 
 class Center :
 	public SocketBase
@@ -28,6 +27,7 @@ public:
 	void OnCheckMigrationState(InPacket *iPacket);
 	void OnGuildBBSResult(InPacket *iPacket);
 	void OnCheckGivePopularityResult(InPacket *iPacket);
+	void OnCenterCashItemResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

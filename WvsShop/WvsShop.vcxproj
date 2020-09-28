@@ -229,16 +229,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WvsGame\ItemInfo.h" />
+    <ClInclude Include="..\WvsGame\SkillInfo.h" />
     <ClInclude Include="Center.h" />
     <ClInclude Include="ClientSocket.h" />
     <ClInclude Include="CSCommodity.h" />
     <ClInclude Include="ShopApp.h" />
     <ClInclude Include="ShopInfo.h" />
+    <ClInclude Include="ShopPacketTypes.hpp" />
     <ClInclude Include="User.h" />
     <ClInclude Include="WvsShop.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\WvsGame\ItemInfo.cpp" />
+    <ClCompile Include="..\WvsGame\SkillInfo.cpp" />
     <ClCompile Include="Center.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="main.cpp" />

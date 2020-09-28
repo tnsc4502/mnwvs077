@@ -1,7 +1,6 @@
 #include "GW_CharacterStat.h"
 #include "WvsUnified.h"
 #include "..\WvsLib\String\StringUtility.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
@@ -17,7 +16,7 @@ GW_CharacterStat::~GW_CharacterStat()
 
 void GW_CharacterStat::EncodeExtendSP(OutPacket * oPacket)
 {
-	if (WvsGameConstants::IsExtendSPJob(nJob))
+	/*if (WvsGameConstants::IsExtendSPJob(nJob))
 	{
 		int nCount = 0;
 		for (auto sp : aSP)
@@ -33,12 +32,12 @@ void GW_CharacterStat::EncodeExtendSP(OutPacket * oPacket)
 		}
 	}
 	else
-		oPacket->Encode2(aSP[0]);
+		oPacket->Encode2(aSP[0]);*/
 }
 
 void GW_CharacterStat::DecodeExtendSP(InPacket * iPacket)
 {
-	for (auto& sp : aSP)
+	/*for (auto& sp : aSP)
 		sp = 0;
 	if (WvsGameConstants::IsExtendSPJob(nJob))
 	{
@@ -51,7 +50,7 @@ void GW_CharacterStat::DecodeExtendSP(InPacket * iPacket)
 		}
 	}
 	else
-		aSP[0] = iPacket->Decode2();
+		aSP[0] = iPacket->Decode2();*/
 }
 
 void GW_CharacterStat::Load(int nCharacterID)

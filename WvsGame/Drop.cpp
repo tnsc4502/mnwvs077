@@ -7,7 +7,7 @@
 #include "ItemInfo.h"
 
 #include "..\Database\GW_ItemSlotBase.h"
-#include "..\WvsLib\Net\PacketFlags\DropPacketFlags.hpp"
+#include "..\WvsGame\DropPacketTypes.hpp"
 
 Drop::Drop()
 {
@@ -25,7 +25,7 @@ void Drop::MakeEnterFieldPacket(OutPacket * oPacket)
 
 void Drop::MakeEnterFieldPacket(OutPacket * oPacket, int nEnterType, int tDelay)
 {
-	oPacket->Encode2((short)DropSendPacketFlag::Drop_OnMakeEnterFieldPacket); //Drop Pool :: Enter Field
+	oPacket->Encode2((short)DropSendPacketType::Drop_OnMakeEnterFieldPacket); //Drop Pool :: Enter Field
 	oPacket->Encode1(nEnterType);
 	oPacket->Encode4(m_dwDropID);
 	oPacket->Encode1(m_bIsMoney);
@@ -53,7 +53,7 @@ void Drop::MakeLeaveFieldPacket(OutPacket *oPacket)
 
 void Drop::MakeLeaveFieldPacket(OutPacket *oPacket, int nLeaveType, int nOption, Pet *pPet)
 {
-	oPacket->Encode2((short)DropSendPacketFlag::Drop_OnMakeLeaveFieldPacket);
+	oPacket->Encode2((short)DropSendPacketType::Drop_OnMakeLeaveFieldPacket);
 	oPacket->Encode1((char)nLeaveType);
 	oPacket->Encode4(m_dwDropID);
 	if (nLeaveType >= 2 && nLeaveType != 4) 

@@ -232,6 +232,7 @@
     <ClInclude Include="Center.h" />
     <ClInclude Include="LoginApp.h" />
     <ClInclude Include="LoginEntry.h" />
+    <ClInclude Include="LoginPacketTypes.hpp" />
     <ClInclude Include="LoginSocket.h" />
     <ClInclude Include="WvsLogin.h" />
   </ItemGroup>

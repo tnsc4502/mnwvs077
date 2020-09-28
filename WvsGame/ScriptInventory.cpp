@@ -7,7 +7,7 @@
 #include "..\Database\GW_CharacterSlotCount.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
@@ -119,7 +119,7 @@ int ScriptInventory::InventoryIncSlotCount(lua_State * L)
 		self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI] += nCount;
 		lua_pushinteger(L, 1);
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnInventoryGrow);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnInventoryGrow);
 		oPacket.Encode1(nTI);
 		oPacket.Encode1(self->m_pUser->GetCharacterData()->mSlotCount->aSlotCount[nTI]);
 		self->m_pUser->SendPacket(&oPacket);

@@ -12,7 +12,6 @@
 #include "SkillLevelData.h"
 #include "..\Database\GW_SkillRecord.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 
 BasicStat::BasicStat()
 {

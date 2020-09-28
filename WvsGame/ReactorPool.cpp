@@ -5,7 +5,7 @@
 #include "Reactor.h"
 #include "LifePool.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
-#include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
+#include "..\WvsGame\ReactorPacketTypes.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -115,10 +115,10 @@ void ReactorPool::OnPacket(User *pUser, int nType, InPacket * iPacket)
 {
 	switch (nType)
 	{
-		case ReactorRecvPacketFlag::Reactor_OnHitReactor:
+		case ReactorRecvPacketType::Reactor_OnHitReactor:
 			OnHit(pUser, iPacket);
 			break;
-		case ReactorRecvPacketFlag::Reactor_OnClickReactor:
+		case ReactorRecvPacketType::Reactor_OnClickReactor:
 			break;
 	}
 }

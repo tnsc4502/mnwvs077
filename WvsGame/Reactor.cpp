@@ -19,7 +19,7 @@
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
+#include "..\WvsGame\ReactorPacketTypes.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 
 int Reactor::GetHitTypePriorityLevel(int nOption, int nType)
@@ -72,7 +72,7 @@ Reactor::~Reactor()
 
 void Reactor::MakeEnterFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2((short)ReactorSendPacketFlag::Reactor_OnReactorEnterField);
+	oPacket->Encode2((short)ReactorSendPacketType::Reactor_OnReactorEnterField);
 	oPacket->Encode4(m_nFieldObjectID);
 	oPacket->Encode4(m_nTemplateID);
 	oPacket->Encode1(m_nState);
@@ -84,7 +84,7 @@ void Reactor::MakeEnterFieldPacket(OutPacket * oPacket)
 
 void Reactor::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2((short)ReactorSendPacketFlag::Reactor_OnReactorLeaveField);
+	oPacket->Encode2((short)ReactorSendPacketType::Reactor_OnReactorLeaveField);
 	oPacket->Encode4(m_nFieldObjectID);
 	oPacket->Encode1(m_nState);
 	oPacket->Encode2((short)m_ptPos.x);
@@ -180,7 +180,7 @@ void Reactor::SetState(int nEventIdx, int tActionDelay)
 
 void Reactor::MakeStateChangePacket(OutPacket * oPacket, int tActionDelay, int nProperEventIdx)
 {
-	oPacket->Encode2((short)ReactorSendPacketFlag::Reactor_OnReactorChangeState);
+	oPacket->Encode2((short)ReactorSendPacketType::Reactor_OnReactorChangeState);
 	oPacket->Encode4(m_nFieldObjectID);
 	oPacket->Encode1(m_nState);
 	oPacket->Encode2(m_ptPos.x);

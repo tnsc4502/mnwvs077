@@ -4,11 +4,10 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 
-#include "..\WvsLib\Net\PacketFlags\LoginPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ShopPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsShop\ShopPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "WvsCenter.h"
@@ -18,6 +17,7 @@
 #include "UserTransferStatus.h"
 #include "EntrustedShopMan.h"
 #include "GuildBBSMan.h"
+
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsGame\PartyMan.h"
 #include "..\WvsGame\GuildMan.h"
@@ -86,91 +86,77 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-		case LoginSendPacketFlag::Center_RegisterCenterRequest:
+		case CenterRequestPacketType::RegisterCenterRequest:
 			OnRegisterCenterRequest(iPacket);
 			break;
-		case LoginSendPacketFlag::Center_RequestCharacterList:
+		case CenterRequestPacketType::RequestCharacterList:
 			OnRequestCharacterList(iPacket);
 			break;
-		case LoginSendPacketFlag::Center_RequestCreateNewCharacter:
+		case CenterRequestPacketType::RequestCreateNewCharacter:
 			OnRequestCreateNewCharacter(iPacket);
 			break;
-		case LoginSendPacketFlag::Center_RequestCheckDuplicatedID:
+		case CenterRequestPacketType::RequestCheckDuplicatedID:
 			OnRequestCheckDuplicatedID(iPacket);
 			break;
-		case LoginSendPacketFlag::Center_RequestGameServerInfo:
+		case CenterRequestPacketType::RequestGameServerInfo:
 			OnRequestGameServerInfo(iPacket);
 			break;
-		case LoginSendPacketFlag::Center_RequestLoginAuth:
+		case CenterRequestPacketType::RequestLoginAuth:
 			OnRequestLoginAuth(iPacket);
 			break;
-		case GameSrvSendPacketFlag::RequestMigrateIn:
+		case CenterRequestPacketType::RequestMigrateIn:
 			OnRequestMigrateIn(iPacket);
 			break;
-		case ShopInternalPacketFlag::RequestMigrateOut:
-		case GameSrvSendPacketFlag::RequestMigrateOut:
+		case CenterRequestPacketType::RequestMigrateOut:
 			OnRequestMigrateOut(iPacket);
 			break;
-		case ShopInternalPacketFlag::RequestTransferToGame:
-		case GameSrvSendPacketFlag::RequestTransferChannel:
+		case CenterRequestPacketType::RequestTransferChannel:
 			OnRequestTransferChannel(iPacket);
 			break;
-		case GameSrvSendPacketFlag::RequestTransferShop:
+		case CenterRequestPacketType::RequestTransferShop:
 			OnRequestMigrateCashShop(iPacket);
 			break;
-		case ShopInternalPacketFlag::RequestBuyCashItem:
-			OnRequestBuyCashItem(iPacket);
-			break;
-		case ShopInternalPacketFlag::RequestLoadLocker:
-			OnRequestLoadLocker(iPacket);
-			break;
-		case ShopInternalPacketFlag::RequestUpdateCash:
-			OnReuqestUpdateCash(iPacket);
-			break;
-		case ShopInternalPacketFlag::RequestMoveLToS:
-			OnReuqestMoveLockerToSlot(iPacket);
-			break;
-		case ShopInternalPacketFlag::RequestMoveSToL:
-			OnReuqestMoveSlotToLocker(iPacket);
-			break;
-		case GameSrvSendPacketFlag::PartyRequest:
+		case CenterRequestPacketType::PartyRequest:
 			OnPartyRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::GuildRequest:
+		case CenterRequestPacketType::GuildRequest:
 			OnGuildRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::GuildBBSRequest:
+		case CenterRequestPacketType::GuildBBSRequest:
 			OnGuildBBSRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::FriendRequest:
+		case CenterRequestPacketType::FriendRequest:
 			OnFriendRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::GroupMessage:
+		case CenterRequestPacketType::GroupMessage:
 			OnGroupMessage(iPacket);
 			break;
-		case GameSrvSendPacketFlag::WhisperMessage:
+		case CenterRequestPacketType::WhisperMessage:
 			OnWhisperMessage(iPacket);
 			break;
-		case GameSrvSendPacketFlag::TrunkRequest:
+		case CenterRequestPacketType::TrunkRequest:
 			OnTrunkRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::FlushCharacterData:
+		case CenterRequestPacketType::FlushCharacterData:
 			CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::EntrustedShopRequest:
+		case CenterRequestPacketType::EntrustedShopRequest:
 			OnEntrustedShopRequest(iPacket);
 			break;
-		case GameSrvSendPacketFlag::GameClientDisconnected:
+		case CenterRequestPacketType::GameClientDisconnected:
 			OnGameClientDisconnected(iPacket);
 			break;
-		case GameSrvSendPacketFlag::CheckMigrationState:
+		case CenterResultPacketType::CheckMigrationStateResult:
 			OnCheckMigrationStateAck(iPacket);
 			break;
-		case GameSrvSendPacketFlag::BroadcastPacket:
+		case CenterRequestPacketType::BroadcastPacket:
 			OnBroadcastPacket(iPacket);
 			break;
-		case GameSrvSendPacketFlag::CheckGivePopularityRequest:
+		case CenterRequestPacketType::CheckGivePopularityRequest:
 			OnCheckGivePopularity(iPacket);
+			break;
+		case CenterRequestPacketType::CashItemRequest:
+			OnCashItemRequest(iPacket);
 			break;
 	}
 }
@@ -195,7 +181,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::RegisterCenterAck);
+	oPacket.Encode2(CenterResultPacketType::RegisterCenterAck);
 	oPacket.Encode1(1); //Success;
 
 	if (nServerType == ServerConstants::SRV_GAME)
@@ -330,7 +316,7 @@ void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)
 	int nCharacterID = iPacket->Decode4();
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::GameServerInfoResponse);
+	oPacket.Encode2(CenterResultPacketType::GameServerInfoResponse);
 	oPacket.Encode4(nLoginSocketID);
 
 	if (nWorldID != WvsWorld::GetInstance()->GetWorldInfo().nWorldID ||
@@ -378,7 +364,7 @@ void LocalServer::OnRequestLoginAuth(InPacket* iPacket)
 			int nAccountID = iPacket->Decode4();
 
 			OutPacket oPacket;
-			oPacket.Encode2(CenterSendPacketFlag::LoginAuthResult);
+			oPacket.Encode2(CenterResultPacketType::LoginAuthResult);
 			oPacket.Encode1(LoginAuthResult::res_LoginAuth_RefreshLoginState);
 			oPacket.Encode4(nAccountID);
 			oPacket.Encode1(WvsWorld::GetInstance()->RefreshLoginState(nAccountID));
@@ -429,7 +415,7 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::CenterMigrateInResult);
+	oPacket.Encode2(CenterResultPacketType::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	CharacterDBAccessor::GetInstance()->PostCharacterDataRequest(this, nClientSocketID, nCharacterID, &oPacket); // for WvsGame
@@ -482,7 +468,7 @@ void LocalServer::OnRequestTransferChannel(InPacket * iPacket)
 	auto pEntry = WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID);
 	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::TransferChannelResult);
+	oPacket.Encode2(CenterResultPacketType::TransferChannelResult);
 	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode1((pEntry != nullptr ? 1 : 0)); //bSuccess
 	if (pEntry != nullptr)
@@ -504,7 +490,7 @@ void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
 	int nCharacterID = iPacket->Decode4();
 	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::MigrateCashShopResult);
+	oPacket.Encode2(CenterResultPacketType::MigrateCashShopResult);
 	oPacket.Encode4(nClientSocketID);
 	auto pEntry = WvsBase::GetInstance<WvsCenter>()->GetShop();
 	if (WvsBase::GetInstance<WvsCenter>()->GetShop() == nullptr)
@@ -552,7 +538,7 @@ void LocalServer::OnBroadcastPacket(InPacket *iPacket)
 {
 	int nGameSrvCount = iPacket->Decode1();
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+	oPacket.Encode2(CenterResultPacketType::RemoteBroadcasting);
 	oPacket.Encode4(-1); //nUserID --> -1 = broadcast to all.
 	oPacket.EncodeBuffer(
 		iPacket->GetPacket() + iPacket->GetReadCount() + nGameSrvCount,
@@ -584,48 +570,48 @@ void LocalServer::OnCheckGivePopularity(InPacket * iPacket)
 	int nTargetID = iPacket->Decode4();
 
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::CheckGivePopularityResult);
+	oPacket.Encode2(CenterResultPacketType::CheckGivePopularityResult);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode1(0);
+
+	if(!WvsWorld::GetInstance()->CheckEventAvailabilityForUser("GivePop", nCharacterID))
+		oPacket.Encode1(3);
+	else
+	{
+		oPacket.Encode1(0);
+		WvsWorld::GetInstance()->InsertNextAvailableEventTimeForUser("GivePop", nCharacterID, GameDateTime::GetDateExpireFromPeriod(1));
+	}
 	oPacket.Encode4(nTargetID);
 	oPacket.Encode1(1);
 
 	SendPacket(&oPacket);
 }
 
-void LocalServer::OnRequestBuyCashItem(InPacket *iPacket)
+void LocalServer::OnCashItemRequest(InPacket * iPacket)
 {
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
-	CharacterDBAccessor::GetInstance()->PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
-}
-
-void LocalServer::OnRequestLoadLocker(InPacket * iPacket)
-{
-	int nClientSocketID = iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
-	CharacterDBAccessor::GetInstance()->PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
-}
-
-void LocalServer::OnReuqestUpdateCash(InPacket * iPacket)
-{
-	int nClientSocketID = iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
-	CharacterDBAccessor::GetInstance()->PostUpdateCashRequest(this, nClientSocketID, nCharacterID, iPacket);
-}
-
-void LocalServer::OnReuqestMoveLockerToSlot(InPacket * iPacket)
-{
-	int nClientSocketID = iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
-	CharacterDBAccessor::GetInstance()->PostMoveLockerToSlotRequest(this, nClientSocketID, nCharacterID, iPacket);
-}
-
-void LocalServer::OnReuqestMoveSlotToLocker(InPacket * iPacket)
-{
-	int nClientSocketID = iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
-	CharacterDBAccessor::GetInstance()->PostMoveSlotToLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
+	int nRequest = iPacket->Decode2();
+	switch (nRequest)
+	{
+		case CenterCashItemRequestType::eBuyCashItemRequest:
+			CharacterDBAccessor::GetInstance()->PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eLoadCashItemLockerRequest:
+			CharacterDBAccessor::GetInstance()->PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eMoveCashItemLtoSRequest:
+			CharacterDBAccessor::GetInstance()->PostMoveLockerToSlotRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eMoveCashItemStoLRequest:
+			CharacterDBAccessor::GetInstance()->PostMoveSlotToLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eExpireCashItemRequest:
+			CharacterDBAccessor::GetInstance()->PostExpireCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eGetMaplePointRequest:
+			CharacterDBAccessor::GetInstance()->PostUpdateCashRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+	}
 }
 
 void LocalServer::OnPartyRequest(InPacket * iPacket)
@@ -782,7 +768,7 @@ void LocalServer::OnGroupMessage(InPacket * iPacket)
 		if (bSend && (pwUser = WvsWorld::GetInstance()->GetUser(nID)))
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+			oPacket.Encode2(CenterResultPacketType::RemoteBroadcasting);
 			oPacket.Encode4(nID);
 			oPacket.EncodeBuffer(
 				iPacket->GetPacket() + iPacket->GetReadCount(),
@@ -812,11 +798,11 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 
 	auto pwUser = (nTargetID == -1 ? nullptr : WvsWorld::GetInstance()->GetUser(nTargetID));
 	OutPacket oReply;
-	oReply.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+	oReply.Encode2(CenterResultPacketType::RemoteBroadcasting);
 	if (!pwUser || pwUser->m_nChannelID == WvsWorld::CHANNELID_SHOP)
 	{
 		oReply.Encode4(nUserID);
-		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode2(FieldSendPacketType::Field_OnWhisper);
 		oReply.Encode1(!pwUser ? 
 			WhisperResult::e_Whisper_Res_Message_Ack:
 			WhisperResult::e_Whisper_Res_QuerySuccess);
@@ -834,7 +820,7 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 	if (nType == WhisperResult::e_Whisper_Type_QueryLocation) //Require location info.
 	{
 		oReply.Encode4(nUserID);
-		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode2(FieldSendPacketType::Field_OnWhisper);
 		oReply.Encode1(WhisperResult::e_Whisper_Res_QuerySuccess);
 		oReply.EncodeStr(strTargetName);
 		oReply.Encode1(WhisperResult::e_Whisper_QR_ChannelID);
@@ -845,7 +831,7 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 	{
 		//Reply
 		oReply.Encode4(nUserID);
-		oReply.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oReply.Encode2(FieldSendPacketType::Field_OnWhisper);
 		oReply.Encode1(WhisperResult::e_Whisper_Res_Message_Ack);
 		oReply.EncodeStr(strTargetName);
 		oReply.Encode1(1); //Success
@@ -853,9 +839,9 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 
 		//Send to target
 		OutPacket oWhisper;
-		oWhisper.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+		oWhisper.Encode2(CenterResultPacketType::RemoteBroadcasting);
 		oWhisper.Encode4(nTargetID);
-		oWhisper.Encode2(FieldSendPacketFlag::Field_OnWhisper);
+		oWhisper.Encode2(FieldSendPacketType::Field_OnWhisper);
 		oWhisper.Encode1(WhisperResult::e_Whisper_Res_Message_Send);
 		oWhisper.EncodeStr(strUserName);
 		oWhisper.Encode2(pwUser->m_nChannelID); //Success
@@ -875,7 +861,7 @@ void LocalServer::OnTrunkRequest(InPacket * iPacket)
 		{
 			int nCharacterID = iPacket->Decode4();
 			OutPacket oPacket;
-			oPacket.Encode2(CenterSendPacketFlag::TrunkResult);
+			oPacket.Encode2(CenterResultPacketType::TrunkResult);
 			oPacket.Encode4(nCharacterID);
 			oPacket.Encode1(Trunk::TrunkResult::res_Trunk_Load);
 			pTrunk->Encode(0xFFFFFFFF, &oPacket);

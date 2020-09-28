@@ -27,7 +27,6 @@
 #include "PirateSkills.h"
 #include "BeginnersSkills.h"
 
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"

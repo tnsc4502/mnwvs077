@@ -12,7 +12,7 @@
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 
 DropPool::DropPool(Field *pField)
 	: m_pField(pField)
@@ -93,7 +93,7 @@ void DropPool::OnEnter(User * pUser)
 
 void DropPool::OnPacket(User *pUser, int nType, InPacket *iPacket)
 {
-	if(nType == UserRecvPacketFlag::User_OnUserPickupRequest)
+	if(nType == UserRecvPacketType::User_OnUserPickupRequest)
 		OnPickUpRequest(pUser, iPacket, nullptr);
 }
 

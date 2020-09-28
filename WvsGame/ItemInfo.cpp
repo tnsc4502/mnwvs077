@@ -1,13 +1,15 @@
 #include "ItemInfo.h"
+#ifdef _WVSGAME
 #include "SkillInfo.h"
 #include "SkillEntry.h"
 #include "SkillLevelData.h"
-#include "..\WvsLib\Wz\WzResMan.hpp"
+#include "..\Database\GA_Character.hpp"
+#endif
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotPet.h"
-#include "..\Database\GA_Character.hpp"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"

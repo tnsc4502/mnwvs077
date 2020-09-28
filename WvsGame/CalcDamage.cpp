@@ -13,7 +13,6 @@
 #include "MobTemplate.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\Random\Rand32.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 

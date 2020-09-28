@@ -13,6 +13,12 @@
     <Filter Include="InGame\Item">
       <UniqueIdentifier>{58caa6c9-dead-4923-b913-3f25d5eb29f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{d593b230-1fe5-43da-96be-2859c2d76c1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="InGame\Skill">
+      <UniqueIdentifier>{6a285dfd-5368-4739-a149-f695b0cfd3cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -56,6 +62,9 @@
       <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="CenterApp.cpp" />
+    <ClCompile Include="..\WvsGame\SkillInfo.cpp">
+      <Filter>InGame\Skill</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsCenter.h">
@@ -98,5 +107,14 @@
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="CenterApp.h" />
+    <ClInclude Include="CenterPacketTypes.hpp">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldInfo.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WvsGame\SkillInfo.h">
+      <Filter>InGame\Skill</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

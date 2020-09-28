@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "..\Common\ServerConstants.hpp"
+#include "..\WvsLib\Common\ServerConstants.hpp"
 
 struct WorldConnectionInfo
 {

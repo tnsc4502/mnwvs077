@@ -4,11 +4,10 @@
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
-#include "..\WvsLib\Net\PacketFlags\NPCPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\SummonedPacketTypes.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\String\StringPool.h"
@@ -304,7 +303,7 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 void LifePool::RemoveNpc(Npc* pNpc)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(NPCSendPacketFlags::NPC_OnMakeLeaveFieldPacket);
+	oPacket.Encode2(NPCSendPacketTypes::NPC_OnMakeLeaveFieldPacket);
 	oPacket.Encode4(pNpc->GetFieldObjectID());
 	m_pField->BroadcastPacket(&oPacket);
 	m_mNpc.erase(pNpc->GetFieldObjectID());
@@ -725,11 +724,11 @@ void LifePool::Update()
 
 void LifePool::OnPacket(User * pUser, int nType, InPacket * iPacket)
 {
-	if (nType >= FlagMin(MobRecvPacketFlag) && nType <= FlagMax(MobRecvPacketFlag))
+	if (nType >= FlagMin(MobRecvPacketType) && nType <= FlagMax(MobRecvPacketType))
 	{
 		OnMobPacket(pUser, nType, iPacket);
 	}
-	else if (nType == NPCRecvPacketFlags::NPC_OnMoveRequest)
+	else if (nType == NPCRecvPacketTypes::NPC_OnMoveRequest)
 		OnNpcPacket(pUser, nType, iPacket);
 }
 
@@ -890,7 +889,7 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 	}
 
 	OutPacket oPacket;
-	oPacket.Encode2(SummonedSendPacketFlag::Summoned_OnAttack);
+	oPacket.Encode2(SummonedSendPacketType::Summoned_OnAttack);
 	oPacket.Encode4(pUser->GetUserID());
 	oPacket.Encode4(pSummoned->GetFieldObjectID());
 	oPacket.Encode1(pInfo->m_bLeft << 7 | pInfo->m_nAction & 0x7F);
@@ -951,10 +950,10 @@ void LifePool::OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *p
 
 void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPacket)
 {
-	oPacket->Encode2(pInfo->m_nType - UserRecvPacketFlag::User_OnUserAttack_MeleeAttack + UserSendPacketFlag::UserRemote_OnMeleeAttack);
+	oPacket->Encode2(pInfo->m_nType - UserRecvPacketType::User_OnUserAttack_MeleeAttack + UserSendPacketType::UserRemote_OnMeleeAttack);
 	oPacket->Encode4(pUser->GetUserID());
 	oPacket->Encode1(pInfo->m_bDamageInfoFlag);
-	if (pInfo->m_nSkillID > 0 || pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_MagicAttack)
+	if (pInfo->m_nSkillID > 0 || pInfo->m_nType == UserRecvPacketType::User_OnUserAttack_MagicAttack)
 	{
 		oPacket->Encode1(pInfo->m_nSLV);
 		oPacket->Encode4(pInfo->m_nSkillID);
@@ -977,12 +976,12 @@ void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPack
 			oPacket->Encode4((int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31));
 	}
 
-	if (pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_ShootAttack)
+	if (pInfo->m_nType == UserRecvPacketType::User_OnUserAttack_ShootAttack)
 	{
 		oPacket->Encode2(pUser->GetPosX());
 		oPacket->Encode2(pUser->GetPosY());
 	}
-	else if (pInfo->m_nType == UserRecvPacketFlag::User_OnUserAttack_MagicAttack)
+	else if (pInfo->m_nType == UserRecvPacketType::User_OnUserAttack_MagicAttack)
 		oPacket->Encode4(pInfo->m_tKeyDown);
 }
 
@@ -1021,10 +1020,10 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 	if (mobIter != m_mMob.end()) {
 		switch (nType)
 		{
-			case MobRecvPacketFlag::Mob_OnMove:
+			case MobRecvPacketType::Mob_OnMove:
 				m_pField->OnMobMove(pUser, mobIter->second, iPacket);
 				break;
-			case MobRecvPacketFlag::Mob_OnApplyControl:
+			case MobRecvPacketType::Mob_OnApplyControl:
 				mobIter->second->OnApplyCtrl(pUser, iPacket);
 				break;
 		}
@@ -1037,7 +1036,7 @@ void LifePool::OnMobPacket(User * pUser, int nType, InPacket * iPacket)
 void LifePool::OnNpcPacket(User * pUser, int nType, InPacket * iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
-	if (nType == NPCRecvPacketFlags::NPC_OnMoveRequest)
+	if (nType == NPCRecvPacketTypes::NPC_OnMoveRequest)
 	{
 		auto iterNpc = this->m_mNpc.find(iPacket->Decode4());
 		if (iterNpc != m_mNpc.end())

@@ -8,7 +8,7 @@
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 
 Pet::Pet(ZSharedPtr<GW_ItemSlotBase>& pPetSlot)
 	: m_pPetSlot(pPetSlot)
@@ -43,13 +43,13 @@ void Pet::OnPacket(InPacket *iPacket, int nType)
 {
 	switch (nType)
 	{
-		case UserRecvPacketFlag::User_OnPetMove:
+		case UserRecvPacketType::User_OnPetMove:
 			OnMove(iPacket);
 			break;
-		case UserRecvPacketFlag::User_OnPetActionSpeak:
-		case UserRecvPacketFlag::User_OnPetAction:
+		case UserRecvPacketType::User_OnPetActionSpeak:
+		case UserRecvPacketType::User_OnPetAction:
 			break;
-		case UserRecvPacketFlag::User_OnPetDropPickupRequest:
+		case UserRecvPacketType::User_OnPetDropPickupRequest:
 			m_pField->GetDropPool()->OnPickUpRequest(m_pOwner, iPacket, this);
 			break;
 	}
@@ -86,7 +86,7 @@ void Pet::OnMove(InPacket *iPacket)
 	movePath.Decode(iPacket);
 	ValidateMovePath(&movePath);
 	OutPacket oPacket;
-	oPacket.Encode2((short)UserSendPacketFlag::UserCommon_Pet_OnMove);
+	oPacket.Encode2((short)UserSendPacketType::UserCommon_Pet_OnMove);
 	oPacket.Encode4(m_pOwner->GetUserID());
 	oPacket.Encode1(m_nIndex);
 	movePath.Encode(&oPacket);
@@ -96,7 +96,7 @@ void Pet::OnMove(InPacket *iPacket)
 
 void Pet::MakeEnterFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2((short)UserSendPacketFlag::UserCommon_Pet_OnMakeEnterFieldPacket);
+	oPacket->Encode2((short)UserSendPacketType::UserCommon_Pet_OnMakeEnterFieldPacket);
 	oPacket->Encode4(m_pOwner->GetUserID());
 	oPacket->Encode1(m_nIndex);
 	oPacket->Encode1(1);
@@ -105,7 +105,7 @@ void Pet::MakeEnterFieldPacket(OutPacket *oPacket)
 
 void Pet::MakeLeaveFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2((short)UserSendPacketFlag::UserCommon_Pet_OnMakeEnterFieldPacket);
+	oPacket->Encode2((short)UserSendPacketType::UserCommon_Pet_OnMakeEnterFieldPacket);
 	oPacket->Encode4(m_pOwner->GetUserID());
 	oPacket->Encode1(m_nIndex);
 	oPacket->Encode1(0);

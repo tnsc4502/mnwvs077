@@ -1,11 +1,11 @@
 #include "Field_MonsterCarnival.h"
 #include "FieldSet.h"
 #include "LifePool.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\ReactorPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\MobPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\NpcPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\FieldPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\ReactorPacketTypes.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -359,13 +359,13 @@ void Field_MonsterCarnival::SendCP(MemberData &rmd, User *pUser)
 	if (pUser)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_SendPersonalCP);
+		oPacket.Encode2(FieldSendPacketType::Field_MCarnival_SendPersonalCP);
 		oPacket.Encode2(rmd.nRestCP);
 		oPacket.Encode2(rmd.nTotCP);
 		pUser->SendPacket(&oPacket);
 	}
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_SendTeamCP);
+	oPacket.Encode2(FieldSendPacketType::Field_MCarnival_SendTeamCP);
 	oPacket.Encode1(rmd.nTeam);
 	oPacket.Encode2(m_anRestCP[rmd.nTeam]);
 	oPacket.Encode2(m_anTotCP[rmd.nTeam]);
@@ -398,7 +398,7 @@ void Field_MonsterCarnival::OnEnter(User *pUser)
 		findIter->second.bIsDead = false;
 
 	OutPacket oPacket;
-	oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_OnEnter);
+	oPacket.Encode2(FieldSendPacketType::Field_MCarnival_OnEnter);
 	oPacket.Encode1(pUser->GetMCarnivalTeam());
 	oPacket.Encode2(findIter->second.nRestCP); 
 	oPacket.Encode2(findIter->second.nTotCP);
@@ -422,7 +422,7 @@ void Field_MonsterCarnival::OnPacket(User* pUser, InPacket* iPacket)
 	int nType = iPacket->Decode2();
 	switch (nType)
 	{
-		case FieldRecvPacketFlag::Field_MCarnival_OnRequest:
+		case FieldRecvPacketType::Field_MCarnival_OnRequest:
 			OnRequest(pUser, iPacket);
 			break;
 		default:
@@ -459,13 +459,13 @@ void Field_MonsterCarnival::OnRequest(User *pUser, InPacket *iPacket)
 	OutPacket oPacket;
 	if (nResult)
 	{
-		oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_OnRequestResult_Failed);
+		oPacket.Encode2(FieldSendPacketType::Field_MCarnival_OnRequestResult_Failed);
 		oPacket.Encode1(nResult);
 		pUser->SendPacket(&oPacket);
 	}
 	else
 	{
-		oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_OnRequestResult_Success);
+		oPacket.Encode2(FieldSendPacketType::Field_MCarnival_OnRequestResult_Success);
 		oPacket.Encode1(nAction);
 		oPacket.Encode1(nArg);
 		oPacket.EncodeStr(pUser->GetName());
@@ -558,7 +558,7 @@ void Field_MonsterCarnival::ProcessTimeFinish()
 		anCharacterID[nTeam].push_back(prUser.second->GetUserID());
 
 		OutPacket oPacket;
-		oPacket.Encode2(FieldSendPacketFlag::Field_MCarnival_ShowGameResult);
+		oPacket.Encode2(FieldSendPacketType::Field_MCarnival_ShowGameResult);
 		if (m_bCanceled)
 			oPacket.Encode1(11);
 		else

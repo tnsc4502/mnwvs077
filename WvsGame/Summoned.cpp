@@ -12,7 +12,7 @@
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterLevel.h"
-#include "..\WvsLib\Net\PacketFlags\SummonedPacketFlags.hpp"
+#include "..\WvsGame\SummonedPacketTypes.hpp"
 
 Summoned::Summoned()
 {
@@ -59,17 +59,17 @@ void Summoned::OnPacket(InPacket * iPacket, int nType)
 {
 	switch (nType)
 	{
-		case SummonedRecvPacketFlag::Summoned_OnMoveRequest:
+		case SummonedRecvPacketType::Summoned_OnMoveRequest:
 			OnMove(iPacket);
 			break;
-		case SummonedRecvPacketFlag::Summoned_OnAttackRequest:
+		case SummonedRecvPacketType::Summoned_OnAttackRequest:
 			OnAttack(iPacket);
 			break;
-		case SummonedRecvPacketFlag::Summoned_OnHitRequest:
+		case SummonedRecvPacketType::Summoned_OnHitRequest:
 			break;
-		case SummonedRecvPacketFlag::Summoned_OnDoingHealRequest:
+		case SummonedRecvPacketType::Summoned_OnDoingHealRequest:
 			break;
-		case SummonedRecvPacketFlag::Summoned_OnRemoveRequest:
+		case SummonedRecvPacketType::Summoned_OnRemoveRequest:
 			break;
 	}
 }
@@ -82,7 +82,7 @@ void Summoned::OnMove(InPacket * iPacket)
 	ValidateMovePath(&movePath);
 
 	OutPacket oPacket;
-	oPacket.Encode2((short)SummonedSendPacketFlag::Summoned_OnMove);
+	oPacket.Encode2((short)SummonedSendPacketType::Summoned_OnMove);
 	oPacket.Encode4(m_pOwner->GetUserID());
 	oPacket.Encode4(GetFieldObjectID());
 	movePath.Encode(&oPacket);
@@ -92,7 +92,7 @@ void Summoned::OnMove(InPacket * iPacket)
 
 void Summoned::MakeEnterFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2((short)SummonedSendPacketFlag::Summoned_OnCreated);
+	oPacket->Encode2((short)SummonedSendPacketType::Summoned_OnCreated);
 	oPacket->Encode4(m_pOwner->GetUserID());
 	oPacket->Encode4(GetFieldObjectID());
 	oPacket->Encode4(m_nSkillID);
@@ -125,7 +125,7 @@ void Summoned::MakeEnterFieldPacket(OutPacket * oPacket)
 
 void Summoned::MakeLeaveFieldPacket(OutPacket * oPacket)
 {
-	oPacket->Encode2((short)SummonedSendPacketFlag::Summoned_OnRemoved);
+	oPacket->Encode2((short)SummonedSendPacketType::Summoned_OnRemoved);
 	oPacket->Encode4(m_pOwner->GetUserID());
 	oPacket->Encode4(GetFieldObjectID());
 	oPacket->Encode1(0x0A);

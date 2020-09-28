@@ -7,9 +7,8 @@
 #include "FieldSet.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\GameSrvPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsCenter\WvsWorld.h"
 
@@ -117,7 +116,7 @@ void PartyMan::OnPacket(InPacket *iPacket)
 void PartyMan::OnCreateNewPartyRequest(User * pUser, InPacket * iPacket)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+	oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 	oPacket.Encode1(PartyRequest::rq_Party_Create);
 	ENCODE_MEMBER_INFO(pUser);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -153,7 +152,7 @@ void PartyMan::OnCreateNewPartyDone(InPacket *iPacket)
 				m_mCharacterIDToPartyID[nCharacterID] = nPartyID;
 
 				OutPacket oPacket;
-				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+				oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 				oPacket.Encode1(PartyResult::res_Party_Create);
 				oPacket.Encode4(nPartyID);
 				oPacket.Encode4(999999999);
@@ -226,13 +225,13 @@ void PartyMan::OnInvitePartyRequest(User * pUser, InPacket * iPacket)
 		{
 			if (GetPartyIDByCharID(pToInvite->GetUserID()) > 0)
 			{
-				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+				oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 				oPacket.Encode1(PartyResult::res_Party_Failed_AlreadyInParty);
 				pUser->SendPacket(&oPacket);
 			}
 			else
 			{
-				oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+				oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 				oPacket.Encode1(PartyRequest::rq_Party_Invite);
 				oPacket.Encode4(pUser->GetUserID());
 				oPacket.EncodeStr(pUser->GetName());
@@ -254,7 +253,7 @@ void PartyMan::OnJoinPartyRequest(User * pUser, InPacket * iPacket)
 	auto pBoss = User::FindUser(nPartyBossID);
 	if (!pBoss || GetPartyIDByCharID(pUser->GetUserID()) > 0)
 	{
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 		oPacket.Encode1(PartyResult::res_Party_Failed_UnableToProcess);
 		pUser->SendPacket(&oPacket);
 		return;
@@ -264,7 +263,7 @@ void PartyMan::OnJoinPartyRequest(User * pUser, InPacket * iPacket)
 		IsPartyBoss(nPartyID, nPartyBossID) &&
 		pUser->IsPartyInvitedCharacterID(nPartyBossID))
 	{
-		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 		oPacket.Encode1(PartyRequest::rq_Party_Join);
 		oPacket.Encode4(nPartyID);
 		oPacket.Encode4(nPartyBossID);
@@ -286,7 +285,7 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 	{
 	JOIN_FAILED:
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 		oPacket.Encode1(PartyResult::res_Party_Failed_UnableToProcess);
 		pUser->SendPacket(&oPacket);
 		return;
@@ -309,7 +308,7 @@ void PartyMan::OnJoinPartyDone(InPacket * iPacket)
 	//NotifyTransferField(pUser->GetUserID(), pUser->GetField()->GetFieldID());
 
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 	oPacket.Encode1(PartyResult::res_Party_Join);
 	oPacket.Encode4(nPartyID);
 	oPacket.EncodeStr(pUser->GetName());
@@ -331,7 +330,7 @@ void PartyMan::OnWithdrawPartyRequest(int nType, User *pUser, InPacket *iPacket)
 	{
 		auto pParty = GetParty(nPartyID);
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 		oPacket.Encode1(PartyRequest::rq_Party_Withdraw_Kick);
 		oPacket.Encode4(nPartyID);
 		if (nType == PartyRequest::rq_Party_Withdraw) 
@@ -364,7 +363,7 @@ void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 	OutPacket oPacket;
-	oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 	oPacket.Encode1(PartyResult::res_Party_Withdraw);
 	oPacket.Encode4(nPartyID);
 	oPacket.Encode4(nWithdrawTarget);
@@ -418,7 +417,7 @@ void PartyMan::OnChangePartyBossRequest(User *pUser, InPacket *iPacket)
 		if (pParty->party.anChannelID[nIdx] < 0)
 			return;
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 		oPacket.Encode1(PartyRequest::rq_Party_ChangeBoss);
 		oPacket.Encode4(pParty->nPartyID);
 		oPacket.Encode4(nCharacterID);
@@ -440,7 +439,7 @@ void PartyMan::OnChangePartyBossDone(InPacket *iPacket)
 		int nTargetID = iPacket->Decode4();
 		pParty->party.nPartyBossCharacterID = nTargetID;
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 		oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
 		oPacket.Encode4(nTargetID);
 		oPacket.Encode1(iPacket->Decode1());
@@ -479,7 +478,7 @@ void PartyMan::OnUserMigration(InPacket * iPacket)
 			pParty->party.anFieldID[nIdx] = 999999999;
 
 		OutPacket oPacket;
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 		oPacket.Encode1(PartyResult::res_Party_MigrateIn);
 		oPacket.Encode4(pParty->nPartyID);
 		pParty->Encode(&oPacket);
@@ -505,7 +504,7 @@ void PartyMan::NotifyTransferField(int nCharacterID, int nFieldID)
 				pParty->party.aTownPortal[nIdx].m_nFieldPortalY = -1;
 			}
 			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+			oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 			oPacket.Encode1(PartyResult::res_Party_Update);
 			oPacket.Encode4(pParty->nPartyID);
 			pParty->Encode(&oPacket);
@@ -539,7 +538,7 @@ void PartyMan::PostChangeLevelOrJob(User * pUser, int nVal, bool bLevelChanged)
 	if (pParty)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(GameSrvSendPacketFlag::PartyRequest);
+		oPacket.Encode2(CenterRequestPacketType::PartyRequest);
 		oPacket.Encode1(PartyRequest::rq_Guild_LevelOrJobChanged);
 		oPacket.Encode4(pParty->nPartyID);
 		oPacket.Encode4(pUser->GetUserID());
@@ -565,7 +564,7 @@ void PartyMan::OnChangeLevelOrJob(InPacket * iPacket)
 			pParty->party.anJob[nIdx] = iPacket->Decode4();
 
 			OutPacket oPacket;
-			oPacket.Encode2(UserSendPacketFlag::UserLocal_OnPartyResult);
+			oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
 			oPacket.Encode1(PartyResult::res_Party_ChangeLevelOrJob);
 			oPacket.Encode4(nCharacterID);
 			oPacket.Encode4(pParty->party.anLevel[nIdx]);
@@ -707,7 +706,7 @@ void PartyMan::CreateNewParty(InPacket * iPacket, OutPacket *oPacket)
 			m_mCharacterIDToPartyID[nCharacterID] = nPartyCreateResult;
 		}
 	}
-	oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+	oPacket->Encode2(CenterResultPacketType::PartyResult);
 	oPacket->Encode1(PartyResult::res_Party_Create);
 	oPacket->Encode4(nCharacterID);
 	oPacket->Encode4(nPartyCreateResult);
@@ -717,7 +716,7 @@ void PartyMan::LoadParty(InPacket * iPacket, OutPacket *oPacket)
 {
 	int nCharacterID = iPacket->Decode4();
 	auto pParty = GetPartyByCharID(nCharacterID);
-	oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+	oPacket->Encode2(CenterResultPacketType::PartyResult);
 	oPacket->Encode1(PartyResult::res_Party_Load);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
@@ -741,7 +740,7 @@ void PartyMan::JoinParty(InPacket * iPacket, OutPacket *oPacket)
 	int nToInvite = iPacket->Decode4();
 	char nAvailableIndex = -1;
 
-	oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+	oPacket->Encode2(CenterResultPacketType::PartyResult);
 	oPacket->Encode1(PartyResult::res_Party_Join);
 	auto pParty = GetPartyByCharID(nBossID);
 
@@ -785,7 +784,7 @@ void PartyMan::WithdrawParty(InPacket *iPacket, OutPacket *oPacket)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 	if (pParty && ((nIdx = FindUser(nToKick, pParty)), nIdx >= 0))
 	{
-		oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket->Encode2(CenterResultPacketType::PartyResult);
 		oPacket->Encode1(PartyResult::res_Party_Withdraw);
 		oPacket->Encode4(nPartyID);
 		oPacket->Encode4(nToKick);
@@ -825,7 +824,7 @@ void PartyMan::ChangePartyBoss(InPacket * iPacket, OutPacket * oPacket)
 		std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
 		pParty->party.nPartyBossCharacterID = nTargetID;
 
-		oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket->Encode2(CenterResultPacketType::PartyResult);
 		oPacket->Encode1(PartyResult::res_Party_ChangeBoss);
 		oPacket->Encode4(nPartyID);
 		oPacket->Encode1(1);
@@ -846,7 +845,7 @@ void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 		pParty->party.anChannelID[nIdx] = nChannelID;
 
 		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::PartyResult);
+		oPacket.Encode2(CenterResultPacketType::PartyResult);
 		oPacket.Encode1(res_Party_MigrateIn);
 		oPacket.Encode4(pParty->nPartyID);
 		oPacket.Encode1((char)nIdx);
@@ -865,7 +864,7 @@ void PartyMan::NotifyMigrateIn(int nCharacterID, int nChannelID)
 					pParty->party.nPartyBossCharacterID = pParty->party.anCharacterID[i];
 
 					OutPacket oPacket;
-					oPacket.Encode2(CenterSendPacketFlag::PartyResult);
+					oPacket.Encode2(CenterResultPacketType::PartyResult);
 					oPacket.Encode1(PartyResult::res_Party_ChangeBoss);
 					oPacket.Encode4(pParty->nPartyID);
 					oPacket.Encode1(1);
@@ -881,7 +880,7 @@ void PartyMan::ChangeLevelOrJob(InPacket *iPacket, OutPacket *oPacket)
 {
 	int nPartyID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
-	oPacket->Encode2(CenterSendPacketFlag::PartyResult);
+	oPacket->Encode2(CenterResultPacketType::PartyResult);
 	oPacket->Encode1(PartyResult::res_Party_ChangeLevelOrJob);
 	oPacket->Encode4(nCharacterID);
 

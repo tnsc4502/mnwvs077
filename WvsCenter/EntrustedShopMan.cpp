@@ -6,8 +6,8 @@
 #include "..\WvsGame\ItemInfo.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\PacketFlags\UserPacketFlags.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
 EntrustedShopMan::EntrustedShopMan()
@@ -49,9 +49,9 @@ void EntrustedShopMan::CheckEntrustedShopOpenPossible(LocalServer* pSrv, int nCh
 	if (pwUser)
 	{
 		OutPacket oPacket;
-		oPacket.Encode2(CenterSendPacketFlag::RemoteBroadcasting);
+		oPacket.Encode2(CenterResultPacketType::RemoteBroadcasting);
 		oPacket.Encode4(nCharacterID);
-		oPacket.Encode2(UserSendPacketFlag::UserLocal_OnEntrustedShopCheckResult);
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnEntrustedShopCheckResult);
 		oPacket.Encode1(CheckEntrustedShopOpenPossible(nCharacterID, liCashItemSN));
 		pwUser->SendPacket(&oPacket);
 	}
@@ -127,7 +127,7 @@ void EntrustedShopMan::ItemNumberChanged(LocalServer *pSrv, int nCharacterID, In
 void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nCharacterID)
 {
 	OutPacket oPacket;
-	oPacket.Encode2(CenterSendPacketFlag::EntrustedShopResult);
+	oPacket.Encode2(CenterResultPacketType::EntrustedShopResult);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(EntrustedShopCheckResult::res_EShop_LoadItemResult);
 

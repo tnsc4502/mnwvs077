@@ -1,6 +1,6 @@
 #include "Employee.h"
 #include "MiniRoomBase.h"
-#include "..\WvsLib\Net\PacketFlags\EmployeePacketFlags.hpp"
+#include "..\WvsGame\EmployeePacketTypes.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
 
 Employee::Employee()
@@ -30,12 +30,12 @@ void Employee::EncodeInitData(OutPacket * oPacket)
 
 void Employee::MakeEnterFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2(EmployeeSendPacketFlag::Employee_OnMakeEnterFieldPacket);
+	oPacket->Encode2(EmployeeSendPacketType::Employee_OnMakeEnterFieldPacket);
 	EncodeInitData(oPacket);
 }
 
 void Employee::MakeLeaveFieldPacket(OutPacket *oPacket)
 {
-	oPacket->Encode2(EmployeeSendPacketFlag::Employee_OnMakeLeaveFieldPacket);
+	oPacket->Encode2(EmployeeSendPacketType::Employee_OnMakeLeaveFieldPacket);
 	oPacket->Encode4(m_nEmployerID);
 }

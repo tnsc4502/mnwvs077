@@ -2,7 +2,7 @@
 #include "WvsWorld.h"
 
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
-#include "..\WvsLib\Net\PacketFlags\CenterPacketFlags.hpp"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
 
@@ -66,7 +66,7 @@ void WvsCenter::NotifyWorldChanged()
 		if (socket.second->GetServerType() == ServerConstants::SRV_LOGIN)
 		{
 			OutPacket oPacket;
-			oPacket.Encode2(CenterSendPacketFlag::CenterStatChanged);
+			oPacket.Encode2(CenterResultPacketType::CenterStatChanged);
 			oPacket.Encode2(WvsBase::GetInstance<WvsCenter>()->GetChannelCount());
 			for (auto& pEntry : m_mChannel)
 				oPacket.Encode1(pEntry.first);

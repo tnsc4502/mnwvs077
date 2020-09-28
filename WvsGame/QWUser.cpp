@@ -2,7 +2,6 @@
 #include "User.h"
 #include "SecondaryStat.h"
 #include "QWUSkillRecord.h"
-#include "..\WvsLib\Common\WvsGameConstants.hpp"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterLevel.h"
 #include "..\Database\GW_CharacterMoney.h"
@@ -11,19 +10,19 @@
 
 bool QWUser::TryProcessLevelUp(User *pUser, int nInc, int & refReachMaxLvl)
 {
-	if (WvsGameConstants::m_nEXP[1] == 0)
-		WvsGameConstants::LoadEXP();
+	//if (UtilUser::m_nEXP[1] == 0)
+	//	UtilUser::LoadEXP();
 	auto& ref = pUser->GetCharacterData()->mStat->nExp;
 	ref += nInc;
 	if (pUser->GetCharacterData()->mLevel->nLevel < 200 &&
-		ref >= WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
+		ref >= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
 	{
-		ref -= WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel];
+		ref -= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel];
 		++pUser->GetCharacterData()->mLevel->nLevel;
 		
 		//Could only increase one level no matter how many EXPs are earned.
-		if (ref >= WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
-			ref = WvsGameConstants::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel] - 1;
+		if (ref >= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
+			ref = UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel] - 1;
 
 		if (pUser->GetCharacterData()->mLevel->nLevel >= 200)
 			refReachMaxLvl = 1;
@@ -248,13 +247,13 @@ long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 		nRet |= BasicStat::BS_Level;
 		nRet |= IncAP(
 			pUser,
-			WvsGameConstants::IsCygnusJob(pUser->GetCharacterData()->mStat->nJob) ? 6 : 5,
+			/*WvsGameConstants::IsCygnusJob(pUser->GetCharacterData()->mStat->nJob) ? 6 : */ 5,
 			false);
 
 		if(QWUser::GetJob(pUser) != 0)
 			nRet |= IncSP(
 				pUser,
-				WvsGameConstants::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),
+				UtilUser::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),
 				3,
 				false);
 		pUser->OnLevelUp();
