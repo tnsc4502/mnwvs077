@@ -162,12 +162,14 @@ void Summoned::OnAttack(InPacket *iPacket)
 	info.m_bDamageInfoFlag = iPacket->Decode1();
 	info.m_bLeft = (info.m_bDamageInfoFlag >> 7) & 1;
 	info.m_nAction = info.m_bDamageInfoFlag & 0x7F;
-	int nMobCount = iPacket->Decode1();
+	int nMobCount = iPacket->Decode1(), nSkillMobCount = m_pSkillEntry->GetLevelData(m_nSLV)->m_nMobCount;
 	auto tCur = GameDateTime::GetTime();
 
-	if (tCur - m_tLastAttackTime < 2000 ||
-		nMobCount > m_pSkillEntry->GetLevelData(m_nSLV)->m_nMobCount)
+
+	if (tCur - m_tLastAttackTime < 2000 || nMobCount > nSkillMobCount && nSkillMobCount)
 		return;
+	else if (nSkillMobCount == 0)
+		nMobCount = 1;
 
 	User::TryParsingDamageData(&info, iPacket, nMobCount, 1);
 	info.m_nSkillID = m_nSkillID;

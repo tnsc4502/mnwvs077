@@ -867,3 +867,8 @@ bool SkillInfo::IsKeyDownSkill(int nSkillID)
 	}
 	return false;
 }
+
+bool SkillInfo::IsPuppetSkill(int nSkillID)
+{
+	return nSkillID == BowmanSkills::Ranger_Puppet || nSkillID == BowmanSkills::Sniper_Puppet;
+}

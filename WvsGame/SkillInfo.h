@@ -75,5 +75,6 @@ public:
 	static bool IsCorrectJobForSkillRoot(int nJob, int nSkillRoot);	
 	static bool IsSkillNeedMasterLevel(int nSkillID);
 	static bool IsKeyDownSkill(int nSkillID);
+	static bool IsPuppetSkill(int nSkillID);
 };
 

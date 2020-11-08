@@ -175,7 +175,7 @@ User::~User()
 	else
 		oPacket.Encode1(0); //bGameEnd, Dont decode and save the secondarystat info.
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
-	RemoveSummoned(0, 0, -1);
+	GetField()->GetSummonedPool()->RemoveSummoned(GetUserID(), -1, 0);
 	LeaveField();
 	PartyMan::GetInstance()->OnLeave(this, false);
 	GuildMan::GetInstance()->OnLeave(this);
@@ -3742,6 +3742,15 @@ void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint 
 		m_aMigrateSummoned.push_back(pSkill->GetSkillID());
 		return;
 	}
+	std::vector<Summoned*> aSummonedToRemove;
+	for (auto& pSummoned : m_lSummoned)
+	{
+		if (!(SkillInfo::IsPuppetSkill(pSkill->GetSkillID()) ^ SkillInfo::IsPuppetSkill(pSummoned->GetSkillID())))
+			aSummonedToRemove.push_back(pSummoned);
+	}
+	for (auto& pSummoned : aSummonedToRemove)
+		m_pField->GetSummonedPool()->RemoveSummoned(GetUserID(), pSummoned->GetSkillID(), 0);
+
 	auto pSummoned = m_pField->GetSummonedPool()->CreateSummoned(
 		this, 
 		pSkill->GetSkillID(), 
@@ -3756,7 +3765,7 @@ void User::CreateSummoned(const SkillEntry * pSkill, int nSLV, const FieldPoint 
 void User::RemoveSummoned(int nSkillID, int nLeaveType, int nForceRemoveSkillID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
-	if (nForceRemoveSkillID == -1 || nForceRemoveSkillID != 0)
+	if (nForceRemoveSkillID != 0)
 	{
 		int nSummoned = (int)m_lSummoned.size();
 		for (int i = 0; i < nSummoned; ++i)
