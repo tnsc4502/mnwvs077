@@ -11,6 +11,7 @@
 #include "SkillLearnItem.h"
 #include "PortableChairItem.h"
 #include "CashItem.h"
+#include "PetSkillChangeItem.h"
 
 #include <vector>
 
@@ -125,6 +126,8 @@ public:
 	void RegisterPortableChairItem(int nItemID, void *pProp);
 	void RegisterSkillLearnItem(int nItemID, void *pProp);
 	void RegisterStateChangeItem(int nItemID, void *pProp);
+	void RegisterPetSkillChangeItem(int nItemID, void *pProp);
+	void LoadPetSkillChangeInfo(void *pImg, void *pFlag);
 
 	EquipItem* GetEquipItem(int nItemID);
 	BundleItem* GetBundleItem(int nItemID);
@@ -139,6 +142,7 @@ public:
 	PortableChairItem* GetPortableChairItem(int nItemID);
 	StateChangeItem* GetStateChangeItem(int nItemID);
 	CashItem* GetCashItem(int nItemID);
+	PetSkillChangeItem* GetPetSkillChangeItem(int nItemID);
 
 	static int GetItemSlotType(int nItemID);
 	static bool IsTreatSingly(int nItemID, long long int liExpireDate);
@@ -146,7 +150,7 @@ public:
 	int ConsumeOnPickup(int nItemID);
 	bool ExpireOnLogout(int nItemID);
 	int GetBulletPAD(int nItemID);
-	long long int GetItemDateExpire(const std::string& sDate);
+	static long long int GetItemDateExpire(const std::string& sDate);
 	const std::string& GetItemName(int nItemID);
 	bool IsAbleToEquip(int nGender, int nLevel, int nJob, int nSTR, int nDEX, int nINT, int nLUK, int nPOP, GW_ItemSlotBase* pPetItem, int nItemID);
 	bool IsNotSaleItem(int nItemID);
@@ -186,6 +190,7 @@ private:
 	std::map<int, SkillLearnItem*> m_mSkillLearnItem;
 	std::map<int, PortableChairItem*> m_mPortableChairItem;
 	std::map<int, CashItem*> m_mCashItem;
+	std::map<int, PetSkillChangeItem*> m_mPetSkillChangeItem;
 
 	std::map<int, std::string> m_mItemString, m_mMapString;
 	std::map<int, int> m_mItemSellPriceByLv;

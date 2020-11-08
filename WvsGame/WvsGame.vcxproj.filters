@@ -468,6 +468,12 @@
     <ClInclude Include="UtilUser.h">
       <Filter>WvsGame\InGame\User</Filter>
     </ClInclude>
+    <ClInclude Include="PetTemplate.h">
+      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+    </ClInclude>
+    <ClInclude Include="PetSkillChangeItem.h">
+      <Filter>WvsGame\InGame\Item</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -579,36 +585,6 @@
       <Filter>WvsGame\InGame\Item</Filter>
     </ClCompile>
     <ClCompile Include="ItemInfo.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="EquipItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="BridleItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="BundleItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="MobSummonItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="PetFoodItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="PortableChairItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="PortalScrollItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="SkillLearnItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="TamingMobFoodItem.cpp">
-      <Filter>WvsGame\InGame\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="UpgradeItem.cpp">
       <Filter>WvsGame\InGame\Item</Filter>
     </ClCompile>
     <ClCompile Include="ScriptInventory.cpp">
@@ -752,6 +728,9 @@
     </ClCompile>
     <ClCompile Include="UtilUser.cpp">
       <Filter>WvsGame\InGame\User</Filter>
+    </ClCompile>
+    <ClCompile Include="PetTemplate.cpp">
+      <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

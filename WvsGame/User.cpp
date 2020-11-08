@@ -704,6 +704,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketType::User_OnGivePopularityRequest:
 			OnGivePopularityRequest(iPacket);
 			break;
+		case UserRecvPacketType::User_OnPetFoodItemUseRequest:
+			OnPetFoodItemUseRequest(iPacket);
+			break;
 		default:
 			iPacket->RestorePacket();
 			//Pet Packet
@@ -1912,6 +1915,7 @@ void User::Update()
 	m_pSecondaryStat->ResetByTime(this, GameDateTime::GetTime());
 
 	CheckCashItemExpire(tCur);
+	UpdateActivePet(tCur);
 
 	if (tCur - m_tLastBackupTime >= 2 * 60 * 1000)
 	{
@@ -2760,6 +2764,9 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		case ItemInfo::CashItemType::CashItemType_ItemProtector:
 			break;
 		case ItemInfo::CashItemType::CashItemType_Incubator:
+			break;
+		case ItemInfo::CashItemType::CashItemType_PetSkill:
+			nResult = UserCashItemImpl::ConsumePetSkill(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_ShopScanner:
 			break;
@@ -3614,7 +3621,7 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 		if (pItem && m_apPet[i] && m_apPet[i]->m_pPetSlot->nPOS == nPos)
 		{
 			((GW_ItemSlotPet*)pItem)->nActiveState = 0;
-			m_apPet[i]->OnLeaveField();
+			m_apPet[i]->OnLeaveField(nRemoveReaseon);
 			m_apPet[i].reset(nullptr);
 			nAvailableIdx = -1;
 			break;
@@ -3623,19 +3630,16 @@ void User::ActivatePet(int nPos, int nRemoveReaseon, bool bOnInitialize)
 			nAvailableIdx = i;
 	if (nAvailableIdx >= 0 && nPos > 0)
 	{
-		if (nAvailableIdx != -1)
-		{
-			m_apPet[nAvailableIdx].reset(MakeUnique<Pet>(pItem));
-			((GW_ItemSlotPet*)pItem)->nActiveState = 1;
-			m_apPet[nAvailableIdx]->SetIndex(nAvailableIdx);
-			m_apPet[nAvailableIdx]->Init(this);
-			m_apPet[nAvailableIdx]->OnEnterField(m_pField);
+		m_apPet[nAvailableIdx].reset(MakeUnique<Pet>(pItem));
+		((GW_ItemSlotPet*)pItem)->nActiveState = 1;
+		m_apPet[nAvailableIdx]->SetIndex(nAvailableIdx);
+		m_apPet[nAvailableIdx]->Init(this);
+		m_apPet[nAvailableIdx]->OnEnterField(m_pField);
 
-			SendCharacterStat(false, BasicStat::BS_Pet);
-		}
-		else
-			((GW_ItemSlotPet*)pItem)->nActiveState = 0;
+		SendCharacterStat(false, BasicStat::BS_Pet);
 	}
+	else
+		((GW_ItemSlotPet*)pItem)->nActiveState = 0;
 	SendCharacterStat(true, 0);
 }
 
@@ -3659,6 +3663,60 @@ void User::ReregisterPet()
 	for (int i = 0; i < nMaxPetIndex; ++i)
 		if (m_apPet[i] != nullptr)
 			m_apPet[i]->OnEnterField(m_pField);
+}
+
+void User::UpdateActivePet(unsigned int tCur)
+{
+	if (!m_pField)
+		return;
+
+	std::lock_guard<std::recursive_mutex> fieldLock(m_pField->GetFieldLock());
+	std::lock_guard<std::recursive_mutex> userLock(m_mtxUserLock);
+
+	bool bRemove = false;
+	for(int i = 0; i < MAX_PET_INDEX; ++i)
+		if (m_apPet[i])
+		{
+			bRemove = false;
+			m_apPet[i]->Update(tCur, bRemove);
+			if (bRemove)
+				ActivatePet(m_apPet[i]->GetItemSlot()->nPOS, 1, 0);
+		}
+}
+
+void User::OnPetFoodItemUseRequest(InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
+	
+	Pet *pPet = nullptr;
+	int nLowestRepleteness = 100;
+	for(int i = 0; i < MAX_PET_INDEX; ++i)
+		if (m_apPet[i] && nLowestRepleteness > m_apPet[i]->GetItemSlot()->nRepleteness)
+		{
+			pPet = m_apPet[i];
+			nLowestRepleteness = m_apPet[i]->GetItemSlot()->nRepleteness;
+		}
+
+	if (!pPet)
+		SendCharacterStat(true, 0);
+	else
+	{
+		iPacket->Decode4(); //tRequestTime
+		int nPOS = iPacket->Decode2();
+		int nItemID = iPacket->Decode4();
+
+		auto pItem = GetCharacterData()->GetItem(GW_ItemSlotBase::CONSUME, nPOS);
+		auto pFoodItem = ItemInfo::GetInstance()->GetPetFoodItem(nItemID);
+
+		if (!pItem || pItem->nItemID != nItemID || !pFoodItem || QWUInventory::RemoveItem(this, pItem) != 1)
+		{
+			return;
+			SendCharacterStat(true, 0);
+		}
+
+		pPet->OnEatFood(pFoodItem->niRepleteness);
+		SendCharacterStat(true, 0);
+	}
 }
 
 void User::OnSummonedPacket(InPacket * iPacket)

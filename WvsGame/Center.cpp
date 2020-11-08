@@ -114,7 +114,7 @@ void Center::OnPacket(InPacket *iPacket)
 				WvsBase::GetInstance<WvsGame>()->GetChannelID() + 1; //Channel 0 is reserved for Center
 
 			char aBuffer[128];
-			sprintf_s(aBuffer, "MapleStory Server[WvsGame][TWMS][% 03d][WorldID:% 02d][ChannelID:% 02d]",
+			sprintf_s(aBuffer, "Game Server[WvsGame][TWMS][% 03d][WorldID:% 02d][ChannelID:% 02d]",
 				ServerConstants::kGameVersion,
 				nWorldID,
 				WvsBase::GetInstance<WvsGame>()->GetChannelID());

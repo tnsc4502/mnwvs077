@@ -329,6 +329,8 @@ public:
 	int GetMaxPetIndex();
 	void OnActivatePetRequest(InPacket *iPacket);
 	void ReregisterPet();
+	void UpdateActivePet(unsigned int tCur);
+	void OnPetFoodItemUseRequest(InPacket *iPacket);
 
 	//Summoned
 	void OnSummonedPacket(InPacket *iPacket);

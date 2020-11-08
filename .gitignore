@@ -17,5 +17,6 @@ ipch/
 *.txt
 *.VC.db
 *.VC
+*.suo
 .vs/
 Tools/

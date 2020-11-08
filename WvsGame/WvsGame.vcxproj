@@ -279,6 +279,7 @@
     <ClInclude Include="FriendMan.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="GuildMan.h" />
+    <ClInclude Include="PetSkillChangeItem.h" />
     <ClInclude Include="InventoryManipulator.h" />
     <ClInclude Include="ItemInfo.h" />
     <ClInclude Include="LifePool.h" />
@@ -302,6 +303,7 @@
     <ClInclude Include="PersonalShop.h" />
     <ClInclude Include="Pet.h" />
     <ClInclude Include="PetFoodItem.h" />
+    <ClInclude Include="PetTemplate.h" />
     <ClInclude Include="PirateSkills.h" />
     <ClInclude Include="PortableChairItem.h" />
     <ClInclude Include="Portal.h" />
@@ -368,8 +370,6 @@
     <ClCompile Include="AffectedAreaPool.cpp" />
     <ClCompile Include="AttackInfo.cpp" />
     <ClCompile Include="BasicStat.cpp" />
-    <ClCompile Include="BridleItem.cpp" />
-    <ClCompile Include="BundleItem.cpp" />
     <ClCompile Include="CalcDamage.cpp" />
     <ClCompile Include="Center.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
@@ -381,7 +381,6 @@
     <ClCompile Include="DropPool.cpp" />
     <ClCompile Include="Employee.cpp" />
     <ClCompile Include="EntrustedShop.cpp" />
-    <ClCompile Include="EquipItem.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="FieldMan.cpp" />
     <ClCompile Include="FieldObj.cpp" />
@@ -401,7 +400,6 @@
     <ClCompile Include="MobSkillEntry.cpp" />
     <ClCompile Include="MobSkillLevelData.cpp" />
     <ClCompile Include="MobStat.cpp" />
-    <ClCompile Include="MobSummonItem.cpp" />
     <ClCompile Include="MobTemplate.cpp" />
     <ClCompile Include="MovePath.cpp" />
     <ClCompile Include="NPC.cpp" />
@@ -409,11 +407,9 @@
     <ClCompile Include="PartyMan.cpp" />
     <ClCompile Include="PersonalShop.cpp" />
     <ClCompile Include="Pet.cpp" />
-    <ClCompile Include="PetFoodItem.cpp" />
-    <ClCompile Include="PortableChairItem.cpp" />
+    <ClCompile Include="PetTemplate.cpp" />
     <ClCompile Include="Portal.cpp" />
     <ClCompile Include="PortalMap.cpp" />
-    <ClCompile Include="PortalScrollItem.cpp" />
     <ClCompile Include="QuestMan.cpp" />
     <ClCompile Include="QWUInventory.cpp" />
     <ClCompile Include="QWUQuestRecord.cpp" />
@@ -437,14 +433,12 @@
     <ClCompile Include="SecondaryStat.cpp" />
     <ClCompile Include="SkillEntry.cpp" />
     <ClCompile Include="SkillInfo.cpp" />
-    <ClCompile Include="SkillLearnItem.cpp" />
     <ClCompile Include="SkillLevelData.cpp" />
     <ClCompile Include="StateChangeItem.cpp" />
     <ClCompile Include="StaticFoothold.cpp" />
     <ClCompile Include="StoreBank.cpp" />
     <ClCompile Include="Summoned.cpp" />
     <ClCompile Include="SummonedPool.cpp" />
-    <ClCompile Include="TamingMobFoodItem.cpp" />
     <ClCompile Include="TemporaryStat.cpp" />
     <ClCompile Include="TimerThread.cpp" />
     <ClCompile Include="TownPortal.cpp" />
@@ -452,7 +446,6 @@
     <ClCompile Include="TradingRoom.cpp" />
     <ClCompile Include="Trunk.cpp" />
     <ClCompile Include="UMiniRoom.cpp" />
-    <ClCompile Include="UpgradeItem.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="UserCashItemImpl.cpp" />
     <ClCompile Include="USkill.cpp" />

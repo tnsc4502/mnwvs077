@@ -1,4 +1,5 @@
 #include "ItemInfo.h"
+#include "PetTemplate.h"
 #ifdef _WVSGAME
 #include "SkillInfo.h"
 #include "SkillEntry.h"
@@ -16,7 +17,7 @@
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\String\StringPool.h"
 
-#include <windows.h>
+#include <ctime>
 
 ItemInfo::ItemInfo()
 {
@@ -49,7 +50,7 @@ void ItemInfo::Initialize()
 	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateBundleItem>]On iterating all bundle items....\n");
 	IterateBundleItem();
 	WvsLogger::LogRaw("[ItemInfo::Initialize<IterateBundleItem>]Bundle items are completely loaded.\n");
-	//IterateCashItem();
+	IterateCashItem();
 	IteratePetItem();
 	RegisterSpecificItems();
 	RegisterNoRollbackItem();
@@ -247,9 +248,26 @@ void ItemInfo::IterateCashItem()
 		for (auto& item : subImg)
 		{
 			int nItemID = atoi(item.GetName().c_str());
+			int nType = nItemID / 10000;
+			switch (nType)
+			{
+				case 518:
+					break;
+				case 521:
+					break;
+				case 524:
+					break;
+				case 519:
+					RegisterPetSkillChangeItem(nItemID, &item);
+					break;
+				case 530:
+					break;
+				case 536:
+					break;
+			}
 			//std::cout << "Item = " << nItemID << std::endl;
-			CashItem *pItem = AllocObj(CashItem);
-			m_mCashItem.insert({ nItemID, pItem });
+			/*CashItem *pItem = AllocObj(CashItem);
+			m_mCashItem.insert({ nItemID, pItem });*/
 		}
 	}
 }
@@ -296,23 +314,9 @@ void ItemInfo::RegisterEquipItemInfo(EquipItem * pEqpItem, int nItemID, void * p
 	pEqpItem->nCuttable = (int)infoImg["tradeAvailable"];
 	pEqpItem->dwPetAbilityFlag = 0;
 	pEqpItem->dRecovery = std::max(1.0, (double)infoImg["recovery"]);
+
 	if (nItemID / 10000 == 181)
-	{
-		if ((int)infoImg["pickupItem"] == 1)
-			pEqpItem->dwPetAbilityFlag |= 0x1;
-
-		if ((int)infoImg["longRange"] == 1)
-			pEqpItem->dwPetAbilityFlag |= 0x2;
-
-		if ((int)infoImg["pickupOthers"] == 1)
-			pEqpItem->dwPetAbilityFlag |= 0x10;
-
-		if ((int)infoImg["consumeHP"] == 1)
-			pEqpItem->dwPetAbilityFlag |= 0x20;
-
-		if ((int)infoImg["consumeMP"] == 1)
-			pEqpItem->dwPetAbilityFlag |= 0x40;
-	}
+		LoadPetSkillChangeInfo(&infoImg, &pEqpItem->dwPetAbilityFlag);
 }
 
 void ItemInfo::RegisterUpgradeItem(int nItemID, void * pProp)
@@ -421,6 +425,38 @@ void ItemInfo::RegisterStateChangeItem(int nItemID, void * pProp)
 	m_mStateChangeItem[nItemID] = pNewStateChangeItem;
 }
 
+void ItemInfo::RegisterPetSkillChangeItem(int nItemID, void * pProp)
+{
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
+	PetSkillChangeItem *pItem = AllocObj(PetSkillChangeItem);
+	pItem->nItemID = nItemID;
+	pItem->bSet = (int)infoImg["add"] == 1;
+	LoadPetSkillChangeInfo(&infoImg, &pItem->nFlag);
+	m_mPetSkillChangeItem.insert({ nItemID, pItem });
+}
+
+void ItemInfo::LoadPetSkillChangeInfo(void * pImg, void * pFlag)
+{
+	auto& infoImg = (*((WzIterator*)pImg));
+	int& nFlag = *(int*)pFlag;
+	if ((int)infoImg["pickupItem"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetSkill_PickupItem;
+	if ((int)infoImg["pickupAll"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetSkill_PickupAll;
+	if ((int)infoImg["longRange"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetSkill_LongRange;
+	if ((int)infoImg["dropSweep"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetSkill_PickupSweepForDrop;
+	if ((int)infoImg["ignorePickup"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetSkill_IgnorePickup;
+	if ((int)infoImg["consumeHP"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetAbility_ConsumeHP;
+	if ((int)infoImg["consumeMP"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetAbility_ConsumeMP;
+	if ((int)infoImg["autoSpeaking"] == 1)
+		nFlag |= PetTemplate::PetAbility::e_PetAbility_AutoSpeaking;
+}
+
 EquipItem * ItemInfo::GetEquipItem(int nItemID)
 {
 	auto findIter = m_mEquipItem.find(nItemID);
@@ -437,6 +473,12 @@ CashItem * ItemInfo::GetCashItem(int nItemID)
 {
 	auto findIter = m_mCashItem.find(nItemID);
 	return (findIter != m_mCashItem.end() ? findIter->second : nullptr);
+}
+
+PetSkillChangeItem * ItemInfo::GetPetSkillChangeItem(int nItemID)
+{
+	auto findIter = m_mPetSkillChangeItem.find(nItemID);
+	return (findIter != m_mPetSkillChangeItem.end() ? findIter->second : nullptr);
 }
 
 BundleItem * ItemInfo::GetBundleItem(int nItemID)
@@ -551,22 +593,14 @@ int ItemInfo::GetBulletPAD(int nItemID)
 
 long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 {
-	std::string sYear = sDate.substr(4);
-	std::string sMonth = sDate.substr(4, 2);
-	std::string sDay = sDate.substr(6, 2);
-	std::string sHour = sDate.substr(8, 2);
-	SYSTEMTIME sysTime;
-	sysTime.wYear = atoi(sYear.c_str());
-	sysTime.wMonth = atoi(sMonth.c_str());
-	sysTime.wDay = atoi(sDay.c_str());
-	sysTime.wHour = atoi(sHour.c_str());
-	sysTime.wMilliseconds = 0;
-	sysTime.wSecond = 0;
-	sysTime.wMinute = 0;
-	sysTime.wDayOfWeek = 0;
-	FILETIME ft;
-	SystemTimeToFileTime(&sysTime, &ft);
-	return 0;
+	std::tm dt = { 0,0,0,0,0,0,0,0,0 };
+	sscanf_s(sDate.data(), "%04d%02d%02d%02d", &dt.tm_year, &dt.tm_mon, &dt.tm_mday, &dt.tm_hour);
+	dt.tm_year -= 1900;
+	--dt.tm_mon;
+	long lTimeZone = 0;
+	_get_timezone(&lTimeZone);
+
+	return (std::mktime(&dt) - lTimeZone) * 10000000 + 116444736000000000;
 }
 
 const std::string & ItemInfo::GetItemName(int nItemID)

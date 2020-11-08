@@ -75,14 +75,13 @@ void WzStreamCodec::Init()
 std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 {
 	static std::codecvt_utf8<char16_t> conv;
-	char16_t ws[0x8000];
-	char ns[0x10000];
 	int nLen = 0;
 
 	pStream->Read((char*)&nLen, 1);
 	char cLen = ((char*)&nLen)[0];
 	if (cLen > 0)
 	{
+		char16_t ws[0x800];
 		if (cLen == 127)
 			pStream->Read((char*)&nLen, 4);
 
@@ -98,14 +97,13 @@ std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 		for (int i = 0; i <= nLen >> 3; ++i)
 			_mm_storeu_si128(m1 + i, _mm_xor_si128(_mm_loadu_si128(m2 + i), _mm_loadu_si128(m3 + i)));
 
-		mbstate_t state;
-		const char16_t * fnext;
-		char * tnext;
-		conv.out(state, ws, ws + nLen, fnext, ns, ns + 0x10000, tnext);
-		nLen *= 2;
+		ws[nLen] = 0;
+		pStream->SetPosition(pStream->GetPosition() + nLen * 2);
+		return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes((wchar_t*)ws);
 	}
 	else
 	{
+		char ns[0x1000];
 		if (cLen == -128)
 			pStream->Read((char*)&nLen, 4);
 		else
@@ -122,12 +120,12 @@ std::string WzStreamCodec::DecodeString(WzMappedFileStream *pStream)
 
 		for (int i = 0; i <= nLen >> 4; ++i)
 			_mm_storeu_si128(m1 + i, _mm_xor_si128(_mm_loadu_si128(m2 + i), _mm_loadu_si128(m3 + i)));
-	}
-	//Offset the stream position if you use MappingFile (Becuase there is no call to "Read").
-	pStream->SetPosition(pStream->GetPosition() + nLen);
 
-	ns[nLen] = 0;
-	return std::string(ns, nLen);
+		//Offset the stream position if you use MappingFile (Becuase there is no call to "Read").
+		pStream->SetPosition(pStream->GetPosition() + nLen);
+		ns[nLen] = 0;
+		return std::string(ns, nLen);
+	}
 }
 
 std::string WzStreamCodec::DecodePropString(WzStreamType *pStream, unsigned int uRootPropPos)

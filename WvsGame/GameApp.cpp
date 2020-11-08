@@ -16,6 +16,7 @@
 #include "Reward.h"
 #include "CalcDamage.h"
 #include "ScriptMan.h"
+#include "PetTemplate.h"
 
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -81,6 +82,7 @@ void GameApp::InitializeService(int argc, char** argv)
 	FieldMan::GetInstance()->LoadFieldSet();
 	ContinentMan::GetInstance()->Init();
 	CalcDamage::LoadStandardPDD();
+	PetTemplate::Load();
 
 	if (pCfgLoader->IntValue("PreRegisterAllField"))
 		FieldMan::GetInstance()->RegisterAllField();

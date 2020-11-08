@@ -202,6 +202,20 @@ bool QWUInventory::RawRemoveItem(User * pUser, int nTI, int nPOS, int nCount, st
 	return false;
 }
 
+int QWUInventory::RemoveItem(User * pUser, GW_ItemSlotBase * pItem, int nCount, bool bSendInventoryOperation, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved)
+{
+	std::vector<InventoryManipulator::ChangeLog> aChange;
+	int nDec = 0;
+	RawRemoveItem(
+		pUser, pItem->nType, pItem->nPOS, nCount, &aChange, nDec, ppItemRemoved
+	);
+
+	if (bSendInventoryOperation)
+		SendInventoryOperation(pUser, false, aChange);
+
+	return nDec;
+}
+
 bool QWUInventory::RawRechargeItem(User * pUser, int nPOS, std::vector<InventoryManipulator::ChangeLog>* aChangeLog)
 {
 	if (QWUser::GetHP(pUser))
@@ -502,6 +516,37 @@ bool QWUInventory::RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<I
 	if (QWUser::GetHP(pUser))
 		return InventoryManipulator::RawWasteItem(pUser->GetCharacterData(), nPOS, nCount, &aChangeLog);
 	return false;
+}
+
+void QWUInventory::UpdatePetItem(User * pUser, int nPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	auto pItem = pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CASH, nPos);
+	if (!pItem)
+		return;
+
+	std::vector<InventoryManipulator::ChangeLog> aChange;
+	InventoryManipulator::InsertChangeLog(
+		aChange,
+		InventoryManipulator::ChangeType::Change_RemoveFromSlot,
+		GW_ItemSlotBase::CASH,
+		nPos,
+		pItem,
+		0,
+		0
+	);
+
+	InventoryManipulator::InsertChangeLog(
+		aChange,
+		InventoryManipulator::ChangeType::Change_AddToSlot,
+		GW_ItemSlotBase::CASH,
+		nPos,
+		pItem,
+		0,
+		0
+	);
+
+	SendInventoryOperation(pUser, false, aChange);
 }
 
 int QWUInventory::GetSlotCount(User *pUser, int nTI)

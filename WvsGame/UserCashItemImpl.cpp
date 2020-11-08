@@ -6,8 +6,11 @@ Implementations of cash item usages.
 #include "UserCashItemImpl.h"
 #include "User.h"
 #include "QWUser.h"
+#include "QWUInventory.h"
 #include "WvsGame.h"
 #include "ItemInfo.h"
+#include "..\Database\GW_ItemSlotPet.h"
+#include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\String\StringPool.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -89,5 +92,36 @@ int UserCashItemImpl::ConsumeAvatarMegaphone(User *pUser, int nItemID, InPacket 
 	oPacket.Encode1(iPacket->Decode1() != 0 ? 1 : 0);
 	pUser->EncodeAvatar(&oPacket);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	return 1;
+}
+
+int UserCashItemImpl::ConsumePetSkill(User * pUser, int nItemID, InPacket * iPacket)
+{
+	long long int liPetSN = iPacket->Decode8();
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+
+	int nPOS = pUser->GetCharacterData()->FindCashItemSlotPosition(GW_ItemSlotBase::CASH, liPetSN);
+	GW_ItemSlotPet* pPet = pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CASH, nPOS);
+	if (!pPet)
+		return 0;
+
+	auto pPetSkillChangeItem = ItemInfo::GetInstance()->GetPetSkillChangeItem(nItemID);
+	if (!pPetSkillChangeItem)
+		return 0;
+
+	if (pPet->usPetSkill & pPetSkillChangeItem->nFlag)
+	{
+		pUser->SendChatMessage(5, "您的寵物已經擁有此技能。");
+		return 0;
+	}
+
+	pPet->usPetSkill |= pPetSkillChangeItem->nFlag;
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnUserPetSkillChanged);
+	oPacket.Encode8(liPetSN);
+	oPacket.Encode1(pPetSkillChangeItem->bSet);
+	oPacket.Encode2((short)pPetSkillChangeItem->nFlag);
+	pUser->SendPacket(&oPacket);
+	QWUInventory::UpdatePetItem(pUser, pPet->nPOS);
 	return 1;
 }

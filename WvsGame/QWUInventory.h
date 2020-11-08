@@ -18,6 +18,7 @@ public:
 	static bool PickUpItem(User* pUser, bool byPet, ZSharedPtr<GW_ItemSlotBase>& pItem);
 	static bool RawRemoveItemByID(User* pUser, int nItemID, int nCount);
 	static bool RawRemoveItem(User* pUser, int nTI, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>* aChangeLog, int &nDecRet, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved);
+	static int RemoveItem(User* pUser, GW_ItemSlotBase* pItem, int nCount = 1, bool bSendInventoryOperation = true, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved = nullptr);
 	static bool RawRechargeItem(User *pUser, int nPOS, std::vector<InventoryManipulator::ChangeLog>* aChangeLog);
 	static int Exchange(User* pUser, int nMoney, std::vector<ExchangeElement>& aExchange);
 	static int Exchange(User* pUser, int nMoney, std::vector<ExchangeElement>& aExchange, std::vector<InventoryManipulator::ChangeLog>* aLogAdd, std::vector<InventoryManipulator::ChangeLog>* aLogRemove, std::vector<BackupItem>& aBackupItem, bool bSendOperation = true);
@@ -30,6 +31,7 @@ public:
 	static bool MoveMoneyToTemp(User *pUser, int nAmount);
 	static bool WasteItem(User *pUser, int nItemID, int nCount, bool bProtected);
 	static bool RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
+	static void UpdatePetItem(User *pUser, int nPos);
 
 	static int GetSlotCount(User *pUser, int nTI);
 	static int GetHoldCount(User *pUser, int nTI);

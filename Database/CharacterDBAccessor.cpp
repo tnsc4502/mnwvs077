@@ -239,7 +239,9 @@ void CharacterDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientS
 		if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet)
 			((GW_ItemSlotBundle*)pItem)->nNumber = cashItemInfo.nNumber;
 
-		pItem->liExpireDate = cashItemInfo.liDateExpire;
+		//A pet will only have ExpireDate in GW_ItemSlotPet(which stands for it's life time)
+		if(!pItem->bIsPet)
+			pItem->liExpireDate = cashItemInfo.liDateExpire;
 		pItem->Save(nCharacterID);
 
 		oPacket.Encode4(account.QueryCash(1));
