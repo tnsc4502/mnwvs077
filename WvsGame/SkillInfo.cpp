@@ -6,6 +6,11 @@
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_CharacterLevel.h"
 #include "..\Database\GW_SkillRecord.h"
+#include "User.h"
+#include "QWUser.h"
+#include "QWUInventory.h"
+#include "BasicStat.h"
+#include "SecondaryStat.h"
 #include "UtilUser.h"
 #include "ItemInfo.h"
 #include "SkillEntry.h"
@@ -138,7 +143,7 @@ int SkillInfo::GetAmplification(GA_Character *pCharacter, int nJob, int nSkillID
 	bool bCheck = false;
 	int nRet = 100;
 	if (pnIncMPCon)
-		*pnIncMPCon = 0;
+		*pnIncMPCon = 100;
 	if (pLevel)
 	{
 		if (pnIncMPCon)
@@ -694,6 +699,87 @@ int SkillInfo::GetMPRecoveryUpgrade(GA_Character * pCharacter)
 			&pEntry
 		) * (double)pCharacter->mLevel->nLevel * 0.1);
 }
+
+bool SkillInfo::AdjustConsumeForActiveSkill(User * pUser, int nSkillID, int nSLV, bool bKeydown, int nSpiritJavelinItemID)
+{
+	if (!(nSkillID / 1000 % 10))
+		return true;
+
+	SkillEntry *pEntry = nullptr;
+	const SkillLevelData *pLevelData = nullptr;
+	if (nSLV <= 0 ||
+		GetSkillLevel(pUser->GetCharacterData(), nSkillID, &pEntry) < nSLV || 
+		!pEntry ||
+		!(pLevelData = pEntry->GetLevelData(nSLV)) ||
+		(nSkillID == WarriorSkills::Hero_Enrage && pUser->GetSecondaryStat()->nComboCounter_ < 10))
+		return false;
+
+	int nIncMPCon = std::max(100, GetAmplification(pUser->GetCharacterData(), pUser->GetBasicStat()->nJob, nSkillID, &nIncMPCon));
+
+	int nHPCon = pLevelData->m_nHpCon;
+	if (nSkillID == WarriorSkills::DragonKnight_DragonRoar)
+	{
+		if ((pUser->GetBasicStat()->nMHP / 2 <= pUser->GetCharacterData()->mStat->nHP))
+			nHPCon = pUser->GetCharacterData()->mStat->nHP * pLevelData->m_nX / 100;
+		else
+			return false;
+	}
+
+	int nMPCon = nIncMPCon * pLevelData->m_nMpCon / 100;
+	if (bKeydown || pUser->GetSecondaryStat()->nInfinity_)
+		nMPCon = 0;
+	if (pUser->GetSecondaryStat()->nConcentration_)
+		nMPCon = (int)((double)(100 - pUser->GetSecondaryStat()->nConcentration_) * (double)nMPCon * 0.01 + 0.99);
+
+	int nMoneyCon = pLevelData->m_nMoneyCon;
+	if (nSkillID == ThiefSkills::Hermit_ShadowMeso && pUser->GetSecondaryStat()->nShadowPartner_) 
+	{
+		SkillEntry *pShadowPartner = nullptr;
+		int nSLVShadowPartner = GetSkillLevel(pUser->GetCharacterData(), ThiefSkills::Hermit_ShadowPartner, &pShadowPartner);
+		if (!nSLVShadowPartner || !pShadowPartner)
+			return false;
+
+		nMoneyCon += (nMoneyCon * pShadowPartner->GetLevelData(nSLVShadowPartner)->m_nY / 100);
+	}
+
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	nHPCon = std::max(nHPCon, 0);
+	nMPCon = std::max(nMPCon, 0);
+	nMoneyCon = std::max(nMoneyCon, 0);
+
+	int nItemCon = pLevelData->m_nItemCon, nItemConNo = pLevelData->m_nItemConNo;
+	int nBulletCon = pLevelData->m_nBulletCount;
+
+	if (QWUser::GetHP(pUser) < nHPCon || 
+		QWUser::GetMP(pUser) < nMPCon || 
+		QWUser::GetMoney(pUser) < nMoneyCon ||
+		(nItemCon && nItemConNo && QWUInventory::GetItemCount(pUser, nItemCon, true) < nItemConNo) ||
+		(nSpiritJavelinItemID && pLevelData->m_nBulletConsume > QWUInventory::GetItemCount(pUser, nSpiritJavelinItemID, true)))
+	{
+		pUser->SendCharacterStat(false, 0);
+		return false;
+	}
+
+	long long int liFlag = 0;
+	liFlag |= QWUser::IncHP(pUser, -nHPCon, true);
+	liFlag |= QWUser::IncMP(pUser, -nMPCon, true);
+	liFlag |= QWUser::IncMoney(pUser, -nMoneyCon, true);
+	pUser->SendCharacterStat(false, liFlag);
+
+	if (pLevelData->m_nItemCon && pLevelData->m_nItemConNo)
+	{
+		ExchangeElement exElem;
+		exElem.m_nItemID = pLevelData->m_nItemCon;
+		exElem.m_nCount = -pLevelData->m_nItemConNo;
+		std::vector<ExchangeElement> aExchange { exElem };
+		QWUInventory::Exchange(pUser, 0, aExchange);
+	}
+
+	if (nSpiritJavelinItemID > 0)
+		QWUInventory::WasteItem(pUser, pUser->GetCharacterData()->GetItemByID(nSpiritJavelinItemID), pLevelData->m_nBulletConsume);
+
+	return true;
+}
 #endif
 
 int SkillInfo::GetBundleItemMaxPerSlot(int nItemID, GA_Character * pCharacterData)
@@ -871,4 +957,23 @@ bool SkillInfo::IsKeyDownSkill(int nSkillID)
 bool SkillInfo::IsPuppetSkill(int nSkillID)
 {
 	return nSkillID == BowmanSkills::Ranger_Puppet || nSkillID == BowmanSkills::Sniper_Puppet;
+}
+
+bool SkillInfo::IsMobStatChangeSkill(int nSkillID)
+{
+	switch (nSkillID)
+	{
+		case WarriorSkills::DragonKnight_PowerCrash:
+		case MagicSkills::Magic_FP_Slow:
+		case MagicSkills::Adv_Magic_FP_Seal:
+		case MagicSkills::Magic_IL_Slow:
+		case MagicSkills::Adv_Magic_IL_Seal:
+		case MagicSkills::Adv_Magic_Holy_Doom:
+		case ThiefSkills::Hermit_ShadowWeb:
+		case ThiefSkills::Shadower_NinjaAmbush:
+		case ThiefSkills::NightsLord_NinjaAmbush:
+			return true;
+		default:
+			return false;
+	}
 }

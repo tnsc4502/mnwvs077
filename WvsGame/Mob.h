@@ -66,9 +66,10 @@ private:
 		m_tLastSkillUse = 0,
 		m_tLastUpdatePoison = 0,
 		m_tLastUpdateVenom = 0,
-		m_tLastUpdateAmbush = 0;
+		m_tLastUpdateAmbush = 0,
+		m_nItemIDStolen = 0;
 
-	bool m_bNextAttackPossible = false;
+	bool m_bNextAttackPossible = false, m_bAlreadyStealed = false;
 	void* m_pMobGen = nullptr;
 
 public:
@@ -109,7 +110,8 @@ public:
 	void OnApplyCtrl(User *pUser, InPacket *iPacket);
 	int DistributeExp(int& refOwnType, int& refOwnParyID, int& refLastDamageCharacterID);
 	void GiveExp(const std::vector<PartyDamage>& aPartyDamage);
-	void GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem);
+	void GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem, bool bSteal = false);
+	void GiveMoney(User *pUser, void *pDamageInfo, int nAttackCount);
 	void SetHP(long long int liHP);
 	void SetMP(long long int liMP);
 	void SetMobStat(MobStat *pStat);

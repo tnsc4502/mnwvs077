@@ -7,6 +7,8 @@
 #include "BackupItem.h"
 #include "SkillInfo.h"
 #include "QWUser.h"
+#include "BasicStat.h"
+
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\Database\GW_ItemSlotBase.h"
@@ -16,7 +18,8 @@
 #include "..\Database\GW_CharacterStat.h"
 #include "..\Database\GW_CharacterMoney.h"
 #include "..\Database\GW_CharacterSlotCount.h"
-#include "BasicStat.h"
+
+#include <algorithm>
 
 QWUInventory::QWUInventory()
 {
@@ -202,7 +205,7 @@ bool QWUInventory::RawRemoveItem(User * pUser, int nTI, int nPOS, int nCount, st
 	return false;
 }
 
-int QWUInventory::RemoveItem(User * pUser, GW_ItemSlotBase * pItem, int nCount, bool bSendInventoryOperation, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved)
+int QWUInventory::RemoveItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount, bool bSendInventoryOperation, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved)
 {
 	std::vector<InventoryManipulator::ChangeLog> aChange;
 	int nDec = 0;
@@ -518,6 +521,15 @@ bool QWUInventory::RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<I
 	return false;
 }
 
+int QWUInventory::WasteItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount, bool bSendInventoryOperation)
+{
+	std::vector<InventoryManipulator::ChangeLog> aChange;
+	RawWasteItem(pUser, pItem->nPOS, nCount, aChange);
+	if (bSendInventoryOperation)
+		SendInventoryOperation(pUser, false, aChange);
+	return nCount;
+}
+
 void QWUInventory::UpdatePetItem(User * pUser, int nPos)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
@@ -578,4 +590,29 @@ int QWUInventory::GetFreeCount(User * pUser, int nTI)
 	int nMaxSlotCount = GetSlotCount(pUser, nTI);
 	int nHoldCount = GetHoldCount(pUser, nTI);
 	return nMaxSlotCount - nHoldCount;
+}
+
+int QWUInventory::GetItemCount(User * pUser, int nItemID, bool bProtected)
+{
+	int nTI = nItemID / 1000000;
+	if (nTI <= 0 || nTI > 5)
+		return 0;
+
+	int nResult = 0;
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	auto& mSlot = pUser->GetCharacterData()->mItemSlot[nTI];
+	GW_ItemSlotBase *pItem = nullptr;
+	for (auto& prItem : mSlot)
+	{
+		pItem = prItem.second;
+		if (pItem->nItemID == nItemID /*|| bProtected == ?*/)
+		{
+			if (pItem->nType == GW_ItemSlotBase::EQUIP || pItem->nType == GW_ItemSlotBase::CASH)
+				nResult += (pUser->GetCharacterData()->GetTradingCount(pItem->nType, pItem->nPOS) == 0 ? 1 : 0);
+			else
+				nResult += (std::max(0, ((GW_ItemSlotBundle*)pItem)->nNumber - pUser->GetCharacterData()->GetTradingCount(pItem->nType, pItem->nPOS)));
+		}
+	}
+
+	return nResult;
 }

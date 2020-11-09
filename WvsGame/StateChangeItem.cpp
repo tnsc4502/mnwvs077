@@ -2,6 +2,10 @@
 #include <mutex>
 #include "User.h"
 #include "SecondaryStat.h"
+#include "ThiefSkills.h"
+#include "SkillInfo.h"
+#include "SkillEntry.h"
+#include "SkillLevelData.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
@@ -11,11 +15,11 @@ retTSFlag |= GET_TS_FLAG(##name);\
 pRef = &pSS->m_mSetByTS[TemporaryStat::TS_##name]; pRef->second.clear();\
 pSS->n##name##_ = bResetByItem ? 0 : value;\
 pSS->r##name##_ = bResetByItem ? 0 : -nItemID;\
-pSS->t##name##_ = bResetByItem ? 0 : tTime;\
+pSS->t##name##_ = bResetByItem ? 0 : (int)((double)tTime * dTimeBonusRate);\
 pSS->nLv##name##_ = 0;\
 if(!bResetByItem)\
 {\
-	pRef->first = bForcedSetTime ? nForcedSetTime : (tCur + tTime);\
+	pRef->first = bForcedSetTime ? nForcedSetTime : (tCur + (int)((double)tTime * dTimeBonusRate));\
 	pRef->second.push_back(&pSS->n##name##_);\
 	pRef->second.push_back(&pSS->r##name##_);\
 	pRef->second.push_back(&pSS->t##name##_);\
@@ -36,29 +40,39 @@ TemporaryStat::TS_Flag StateChangeItem::Apply(User *pUser, unsigned int tCur, bo
 	int tTime = (nForcedSetTime > tCur) ? (nForcedSetTime - tCur) : (time == end ? 0 : time->second);
 	TemporaryStat::TS_Flag retTSFlag;
 
+	SkillEntry *pAlchemist = nullptr;
+	int nSLVAlchemist = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), ThiefSkills::Hermit_Alchemist, &pAlchemist);
+	double dAmountBonusRate = 1.0, dTimeBonusRate = 1.0;
+
+	if (pAlchemist && nSLVAlchemist)
+	{
+		dAmountBonusRate = (double)pAlchemist->GetLevelData(nSLVAlchemist)->m_nX / 100.0;
+		dTimeBonusRate = (double)pAlchemist->GetLevelData(nSLVAlchemist)->m_nY / 100.0;
+	}
+
 	for (auto& info : spec)
 	{
 		if (info.first == "hp")
 		{
-			pS->nHP += info.second;
+			pS->nHP += (int)((double)info.second * dAmountBonusRate);
 			pS->nHP = pS->nHP > pBS->nMHP ? pBS->nMHP : pS->nHP;
 			liFlag |= BasicStat::BS_HP;
 		}
 		else if (info.first == "mp")
 		{
-			pS->nMP += info.second;
+			pS->nMP += (int)((double)info.second * dAmountBonusRate);
 			pS->nMP = pS->nMP > pBS->nMMP ? pBS->nMMP : pS->nMP;
 			liFlag |= BasicStat::BS_MP;
 		}
 		if (info.first == "hpR")
 		{
-			pS->nHP += pBS->nMHP * (info.second) / 100;
+			pS->nHP += (int)((double)pBS->nMHP * dAmountBonusRate * (info.second) / 100);
 			pS->nHP = pS->nHP > pBS->nMHP ? pBS->nMHP : pS->nHP;
 			liFlag |= BasicStat::BS_HP;
 		}
 		else if (info.first == "mpR")
 		{
-			pS->nMP += pBS->nMMP * (info.second) / 100;
+			pS->nMP += (int)((double)pBS->nMMP * dAmountBonusRate * (info.second) / 100);
 			pS->nMP = pS->nMP > pBS->nMMP ? pBS->nMMP : pS->nMP;
 			liFlag |= BasicStat::BS_MP;
 		}

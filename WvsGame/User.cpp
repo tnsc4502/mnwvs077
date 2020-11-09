@@ -78,6 +78,7 @@
 #include "DropPool.h"
 #include "WvsPhysicalSpace2D.h"
 #include "AdminSkills.h"
+#include "ThiefSkills.h"
 #include "UserCashItemImpl.h"
 
 #define REGISTER_TS_BY_MOB(name, value) \
@@ -382,19 +383,30 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 		if (pBullet && (ItemInfo::IsRechargable(pBullet->nItemID) || pBullet->nItemID / 10000 == 206))
 			pInfo->m_nBulletItemID = pBullet->nItemID;
 
-		if (!GetSecondaryStat()->nSoulArrow_ && !GetSecondaryStat()->nAttract_)
+		//These three skills require no bullet.
+		if (nSkillID != ThiefSkills::NightsLord_Taunt &&
+			nSkillID != ThiefSkills::Shadower_Taunt &&
+			nSkillID != ThiefSkills::Hermit_ShadowMeso)
 		{
-			auto pLevel = pSkillEntry ? pSkillEntry->GetLevelData(pInfo->m_nSLV) : nullptr;
-			int nBulletConsume = pLevel ? pLevel->m_nBulletCount : 1;
-			//Try Consume Item.
-			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-			if (!pBullet || (ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawWasteItem(this, pInfo->m_nSlot, std::max(1, nBulletConsume), aChangeLog))
-				|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RawRemoveItem(this, GW_ItemSlotBase::CONSUME, pInfo->m_nSlot, std::max(1, nBulletConsume), &aChangeLog, nDecCount, nullptr)))
+			if (GetSecondaryStat()->nSpiritJavelin_)
 			{
-				SendNoticeMessage("Invalid Attack.");
+				int tSet = iPacket->Decode4();
+				/*
+				Check some stuffs.
+				*/
 			}
-			else
-				QWUInventory::SendInventoryOperation(this, false, aChangeLog);
+			else if (!GetSecondaryStat()->nSoulArrow_)
+			{
+				auto pLevel = pSkillEntry ? pSkillEntry->GetLevelData(pInfo->m_nSLV) : nullptr;
+				int nBulletConsume = pLevel ? pLevel->m_nBulletCount : 1;
+
+				//Try Consume Item.
+				if (!pBullet || (ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::WasteItem(this, pBullet, std::max(1, nBulletConsume)))
+					|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RemoveItem(this, pBullet, std::max(1, nBulletConsume))))
+				{
+					SendNoticeMessage("Invalid Attack.");
+				}
+			}
 		}
 
 		pInfo->m_nCsStar = iPacket->Decode2();
@@ -1424,8 +1436,10 @@ void User::OnAttack(int nType, InPacket * iPacket)
 		pResult->m_nWeaponItemID = pWeapon ? pWeapon->nItemID : 0;
 
 		//Check Cooltime and HP/MP Consumption
-		if (pLevel && 
-			(tCur < GetSkillCooltime(pResult->m_nSkillID) || !USkill::ConsumeHPAndMPBySkill(this, pLevel)))
+		if (pLevel &&
+			(tCur < GetSkillCooltime(pResult->m_nSkillID)) || 
+			!SkillInfo::GetInstance()->AdjustConsumeForActiveSkill(this, pResult->m_nSkillID, pResult->m_nSLV, 0, 0)
+			)
 		{
 			SendCharacterStat(true, 0);
 			return;
@@ -1629,15 +1643,15 @@ void User::OnHit(InPacket *iPacket)
 				nGuarded = std::min(nReflect * nHPDec / 100, m_pCharacterData->mStat->nHP / 20);
 				switch ((m_pCharacterData->mStat->nJob / 10) % 10)
 				{
-				case 1:
-					nFlag = 2121002;
-					break;
-				case 2:
-					nFlag = 2221002;
-					break;
-				case 3:
-					nFlag = 2321002;
-					break;
+					case 1:
+						nFlag = 2121002;
+						break;
+					case 2:
+						nFlag = 2221002;
+						break;
+					case 3:
+						nFlag = 2321002;
+						break;
 				}
 			}
 		}
@@ -1650,7 +1664,7 @@ void User::OnHit(InPacket *iPacket)
 			);
 			if (pEntry && nSLV)
 			{
-				int nMoneyCon = pEntry->GetLevelData(nSLV)->m_nMoneyCon;
+				int nMoneyCon = pEntry->GetLevelData(nSLV)->m_nX;
 				int nGuarded = nDamage / 2;
 				nMoneyCon = nGuarded * nMoneyCon / 100;
 				if (nGuarded)
@@ -1658,9 +1672,10 @@ void User::OnHit(InPacket *iPacket)
 					if (QWUser::GetMoney(this) < nMoneyCon)
 					{
 						nMoneyCon = (int)QWUser::GetMoney(this);
-						nGuarded = 100 * nMoneyCon / (pEntry->GetLevelData(nSLV)->m_nMoneyCon);
+						nGuarded = 100 * nMoneyCon / (pEntry->GetLevelData(nSLV)->m_nX);
 					}
-					QWUser::IncMoney(this, nMoneyCon, true);
+
+					QWUser::IncMoney(this, -nMoneyCon, true);
 					SendCharacterStat(false, BasicStat::BS_Meso);
 					nDamage -= nGuarded;
 					nDamageSend = nDamage;
@@ -1694,6 +1709,7 @@ void User::OnHit(InPacket *iPacket)
 
 		if (nFlag)
 		{
+			//Send Guarded Effect
 		}
 
 		nFlag = 0;
@@ -1746,6 +1762,8 @@ void User::OnHit(InPacket *iPacket)
 	{
 		int nDamageSrv = 0, nRnd = 0;
 		bool bCheckMiss = InspectDamageMiss(nDamageClient, pAttackInfo, pMob, aDamageRandom);
+		if (bCheckMiss && nDamageClient == -1)
+			nDamageClient = 0;
 
 		if (nDamageClient > 0 || (Rand32::GetInstance()->Random() % 100) > 30 || bCheckMiss)
 			m_bDeadlyAttack = false;

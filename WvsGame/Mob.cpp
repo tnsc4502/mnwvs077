@@ -1,7 +1,5 @@
 #include "Mob.h"
 #include "MobTemplate.h"
-#include "..\Database\GW_MobReward.h"
-#include "..\Database\GW_ItemSlotBundle.h"
 #include "Reward.h"
 #include "QWUQuestRecord.h"
 #include "DropPool.h"
@@ -24,12 +22,20 @@
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
 #include "Controller.h"
+#include "MobPacketTypes.hpp"
+#include "AttackInfo.h"
+#include "WarriorSkills.h"
+#include "MagicSkills.h"
+#include "BowmanSkills.h"
+#include "ThiefSkills.h"
+
+#include "..\Database\GW_MobReward.h"
+#include "..\Database\GW_ItemSlotBundle.h"
 
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsGame\MobPacketTypes.hpp"
 
 #undef min
 #undef max
@@ -579,33 +585,33 @@ void Mob::ResetStatChangeSkill(int nSkillID)
 	int nFlagReset = 0;
 	switch (nSkillID)
 	{
-	case 140:
-		CLEAR_MOB_STAT(PImmune);
-		break;
-	case 141:
-		CLEAR_MOB_STAT(MImmune);
-		break;
-	case 150:
-		CLEAR_MOB_STAT(PAD);
-		break;
-	case 151:
-		CLEAR_MOB_STAT(MAD);
-		break;
-	case 152:
-		CLEAR_MOB_STAT(PDD);
-		break;
-	case 153:
-		CLEAR_MOB_STAT(MDD);
-		break;
-	case 154:
-		CLEAR_MOB_STAT(ACC);
-		break;
-	case 155:
-		CLEAR_MOB_STAT(EVA);
-		break;
-	case 156:
-		CLEAR_MOB_STAT(Speed);
-		break;
+		case 140:
+			CLEAR_MOB_STAT(PImmune);
+			break;
+		case 141:
+			CLEAR_MOB_STAT(MImmune);
+			break;
+		case 150:
+			CLEAR_MOB_STAT(PAD);
+			break;
+		case 151:
+			CLEAR_MOB_STAT(MAD);
+			break;
+		case 152:
+			CLEAR_MOB_STAT(PDD);
+			break;
+		case 153:
+			CLEAR_MOB_STAT(MDD);
+			break;
+		case 154:
+			CLEAR_MOB_STAT(ACC);
+			break;
+		case 155:
+			CLEAR_MOB_STAT(EVA);
+			break;
+		case 156:
+			CLEAR_MOB_STAT(Speed);
+			break;
 	}
 	SendMobTemporaryStatReset(nFlagReset);
 }
@@ -616,7 +622,7 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur)
 	auto pLevel = !pEntry ? nullptr : pEntry->GetLevelData(pArea->GetSkillLevel());
 	if (pLevel)
 	{
-		if (pEntry->GetSkillID() == 2111003 && !m_pMobTemplate->m_bIsBoss)
+		if (pEntry->GetSkillID() == MagicSkills::Adv_Magic_FP_PoisonMist && !m_pMobTemplate->m_bIsBoss)
 		{
 			int nValue = m_pMobTemplate->m_nFixedDamage;
 			if (nValue <= 0)
@@ -626,7 +632,7 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur)
 
 			m_pStat->nPoison_ = nValue;
 			m_pStat->tPoison_ = pLevel->m_nTime + tCur;
-			m_pStat->rPoison_ = 2111003;
+			m_pStat->rPoison_ = MagicSkills::Adv_Magic_FP_PoisonMist;
 			m_tLastUpdatePoison = tCur;
 			SendMobTemporaryStatSet(MobStat::MS_Poison, tCur);
 		}
@@ -637,7 +643,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 {
 	auto pLevel = pSkill->GetLevelData(nSLV);
 	int nProp = pLevel->m_nProp;
-	if (!nProp || pSkill->GetSkillID() == 4121008)
+	if (!nProp || pSkill->GetSkillID() == ThiefSkills::NightsLord_NinjaStorm)
 		nProp = 100;
 
 	if ((int)(Rand32::GetInstance()->Random() % 100) >= nProp)
@@ -651,60 +657,73 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 		nFlagReset = 0;
 
 	unsigned int tCur = GameDateTime::GetTime();
-	bool bResetBySkill = false, bReset = false;
+	bool bResetBySkill = false;
 	switch (pSkill->GetSkillID())
 	{
-		case 1111007:
+		case WarriorSkills::Crusader_ArmorCrash:
 			CLEAR_MOB_STAT(PGuardUp);
-			bReset = true;
 			break;
-		case 1201006:
-		case 4001002:
+		case WarriorSkills::Page_Threaten:
+		case ThiefSkills::Thief_Disorder:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(PAD, nX);
 			REGISTER_MOB_STAT_BY_USER(PDD, nY);
 			break;
-		case 1211006:
-		case 1211002:
-			if (GetMobTemplate()->m_bIsBoss ||
-				!pUser->GetSecondaryStat()->nWeaponCharge_ ||
-				pUser->GetSecondaryStat()->nWeaponCharge_ == 1211005 ||
-				pUser->GetSecondaryStat()->nWeaponCharge_ == 1211006)
-				return;
-			REGISTER_MOB_STAT_BY_USER(Freeze, (int)(Rand32::GetInstance()->Random() % 100) < pLevel->m_nProp ? 1 : 0);
-			m_pStat->tFreeze_ = tCur + tDelay + 3000;
+		case WarriorSkills::WhiteKnight_IceChargeSword:
+		case WarriorSkills::WhiteKnight_BlizzardChargeBW:
+		case WarriorSkills::WhiteKnight_ChargedBlow:
+			if (nSkillID == WarriorSkills::WhiteKnight_ChargedBlow)
+			{
+				if (GetMobTemplate()->m_bIsBoss ||
+					!pUser->GetSecondaryStat()->nWeaponCharge_ ||
+					pUser->GetSecondaryStat()->nWeaponCharge_ == WarriorSkills::WhiteKnight_IceChargeSword ||
+					pUser->GetSecondaryStat()->nWeaponCharge_ == WarriorSkills::WhiteKnight_BlizzardChargeBW)
+					return;
+				REGISTER_MOB_STAT_BY_USER(Freeze, (int)(Rand32::GetInstance()->Random() % 100) < pLevel->m_nProp ? 1 : 0);
+				m_pStat->tFreeze_ = tCur + tDelay + 3000;
+			}
+			else
+			{
+				int nElemAttr = m_pStat->aDamagedElemAttr[1];
+				if (GetMobTemplate()->m_bIsBoss || (nElemAttr >= 1 && nElemAttr <= 2))
+					return;
+
+				REGISTER_MOB_STAT_BY_USER(Freeze, nX);
+				m_pStat->rFreeze_ = pUser->GetSecondaryStat()->rWeaponCharge_;
+			}
 			break;
-		case 1211009:
+		case WarriorSkills::WhiteKnight_MagicCrash:
 			CLEAR_MOB_STAT(MGuardUp);
-			bReset = true;
 			break;
-		case 1311007:
+		case WarriorSkills::DragonKnight_PowerCrash:
 			CLEAR_MOB_STAT(PowerUp);
-			bReset = true;
 			break;
-		case 2101003:
-		case 2201003:
+		case MagicSkills::Magic_FP_Slow:
+		case MagicSkills::Magic_IL_Slow:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Speed, nX);
 			break;
-		case 2101005:
-		case 2111006:
+		case MagicSkills::Magic_FP_PoisonBreath:
+		case MagicSkills::Adv_Magic_FP_ElementComposition:
 			if (GetMobTemplate()->m_bIsBoss ||
 				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
 				return;
 
 			if (m_pStat->nPoison_ > 0 &&
-				(m_pStat->rPoison_ == 2121003 || m_pStat->rPoison_ == 2221003))
+				(m_pStat->rPoison_ == MagicSkills::Highest_Magic_FP_FireDemon || m_pStat->rPoison_ == MagicSkills::Highest_Magic_IL_IceDemon))
 			{
-				
+				//if(m_pStat->nDoom_ &&)
+				memcpy(m_pStat->aDamagedElemAttr, GetMobTemplate()->m_aDamagedElemAttr, sizeof(int) * 8);
+				CLEAR_MOB_STAT(Doom);
 			}
 			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			m_pStat->rPoison_ = nSkillID;
 			m_tLastUpdatePoison = tCur;
 			break;
-		case 2121003:
-		case 2221003:
+		case MagicSkills::Highest_Magic_FP_FireDemon:
+		case MagicSkills::Highest_Magic_IL_IceDemon:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 
@@ -717,74 +736,73 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 			REGISTER_MOB_STAT_BY_USER(Freeze, 1);
 			m_pStat->tFreeze_ = tCur + tDelay + nX * 1000;
 			break;
-		case 2111004:
-		case 2211004:
+		case MagicSkills::Adv_Magic_FP_Seal:
+		case MagicSkills::Adv_Magic_IL_Seal:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Seal, 1);
 			break;
-		case 2311001:
+		case MagicSkills::Adv_Magic_Holy_Dispel:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			CLEAR_MOB_STAT(PowerUp);
 			CLEAR_MOB_STAT(MagicUp);
-			if (m_pStat->nShowdown == 0)
+			if (m_pStat->nShowdown_ == 0)
 			{
 				CLEAR_MOB_STAT(PGuardUp);
 				CLEAR_MOB_STAT(MGuardUp);
 			}
 			CLEAR_MOB_STAT(HardSkin);
-			bReset = true;
 			break;
-		case 2311005:
+		case MagicSkills::Adv_Magic_Holy_Doom:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Doom, 1);
 			break;
-		case 3121007:
+		case BowmanSkills::Bow_Master_Hamstring:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Speed, nX);
 			m_pStat->tSpeed_ = tCur + 1000 * nY;
 			break;
-		case 1111008:
-		case 1120005:
-		case 1220006:
-		case 2121006:
-		case 3101005:
-		case 4121008:
-		case 4211002:
-		case 4221001:
-		case 4221007:
+		case WarriorSkills::Crusader_Shout:
+		case WarriorSkills::Hero_Guardian:
+		case WarriorSkills::Paladin_Guardian:
+		case MagicSkills::Highest_Magic_FP_Paralyze:
+		case BowmanSkills::Hunter_ArrowBombBow:
+		case ThiefSkills::NightsLord_NinjaStorm:
+		case ThiefSkills::Chief_Bandit_Assaulter:
+		case ThiefSkills::Shadower_Assassinate:
+		case ThiefSkills::Shadower_BoomerangStep:
 			if (!GetMobTemplate()->m_bIsBoss
-				&& (nSkillID != 3101005 || /*nDamageSum >=*/ (int)(Rand32::GetInstance()->Random() % 3) == 0))
+				&& (nSkillID != BowmanSkills::Hunter_ArrowBombBow || /*nDamageSum >=*/ (int)(Rand32::GetInstance()->Random() % 3) == 0))
 				REGISTER_MOB_STAT_BY_USER(Stun, 1);
 			break;
-		case 2121005:
-		case 2221007:
-		case 3221005:
-		case 3211003:
-		case 2201004:
-		case 2211002:
+		case MagicSkills::Highest_Magic_FP_Elquines:
+		case MagicSkills::Highest_Magic_IL_Blizzard:
+		case MagicSkills::Magic_IL_ColdBeam:
+		case MagicSkills::Adv_Magic_IL_IceStrike:
+		case BowmanSkills::Marksman_Freezer:
+		case BowmanSkills::Sniper_Blizzard:
 			if (GetMobTemplate()->m_bIsBoss ||
 				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
 				return;
 			REGISTER_MOB_STAT_BY_USER(Freeze, 1);
-			if (nSkillID == 3221005 || nSkillID == 2121005)
+			if (nSkillID == BowmanSkills::Marksman_Freezer || nSkillID == MagicSkills::Highest_Magic_FP_Elquines)
 				m_pStat->tFreeze_ = tDelay + tCur + nX * 1000;
 			break;
-		case 3221006:
+		case BowmanSkills::Marksman_Blind:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Blind, nX);
 			break;
-		case 4111003:
+		case ThiefSkills::Hermit_ShadowWeb:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(Web, (int)(GetMobTemplate()->m_lnMaxHP / (50 - nSLV)));
 			break;
-		case 4120005:
-		case 4220005: 
+		case ThiefSkills::NightsLord_VenomousStar:
+		case ThiefSkills::Shadower_VenomousStab:
 		{
 			if (GetMobTemplate()->m_bIsBoss ||
 				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
@@ -799,8 +817,8 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 			}
 			break;
 		}
-		case 4121004:
-		case 4221004:
+		case ThiefSkills::Shadower_NinjaAmbush:
+		case ThiefSkills::NightsLord_NinjaAmbush:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 			REGISTER_MOB_STAT_BY_USER(
@@ -811,6 +829,12 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 			);
 
 			m_tLastUpdateAmbush = tCur;
+			break;
+		case ThiefSkills::Shadower_Taunt:
+		case ThiefSkills::NightsLord_Taunt:
+			REGISTER_MOB_STAT_BY_USER(PGuardUp, 100 - nX);
+			REGISTER_MOB_STAT_BY_USER(MGuardUp, 100 - nX);
+			REGISTER_MOB_STAT_BY_USER(Showdown, nX);
 			break;
 	}
 	if (nFlagReset)
@@ -899,8 +923,13 @@ void Mob::OnApplyCtrl(User *pUser, InPacket *iPacket)
 int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamageCharacterID)
 {
 	long long int nHighestDamageRecord = 0, nTotalHP = GetMobTemplate()->m_lnMaxHP;
-	double dLastHitBonus = 0.0, dStatBonusRate = 715.0, dBaseExp = 0, dIncEXP = 0;
 	int nHighestDamageUser = 0;
+
+	double dLastHitBonus = 0.0, 
+		dStatBonusRate = 715.0, 
+		dBaseExp = 0, 
+		dIncEXP = 0, 
+		dShowdownInc = m_pStat->nShowdown_ ? (((double)m_pStat->nShowdown_ + 100.0) * 0.01) : 1.0;
 
 	refOwnType = 0;
 	refOwnParyID = 0;
@@ -961,9 +990,9 @@ int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamage
 
 				dBaseExp = ((double)GetMobTemplate()->m_nEXP * (double)info.second.nDamage);
 				dIncEXP = (dBaseExp * 0.8 / (double)m_damageLog.liTotalDamage + dLastHitBonus);
-				dIncEXP *= (pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0);
-				dIncEXP *= 0.01;
-				dIncEXP *= (dStatBonusRate * 1.0); //1.0 = User::GetIncEXPRate()
+				/*dIncEXP *= (pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0);
+				dIncEXP *= 0.01;*/
+				dIncEXP *= (dStatBonusRate * 1.0 * dShowdownInc); //1.0 = User::GetIncEXPRate()
 				dIncEXP *= m_pField->GetIncEXPRate();
 				if (pUser->GetSecondaryStat()->nCurse_)
 					dIncEXP *= 0.5;
@@ -994,7 +1023,8 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 		dBaseEXP = 0,
 		dLastDamageCharBonus = 0,
 		dEXPMain = 0,
-		dIncEXP = 0;
+		dIncEXP = 0,
+		dShowdownInc = m_pStat->nShowdown_ ? (((double)m_pStat->nShowdown_ + 100.0) * 0.01) : 1.0;
 
 	int anLevel[PartyMan::MAX_PARTY_MEMBER_COUNT] = { 0 },
 		anPartyMember[PartyMan::MAX_PARTY_MEMBER_COUNT] = { 0 },
@@ -1004,13 +1034,14 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 		nLevelSum = 0;
 
 	User *pUser = nullptr, *apUser[PartyMan::MAX_PARTY_MEMBER_COUNT];
-	bool bLastDamageParty = false;
+	bool bLastDamageParty = false, bApplyHolySymbol = false;
 
 	for (auto& partyInfo : aPartyDamage)
 	{
 		nPartyMemberCount = 0; 
 		nPartyBonusCount = 0;
 		bLastDamageParty = false;
+		bApplyHolySymbol = false;
 
 		if (!PartyMan::GetInstance()->GetParty(partyInfo.nParty))
 			continue;
@@ -1032,6 +1063,7 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 		}
 		nMinLevel = std::min(partyInfo.nMinLevel, m_pMobTemplate->m_nLevel) - 5;
 		nLevelSum = 0;
+		bApplyHolySymbol = nPartyMemberCount > 1;
 		for (int i = 0; i < nPartyMemberCount; ++i)
 			if (anLevel[i] >= nMinLevel) 
 			{
@@ -1057,16 +1089,16 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 				dIncEXP += dLastDamageCharBonus;
 
 			if(nPartyBonusCount == 1)
-				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0) * 0.01;
+				dIncEXP *= !bApplyHolySymbol ? 1 : (((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0) * 0.01);
 			else if (nPartyBonusCount > 1)
 			{
-				dIncEXP *= ((double)pUser->GetSecondaryStat()->nHolySymbol_ + 100.0) * 0.01;
+				dIncEXP *= !bApplyHolySymbol ? 1 : (((double)pUser->GetSecondaryStat()->nHolySymbol_ + 100.0) * 0.01);
 				dIncEXP = std::min(
 					dIncEXP,
-					((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0) * m_pMobTemplate->m_nEXP * 0.01);
+					(!bApplyHolySymbol ? 100 : ((double)pUser->GetSecondaryStat()->nHolySymbol_ * 0.2 + 100.0)) * m_pMobTemplate->m_nEXP * 0.01);
 			}
 
-			dIncEXP *= 1.0 * 1.0; //User::GetIncEXPRate & Showdown
+			dIncEXP *= dShowdownInc * 1.0; //User::GetIncEXPRate & Showdown
 
 			/*Calculate Marriage Bonus EXP*/
 
@@ -1101,15 +1133,24 @@ void Mob::GiveExp(const std::vector<PartyDamage>& aPartyDamage)
 	}
 }
 
-void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem)
+void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwnType, int nX, int nY, int tDelay, int nMesoUp, int nMesoUpByItem, bool bSteal)
 {
+	if (m_bAlreadyStealed && m_nItemIDStolen)
+		return;
+
 	auto& aReward = m_pMobTemplate->GetMobReward();
 
 	Reward* pDrop = nullptr;
 	User* pOwner = User::FindUser(dwOwnerID);
 
 	auto aRewardDrop = Reward::Create(
-		&aReward, false, 1.0, 1.0, 1.0, 1.0, nullptr
+		&aReward, 
+		false, 
+		1.0, //Regional
+		m_pStat->nShowdown_ ? (((double)m_pStat->nShowdown_ + 100.0) * 0.01) : 1.0, //Showdown
+		1.0, //OwnerDropRate
+		1.0, //OwnerDropRate_Ticket
+		nullptr
 	);
 
 	if (aRewardDrop.size() == 0)
@@ -1117,23 +1158,105 @@ void Mob::GiveReward(unsigned int dwOwnerID, unsigned int dwOwnPartyID, int nOwn
 
 	int nXOffset = ((int)aRewardDrop.size() - 1) * (GetMobTemplate()->m_bIsExplosiveDrop ? -20 : -10);
 	nXOffset += GetPosX();
+
+	int nRewardRndIndex = 0, nRewardIndex = 0;
+	if (bSteal)
+		nRewardRndIndex = (int)(Rand32::GetInstance()->Random() % (int)aRewardDrop.size());
+
 	for (auto& pReward : aRewardDrop)
 	{
-		GetField()->GetDropPool()->Create(
-			pReward,
-			dwOwnerID,
-			dwOwnPartyID,
-			nOwnType,
-			dwOwnerID,
-			GetPosX(),
-			GetPosY(),
-			nXOffset,
-			GetPosY() - 100,
-			0,
-			0,
-			0,
-			true);
-		nXOffset += GetMobTemplate()->m_bIsExplosiveDrop ? 40 : 20;
+		if (!bSteal || nRewardIndex == nRewardRndIndex)
+		{
+			//Set stolen info.
+			if (bSteal)
+			{
+				if (pReward->GetItem())
+					m_nItemIDStolen = pReward->GetItem()->nItemID;
+				else
+					pReward->SetMoney(pReward->GetMoney() / 2);
+				m_bAlreadyStealed = true;
+			}
+			//Skip that stolen item.
+			else if (m_bAlreadyStealed && m_nItemIDStolen && pReward->GetItem() && pReward->GetItem()->nItemID == m_nItemIDStolen)
+				continue;
+			//Set meso up.
+			else if (nMesoUp && pReward->GetMoney())
+				pReward->SetMoney(pReward->GetMoney() * nMesoUp / 100);
+
+			GetField()->GetDropPool()->Create(
+				pReward,
+				dwOwnerID,
+				dwOwnPartyID,
+				nOwnType,
+				dwOwnerID,
+				GetPosX(),
+				GetPosY(),
+				nXOffset,
+				GetPosY() - 100,
+				0,
+				0,
+				0,
+				true);
+
+			nXOffset += GetMobTemplate()->m_bIsExplosiveDrop ? 40 : 20;
+
+			//Only drop one stolen item.
+			if (bSteal)
+				break;
+		}
+		++nRewardRndIndex;
+	}
+}
+
+void Mob::GiveMoney(User * pUser, void *pDamageInfo, int nAttackCount)
+{
+	AttackInfo::DamageInfo *di = (AttackInfo::DamageInfo*)pDamageInfo;
+	SkillEntry *pSkillEntry = nullptr;
+	int nSLVPickpocket = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), ThiefSkills::Chief_Bandit_Pickpocket, &pSkillEntry);
+	int nRnd = 0;
+	double dLevelRatio = 0;
+	if (nSLVPickpocket && pSkillEntry)
+	{
+		std::vector<ZUniquePtr<Reward>> aReward;
+		if (nAttackCount > 0)
+		{
+			for (int i = 0; i < nAttackCount; ++i)
+			{
+				nRnd = (int)(Rand32::GetInstance()->Random() % 100);
+				dLevelRatio = std::min(1.0, (double)pUser->GetBasicStat()->nLevel / GetMobTemplate()->m_nLevel);
+				if ((int)(dLevelRatio * pSkillEntry->GetLevelData(nSLVPickpocket)->m_nProp) >= nRnd && di->anDamageSrv[i])
+				{
+					dLevelRatio = (double)di->anDamageSrv[i] / (double)GetMobTemplate()->m_lnMaxHP;
+					dLevelRatio = std::max(0.5, std::min(1.0, dLevelRatio));
+					dLevelRatio *= ((double)GetMobTemplate()->m_nLevel * (double)pSkillEntry->GetLevelData(nSLVPickpocket)->m_nX * 0.006666666666666667);
+					dLevelRatio = std::max(1.0, dLevelRatio);
+					nRnd = 1 + (int)(Rand32::GetInstance()->Random() % (dLevelRatio ? (int)dLevelRatio : 1));
+					Reward* pReward = AllocObj(Reward);
+					pReward->SetMoney(nRnd);
+					aReward.push_back(pReward);
+				}
+			}
+		}
+		int x2 = di->ptHit.x - 10 * (int)aReward.size() + 10, tDelay = 0;
+		for (auto& pReward : aReward)
+		{
+			GetField()->GetDropPool()->Create(
+				pReward,
+				pUser->GetUserID(),
+				0,
+				0,
+				GetFieldObjectID(),
+				di->ptHit.x,
+				di->ptHit.y,
+				x2,
+				0,
+				tDelay + di->m_tDelay,
+				0,
+				0,
+				0
+			);
+			tDelay += 120;
+		}
 	}
 }
 

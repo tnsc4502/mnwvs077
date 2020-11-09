@@ -7,6 +7,7 @@ struct GA_Character;
 struct GW_SkillRecord;
 class SkillEntry;
 class MobSkillEntry;
+class User;
 struct MCSkillEntry;
 struct MCGuardianEntry;
 
@@ -66,6 +67,7 @@ public:
 	int GetEndureDuration(GA_Character* pCharacter);
 	int GetHPRecoveryUpgrade(GA_Character* pCharacter);
 	int GetMPRecoveryUpgrade(GA_Character* pCharacter);
+	bool AdjustConsumeForActiveSkill(User *pUser, int nSkillID, int nSLV, bool bKeydown, int nSpiritJavelinItemID);
 
 	//Helpers
 	static bool IsSummonSkill(int nSkillID);
@@ -76,5 +78,6 @@ public:
 	static bool IsSkillNeedMasterLevel(int nSkillID);
 	static bool IsKeyDownSkill(int nSkillID);
 	static bool IsPuppetSkill(int nSkillID);
+	static bool IsMobStatChangeSkill(int nSkillID);
 };
 

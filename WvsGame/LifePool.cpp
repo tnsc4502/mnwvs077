@@ -1,4 +1,6 @@
 #include "LifePool.h"
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -29,6 +31,7 @@
 #include "Employee.h"
 #include "MiniRoomBase.h"
 #include "SkillInfo.h"
+#include "SkillLevelData.h"
 #include "MobSkillEntry.h"
 #include "MobSkillLevelData.h"
 #include "DropPool.h"
@@ -36,6 +39,9 @@
 #include "CalcDamage.h"
 #include "ContinentMan.h"
 #include "Summoned.h"
+#include "ThiefSkills.h"
+#include "WarriorSkills.h"
+#include "QWUser.h"
 #include <cmath>
 
 #undef min
@@ -568,7 +574,10 @@ void LifePool::TryKillingAllMobs(User * pUser)
 			pUser, m_mMob.begin()->second->GetMobTemplate()->m_lnMaxHP, 1
 		);
 		m_mMob.begin()->second->OnMobDead(
-			m_mMob.begin()->second->GetPosX(), m_mMob.begin()->second->GetPosY(), 0, 0
+			m_mMob.begin()->second->GetPosX(), 
+			m_mMob.begin()->second->GetPosY(), 
+			pUser->GetSecondaryStat()->nMesoUp_, 
+			pUser->GetSecondaryStat()->nMesoUpByItem_
 		);
 		RemoveMob(m_mMob.begin()->second);
 	}
@@ -772,7 +781,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 		dmgInfo.pMob = pMob;
 
 		//Calc Meso Explosion Damages.
-		if (pInfo->m_nSkillID == 4211006)
+		if (pInfo->m_nSkillID == ThiefSkills::Chief_Bandit_MesoExplosion)
 		{
 			if (dmgInfo.nDamageCount > (int)pInfo->anDropID.size())
 			{
@@ -785,9 +794,6 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 				std::min(dmgInfo.nDamageCount, (int)pInfo->anMoneyAmount.size()),
 				dmgInfo.anDamageSrv
 			);
-			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
-				WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
-					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);
 		}
 		else //Calc Normal Skill Damages
 		{
@@ -823,6 +829,8 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					0,
 					0
 				);
+
+			pUser->GetSecondaryStat()->mDarkSight_ = 0;
 			
 			if (pSkill)
 				pSkill->AdjustDamageDecRate(
@@ -845,6 +853,10 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					);
 		}
 		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
+
+		if (pInfo->m_nSkillID != ThiefSkills::Chief_Bandit_MesoExplosion && pUser->GetSecondaryStat()->nPickPocket_)
+			pMob->GiveMoney(pUser, &dmgInfo, dmgInfo.nDamageCount);
+
 		++nOrder;
 	}
 
@@ -910,13 +922,16 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 {
 	for (auto& iter : pInfo->m_mDmgInfo)
 	{
+		long long int liDamageSum = 0;
 		auto& dmgInfo = iter.second;
 		for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 		{
 			if (!dmgInfo.pMob)
 				continue;
 
+			liDamageSum += dmgInfo.anDamageSrv[i];
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
+
 			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
 				OnMobStatChangeSkill(
 					pUser,
@@ -925,18 +940,44 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 					pInfo->m_nSLV,
 					0
 				);
-			if (dmgInfo.pMob->GetHP() <= 0)
+		}
+
+		//Apply Skill Effects
+		if (pSkill)
+		{
+			long long int liFlag = 0;
+
+			if (pSkill->GetSkillID() == ThiefSkills::Bandit_Steal &&
+				(int)(Rand32::GetInstance()->Random() % 100) < pSkill->GetLevelData(pInfo->m_nSLV)->m_nProp)
+				dmgInfo.pMob->GiveReward(pUser->GetUserID(), 0, 0, dmgInfo.ptHit.x, dmgInfo.ptHit.y, dmgInfo.m_tDelay, 0, 0, true);
+			else if (pSkill->GetSkillID() == ThiefSkills::Assassin_Drain)
 			{
-				dmgInfo.pMob->OnMobDead(
-					pInfo->m_nX,
-					pInfo->m_nY,
-					pUser->GetSecondaryStat()->nMesoUp_,
-					pUser->GetSecondaryStat()->nMesoUpByItem_
+				int nDrain = (int)(liDamageSum * pSkill->GetLevelData(pInfo->m_nSLV)->m_nX / 100);
+				nDrain = std::min(
+					(int)dmgInfo.pMob->GetMobTemplate()->m_lnMaxHP / 2,
+					std::min((int)liDamageSum, pUser->GetBasicStat()->nMHP / 2)
 				);
-				dmgInfo.pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
-				RemoveMob(dmgInfo.pMob);
-				break;
+				liFlag |= QWUser::IncHP(pUser, nDrain, false);
 			}
+			else if (pSkill->GetSkillID() == WarriorSkills::DragonKnight_Sacrifice)
+			{
+				liFlag |= QWUser::IncHP(pUser, (int)(liDamageSum * pSkill->GetLevelData(pInfo->m_nSLV)->m_nX / -100), false);
+				pUser->GetCharacterData()->mStat->nHP = std::max(1, pUser->GetCharacterData()->mStat->nHP);
+			}
+			if (liFlag)
+				pUser->SendCharacterStat(false, liFlag);
+		}
+
+		if (dmgInfo.pMob && dmgInfo.pMob->GetHP() <= 0)
+		{
+			dmgInfo.pMob->OnMobDead(
+				pInfo->m_nX,
+				pInfo->m_nY,
+				pUser->GetSecondaryStat()->nMesoUp_,
+				pUser->GetSecondaryStat()->nMesoUpByItem_
+			);
+			dmgInfo.pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
+			RemoveMob(dmgInfo.pMob);
 		}
 	}
 }

@@ -32,6 +32,7 @@ void AffectedAreaPool::InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSki
 	pArea->m_tStart = tStart;
 	pArea->m_tEnd = tEnd;
 	pArea->m_rcAffectedArea = rc;
+	pArea->m_bSmoke = bSmoke;
 	pArea->SetPosX(pt.x);
 	pArea->SetPosY(pt.y);
 	m_apAffectedArea.push_back(pArea);

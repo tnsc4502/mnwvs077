@@ -65,6 +65,7 @@ void MobStat::EncodeTemporary(int nSet, OutPacket *oPacket, unsigned int tCur)
 	CHECK_MOB_FLAG(MImmune);
 	CHECK_MOB_FLAG(Doom);
 	CHECK_MOB_FLAG(Web);
+	//CHECK_MOB_FLAG(Showdown);
 	CHECK_MOB_FLAG(HardSkin);
 	CHECK_MOB_FLAG(Ambush);
 	CHECK_MOB_FLAG(Venom);
@@ -103,6 +104,7 @@ int MobStat::ResetTemporary(unsigned int tCur)
 	CHECK_MOB_STAT_TIMEOUT(MImmune);
 	CHECK_MOB_STAT_TIMEOUT(Doom);
 	CHECK_MOB_STAT_TIMEOUT(Web);
+	CHECK_MOB_STAT_TIMEOUT(Showdown);
 	CHECK_MOB_STAT_TIMEOUT(HardSkin);
 	CHECK_MOB_STAT_TIMEOUT(Ambush);
 	CHECK_MOB_STAT_TIMEOUT(Venom);

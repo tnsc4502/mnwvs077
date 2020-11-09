@@ -33,11 +33,11 @@ public:
 	ADD_MOB_STAT(MagicUp, 13);
 	ADD_MOB_STAT(PGuardUp, 14);
 	ADD_MOB_STAT(MGuardUp, 15);
-	ADD_MOB_STAT(PImmune, 18);
-	ADD_MOB_STAT(MImmune, 19);
 	ADD_MOB_STAT(Doom, 16);
 	ADD_MOB_STAT(Web, 17);
-	//No 20
+	ADD_MOB_STAT(PImmune, 18);
+	ADD_MOB_STAT(MImmune, 19);
+	ADD_MOB_STAT(Showdown, 20);
 	ADD_MOB_STAT(HardSkin, 21);
 	ADD_MOB_STAT(Ambush, 22);
 	//No 23
@@ -53,7 +53,6 @@ public:
 		nMDD = 0,
 		nACC = 0,
 		nEVA = 0,
-		nShowdown = 0,
 		nSpeed = 0,
 		nLevel = 0;
 

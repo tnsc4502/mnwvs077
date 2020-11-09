@@ -11,7 +11,9 @@
 #include "ItemInfo.h"
 #include "QWUser.h"
 #include "MobTemplate.h"
+
 #include "..\Database\GA_Character.hpp"
+#include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Random\Rand32.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
@@ -479,7 +481,7 @@ void CalcDamage::MDamage(Mob *pMob, MobStat *ms, int nDamagePerMob, int nWeaponI
 			}
 
 			if (tKeyDown)
-				damage *= (90.0 * (double)tKeyDown / 2000.0 + 10.0) * 0.01;
+				damage *= (double)(90 * tKeyDown / 2000 + 10) * 0.01;
 
 			if (!ms->nHardSkin_ || abCritical[i])
 			{
@@ -928,9 +930,9 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 								int nMoneyCon = pSkill->GetLevelData(nSLV)->m_nMoneyCon;
 								damage = nMoneyCon * 0.5;
 								highDamage = nMoneyCon * 1.5;
-								calc = (damage + (highDamage - damage) * CURRENT_RAND) * 10;
+								calc = (int)(damage + (highDamage - damage) * CURRENT_RAND) * 10;
 								NEXT_RAND;
-								if (CURRENT_RAND < pSkill->GetLevelData(nSLV)->m_nProp)
+								if (CURRENT_RAND * 100.0 < pSkill->GetLevelData(nSLV)->m_nProp)
 								{
 									calc *= (double)(pSkill->GetLevelData(nSLV)->m_nX + 100) * 0.01;
 									abCritical[i] = 1;
@@ -1056,8 +1058,11 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 			}
 			if (nSkillID == 4221001)
 			{
-				if ((ss->nDarkSight_))
-					damage *= (double)(pSkill->GetLevelData(nSLV)->m_nTime) / 3.0 + 1.0;
+				if ((ss->mDarkSight_))
+				{
+					unsigned int tTimeDiff = std::min((unsigned int)pSkill->GetLevelData(nSLV)->m_nTime / 1000, (GameDateTime::GetTime() - ss->mDarkSight_) / 1000);
+					damage *= (tTimeDiff / 3 + 1);
+				}
 				else
 					damage = 0.0;
 			}

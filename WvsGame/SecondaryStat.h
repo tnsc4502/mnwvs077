@@ -33,6 +33,8 @@ public:
 	ADD_TEMPORARY(Jump);
 	ADD_TEMPORARY(MagicGuard);
 	ADD_TEMPORARY(DarkSight);
+	unsigned int mDarkSight_;
+
 	ADD_TEMPORARY(Booster);
 	ADD_TEMPORARY(PowerGuard);
 	ADD_TEMPORARY(MaxHP);

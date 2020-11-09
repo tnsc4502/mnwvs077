@@ -1,10 +1,4 @@
 #include "USkill.h"
-#include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\OutPacket.h"
-#include "..\Database\GA_Character.hpp"
-#include "..\Database\GW_CharacterStat.h"
-#include "..\Database\GW_SkillRecord.h"
-
 #include "User.h"
 #include "QWUser.h"
 #include "TemporaryStat.h"
@@ -17,6 +11,8 @@
 #include "PartyMan.h"
 #include "Summoned.h"
 #include "Field.h"
+#include "LifePool.h"
+#include "AffectedAreaPool.h"
 
 //Skill constants
 #include "AdminSkills.h"
@@ -27,6 +23,12 @@
 #include "PirateSkills.h"
 #include "BeginnersSkills.h"
 
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
+#include "..\Database\GW_SkillRecord.h"
+
+#include "..\WvsLib\Net\InPacket.h"
+#include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
@@ -98,6 +100,10 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 	int nSkillID = iPacket->Decode4();
 	int nSpiritJavelinItemID = 0;
 	int nSLV = iPacket->Decode1();
+
+	if (nSkillID == ThiefSkills::NightsLord_ShadowStars)
+		nSpiritJavelinItemID = iPacket->Decode4();
+
 	auto pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
 	auto pSkillRecord = pUser->GetCharacterData()->GetSkill(nSkillID);
 
@@ -113,7 +119,7 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 		nSLV <= 0 ||
 		nSLV > pSkillEntry->GetMaxLevel() ||
 		pUser->GetSkillCooltime(nSkillID) > tCur ||
-		!ConsumeHPAndMPBySkill(pUser, pSkillEntry->GetLevelData(pSkillRecord->nSLV)))
+		!SkillInfo::GetInstance()->AdjustConsumeForActiveSkill(pUser, nSkillID, nSLV, false, nSpiritJavelinItemID))
 	{
 		SendFailPacket(pUser);
 		return;
@@ -131,29 +137,6 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 	);
 }
 
-bool USkill::ConsumeHPAndMPBySkill(User *pUser, const SkillLevelData *pLevelData)
-{
-	int nMpCon = pLevelData ? pLevelData->m_nMpCon : 0;
-	int nHpCon = pLevelData ? pLevelData->m_nHpCon : 0;
-	long long int liFlag = 0;
-
-	if (nMpCon && pUser->GetSecondaryStat()->nInfinity_ == 0)
-	{
-		if (QWUser::GetMP(pUser) < nMpCon)
-			return false;
-		liFlag |= QWUser::IncMP(pUser, -nMpCon, false);
-	}
-
-	if (nHpCon)
-	{
-		if (QWUser::GetHP(pUser) < nHpCon)
-			return false;
-		liFlag |= QWUser::IncHP(pUser, -nHpCon, false);
-	}
-	pUser->SendCharacterStat(false, liFlag);
-	return true;
-}
-
 void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, unsigned int nForceSetTime)
 {
 	int nSkillID = pEntry->GetSkillID();
@@ -163,8 +146,14 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry
 		DoActiveSkill_PartyStatChange(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
 	else if (SkillInfo::IsAdminSkill(nSkillID))
 		DoActiveSkill_AdminSkill(pUser, pEntry, nSLV, iPacket, bResetBySkill, bForceSetTime, nForceSetTime);
+	else if (SkillInfo::IsMobStatChangeSkill(nSkillID))
+		DoActiveSkill_MobStatChange(pUser, pEntry, nSLV, iPacket, true);
+	else if (nSkillID == ThiefSkills::Shadower_Smokescreen)
+		DoActiveSkill_SmokeShell(pUser, pEntry, nSLV, iPacket);
 	else
 		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, 0, bResetBySkill, bForceSetTime, nForceSetTime);
+
+	pUser->SendCharacterStat(true, 0);
 }
 
 void USkill::OnSkillUpRequest(User * pUser, InPacket * iPacket)
@@ -293,6 +282,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			break;
 		case ThiefSkills::Thief_DarkSight:
 			REGISTER_TS(DarkSight, std::max(1, pSkillLVLData->m_nX));
+			pSS->mDarkSight_ = tCur;
 			break;
 		case ThiefSkills::Chief_Bandit_Pickpocket:
 			REGISTER_TS(PickPocket, pSkillLVLData->m_nX);
@@ -392,8 +382,8 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case WarriorSkills::DragonKnight_DragonBlood:
 			REGISTER_TS(DragonBlood, pSkillLVLData->m_nX);
 			break;
-		case 4121006: // spirit claw?
-			REGISTER_TS(Attract, pSkillLVLData->m_nX);
+		case ThiefSkills::NightsLord_ShadowStars: //
+			REGISTER_TS(SpiritJavelin, pSkillLVLData->m_nX);
 			break;
 		case WarriorSkills::Hero_PowerStance:
 		case WarriorSkills::Paladin_PowerStance:
@@ -601,6 +591,27 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 
 void USkill::DoActiveSkill_MobStatChange(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, int bSendResult)
 {
+	static const int MAX_TARGET_COUNT = 16;
+	int nMobID[MAX_TARGET_COUNT] = { 0 };
+	int nMobCount = std::min(MAX_TARGET_COUNT, (int)iPacket->Decode1()), tDelay = 0;
+
+	for (int i = 0; i < nMobCount; ++i)
+		nMobID[i] = iPacket->Decode4();
+
+	tDelay = iPacket->Decode2();
+	for (int i = 0; i < nMobCount; ++i)
+	{
+		pUser->GetField()->GetLifePool()->OnMobStatChangeSkill(
+			pUser,
+			nMobID[i],
+			pSkill,
+			nSLV,
+			tDelay
+		);
+	}
+
+	if (bSendResult)
+		pUser->SendUseSkillEffect(pSkill->GetSkillID(), nSLV);
 }
 
 void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
@@ -618,11 +629,40 @@ void USkill::DoActiveSkill_Summon(User* pUser, const SkillEntry * pSkill, int nS
 		pUser->CreateSummoned(pSkill, nSLV, { pUser->GetPosX(), pUser->GetPosY() }, false);
 		pUser->SendUseSkillEffect(nSkillID, nSLV);
 	}
-	pUser->SendCharacterStat(true, 0);
 }
 
 void USkill::DoActiveSkill_SmokeShell(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket)
 {
+	FieldPoint pt;
+	pt.x = iPacket->Decode2();
+	pt.y = iPacket->Decode2();
+
+	auto pLevelData = pSkill->GetLevelData(nSLV);
+	if (!pLevelData)
+		return;
+
+	FieldRect rc;
+	rc.left = pLevelData->m_rc.left;
+	rc.top = pLevelData->m_rc.top;
+	rc.right = pLevelData->m_rc.right;
+	rc.bottom = pLevelData->m_rc.bottom;
+	rc.OffsetRect(pt.x, pt.y);
+
+	unsigned int tTime = GameDateTime::GetTime() + pLevelData->m_nTime + 300;
+
+	pUser->GetField()->GetAffectedAreaPool()->InsertAffectedArea(
+		false,
+		pUser->GetUserID(),
+		pSkill->GetSkillID(),
+		nSLV,
+		tTime - pLevelData->m_nTime,
+		tTime,
+		pt,
+		rc,
+		true
+	);
+
+	pUser->SendUseSkillEffect(pSkill->GetSkillID(), nSLV);
 }
 
 void USkill::DoActiveSkill_AdminSkill(User * pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)
