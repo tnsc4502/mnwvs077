@@ -861,7 +861,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 						highDamage = damage * M;
 						if (damage > highDamage)
 							std::swap(damage, highDamage);
-						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 3.4 : 4.8);
+						damage = ((highDamage - damage) * CURRENT_RAND + damage) * (bHighDamageAction ? 4.8 : 3.4);
 						calc = (damage + bs->nDEX) * (double)nPAD * 0.01;
 						break;
 					case 43:

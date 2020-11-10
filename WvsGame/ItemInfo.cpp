@@ -957,7 +957,7 @@ int ItemInfo::GetWeaponMastery(GA_Character *pCharacter, int nWeaponID, int nSki
 		default:
 			if (nWT > 42 && nAttackType != 1)
 				return 0;
-			else if (nWT <= 42 && nAttackType)
+			else if (nWT == 37 || nWT == 38 || (nWT > 32 && nAttackType))
 				return 0;
 	}
 	return SkillInfo::GetInstance()->GetMasteryFromSkill(pCharacter, 4200000, nullptr, pnACCInc);

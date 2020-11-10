@@ -68,8 +68,16 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 		{
 			auto pItemSrc = pCharacterData->GetItem(nTI, nPOS1);
 			auto pItemDst = pCharacterData->GetItem(nTI, nPOS2);
+
+			if (pItemSrc == nullptr && pItemDst == nullptr)
+				return false;
+
 			//Equip
-			if (nTI == GW_ItemSlotBase::EQUIP)
+			if (nTI == GW_ItemSlotBase::EQUIP || 
+				ItemInfo::IsRechargable(pItemDst->nItemID) || 
+				ItemInfo::IsRechargable(pItemSrc->nItemID) ||
+				pItemSrc->liExpireDate != -1 ||
+				pItemDst->liExpireDate != -1)
 				InventoryManipulator::SwapSlot(pCharacterData, aChangeLog, nTI, nPOS1, nPOS2);
 			else
 			{
