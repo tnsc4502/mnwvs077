@@ -76,6 +76,7 @@ void ClientSocket::OnPacket(InPacket *iPacket)
 			iPacket->RestorePacket();
 			if (nType != UserRecvPacketType::User_OnFuncKeyMappedModified
 				&& nType != NPCRecvPacketTypes::NPC_OnMoveRequest
+				&& nType != UserRecvPacketType::User_OnUserMoveRequest
 				&& nType != MobRecvPacketType::Mob_OnMove) {
 				WvsLogger::LogRaw("[WvsGame][ClientSocket::OnPacket]Received Packet: ");
 				iPacket->Print();

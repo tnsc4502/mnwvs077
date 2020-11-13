@@ -367,9 +367,21 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case BeginnersSkills::Beginner_Recovery:
 			REGISTER_TS(Regen, pSkillLVLData->m_nX);
 			break;
-		case WarriorSkills::Crusader_ComboAttack:
+		case WarriorSkills::Crusader_ComboAttack: 
+		{
 			REGISTER_TS(ComboCounter, 1);
+			SkillEntry *pADVCombo = nullptr;
+			int nSLVAdvancedCombo = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), WarriorSkills::Hero_AdvancedComboAttack, &pADVCombo);
+			if (nSLVAdvancedCombo) 
+			{
+				auto pLevelADVCombo = pADVCombo->GetLevelData(nSLVAdvancedCombo);
+				if (pLevelADVCombo)
+					pSS->mComboCounter_ = pLevelADVCombo->m_nX | (pLevelADVCombo->m_nProp << 16);
+				else
+					pSS->mComboCounter_ = pSkillLVLData->m_nX;
+			}
 			break;
+		}
 		case BeginnersSkills::Beginner_MonsterRider:
 			REGISTER_TS(RideVehicle, 1);
 			break;
@@ -398,7 +410,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case MagicSkills::Highest_Magic_FP_ManaReflection:
 		case MagicSkills::Highest_Magic_Holy_ManaReflection:
 		case MagicSkills::Highest_Magic_IL_ManaReflection:
-			REGISTER_TS(ManaReflection, pSkillLVLData->m_nX);
+			REGISTER_TS(ManaReflection, nSLV);
 			break;
 		case BowmanSkills::Bow_Master_Hamstring:
 			REGISTER_TS(HamString, pSkillLVLData->m_nX);

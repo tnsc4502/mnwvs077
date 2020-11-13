@@ -1488,6 +1488,7 @@ void User::OnHit(InPacket *iPacket)
 		nMobID = 0,
 		nCalcDamageMobStatIndex = 0,
 		nReflect = 0,
+		nGuarded = 0,
 		nMPDec = 0,
 		nFlag = 0,
 		nMobSkill = 0,
@@ -1496,6 +1497,7 @@ void User::OnHit(InPacket *iPacket)
 		nDamageClient = nDamage,
 		nDamageSend = nDamage,
 		nReflectType = 0;
+
 	bool bReflect = false,
 		bResetRnd = false,
 		bShield = false;
@@ -1535,9 +1537,9 @@ void User::OnHit(InPacket *iPacket)
 		bShield = nReflectType != 0;
 		if (nReflect || nReflectType == 2)
 		{
-			bReflect = nReflect && iPacket->Decode1();
+			bReflect = iPacket->Decode1() && nReflect;
 			int nMobID = iPacket->Decode4();
-			bool bSkill = iPacket->Decode1() != 0;
+			char nSkill = iPacket->Decode1();
 			ptHit.x = iPacket->Decode2();
 			ptHit.y = iPacket->Decode2();
 			ptUserPos.x = iPacket->Decode2();
@@ -1547,7 +1549,7 @@ void User::OnHit(InPacket *iPacket)
 			{
 				oPacket.Encode1(bReflect ? 1 : 0);
 				oPacket.Encode4(nMobID);
-				oPacket.Encode1(bSkill);
+				oPacket.Encode1(nSkill);
 				oPacket.Encode2(ptHit.x);
 				oPacket.Encode2(ptHit.y);
 				/*oPacket.Encode2(ptUserPos.x);
@@ -1571,6 +1573,7 @@ void User::OnHit(InPacket *iPacket)
 		return;
 	}
 
+	auto pMob = m_pField->GetLifePool()->GetMob(nMobID);
 	//IsCounterAttackPossible(nMobTemplateID, nMobID, nMobAttackIdx, nReflect, nPowerGuard, nManaRelfect != 0, ptHit, ptUserPos);
 	if (m_pCharacterData->mStat->nHP != 0)
 	{
@@ -1579,7 +1582,7 @@ void User::OnHit(InPacket *iPacket)
 		if (nMobAttackIdx > -2)
 			m_nInvalidDamageMissCount = 0;
 
-		int nMagicGuard = m_pSecondaryStat->nMagicGuard_, nGuarded = 0;
+		int nMagicGuard = m_pSecondaryStat->nMagicGuard_;
 		if (nMagicGuard)
 		{
 			nGuarded = nDamage * nMagicGuard / 100;
@@ -1588,6 +1591,7 @@ void User::OnHit(InPacket *iPacket)
 		}
 		nDamage -= nGuarded;
 		nMPDec = nGuarded;
+
 
 		pTemplate = MobTemplate::GetMobTemplate(nMobTemplateID);
 		if (pTemplate)
@@ -1618,10 +1622,8 @@ void User::OnHit(InPacket *iPacket)
 		{
 			if (bReflect && m_pSecondaryStat->nPowerGuard_)
 			{
-				nReflect = std::min(nReflect, m_pSecondaryStat->nPowerGuard_);
-				nReflect = std::min(nReflect, m_pCharacterData->mStat->nHP);
-				nHPDec = std::min(nHPDec, m_pCharacterData->mStat->nHP);
-				nGuarded = std::min(nReflect * nHPDec / 100, m_pCharacterData->mStat->nMaxHP / 2);
+				nHPDec = std::min(nDamage, m_pCharacterData->mStat->nHP);
+				nGuarded = std::min(m_pSecondaryStat->nPowerGuard_ * nHPDec / 100, (int)(pMob->GetHP() / 10));
 				if (pTemplate->m_bIsBoss)
 					nGuarded /= 2;
 				if (nGuarded)
@@ -1633,14 +1635,10 @@ void User::OnHit(InPacket *iPacket)
 				}
 				nDamage -= nGuarded;
 				nDamageSend = nDamage;
+				nReflect = nGuarded;
 			}
 			else if (nAttackType && pAttackInfo->bMagicAttack && m_pSecondaryStat->nManaReflection_)
 			{
-				auto pEntry = SkillInfo::GetInstance()->GetSkillByID(2121002);
-				auto pLevel = pEntry->GetLevelData(m_pSecondaryStat->nLvManaReflection_);
-				nReflect = std::min(nReflect, pLevel->m_nX);
-				nHPDec = std::min(nDamage, m_pCharacterData->mStat->nHP);
-				nGuarded = std::min(nReflect * nHPDec / 100, m_pCharacterData->mStat->nHP / 20);
 				switch ((m_pCharacterData->mStat->nJob / 10) % 10)
 				{
 					case 1:
@@ -1653,6 +1651,12 @@ void User::OnHit(InPacket *iPacket)
 						nFlag = 2321002;
 						break;
 				}
+
+				auto pEntry = SkillInfo::GetInstance()->GetSkillByID(nFlag);
+				auto pLevel = pEntry->GetLevelData(m_pSecondaryStat->nLvManaReflection_);
+				nHPDec = std::min(nDamage, m_pCharacterData->mStat->nHP);
+				nGuarded = std::min(pLevel->m_nX * nHPDec / 100, (int)(pMob->GetHP() / 20));
+				nReflect = nGuarded;
 			}
 		}
 		if (m_pSecondaryStat->nMesoGuard_ && pTemplate)
@@ -1665,7 +1669,7 @@ void User::OnHit(InPacket *iPacket)
 			if (pEntry && nSLV)
 			{
 				int nMoneyCon = pEntry->GetLevelData(nSLV)->m_nX;
-				int nGuarded = nDamage / 2;
+				nGuarded = nDamage / 2;
 				nMoneyCon = nGuarded * nMoneyCon / 100;
 				if (nGuarded)
 				{
@@ -1677,12 +1681,14 @@ void User::OnHit(InPacket *iPacket)
 
 					QWUser::IncMoney(this, -nMoneyCon, true);
 					SendCharacterStat(false, BasicStat::BS_Meso);
+
 					nDamage -= nGuarded;
 					nDamageSend = nDamage;
 					nFlag = 4211005;
 				}
 			}
 		}
+
 		if (m_pCharacterData->mStat->nJob / 100 == 1 &&
 			m_pCharacterData->mStat->nJob % 10 == 2)
 		{
@@ -1755,7 +1761,6 @@ void User::OnHit(InPacket *iPacket)
 			oPacket.Encode4(1120005);
 	}
 	m_pField->SplitSendPacket(&oPacket, this);
-	auto pMob = m_pField->GetLifePool()->GetMob(nMobID);
 
 	//Inspect Damage
 	if (pMob && pTemplate)
@@ -1821,13 +1826,19 @@ void User::OnHit(InPacket *iPacket)
 		if (nMobAttackIdx > -2 && nDamage <= 0 && bResetRnd)
 			GetCalcDamage()->GetRndGenForMob().Random();
 
-		//WvsLogger::LogFormat("Client Damage : %d, Server Damage : %d Miss Check = %d\n", nDamageClient, nDamageSrv, (int)bCheckMiss);
 		if (nDamageClient != nDamageSrv)
 			SendChatMessage(0, StringUtility::Format(GET_STRING(GameSrv_User_Inconsistent_HitDamage), nDamageClient, nDamageSrv, (int)bCheckMiss));
 		if ((pAttackInfo && (pAttackInfo->nMPBurn || pAttackInfo->bDeadlyAttack))
 			|| nDamageClient <= nDamageSrv || bCheckMiss)
 		{
 			m_nInvalidDamageCount = std::max(0, m_nInvalidDamageCount - 1);
+
+			if (nReflect)
+				m_pField->GetLifePool()->OnUserAttack(this, nMobID, nReflect, ptHit, 100, 0);
+
+			if (nReflectType == 2)
+				m_pField->GetLifePool()->OnUserAttack(this, nMobID, 0, ptHit, 100, 0);
+
 			return;
 		}
 		else if(nDamageClient >= nDamageSrv + 2)

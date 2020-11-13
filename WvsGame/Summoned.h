@@ -29,12 +29,13 @@ private:
 		m_bJaguarActive = true,
 		m_bAttackActive = true;
 
-	int m_nSkillID = 0, 
+	int m_nSkillID = 0,
 		m_nSLV = 0,
 		m_nMoveAbility = 0,
 		m_nAssitType = 0,
 		m_nEnterType = 0,
 		m_nMobID = 0,
+		m_nHP = 0,
 		m_nLookID = 0,
 		m_nBulletID = 0;
 
@@ -58,5 +59,6 @@ public:
 	static int GetMoveAbility(int nSkillID);
 	static int GetAssitType(int nSkillID);
 	void OnAttack(InPacket *iPacket);
+	void OnHit(InPacket *iPacket);
 };
 

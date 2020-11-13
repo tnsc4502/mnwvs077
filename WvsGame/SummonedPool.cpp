@@ -4,6 +4,7 @@
 #include "User.h"
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
+
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"

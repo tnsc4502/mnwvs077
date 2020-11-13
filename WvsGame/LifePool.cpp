@@ -1,6 +1,7 @@
 #include "LifePool.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
+#include "..\Database\GW_ItemSlotBase.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -40,8 +41,10 @@
 #include "ContinentMan.h"
 #include "Summoned.h"
 #include "ThiefSkills.h"
+#include "BowmanSkills.h"
 #include "WarriorSkills.h"
 #include "QWUser.h"
+#include "ItemInfo.h"
 #include <cmath>
 
 #undef min
@@ -529,9 +532,7 @@ void LifePool::UpdateCtrlHeap(Controller * pController)
 bool LifePool::ChangeMobController(int nCharacterID, Mob* pMobWanted, bool bChase)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
-	auto pUser = User::FindUser(nCharacterID);
-	if (!pUser || //Invalid user
-		!pMobWanted ||  //Invalid mob
+	if (!pMobWanted ||  //Invalid mob
 		pMobWanted->GetTemplateID() == 9999999)
 		return false;
 
@@ -561,7 +562,7 @@ bool LifePool::ChangeMobController(int nCharacterID, Mob* pMobWanted, bool bChas
 	UpdateCtrlHeap(pNextController);
 
 	pMobWanted->SendChangeControllerPacket(pController->GetUser(), 0);
-	pMobWanted->SendChangeControllerPacket(pUser, (bChase != 0 ? 1 : 0) + 1);
+	pMobWanted->SendChangeControllerPacket(pNextController->GetUser(), (bChase != 0 ? 1 : 0) + 1);
 	return true;
 }
 
@@ -867,6 +868,28 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 	ApplyAttackToMob(pUser, pSkill, pInfo);
 }
 
+void LifePool::OnUserAttack(User * pUser, int nMobID, int nDamage, const FieldPoint& ptHit, int tDelay, int nBlockingSkillID)
+{
+	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
+	auto pMob = GetMob(nMobID);
+
+	if (pMob)
+	{
+		if (nBlockingSkillID)
+		{
+			SkillEntry *pEntry = nullptr;
+			int nSLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nBlockingSkillID, &pEntry);
+			if (pEntry && nSLV)
+				pMob->OnMobStatChangeSkill(pUser, pEntry, nSLV, nDamage, tDelay);
+		}
+		else
+		{
+			pMob->OnMobHit(pUser, nDamage, 0);
+			//pMob->CheckSelfDestruct...
+		}
+	}
+}
+
 void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEntry *pSkill, AttackInfo *pInfo)
 {
 	std::lock_guard<std::recursive_mutex> mobLock(m_lifePoolMutex);
@@ -920,6 +943,15 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 
 void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackInfo * pInfo)
 {
+	auto pWeapon = pUser->GetCharacterData()->mItemSlot[1][-11];
+
+	int nMobStatChangeSkillID = 0,
+		nMobStatChangeSkillLV = 0,
+		tMobStatChangeSkillDelay = 0,
+		nJob = QWUser::GetJob(pUser),
+		nWeaponItemID = pWeapon ? pWeapon->nItemID : 0;
+
+
 	for (auto& iter : pInfo->m_mDmgInfo)
 	{
 		long long int liDamageSum = 0;
@@ -932,14 +964,84 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 			liDamageSum += dmgInfo.anDamageSrv[i];
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
 
-			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
+			/*ComboCounter*/
+			int nComboCounter = pUser->GetSecondaryStat()->nComboCounter_;
+			if (nComboCounter && pInfo->m_nType == UserRecvPacketType::User_OnUserAttack_MeleeAttack)
+			{
+				int nProp = pUser->GetSecondaryStat()->mComboCounter_ >> 16,
+					nCount = pUser->GetSecondaryStat()->mComboCounter_ & 0xFFFF;
+
+				int nInc = ((nCount == nComboCounter) ? 1 : (Rand32::GetInstance()->Random() < 100 ? 2 : 1));
+
+				pUser->GetSecondaryStat()->nComboCounter_ = std::min(
+					nInc + nComboCounter,
+					nCount + 1
+				);
+
+				if (nMobStatChangeSkillID == WarriorSkills::Crusader_ComaAxe ||
+					nMobStatChangeSkillID == WarriorSkills::Crusader_ComaSword ||
+					nMobStatChangeSkillID == WarriorSkills::Crusader_PanicAxe ||
+					nMobStatChangeSkillID == WarriorSkills::Crusader_PanicSword)
+					pUser->GetSecondaryStat()->nComboCounter_ = 1;
+
+				if (pUser->GetSecondaryStat()->nComboCounter_ != nComboCounter)
+					pUser->SendTemporaryStatSet(TemporaryStat::TS_Flag(TemporaryStat::TS_ComboCounter), 0);
+			}
+
+			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID())) 
+			{
+				nMobStatChangeSkillID = pSkill->GetSkillID();
+				nMobStatChangeSkillLV = pInfo->m_nSLV;
+				tMobStatChangeSkillDelay = 0;
+
+				/*Apply some passive 'MobStatChange' skills*/
+				if (nJob == 412 &&
+					ItemInfo::GetWeaponType(nWeaponItemID) == 47 &&
+					nMobStatChangeSkillID != ThiefSkills::Assassin_Drain &&
+					nMobStatChangeSkillID != ThiefSkills::Hermit_ShadowMeso &&
+					nMobStatChangeSkillID != ThiefSkills::NightsLord_Taunt &&
+					nMobStatChangeSkillID != ThiefSkills::NightsLord_NinjaStorm)
+				{
+					nMobStatChangeSkillID = ThiefSkills::NightsLord_VenomousStar;
+					tMobStatChangeSkillDelay = 1000;
+				}
+				else if (nJob == 422 &&
+					ItemInfo::GetWeaponType(nWeaponItemID) == 33 &&
+					nMobStatChangeSkillID != ThiefSkills::Bandit_Steal &&
+					nMobStatChangeSkillID != ThiefSkills::Chief_Bandit_BandofThieves &&
+					nMobStatChangeSkillID != ThiefSkills::Chief_Bandit_MesoExplosion &&
+					nMobStatChangeSkillID != ThiefSkills::Shadower_Taunt)
+				{
+					nMobStatChangeSkillID = ThiefSkills::Shadower_VenomousStab;
+					tMobStatChangeSkillDelay = 1000;
+				}
+				else if (pUser->GetSecondaryStat()->nHamString_ &&
+					ItemInfo::GetWeaponType(nWeaponItemID) == 45 &&
+					nMobStatChangeSkillID != BowmanSkills::Hunter_PowerKnockBack  &&
+					nMobStatChangeSkillID != BowmanSkills::Hunter_ArrowBombBow)
+				{
+					nMobStatChangeSkillID = BowmanSkills::Bow_Master_Hamstring;
+					tMobStatChangeSkillDelay = 1000;
+				}
+				else if (pUser->GetSecondaryStat()->nBlind_ &&
+					ItemInfo::GetWeaponType(nWeaponItemID) == 46 &&
+					nMobStatChangeSkillID != BowmanSkills::Crossbowman_PowerKnockBack)
+				{
+					nMobStatChangeSkillID = BowmanSkills::Marksman_Blind;
+					tMobStatChangeSkillDelay = 1000;
+				}
+
+				if (nMobStatChangeSkillID != pSkill->GetSkillID())
+					nMobStatChangeSkillLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), m_nMobDamagedByMobState, nullptr);
+
 				OnMobStatChangeSkill(
 					pUser,
 					dmgInfo.pMob->GetFieldObjectID(),
-					SkillInfo::GetInstance()->GetSkillByID(pInfo->m_nSkillID),
-					pInfo->m_nSLV,
-					0
+					SkillInfo::GetInstance()->GetSkillByID(nMobStatChangeSkillID),
+					nMobStatChangeSkillID,
+					tMobStatChangeSkillDelay
 				);
+			}
 		}
 
 		//Apply Skill Effects

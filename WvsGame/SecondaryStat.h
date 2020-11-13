@@ -47,6 +47,8 @@ public:
 	ADD_TEMPORARY(Darkness);
 	ADD_TEMPORARY(Summon);
 	ADD_TEMPORARY(ComboCounter);
+	int mComboCounter_;
+
 	ADD_TEMPORARY(WeaponCharge);
 	ADD_TEMPORARY(DragonBlood);
 	ADD_TEMPORARY(HolySymbol);

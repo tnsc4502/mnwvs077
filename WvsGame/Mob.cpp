@@ -805,11 +805,11 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 		case ThiefSkills::Shadower_VenomousStab:
 		{
 			if (GetMobTemplate()->m_bIsBoss ||
-				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
+				(m_pStat->aDamagedElemAttr[4] >= 1 && m_pStat->aDamagedElemAttr[4] <= 2))
 				return;
 			int nUserStat = std::max(1, pUser->GetBasicStat()->nSTR + pUser->GetBasicStat()->nLUK);
 			int nSet = (int)((double)nUserStat * 0.8) + ((int)Rand32::GetInstance()->Random() % nUserStat);
-			nSet = pLevel->m_nDamage * (pUser->GetBasicStat()->nDEX + 5 * nSet) / 49;
+			nSet = pLevel->m_nMad * (pUser->GetBasicStat()->nDEX + 5 * nSet) / 49;
 			if (m_pStat->nVenom_ <= nSet)
 			{
 				REGISTER_MOB_STAT_BY_USER(Venom, nSet);

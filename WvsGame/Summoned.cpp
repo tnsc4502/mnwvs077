@@ -7,6 +7,9 @@
 #include "SkillInfo.h"
 #include "SkillEntry.h"
 #include "SkillLevelData.h"
+#include "CalcDamage.h"
+#include "SummonedPool.h"
+
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -48,6 +51,10 @@ void Summoned::Init(User * pUser, int nSkillID, int nSLV)
 	m_nSkillID = nSkillID;
 	m_pSkillEntry = SkillInfo::GetInstance()->GetSkillByID(m_nSkillID);
 
+	const SkillLevelData *pLevelData = (!m_pSkillEntry ? nullptr : m_pSkillEntry->GetLevelData(nSLV));
+	if (pLevelData)
+		m_nHP = pLevelData->m_nX;
+
 	m_nSLV = nSLV;
 	m_pField = pUser->GetField();
 
@@ -66,6 +73,7 @@ void Summoned::OnPacket(InPacket * iPacket, int nType)
 			OnAttack(iPacket);
 			break;
 		case SummonedRecvPacketType::Summoned_OnHitRequest:
+			OnHit(iPacket);
 			break;
 		case SummonedRecvPacketType::Summoned_OnDoingHealRequest:
 			break;
@@ -183,4 +191,36 @@ void Summoned::OnAttack(InPacket *iPacket)
 		&info
 	);
 	m_tLastAttackTime = tCur;
+}
+
+void Summoned::OnHit(InPacket * iPacket)
+{
+	int nAttackFlag = (int)(char)iPacket->Decode1();
+	int nDamage = iPacket->Decode4();
+
+	OutPacket oPacket;
+	oPacket.Encode2(SummonedSendPacketType::Summoned_OnHit);
+	oPacket.Encode4(m_pOwner->GetUserID());
+	oPacket.Encode4(GetFieldObjectID());
+	oPacket.Encode1(nAttackFlag);
+	oPacket.Encode4(nDamage);
+
+	if (nAttackFlag >= -1)
+	{
+		oPacket.Encode4(iPacket->Decode4());
+		oPacket.Encode1(iPacket->Decode1());
+		m_pOwner->GetCalcDamage()->GetRndGenForMob().Random();
+	}
+
+	auto pField = m_pOwner->GetField();
+	if (pField)
+	{
+		pField->SplitSendPacket(&oPacket, m_pOwner);
+		m_nHP -= nDamage;
+		if (m_nHP <= 0)
+		{
+			m_tEnd = GameDateTime::GetTime();
+			pField->GetSummonedPool()->RemoveSummoned(m_pOwner->GetUserID(), m_nSkillID, 0);
+		}
+	}
 }

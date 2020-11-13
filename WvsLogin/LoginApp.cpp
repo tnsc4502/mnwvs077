@@ -37,7 +37,7 @@ void LoginApp::InitializeService(int argc, char** argv)
 	pLoginServer->SetConfigLoader(pConfigLoader);
 	pLoginServer->Init();
 	pLoginServer->InitializeCenter();
-	std::thread initLoginServerThread(ConnectionAcceptorThread, pConfigLoader->IntValue("port"));
+	std::thread initLoginServerThread(ConnectionAcceptorThread, pConfigLoader->IntValue("Port"));
 
 	// start the i/o work
 
