@@ -31,7 +31,6 @@ public:
 	static bool MoveMoneyToTemp(User *pUser, int nAmount);
 	static bool WasteItem(User *pUser, int nItemID, int nCount, bool bProtected);
 	static bool RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<InventoryManipulator::ChangeLog>& aChangeLog);
-	static int WasteItem(User *pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount = 1, bool bSendInventoryOperation = true);
 	static void UpdatePetItem(User *pUser, int nPos);
 
 	static int GetSlotCount(User *pUser, int nTI);

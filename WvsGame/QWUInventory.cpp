@@ -529,15 +529,6 @@ bool QWUInventory::RawWasteItem(User *pUser, int nPOS, int nCount, std::vector<I
 	return false;
 }
 
-int QWUInventory::WasteItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount, bool bSendInventoryOperation)
-{
-	std::vector<InventoryManipulator::ChangeLog> aChange;
-	RawWasteItem(pUser, pItem->nPOS, nCount, aChange);
-	if (bSendInventoryOperation)
-		SendInventoryOperation(pUser, false, aChange);
-	return nCount;
-}
-
 void QWUInventory::UpdatePetItem(User * pUser, int nPos)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());

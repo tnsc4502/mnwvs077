@@ -776,7 +776,7 @@ bool SkillInfo::AdjustConsumeForActiveSkill(User * pUser, int nSkillID, int nSLV
 	}
 
 	if (nSpiritJavelinItemID > 0)
-		QWUInventory::WasteItem(pUser, pUser->GetCharacterData()->GetItemByID(nSpiritJavelinItemID), pLevelData->m_nBulletConsume);
+		QWUInventory::WasteItem(pUser, nSpiritJavelinItemID, pLevelData->m_nBulletConsume, false);
 
 	return true;
 }

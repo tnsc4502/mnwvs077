@@ -131,13 +131,14 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket * iPacket)
 		iPacket,
 		pSkillEntry,
 		nSLV,
+		nSpiritJavelinItemID,
 		false,
 		false,
 		0
 	);
 }
 
-void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, bool bResetBySkill, bool bForceSetTime, unsigned int nForceSetTime)
+void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry * pEntry, int nSLV, int nOptionValue, bool bResetBySkill, bool bForceSetTime, unsigned int nForceSetTime)
 {
 	int nSkillID = pEntry->GetSkillID();
 	if (SkillInfo::IsSummonSkill(nSkillID))
@@ -151,7 +152,7 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry
 	else if (nSkillID == ThiefSkills::Shadower_Smokescreen)
 		DoActiveSkill_SmokeShell(pUser, pEntry, nSLV, iPacket);
 	else
-		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, 0, bResetBySkill, bForceSetTime, nForceSetTime);
+		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, nOptionValue, bResetBySkill, bForceSetTime, nForceSetTime);
 
 	pUser->SendCharacterStat(true, 0);
 }
@@ -213,6 +214,7 @@ void USkill::OnSkillCancelRequest(User * pUser, InPacket * iPacket)
 			nullptr,
 			pSkill,
 			nSLV,
+			0,
 			true,
 			false,
 			0
@@ -282,7 +284,8 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			break;
 		case ThiefSkills::Thief_DarkSight:
 			REGISTER_TS(DarkSight, std::max(1, pSkillLVLData->m_nX));
-			pSS->mDarkSight_ = tCur;
+			if(!bResetBySkill)
+				pSS->mDarkSight_ = tCur;
 			break;
 		case ThiefSkills::Chief_Bandit_Pickpocket:
 			REGISTER_TS(PickPocket, pSkillLVLData->m_nX);
@@ -396,6 +399,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			break;
 		case ThiefSkills::NightsLord_ShadowStars: //
 			REGISTER_TS(SpiritJavelin, pSkillLVLData->m_nX);
+			pSS->nSpiritJavelin_ = (nOptionValue % 10000) + 1;
 			break;
 		case WarriorSkills::Hero_PowerStance:
 		case WarriorSkills::Paladin_PowerStance:
@@ -430,7 +434,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		pUser->SendTemporaryStatReset(tsFlag);
 		ValidateSecondaryStat(pUser);
 	}
-	else
+	else if(!nForcedSetTime)
 	{
 		pUser->SendUseSkillEffect(nSkillID, nSLV);
 		pUser->SendTemporaryStatReset(tsFlag);
@@ -727,6 +731,7 @@ void USkill::ResetTemporaryByTime(User * pUser, const std::vector<int>& aResetRe
 				nullptr,
 				pSkill,
 				nSLV,
+				0,
 				true,
 				false,
 				0

@@ -11,8 +11,7 @@ class Rand32;
 class CalcDamage
 {
 	User *m_pUser = nullptr;
-	Rand32 *m_pRndGen = nullptr;
-	SynchronizedRand32 m_RndGenForCharacter, m_RndForCheckDamageMiss, m_RndGenForMob;
+	SynchronizedRand32 m_RndGenForCharacter, m_RndGenForSummoned, m_RndForCheckDamageMiss, m_RndGenForMob;
 	int m_nInvalidCount = 0;
 
 public:
@@ -20,6 +19,8 @@ public:
 	~CalcDamage();
 	void SetSeed(unsigned int uS1, unsigned int uS2, unsigned int uS3);
 	SynchronizedRand32& GetRndGenForMob();
+	SynchronizedRand32& GetRndGenForCharacter();
+	SynchronizedRand32& GetRndGenForSummoned();
 	SynchronizedRand32& GetRndGenForForCheckDamageMiss();
 
 	//Static helper funcs

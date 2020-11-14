@@ -831,7 +831,8 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					0
 				);
 
-			pUser->GetSecondaryStat()->mDarkSight_ = 0;
+			/*if(pInfo->m_nSkillID == ThiefSkills::Shadower_Assassinate)
+				pUser->GetSecondaryStat()->mDarkSight_ = pUser->GetSecondaryStat()->mDarkSight_ < 0 ? 0 : -pUser->GetSecondaryStat()->mDarkSight_;*/
 			
 			if (pSkill)
 				pSkill->AdjustDamageDecRate(
@@ -902,7 +903,7 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 		auto pMob = mobIter->second;
 		dmgInfo.pMob = pMob;
 
-		if (pInfo->m_nAttackType == 2) //Magic Damages
+		if (pInfo->m_nAttackType == 2) //Magic Damagesd
 			dmgInfo.anDamageSrv[0] = pUser->GetCalcDamage()->MDamage(
 				pMob->GetMobStat(),
 				pSkill,
@@ -921,6 +922,11 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 			dmgInfo.anDamageSrv[0],
 			iterDmgInfo.first,
 			pMob == nullptr ? 1 : 0);
+
+		if (dmgInfo.anDamageClient[0] != dmgInfo.anDamageSrv[0])
+			pUser->SendChatMessage(0,
+				StringUtility::Format("Summoned attack damages are different between the server[%d] and the client[%d].", dmgInfo.anDamageSrv[0], dmgInfo.anDamageClient[0])
+			);
 	}
 
 	OutPacket oPacket;

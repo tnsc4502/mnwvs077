@@ -401,7 +401,7 @@ AttackInfo* User::TryParsingAttackInfo(AttackInfo *pInfo, int nType, InPacket *i
 				int nBulletConsume = pLevel ? pLevel->m_nBulletCount : 1;
 
 				//Try Consume Item.
-				if (!pBullet || (ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::WasteItem(this, pBullet, std::max(1, nBulletConsume)))
+				if (!pBullet || (ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::WasteItem(this, pBullet->nItemID, std::max(1, nBulletConsume), false))
 					|| (!ItemInfo::IsRechargable(pBullet->nItemID) && !QWUInventory::RemoveItem(this, pBullet, std::max(1, nBulletConsume))))
 				{
 					SendNoticeMessage("Invalid Attack.");
@@ -1165,6 +1165,7 @@ void User::DecodeInternal(InPacket * iPacket)
 				nullptr,
 				(SkillEntry*)pSkill,
 				nSLV,
+				0, //Here we have to give 'nSpiritJavelinItemID'
 				false,
 				true,
 				tDurationRemained
@@ -1481,7 +1482,7 @@ void User::OnHit(InPacket *iPacket)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxUserLock);
 
 	int tDamagedTime = iPacket->Decode4();
-	int nMobAttackIdx = iPacket->Decode1();
+	int nMobAttackIdx = (char)iPacket->Decode1();
 	int nElemAttr = iPacket->Decode1();
 	int nDamage = iPacket->Decode4();
 	int nMobTemplateID = 0,
@@ -1633,7 +1634,7 @@ void User::OnHit(InPacket *iPacket)
 					if (pTemplate->m_bInvincible)
 						nGuarded = 0;
 				}
-				nDamage -= nGuarded;
+				nDamage = std::max(0, nDamage - nGuarded);
 				nDamageSend = nDamage;
 				nReflect = nGuarded;
 			}
@@ -1682,7 +1683,7 @@ void User::OnHit(InPacket *iPacket)
 					QWUser::IncMoney(this, -nMoneyCon, true);
 					SendCharacterStat(false, BasicStat::BS_Meso);
 
-					nDamage -= nGuarded;
+					nDamage = std::max(0, nDamage - nGuarded);
 					nDamageSend = nDamage;
 					nFlag = 4211005;
 				}
@@ -1823,9 +1824,6 @@ void User::OnHit(InPacket *iPacket)
 			);
 		}
 
-		if (nMobAttackIdx > -2 && nDamage <= 0 && bResetRnd)
-			GetCalcDamage()->GetRndGenForMob().Random();
-
 		if (nDamageClient != nDamageSrv)
 			SendChatMessage(0, StringUtility::Format(GET_STRING(GameSrv_User_Inconsistent_HitDamage), nDamageClient, nDamageSrv, (int)bCheckMiss));
 		if ((pAttackInfo && (pAttackInfo->nMPBurn || pAttackInfo->bDeadlyAttack))
@@ -1839,7 +1837,6 @@ void User::OnHit(InPacket *iPacket)
 			if (nReflectType == 2)
 				m_pField->GetLifePool()->OnUserAttack(this, nMobID, 0, ptHit, 100, 0);
 
-			return;
 		}
 		else if(nDamageClient >= nDamageSrv + 2)
 			++m_nInvalidDamageCount;
@@ -1847,6 +1844,12 @@ void User::OnHit(InPacket *iPacket)
 		if (m_nInvalidDamageCount > 10)
 			SendChatMessage(0, "Suspicious Hacking for Damage Value Check.");
 	}
+	else if (nDamage > 0 && nMobID && (!pMob || !pTemplate)) //Some mobs die immediately after sending the hit packet.
+		GetCalcDamage()->GetRndGenForMob().Random();
+
+	//Dodge
+	if ((nMobAttackIdx > -2 && nDamage <= 0 && bResetRnd))
+		GetCalcDamage()->GetRndGenForMob().Random();
 }
 
 void User::OnLevelUp()
@@ -3755,6 +3758,20 @@ void User::OnSummonedPacket(InPacket * iPacket)
 	auto pSummoned = m_pField->GetSummonedPool()->GetSummoned(nFieldObjID);
 	if (pSummoned)
 		pSummoned->OnPacket(iPacket, nType);
+	else
+	{
+		//Skip CalcDamage Rnds.
+		switch (nType)
+		{
+			case SummonedRecvPacketType::Summoned_OnAttackRequest:
+				for (int i = 0; i < 7; ++i)
+					GetCalcDamage()->GetRndGenForSummoned().Random();
+				break;
+			case SummonedRecvPacketType::Summoned_OnHitRequest:
+				GetCalcDamage()->GetRndGenForMob().Random();
+				break;
+		}
+	}
 }
 
 void User::ReregisterSummoned()
