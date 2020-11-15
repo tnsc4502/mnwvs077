@@ -434,6 +434,10 @@ SkillEntry * SkillInfo::LoadSkill(int nSkillRootID, int nSkillID, void * pData)
 	pResult->SetMasterLevel(atoi(((std::string)skillDataImg["masterLevel"]).c_str()));
 	pResult->SetMaxLevel(atoi(((std::string)skillCommonImg["maxLevel"]).c_str()));
 	pResult->SetInvisible((int)skillDataImg["invisible"] == 1 ? true : false);
+	
+	for (auto& reqSkill : skillReqImg)
+		pResult->AddRequiredSkill({ atoi(reqSkill.GetName().c_str()), (int)reqSkill });
+
 	if(bLevelStructure)
 		LoadLevelDataByLevelNode(nSkillID, pResult, (void*)&skillCommonImg, (void*)&(skillDataImg));
 	

@@ -83,10 +83,10 @@ int CmdFuncItem(User *pUser, PARAM_TYPE aInput)
 int CmdFuncMaxSkill(User *pUser, PARAM_TYPE aInput)
 {
 	int nJob = pUser->GetCharacterData()->mStat->nJob;
-	int nLevel = nJob % 10;
-	while (nLevel >= 0)
+	int nLevel = nJob;
+	while (true)
 	{
-		auto pSkills = SkillInfo::GetInstance()->GetSkillsByRootID(nJob - (!nLevel ? 0 : (2 - nLevel)));
+		auto pSkills = SkillInfo::GetInstance()->GetSkillsByRootID(nJob);
 		for (const auto& pSkill : *pSkills)
 		{
 			auto pEntry = pSkill.second;
@@ -96,23 +96,16 @@ int CmdFuncMaxSkill(User *pUser, PARAM_TYPE aInput)
 				pEntry->GetSkillID(),
 				pEntry->GetMaxLevel(),
 				false,
+				false,
 				false);
 		}
-		--nLevel;
-	}
 
-	//Beginner
-	auto pSkills = SkillInfo::GetInstance()->GetSkillsByRootID((nJob / 100) * 100);
-	for (const auto& pSkill : *pSkills)
-	{
-		auto pEntry = pSkill.second;
-		auto pMaxLevelData = pEntry->GetLevelData(pEntry->GetMaxLevel());
-		USkill::OnSkillUpRequest(
-			pUser,
-			pEntry->GetSkillID(),
-			pEntry->GetMaxLevel(),
-			false,
-			false);
+		if (nJob % 10)
+			--nJob;
+		else if (nJob % 100)
+			nJob -= ((nJob % 100));
+		else
+			break;
 	}
 	return 1;
 }

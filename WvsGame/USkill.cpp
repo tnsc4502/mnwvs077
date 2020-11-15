@@ -166,10 +166,10 @@ void USkill::OnSkillUpRequest(User * pUser, InPacket * iPacket)
 		nAmount = iPacket->Decode1();
 	if (nAmount <= 0)
 		nAmount = 1;*/
-	OnSkillUpRequest(pUser, nSkillID, nAmount, true, true);
+	OnSkillUpRequest(pUser, nSkillID, nAmount, true, true, true);
 }
 
-void USkill::OnSkillUpRequest(User * pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel)
+void USkill::OnSkillUpRequest(User * pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckRequiredSkill, bool bCheckMasterLevel)
 {
 	std::lock_guard<std::recursive_mutex> userGuard(pUser->GetLock());
 	std::vector<GW_SkillRecord*> aChange;
@@ -180,14 +180,15 @@ void USkill::OnSkillUpRequest(User * pUser, int nSkillID, int nAmount, bool bDec
 		(nSkillID == 1000 ||
 		 nSkillID == 1001 || 
 		 nSkillID == 1002) ? false : bDecSP,
+		bCheckRequiredSkill,
 		bCheckMasterLevel,
 		aChange))
 	{
 		long long int liFlag = BasicStat::BS_SP;
 		if (nSkillID == 1000001)
-			liFlag |= pUser->IncMaxHPAndMP(0x2000, false);
+			liFlag |= pUser->IncMaxHPAndMP(BasicStat::BS_MaxHP, false);
 		else if (nSkillID == 2000001)
-			liFlag |= pUser->IncMaxHPAndMP(0x8000, false);
+			liFlag |= pUser->IncMaxHPAndMP(BasicStat::BS_MaxMP, false);
 		pUser->ValidateStat();
 		pUser->SendCharacterStat(false, liFlag);
 	}

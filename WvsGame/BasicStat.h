@@ -34,19 +34,6 @@ public:
 		BS_GachaponEXP = 0x200000
 	};
 
-	class BasicStatRateOption
-	{
-	public:
-		int nMMPr = 0,
-			nMHPr = 0,
-			nLUKr = 0,
-			nINTr = 0,
-			nDEXr = 0,
-			nSTRr = 0;
-	};
-
-	BasicStatRateOption *m_bOption;
-
 	int nGender = 0,
 		nLevel = 0,
 		nJob = 0,

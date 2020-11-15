@@ -28,7 +28,7 @@ Rand32 * Rand32::GetInstance()
 unsigned long long int Rand32::Random()
 {
 	std::lock_guard<std::mutex> lock(m_mtxLock);
-	return (unsigned long long int)(m_u(m_Rand) ^ m_u(m_Rand) ^ m_u(m_Rand)) *(m_u2(m_Rand));
+	return (unsigned long long int)(m_u(m_Rand) ^ m_u(m_Rand) ^ m_u(m_Rand));
 }
 
 unsigned long long int Rand32::Random(unsigned int nMin, unsigned int nMax)

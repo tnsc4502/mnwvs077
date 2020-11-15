@@ -1,7 +1,9 @@
 #include "QWUSkillRecord.h"
+#include "QWUser.h"
 #include "User.h"
 #include "SkillInfo.h"
 #include "SkillEntry.h"
+
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\Database\GA_Character.hpp"
@@ -42,12 +44,14 @@ void QWUSkillRecord::GetSkillRootFromJob(int nJob, std::vector<int>& aRet)
 	}
 }
 
-bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel, std::vector<GW_SkillRecord*>& aChange)
+bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckRequiredSkill, bool bCheckMasterLevel, std::vector<GW_SkillRecord*>& aChange)
 {
 	int nJob = pUser->GetCharacterData()->mStat->nJob;
 	int nSkillJob = SkillInfo::GetSkillRootFromSkill(nSkillID);
 
-	if ((nJob >= nSkillJob) &&
+	auto pSkill = SkillInfo::GetInstance()->GetSkillByID(nSkillID);
+	if (pSkill &&
+		(nJob >= nSkillJob) &&
 		((nJob < 10000 && (nJob / 100 == nSkillJob / 100)) ||
 		(nJob / 1000 == nSkillJob / 1000)))
 	{
@@ -59,6 +63,16 @@ bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecS
 			auto pSkillRecord = pUser->GetCharacterData()->GetSkill(nSkillID);
 			if (pSkillRecord == nullptr)
 			{
+				auto& aReqSkill = pSkill->GetRequiredSkill();
+
+				//Check Required Skill Level
+				if (bCheckRequiredSkill)
+				{
+					for (auto& prReq : aReqSkill)
+						if (SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), prReq.first, nullptr) < prReq.second)
+							return false;
+				}
+
 				pSkillRecord = SkillInfo::GetInstance()->GetSkillRecord(
 					nSkillID,
 					0,
@@ -67,17 +81,18 @@ bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecS
 				pUser->GetCharacterData()->ObtainSkillRecord(pSkillRecord);
 			}
 			if (pSkillRecord != nullptr 
-				&& (!bCheckMasterLevel 
-					|| (!SkillInfo::IsSkillNeedMasterLevel(pSkillRecord->nSkillID)
-						|| (pSkillRecord->nSLV + nAmount <= pSkillRecord->nMasterLevel))
-					)
+				//Check Master Level.
+				&& (!bCheckMasterLevel || (!SkillInfo::IsSkillNeedMasterLevel(pSkillRecord->nSkillID) || (pSkillRecord->nSLV + nAmount <= pSkillRecord->nMasterLevel)))
 				)
 			{
 				nAmount = std::min(
 					nAmount,
-					SkillInfo::GetInstance()->GetSkillByID(nSkillID)->GetMaxLevel() - pSkillRecord->nSLV);
+					pSkill->GetMaxLevel() - pSkillRecord->nSLV);
 
 				pSkillRecord->nSLV += nAmount;
+
+				if(!bCheckMasterLevel)
+					pSkillRecord->nMasterLevel = pSkill->GetMaxLevel();
 				if(bDecSP)
 					pUser->GetCharacterData()->mStat->aSP[0] -= nAmount;
 				aChange.push_back(pSkillRecord);
@@ -202,5 +217,130 @@ void QWUSkillRecord::ValidateMasterLevelForSKills(User *pUser)
 		}
 	}
 	SendCharacterSkillRecord(pUser, aChange);
+}
+
+bool QWUSkillRecord::IsValidSkill(User *pUser, void* pmNewSkillRecord, int nItemLevel, int nSkillRoot, bool bDec)
+{
+	auto & mNewSkillRecord = *(std::map<int, ZSharedPtr<GW_SkillRecord>>*)pmNewSkillRecord;
+	int nSP[4] = { 0 };
+	for (auto& prRecord : mNewSkillRecord)
+	{
+		auto& pSkillRecord = prRecord.second;
+		nSP[UtilUser::GetJobLevel(pSkillRecord->nSkillID / 10000) - 1] += pSkillRecord->nSLV;
+	}
+
+	int nJob = QWUser::GetJob(pUser);
+	int nJobLevel = UtilUser::GetJobLevel(nJob);
+	int nSPChekc =
+		nSP[0]
+		+ nSP[1]
+		+ nSP[2]
+		+ nSP[3]
+		+ QWUser::GetSP(pUser, 0)
+		+ (nJob / 100 != 2 ? 0 : 6) //Extra two levels
+		+ 3 * ((nJob / 100 != 2 ? 10 : 8) - QWUser::GetLevel(pUser))
+		- (nJobLevel == 4 ? 2 : 0)//Extra points given by job adv?
+		- nJobLevel //Extra points given by job adv?
+		+ 61; //Maybe 10~30 ?
+
+	for (auto& prRecord : mNewSkillRecord)
+	{
+		auto& pSkillRecord = prRecord.second;
+		auto pSkill = SkillInfo::GetInstance()->GetSkillByID(pSkillRecord->nSkillID);
+		if (!pSkill)
+			continue;
+
+		auto& aReqSkill = pSkill->GetRequiredSkill();
+		for (auto& prReqSkill : aReqSkill)
+		{
+			auto findReqSkill = mNewSkillRecord.find(prReqSkill.first);
+			auto pReqSkill = (findReqSkill == mNewSkillRecord.end() ? nullptr : (GW_SkillRecord*)findReqSkill->second);
+
+			if (!pReqSkill || pReqSkill->nSLV < prReqSkill.second)
+				return false;
+		}
+	}
+	
+	if (nItemLevel != UtilUser::GetJobLevel(nSkillRoot))
+	{
+		if (nItemLevel == 2)
+			return nSP[0] - nSPChekc >= 0;
+		else if (nItemLevel == 3)
+			return ((nSP[0] + nSP[1]) - (nSPChekc + (bDec ? 120 : 121))) >= 0; //2nd ~ 3rd = (70 - 30) * 3 points
+		else
+		{
+			if (nItemLevel != 4)
+				return true;
+			return ((nSP[0] + nSP[1] + nSP[2]) - (nSPChekc + (bDec ? 120 : 121) + (bDec ? 150 : 151))) >= 0; //2nd ~ 4th = (120 - 30) * 3 points
+		}
+	}
+	return false;
+}
+
+bool QWUSkillRecord::CanSkillChange(User * pUser, int nIncSkillID, int nDecSkillID, int nItemLevel)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nJob = QWUser::GetJob(pUser);
+
+	if ((nJob / 100) < 1 || (nJob / 100) > 5 || UtilUser::GetJobLevel(nJob) < nItemLevel)
+		return false;
+
+	int nIncSkillRoot = nIncSkillID / 10000,
+		nDecSkillRoot = nDecSkillID / 10000;
+
+	if (nItemLevel == UtilUser::GetJobLevel(nIncSkillRoot))
+	{
+		std::vector<int> anSkillRoot;
+		GetSkillRootFromJob(nJob, anSkillRoot);
+		bool bIncSkillRootContained = false, bDecSkillRootContained = false;
+
+		for (int i = 0; i <= (int)anSkillRoot.size(); ++i)
+		{
+			if (i == (int)anSkillRoot.size())
+				return false;
+
+			if (anSkillRoot[i] == nIncSkillRoot)
+				bIncSkillRootContained = true;
+
+			if (anSkillRoot[i] == nDecSkillID)
+				bDecSkillRootContained = true;
+		}
+		if (bIncSkillRootContained && bDecSkillRootContained && nIncSkillRoot >= nDecSkillRoot)
+		{
+			//Copy the whole skill records.
+			std::map <int ,ZUniquePtr<GW_SkillRecord>> mNewSkillRecord;
+			for (auto& prSkillRecord : pUser->GetCharacterData()->mSkillRecord) 
+			{
+				auto pNewRecord = AllocObj(GW_SkillRecord);
+				*pNewRecord = *(prSkillRecord.second);
+				mNewSkillRecord[prSkillRecord.first].reset(pNewRecord);
+			}
+
+			//Find Inc/Dec skill entries & records.
+			auto pIncSkill = SkillInfo::GetInstance()->GetSkillByID(nIncSkillID),
+				pDecSkill = SkillInfo::GetInstance()->GetSkillByID(nDecSkillID);
+
+			auto findIncSkillRecord = mNewSkillRecord.find(nIncSkillID),
+				findDecSkillRecord = mNewSkillRecord.find(nDecSkillID),
+				endRecord = mNewSkillRecord.end();
+
+			GW_SkillRecord* pIncSkillRecord = findIncSkillRecord == endRecord ? nullptr : (GW_SkillRecord*)findIncSkillRecord->second;
+			GW_SkillRecord* pDecSkillRecord = findDecSkillRecord == endRecord ? nullptr : (GW_SkillRecord*)findDecSkillRecord->second;
+
+			//Check possibility of inc/dec
+			if (pIncSkill &&
+				pDecSkill &&
+				pDecSkillRecord &&
+				pDecSkillRecord->nSLV >= 1 &&
+				(!pIncSkillRecord || pIncSkillRecord->nSLV + 1 <= pIncSkill->GetMaxLevel()))
+			{
+				--pIncSkillRecord->nSLV;
+				if (!IsValidSkill(pUser, &mNewSkillRecord, nItemLevel, nDecSkillRoot, true))
+					return false;
+			}
+		}
+	}
+
+	return true;
 }
 

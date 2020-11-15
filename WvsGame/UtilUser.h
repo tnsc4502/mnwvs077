@@ -9,9 +9,9 @@ public:
 	static int GetJobLevel(int nJob);
 
 	static bool IsAdventurerWarrior(int nJob);
-	static bool IsAdventurerMage(int nJob);
-	static bool IsAdventurerArchor(int nJob);
-	static bool IsAdventurerRogue(int nJob);
+	static bool IsAdventurerMagic(int nJob);
+	static bool IsAdventurerArcher(int nJob);
+	static bool IsAdventurerThief(int nJob);
 	static bool IsAdventurerPirate(int nJob);
 };
 

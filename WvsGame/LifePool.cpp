@@ -42,9 +42,11 @@
 #include "Summoned.h"
 #include "ThiefSkills.h"
 #include "BowmanSkills.h"
+#include "MagicSkills.h"
 #include "WarriorSkills.h"
 #include "QWUser.h"
 #include "ItemInfo.h"
+#include "AffectedAreaPool.h"
 #include <cmath>
 
 #undef min
@@ -866,7 +868,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 	OutPacket oPacket;
 	EncodeAttackInfo(pUser, pInfo, &oPacket);
 	m_pField->SplitSendPacket(&oPacket, nullptr);
-	ApplyAttackToMob(pUser, pSkill, pInfo);
+	ApplyUserAttack(pUser, pSkill, pInfo);
 }
 
 void LifePool::OnUserAttack(User * pUser, int nMobID, int nDamage, const FieldPoint& ptHit, int tDelay, int nBlockingSkillID)
@@ -944,10 +946,10 @@ void LifePool::OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEnt
 		oPacket.Encode4(prDmgInfo.second.anDamageSrv[0]);
 	}
 	m_pField->SplitSendPacket(&oPacket, pUser);
-	ApplyAttackToMob(pUser, pSkill, pInfo);
+	ApplyUserAttack(pUser, pSkill, pInfo);
 }
 
-void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackInfo * pInfo)
+void LifePool::ApplyUserAttack(User * pUser, const SkillEntry *pSkill, AttackInfo * pInfo)
 {
 	auto pWeapon = pUser->GetCharacterData()->mItemSlot[1][-11];
 
@@ -962,6 +964,8 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 	{
 		long long int liDamageSum = 0;
 		auto& dmgInfo = iter.second;
+
+		//Apply Hit
 		for (int i = 0; i < dmgInfo.nDamageCount; ++i)
 		{
 			if (!dmgInfo.pMob)
@@ -969,6 +973,12 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 
 			liDamageSum += dmgInfo.anDamageSrv[i];
 			dmgInfo.pMob->OnMobHit(pUser, dmgInfo.anDamageSrv[i], pInfo->m_nType);
+		}
+
+		//Apply Skill Effects
+		if (pSkill)
+		{
+			long long int liFlag = 0;
 
 			/*ComboCounter*/
 			int nComboCounter = pUser->GetSecondaryStat()->nComboCounter_;
@@ -994,7 +1004,7 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 					pUser->SendTemporaryStatSet(TemporaryStat::TS_Flag(TemporaryStat::TS_ComboCounter), 0);
 			}
 
-			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID())) 
+			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
 			{
 				nMobStatChangeSkillID = pSkill->GetSkillID();
 				nMobStatChangeSkillLV = pInfo->m_nSLV;
@@ -1044,16 +1054,10 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 					pUser,
 					dmgInfo.pMob->GetFieldObjectID(),
 					SkillInfo::GetInstance()->GetSkillByID(nMobStatChangeSkillID),
-					nMobStatChangeSkillID,
+					SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nMobStatChangeSkillID, nullptr),
 					tMobStatChangeSkillDelay
 				);
 			}
-		}
-
-		//Apply Skill Effects
-		if (pSkill)
-		{
-			long long int liFlag = 0;
 
 			if (pSkill->GetSkillID() == ThiefSkills::Bandit_Steal &&
 				(int)(Rand32::GetInstance()->Random() % 100) < pSkill->GetLevelData(pInfo->m_nSLV)->m_nProp)
@@ -1087,6 +1091,32 @@ void LifePool::ApplyAttackToMob(User * pUser, const SkillEntry *pSkill, AttackIn
 			dmgInfo.pMob->GetMobTemplate()->SetMobCountQuestInfo(pUser);
 			RemoveMob(dmgInfo.pMob);
 		}
+	}
+
+	//Apply AffectedArea.
+	if (pSkill && pSkill->GetSkillID() == MagicSkills::Adv_Magic_FP_PoisonMist)
+	{
+		auto pLevel = pSkill->GetLevelData(pInfo->m_nSLV);
+		if (!pLevel)
+			return;
+
+		FieldRect rect = pLevel->m_rc;
+		rect.OffsetRect(pUser->GetPosX(), pUser->GetPosY());
+		unsigned int tStart = GameDateTime::GetTime() + 700;
+		//if (pResult->m_bAttackInfoFlag >> 4)
+		//	tStart = pResult->tDelay;
+		unsigned int tEnd = tStart + pLevel->m_nTime;
+		pUser->GetField()->GetAffectedAreaPool()->InsertAffectedArea(
+			false,
+			pUser->GetUserID(),
+			pInfo->m_nSkillID,
+			pInfo->m_nSLV,
+			tStart,
+			tEnd,
+			{ pUser->GetPosX(), pUser->GetPosY() },
+			rect,
+			false
+		);
 	}
 }
 

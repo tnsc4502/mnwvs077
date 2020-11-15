@@ -103,7 +103,7 @@ public:
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void OnUserAttack(User *pUser, int nMobID, int nDamage, const FieldPoint& ptHit, int tDelay, int nBlockingSkillID);
 	void OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEntry *pSkill, AttackInfo *pInfo);
-	void ApplyAttackToMob(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
+	void ApplyUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
 	std::recursive_mutex& GetLock();

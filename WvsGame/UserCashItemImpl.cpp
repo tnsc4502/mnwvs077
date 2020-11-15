@@ -7,8 +7,10 @@ Implementations of cash item usages.
 #include "User.h"
 #include "QWUser.h"
 #include "QWUInventory.h"
+#include "QWUSkillRecord.h"
 #include "WvsGame.h"
 #include "ItemInfo.h"
+
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\Database\GA_Character.hpp"
 #include "..\WvsLib\String\StringPool.h"
@@ -124,4 +126,36 @@ int UserCashItemImpl::ConsumePetSkill(User * pUser, int nItemID, InPacket * iPac
 	pUser->SendPacket(&oPacket);
 	QWUInventory::UpdatePetItem(pUser, pPet->nPOS);
 	return 1;
+}
+
+int UserCashItemImpl::ConsumeStatChange(User * pUser, InPacket * iPacket)
+{
+	int nInc = iPacket->Decode4();
+	int nDec = iPacket->Decode4();
+
+	auto liFlag = QWUser::CanStatChange(pUser, nInc, nDec);
+	if (!liFlag)
+		return 0;
+
+	pUser->SendCharacterStat(false, liFlag);
+	return 1;
+}
+
+int UserCashItemImpl::ConsumeSkillChange(User * pUser, int nItemID, InPacket *iPacket)
+{
+	int nIncSkillID = iPacket->Decode4();
+	int nDecSkillID = iPacket->Decode4();
+
+	if (!QWUSkillRecord::CanSkillChange(pUser, nIncSkillID, nDecSkillID, nItemID % 10))
+	{
+		std::lock_guard<std::recursive_mutex> userGuard(pUser->GetLock());
+		std::vector<GW_SkillRecord*> aChange;
+
+		QWUSkillRecord::SkillUp(pUser, nIncSkillID, 1, false, false, false, aChange);
+		QWUSkillRecord::SkillUp(pUser, nDecSkillID, -1, false, false, false, aChange);
+		QWUSkillRecord::SendCharacterSkillRecord(pUser, aChange);
+
+		return 1;
+	}
+	return 0;
 }

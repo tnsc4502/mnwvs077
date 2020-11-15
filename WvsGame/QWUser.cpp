@@ -31,6 +31,140 @@ bool QWUser::TryProcessLevelUp(User *pUser, int nInc, int & refReachMaxLvl)
 	return false;
 }
 
+bool QWUser::IsValidStat(User * pUser, int nStr, int nDex, int nInt, int nLuk, int nRemainAP)
+{
+	int nJob = GetJob(pUser);
+	if (nStr < 4 ||
+		nDex < 4 ||
+		nInt < 4 ||
+		nLuk < 4 ||
+		((nJob / 100 == 1) && nStr < 35) ||
+		((nJob / 100 == 2) && nInt < 20) ||
+		((nJob / 100 == 3 || nJob / 100 == 4) && nLuk < 25))
+		return false;
+	else
+	{
+		int nRequiredExtraAP = (nJob % 10 == 1) ? 5 : (nJob % 10 != 2 ? 0 : 10);
+
+		//WTF
+		/*return
+			nRemainAP + nLuk + nInt + nDex + nStr <=
+			nRequiredExtraAP + 4 * (pUser->GetCharacterData()->mLevel->nLevel + 4) + pUser->GetCharacterData()->mLevel->nLevel + 4;*/
+		return true;
+	}
+}
+
+long long int QWUser::CanStatChange(User * pUser, int nInc, int nDec)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nJob = GetJob(pUser);
+
+	if (nInc == nDec || ((nJob / 100 < 0) || (nJob / 100 > 5)))
+		return 0;
+
+	int nStr = GetSTR(pUser),
+		nDex = GetDEX(pUser),
+		nInt = GetINT(pUser),
+		nLuk = GetLUK(pUser);
+
+	if (nDec == BasicStat::BS_MaxHP)
+	{
+		int nHPBound = 0;
+		if(!nJob == 0)
+			nHPBound = 12 * GetLevel(pUser) + 38;
+		else if (UtilUser::IsAdventurerWarrior(nJob)) 
+		{
+			if (nJob >= 110 && nJob <= 112)
+				nHPBound = 24 * GetLevel(pUser) + 418;
+			else
+				nHPBound = 24 * GetLevel(pUser) + 118;
+		}
+		if (UtilUser::IsAdventurerMagic(nJob))
+			nHPBound = 10 * GetLevel(pUser) + 54;
+		if (UtilUser::IsAdventurerArcher(nJob) || UtilUser::IsAdventurerThief(nJob))
+			nHPBound = 20 * GetLevel(pUser) + ((nJob % 10 == 0) ? 54 : 358);
+
+		if (nHPBound > IncMaxHPVal(pUser, 0, nDec) + pUser->GetCharacterData()->mStat->nMaxHP)
+			return 0;
+	}
+	else if (nDec == BasicStat::BS_MaxMP)
+	{
+		int nMPBound = 0;
+		if (!nJob == 0)
+			nMPBound = 10 * GetLevel(pUser) - 5;
+		else if (UtilUser::IsAdventurerWarrior(nJob))
+		{
+			if (nJob >= 110 && nJob <= 112)
+				nMPBound = 4 * GetLevel(pUser) + 55;
+			else
+				nMPBound = 4 * GetLevel(pUser) + 115;
+		}
+		if (UtilUser::IsAdventurerMagic(nJob))
+			nMPBound = 22 * GetLevel(pUser) + ((nJob % 10 == 0) ? -1 : 449);
+		if (UtilUser::IsAdventurerArcher(nJob) || UtilUser::IsAdventurerThief(nJob))
+			nMPBound = 14 * GetLevel(pUser) + ((nJob % 10 == 0) ? -15 : 135);
+
+		if (nMPBound > IncMaxMPVal(pUser, 0, nDec) + pUser->GetCharacterData()->mStat->nMaxMP)
+			return 0;
+	}
+	else
+	{
+		if (nDec == BasicStat::BS_STR)
+			--nStr;
+		else if (nDec == BasicStat::BS_DEX)
+			--nDex;
+		else if (nDec == BasicStat::BS_INT)
+			--nInt;
+		else if (nDec == BasicStat::BS_LUK)
+			--nLuk;
+		else
+			return 0;
+
+		if (!IsValidStat(pUser, nStr, nDex, nInt, nLuk, GetAP(pUser) + 1))
+			return 0;
+	}
+
+	int nStatToCheck = 0, nIncStat = 0;
+	switch (nInc)
+	{
+		case BasicStat::BS_STR:
+			++nStr;
+			break;
+		case BasicStat::BS_DEX:
+			++nDex;
+			break;
+		case BasicStat::BS_INT:
+			++nInt;
+			break;
+		case BasicStat::BS_LUK:
+			++nLuk;
+			break;
+		case BasicStat::BS_MaxHP:
+			nIncStat = IncMaxHPVal(pUser, nInc, 0);
+			nStatToCheck = pUser->GetCharacterData()->mStat->nMaxHP;
+			break;
+		case BasicStat::BS_MaxMP:
+			nIncStat = IncMaxMPVal(pUser, nInc, 0);
+			nStatToCheck = pUser->GetCharacterData()->mStat->nMaxMP;
+			break;
+	}
+	if (nIncStat && (nIncStat + nStatToCheck) > 300000)
+		return 0;
+
+	long long int liFlag = 0;
+	if (IsValidStat(pUser, nStr, nDex, nInt, nLuk, GetAP(pUser)))
+	{
+		liFlag |= QWUser::IncSTR(pUser, (nInc == BasicStat::BS_STR) * 1 + (nDec == BasicStat::BS_STR) * -1, false);
+		liFlag |= QWUser::IncDEX(pUser, (nInc == BasicStat::BS_DEX) * 1 + (nDec == BasicStat::BS_DEX) * -1, false);
+		liFlag |= QWUser::IncINT(pUser, (nInc == BasicStat::BS_INT) * 1 + (nDec == BasicStat::BS_INT) * -1, false);
+		liFlag |= QWUser::IncLUK(pUser, (nInc == BasicStat::BS_LUK) * 1 + (nDec == BasicStat::BS_LUK) * -1, false);
+		liFlag |= QWUser::IncMHP(pUser, IncMaxHPVal(pUser, nInc, nDec), false);
+		liFlag |= QWUser::IncMMP(pUser, IncMaxMPVal(pUser, nInc, nDec), false);
+	}
+
+	return liFlag;
+}
+
 long long int QWUser::IncSTR(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
@@ -115,36 +249,6 @@ long long int QWUser::IncHP(User *pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_HP;
 }
 
-long long int QWUser::IncMMP(User *pUser, int nInc, bool bOnlyFull)
-{
-	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	int nMaxMP = pUser->GetCharacterData()->mStat->nMaxMP;
-	nMaxMP += nInc;
-	if (nMaxMP <= 5)
-		nMaxMP = 5;
-	if (nMaxMP >= 90000)
-		nMaxMP = 90000;
-	pUser->GetCharacterData()->mStat->nMaxMP = nMaxMP;
-	pUser->ValidateStat();
-
-	return BasicStat::BS_MaxMP;
-}
-
-long long int QWUser::IncMHP(User *pUser, int nInc, bool bOnlyFull)
-{
-	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	int nMaxHP = pUser->GetCharacterData()->mStat->nMaxHP;
-	nMaxHP += nInc;
-	if (nMaxHP <= 5)
-		nMaxHP = 5;
-	if (nMaxHP >= 90000)
-		nMaxHP = 90000;
-	pUser->GetCharacterData()->mStat->nMaxHP = nMaxHP;
-	pUser->ValidateStat();
-
-	return BasicStat::BS_MaxHP;
-}
-
 long long int QWUser::IncPOP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
@@ -204,7 +308,7 @@ long long int QWUser::IncAP(User *pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_AP;
 }
 
-long long int QWUser::IncMaxHPVal(User *pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMHP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nMaxHP = pUser->GetCharacterData()->mStat->nMaxHP;
@@ -221,7 +325,7 @@ long long int QWUser::IncMaxHPVal(User *pUser, int nInc, bool bOnlyFull)
 	return BasicStat::BS_MaxHP;
 }
 
-long long int QWUser::IncMaxMPVal(User *pUser, int nInc, bool bOnlyFull)
+long long int QWUser::IncMMP(User *pUser, int nInc, bool bOnlyFull)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nMaxMP = pUser->GetCharacterData()->mStat->nMaxMP;
@@ -262,61 +366,106 @@ long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 	return nRet;
 }
 
-long long int QWUser::GetSTR(User *pUser)
+int QWUser::IncMaxHPVal(User * pUser, int nInc, int nDec)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nJobType = pUser->GetCharacterData()->mStat->nJob / 100;
+
+	nInc = (nInc == BasicStat::BS_MaxHP ? 1 : 0);
+	nDec = (nDec == BasicStat::BS_MaxHP ? 1 : 0);
+	switch (nJobType)
+	{
+		case 0:
+			return 8 * nInc + 12 * -nDec;
+		case 1:
+			return 20 * nInc + 54 * -nDec;
+		case 2:
+			return 6 * nInc + 10 * -nDec;
+		case 3:
+		case 4:
+			return 16 * nInc + 20 * -nDec;
+	}
+
+	return 0;
+}
+
+int QWUser::IncMaxMPVal(User * pUser, int nInc, int nDec)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nJobType = pUser->GetCharacterData()->mStat->nJob / 100;
+
+	nInc = (nInc == BasicStat::BS_MaxHP ? 1 : 0);
+	nDec = (nDec == BasicStat::BS_MaxHP ? 1 : 0);
+	switch (nJobType)
+	{
+		case 0:
+			return 6 * nInc + 8 * -nDec;
+		case 1:
+			return 2 * nInc + 4 * -nDec;
+		case 2:
+			return 18 * nInc + (-30 - 3 * GetINT(pUser) / 45) * nDec; //nDec with no negative sign here plz.
+		case 3:
+		case 4:
+			return 10 * nInc + 12 * -nDec;
+	}
+	return 0;
+}
+
+int QWUser::GetSTR(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nSTR;
 }
 
-long long int QWUser::GetDEX(User *pUser)
+int QWUser::GetDEX(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nDEX;
 }
 
-long long int QWUser::GetLUK(User *pUser)
+int QWUser::GetLUK(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nLUK;
 }
 
-long long int QWUser::GetINT(User *pUser)
+int QWUser::GetINT(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nINT;
 }
 
-long long int QWUser::GetMP(User *pUser)
+int QWUser::GetMP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nMP;
 }
 
-long long int QWUser::GetHP(User *pUser)
+int QWUser::GetHP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nHP;
 }
 
-long long int QWUser::GetMMP(User *pUser)
+int QWUser::GetMMP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMMP;
 }
 
-long long int QWUser::GetMHP(User *pUser)
+int QWUser::GetMHP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetBasicStat()->nMHP;
 }
 
-long long int QWUser::GetPOP(User *pUser)
+int QWUser::GetPOP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nPOP;
 }
 
-long long int QWUser::GetSP(User *pUser, int nJobLevel)
+int QWUser::GetSP(User *pUser, int nJobLevel)
 {
 	return pUser->GetCharacterData()->mStat->aSP[nJobLevel];
 }
@@ -327,22 +476,10 @@ long long int QWUser::GetMoney(User *pUser)
 	return pUser->GetCharacterData()->mMoney->nMoney;
 }
 
-long long int QWUser::GetAP(User *pUser)
+int QWUser::GetAP(User *pUser)
 {
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	return pUser->GetCharacterData()->mStat->nAP;
-}
-
-long long int QWUser::GetMaxHPVal(User *pUser)
-{
-	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	return pUser->GetBasicStat()->nMHP;
-}
-
-long long int QWUser::GetMaxMPVal(User *pUser)
-{
-	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
-	return pUser->GetBasicStat()->nMMP;
 }
 
 long long int QWUser::GetEXP(User *pUser)

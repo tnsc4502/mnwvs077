@@ -106,7 +106,7 @@ bool UtilUser::IsAdventurerWarrior(int nJob)
 		|| nJob == 132;
 }
 
-bool UtilUser::IsAdventurerMage(int nJob)
+bool UtilUser::IsAdventurerMagic(int nJob)
 {
 	return nJob == 200
 		|| nJob == 210
@@ -120,7 +120,7 @@ bool UtilUser::IsAdventurerMage(int nJob)
 		|| nJob == 232;
 }
 
-bool UtilUser::IsAdventurerArchor(int nJob)
+bool UtilUser::IsAdventurerArcher(int nJob)
 {
 	return nJob == 300 
 		|| nJob == 310 
@@ -131,7 +131,7 @@ bool UtilUser::IsAdventurerArchor(int nJob)
 		|| nJob == 322;
 }
 
-bool UtilUser::IsAdventurerRogue(int nJob)
+bool UtilUser::IsAdventurerThief(int nJob)
 {
 	return nJob == 400
 		|| nJob == 420

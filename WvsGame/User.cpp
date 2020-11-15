@@ -1453,27 +1453,6 @@ void User::OnAttack(int nType, InPacket * iPacket)
 			pSkillEntry,
 			pResult
 		);
-
-		if (pLevel && pResult->m_nSkillID == 2111003)
-		{
-			FieldRect rect = pLevel->m_rc;
-			rect.OffsetRect(GetPosX(), GetPosY());
-			unsigned int tStart = tCur + 700;
-			//if (pResult->m_bAttackInfoFlag >> 4)
-			//	tStart = pResult->tDelay;
-			unsigned int tEnd = tCur + 700 + pLevel->m_nTime;
-			m_pField->GetAffectedAreaPool()->InsertAffectedArea(
-				false,
-				GetUserID(),
-				pResult->m_nSkillID,
-				pResult->m_nSLV,
-				tStart,
-				tEnd,
-				{ GetPosX(), GetPosY() },
-				rect,
-				false
-			);
-		}
 	}
 }
 
@@ -1854,11 +1833,11 @@ void User::OnHit(InPacket *iPacket)
 
 void User::OnLevelUp()
 {
-	auto liFlag = IncMaxHPAndMP(0x2000 | 0x8000, true);
+	auto liFlag = IncMaxHPAndMP(BasicStat::BS_MaxHP | BasicStat::BS_MaxMP, true);
 	ValidateStat();
 
-	QWUser::IncHP(this, (int)QWUser::GetMaxHPVal(this), true);
-	QWUser::IncMP(this, (int)QWUser::GetMaxMPVal(this), true);
+	QWUser::IncHP(this, (int)QWUser::GetMHP(this), true);
+	QWUser::IncMP(this, (int)QWUser::GetMMP(this), true);
 	SendCharacterStat(false, BasicStat::BS_HP | BasicStat::BS_MP | liFlag);
 
 	OutPacket oPacket;
@@ -2004,13 +1983,13 @@ void User::OnAbilityUpRequest(InPacket * iPacket)
 	int tRequestTime = iPacket->Decode4();
 	int nOption = iPacket->Decode4();
 	long long int liFlag = 0;
-	if (nOption == 0x100)
+	if (nOption == BasicStat::BS_STR)
 		liFlag |= QWUser::IncSTR(this, 1, true);
-	else if (nOption == 0x200)
+	else if (nOption == BasicStat::BS_DEX)
 		liFlag |= QWUser::IncDEX(this, 1, true);
-	else if (nOption == 0x400)
+	else if (nOption == BasicStat::BS_INT)
 		liFlag |= QWUser::IncINT(this, 1, true);
-	else if (nOption == 0x800)
+	else if (nOption == BasicStat::BS_LUK)
 		liFlag |= QWUser::IncLUK(this, 1, true);
 	else
 		liFlag |= IncMaxHPAndMP(nOption, false);
@@ -2025,8 +2004,8 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 {
 	static auto pSkillHPBoost = SkillInfo::GetInstance()->GetSkillByID(1000001);
 	static auto pSkillMPBoost = SkillInfo::GetInstance()->GetSkillByID(2000001);
-	bool bIncHP = (nFlag & 0x2000) != 0;
-	bool bIncMP = (nFlag & 0x8000) != 0;
+	bool bIncHP = (nFlag & BasicStat::BS_MaxHP) != 0;
+	bool bIncMP = (nFlag & BasicStat::BS_MaxMP) != 0;
 	int nJobType = QWUser::GetJob(this) / 100;
 	int nHPInc = 0, nMPInc = 0, nBaseInc = 0, nSkillLevel = 0;
 	long long int liRet = 0;
@@ -2053,7 +2032,9 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 	if (bIncMP)
 	{
 		nBaseInc = anIncTable[2 * nIdx + 3];
-		nMPInc = nBaseInc + (rand() % (std::max(1, anIncTable[2 * nIdx + 4] - nBaseInc + 1)));
+		nMPInc = nBaseInc 
+			+ (rand() % (std::max(1, anIncTable[2 * nIdx + 4] - nBaseInc + 1)))
+			+ QWUser::GetLUK(this) * anIncTable[2 * nIdx + 5] / 200;
 	}
 
 	if (bIncHP)
@@ -2067,7 +2048,7 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 			else
 				nHPInc += pSkillHPBoost->GetLevelData(nSkillLevel)->m_nX;
 		}
-		liRet |= QWUser::IncMaxHPVal(this, nHPInc, true);
+		liRet |= QWUser::IncMHP(this, nHPInc, true);
 	}
 
 	if (bIncMP)
@@ -2077,11 +2058,11 @@ long long int User::IncMaxHPAndMP(int nFlag, bool bLevelUp)
 		{
 			nSkillLevel = std::min(pRecord->nSLV, pSkillMPBoost->GetMaxLevel());
 			if (bLevelUp)
-				nHPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nY;
+				nMPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nY;
 			else
-				nHPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nX;
+				nMPInc += pSkillMPBoost->GetLevelData(nSkillLevel)->m_nX;
 		}
-		liRet |= QWUser::IncMaxMPVal(this, nMPInc, true);
+		liRet |= QWUser::IncMMP(this, nMPInc, true);
 	}
 
 	return liRet;
@@ -2788,8 +2769,10 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		case ItemInfo::CashItemType::CashItemType_SendMemo:
 			break;
 		case ItemInfo::CashItemType::CashItemType_StatChange:
+			nResult = UserCashItemImpl::ConsumeStatChange(this, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_SkillChange:
+			nResult = UserCashItemImpl::ConsumeSkillChange(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_SetItemName:
 			break;

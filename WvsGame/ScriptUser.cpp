@@ -468,7 +468,7 @@ int ScriptUser::TargetGetMMP(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 
-	lua_pushinteger(L, QWUser::GetMaxMPVal(self->m_pUser));
+	lua_pushinteger(L, QWUser::GetMMP(self->m_pUser));
 	return 1;
 }
 
@@ -476,7 +476,7 @@ int ScriptUser::TargetGetMHP(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 
-	lua_pushinteger(L, QWUser::GetMaxHPVal(self->m_pUser));
+	lua_pushinteger(L, QWUser::GetMHP(self->m_pUser));
 	return 1;
 }
 

@@ -11,14 +11,18 @@ class SkillEntry
 	int m_nMasterLevel, m_nMaxLevel, m_nSkillID, m_nAttackElemAttr = 0;
 	bool m_bInvisible = false;
 
+	std::vector<std::pair<int, int>> m_aReqSkill; //<ReqSkillID, ReqLevel>
+
 public:
 	SkillEntry();
 	~SkillEntry();
 
 	void SetLevelData(SkillLevelData* pLevelData, int nSLV);
 	void AddLevelData(SkillLevelData* pLevelData);
+	void AddRequiredSkill(const std::pair<int, int>& prReqSkill);
 	const SkillLevelData* GetLevelData(int nLevel) const;
 	const SkillLevelData** GetAllLevelData() const;
+	const std::vector<std::pair<int, int>>& GetRequiredSkill() const;
 
 	void SetMasterLevel(int nLevel);
 	void SetMaxLevel(int nLevel);

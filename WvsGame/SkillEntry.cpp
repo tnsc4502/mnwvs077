@@ -26,6 +26,16 @@ void SkillEntry::AddLevelData(SkillLevelData * pLevelData)
 	//m_aLevelData.push_back(pLevelData);
 }
 
+void SkillEntry::AddRequiredSkill(const std::pair<int, int>& prReqSkill)
+{
+	m_aReqSkill.push_back(prReqSkill);
+}
+
+const std::vector<std::pair<int, int>>& SkillEntry::GetRequiredSkill() const
+{
+	return m_aReqSkill;
+}
+
 const SkillLevelData * SkillEntry::GetLevelData(int nLevel) const
 {
 	if (nLevel < 0)

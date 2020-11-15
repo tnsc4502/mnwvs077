@@ -15,13 +15,10 @@
 
 BasicStat::BasicStat()
 {
-	m_bOption = AllocObj( BasicStatRateOption );
 }
-
 
 BasicStat::~BasicStat()
 {
-	FreeObj( m_bOption );
 }
 
 void BasicStat::SetPermanentSkillStat(GA_Character * pChar)

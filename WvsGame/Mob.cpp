@@ -634,7 +634,7 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur)
 			m_pStat->tPoison_ = pLevel->m_nTime + tCur;
 			m_pStat->rPoison_ = MagicSkills::Adv_Magic_FP_PoisonMist;
 			m_tLastUpdatePoison = tCur;
-			SendMobTemporaryStatSet(MobStat::MS_Poison, tCur);
+			SendMobTemporaryStatSet(MobStat::MS_Poison, 0);
 		}
 	}
 }
@@ -708,7 +708,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 		case MagicSkills::Magic_FP_PoisonBreath:
 		case MagicSkills::Adv_Magic_FP_ElementComposition:
 			if (GetMobTemplate()->m_bIsBoss ||
-				(m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2))
+				(m_pStat->aDamagedElemAttr[4] >= 1 && m_pStat->aDamagedElemAttr[4] <= 2))
 				return;
 
 			if (m_pStat->nPoison_ > 0 &&
@@ -718,7 +718,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 				memcpy(m_pStat->aDamagedElemAttr, GetMobTemplate()->m_aDamagedElemAttr, sizeof(int) * 8);
 				CLEAR_MOB_STAT(Doom);
 			}
-			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			REGISTER_MOB_STAT_BY_USER(Poison, (std::max(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
 			m_pStat->rPoison_ = nSkillID;
 			m_tLastUpdatePoison = tCur;
 			break;
@@ -1354,8 +1354,9 @@ void Mob::UpdateMobStatChange(unsigned int tCur, int nVal, unsigned int tVal, un
 	unsigned int tTime = tCur;
 	if (nVal > 0)
 	{
-		if (tTime < tVal)
-			tTime = tVal;
+		if (tTime <= tVal)
+			tVal = tTime;
+
 		int nTimes = (tTime - nLastUpdateTime) / 1000;
 		int nDamage = nVal;
 		if (m_pMobTemplate->m_nFixedDamage)

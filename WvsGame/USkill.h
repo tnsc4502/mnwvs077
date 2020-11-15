@@ -17,7 +17,7 @@ public:
 	static void OnSkillUseRequest(User* pUser, InPacket *iPacket, const SkillEntry* pEntry, int nSLV, int nOptionValue, bool bResetBySkill, bool bForceSetTime, unsigned int nForceSetTime);
 	static void OnSkillUseRequest(User* pUser, InPacket *iPacket);
 	static void OnSkillUpRequest(User* pUser, InPacket *iPacket);
-	static void OnSkillUpRequest(User* pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckMasterLevel);
+	static void OnSkillUpRequest(User* pUser, int nSkillID, int nAmount, bool bDecSP, bool bCheckRequiredSkill, bool bCheckMasterLevel);
 
 	static void OnSkillPrepareRequest(User* pUser, InPacket *iPacket);
 	static void OnSkillCancelRequest(User* pUser, InPacket *iPacket);
