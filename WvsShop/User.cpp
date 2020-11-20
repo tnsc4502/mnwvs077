@@ -64,7 +64,6 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 
 User::~User()
 {
-	WvsLogger::LogRaw("Migrated out, encoding Character data to center.\n");
 	OutPacket oPacket;
 	oPacket.Encode2((short)CenterRequestPacketType::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
@@ -73,7 +72,11 @@ User::~User()
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);
 
-	oPacket.Encode1(2); //bGameEnd, Dont decode and save the secondarystat info.
+	oPacket.Encode1(m_bTransferChannel ? 
+		CenterMigrationType::eMigrateOut_TransferChannelFromShop : 
+		CenterMigrationType::eMigrateOut_ClientDisconnected
+	);
+
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 
 	m_pUpdateTimer->Abort();
@@ -116,6 +119,7 @@ void User::OnMigrateOutCashShop()
 	oPacket.Encode4(m_pCharacterData->nCharacterID);
 	oPacket.Encode1(m_nChannelID);
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
+	m_bTransferChannel = true;
 }
 
 void User::ValidateState()

@@ -18,5 +18,10 @@ public:
 	static int ConsumePetSkill(User *pUser, int nItemID, InPacket *iPacket);
 	static int ConsumeStatChange(User *pUser, InPacket *iPacket);
 	static int ConsumeSkillChange(User *pUser, int nItemID, InPacket *iPacket);
+	static int ConsumeSetItemName(User *pUser, InPacket *iPacket);
+	static int ConsumeADBoard(User *pUser, InPacket *iPacket);
+	static int ConsumeItemProtector(User *pUser, InPacket *iPacket);
+	static int ConsumeWeatherItem(User *pUser, int nItemID, InPacket *iPacket);
+	static int ConsumeJukeBox(User *pUser, int nItemID, InPacket *iPacket);
 };
 

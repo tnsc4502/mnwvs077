@@ -1,6 +1,6 @@
-#include "UtilUser.h"
+#include "UserUtil.h"
 
-long UtilUser::m_nEXP[251] =
+long UserUtil::m_nEXP[251] =
 {
 	0, 15, 34, 57, 92, 135, 372, 560, 840, 1242, 1716, 2360, 3216, 4200, 5460, 7050, 8840,
 	11040, 13716, 16680, 20216, 24402, 28980, 34320, 40512, 47216, 54900, 63666, 73080, 83720, 95700, 108480,
@@ -22,7 +22,7 @@ long UtilUser::m_nEXP[251] =
 	1807535693, 1906558648, 2011069705, 2121276324
 };
 
-void UtilUser::LoadEXP()
+void UserUtil::LoadEXP()
 {
 	m_nEXP[1] = 15;
 	m_nEXP[2] = 34;
@@ -60,7 +60,7 @@ void UtilUser::LoadEXP()
 	m_nEXP[250] = 0;
 }
 
-bool UtilUser::IsBeginnerJob(int nJob)
+bool UserUtil::IsBeginnerJob(int nJob)
 {
 	if (nJob > 5000)
 	{
@@ -76,7 +76,7 @@ bool UtilUser::IsBeginnerJob(int nJob)
 	return 1;
 }
 
-int UtilUser::GetJobLevel(int nJob)
+int UserUtil::GetJobLevel(int nJob)
 {
 	int nJobLevel = 0, nJobSubType = 0;
 
@@ -92,7 +92,7 @@ int UtilUser::GetJobLevel(int nJob)
 	return nJobLevel;
 }
 
-bool UtilUser::IsAdventurerWarrior(int nJob)
+bool UserUtil::IsAdventurerWarrior(int nJob)
 {
 	return nJob == 100
 		|| nJob == 110
@@ -106,7 +106,7 @@ bool UtilUser::IsAdventurerWarrior(int nJob)
 		|| nJob == 132;
 }
 
-bool UtilUser::IsAdventurerMagic(int nJob)
+bool UserUtil::IsAdventurerMagic(int nJob)
 {
 	return nJob == 200
 		|| nJob == 210
@@ -120,7 +120,7 @@ bool UtilUser::IsAdventurerMagic(int nJob)
 		|| nJob == 232;
 }
 
-bool UtilUser::IsAdventurerArcher(int nJob)
+bool UserUtil::IsAdventurerArcher(int nJob)
 {
 	return nJob == 300 
 		|| nJob == 310 
@@ -131,7 +131,7 @@ bool UtilUser::IsAdventurerArcher(int nJob)
 		|| nJob == 322;
 }
 
-bool UtilUser::IsAdventurerThief(int nJob)
+bool UserUtil::IsAdventurerThief(int nJob)
 {
 	return nJob == 400
 		|| nJob == 420
@@ -142,7 +142,7 @@ bool UtilUser::IsAdventurerThief(int nJob)
 		|| nJob == 412;
 }
 
-bool UtilUser::IsAdventurerPirate(int nJob)
+bool UserUtil::IsAdventurerPirate(int nJob)
 {
 	return (nJob == 500
 		|| nJob == 510

@@ -465,13 +465,16 @@
     <ClInclude Include="ShopPacketTypes.hpp">
       <Filter>WvsGame\Network</Filter>
     </ClInclude>
-    <ClInclude Include="UtilUser.h">
-      <Filter>WvsGame\InGame\User</Filter>
-    </ClInclude>
     <ClInclude Include="PetTemplate.h">
       <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
     </ClInclude>
     <ClInclude Include="PetSkillChangeItem.h">
+      <Filter>WvsGame\InGame\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="UserUtil.h">
+      <Filter>WvsGame\InGame\User</Filter>
+    </ClInclude>
+    <ClInclude Include="StateChangingWeatherItem.h">
       <Filter>WvsGame\InGame\Item</Filter>
     </ClInclude>
   </ItemGroup>
@@ -726,11 +729,11 @@
     <ClCompile Include="AttackInfo.cpp">
       <Filter>WvsGame\InGame\Skill</Filter>
     </ClCompile>
-    <ClCompile Include="UtilUser.cpp">
-      <Filter>WvsGame\InGame\User</Filter>
-    </ClCompile>
     <ClCompile Include="PetTemplate.cpp">
       <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
+    </ClCompile>
+    <ClCompile Include="UserUtil.cpp">
+      <Filter>WvsGame\InGame\User</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

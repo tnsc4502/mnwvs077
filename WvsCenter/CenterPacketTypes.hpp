@@ -1,6 +1,13 @@
 #pragma once
 #include "..\WvsLib\Net\PacketTypes.hpp"
 
+enum CenterMigrationType
+{
+	eMigrateOut_ClientDisconnected = 0x00,
+	eMigrateOut_TransferChannelFromGame,
+	eMigrateOut_TransferChannelFromShop
+};
+
 enum CenterCashItemRequestType
 {
 	eLoadCashItemLockerRequest,

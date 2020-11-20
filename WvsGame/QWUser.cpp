@@ -15,14 +15,14 @@ bool QWUser::TryProcessLevelUp(User *pUser, int nInc, int & refReachMaxLvl)
 	auto& ref = pUser->GetCharacterData()->mStat->nExp;
 	ref += nInc;
 	if (pUser->GetCharacterData()->mLevel->nLevel < 200 &&
-		ref >= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
+		ref >= UserUtil::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
 	{
-		ref -= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel];
+		ref -= UserUtil::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel];
 		++pUser->GetCharacterData()->mLevel->nLevel;
 		
 		//Could only increase one level no matter how many EXPs are earned.
-		if (ref >= UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
-			ref = UtilUser::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel] - 1;
+		if (ref >= UserUtil::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel])
+			ref = UserUtil::m_nEXP[pUser->GetCharacterData()->mLevel->nLevel] - 1;
 
 		if (pUser->GetCharacterData()->mLevel->nLevel >= 200)
 			refReachMaxLvl = 1;
@@ -72,16 +72,16 @@ long long int QWUser::CanStatChange(User * pUser, int nInc, int nDec)
 		int nHPBound = 0;
 		if(!nJob == 0)
 			nHPBound = 12 * GetLevel(pUser) + 38;
-		else if (UtilUser::IsAdventurerWarrior(nJob)) 
+		else if (UserUtil::IsAdventurerWarrior(nJob)) 
 		{
 			if (nJob >= 110 && nJob <= 112)
 				nHPBound = 24 * GetLevel(pUser) + 418;
 			else
 				nHPBound = 24 * GetLevel(pUser) + 118;
 		}
-		if (UtilUser::IsAdventurerMagic(nJob))
+		if (UserUtil::IsAdventurerMagic(nJob))
 			nHPBound = 10 * GetLevel(pUser) + 54;
-		if (UtilUser::IsAdventurerArcher(nJob) || UtilUser::IsAdventurerThief(nJob))
+		if (UserUtil::IsAdventurerArcher(nJob) || UserUtil::IsAdventurerThief(nJob))
 			nHPBound = 20 * GetLevel(pUser) + ((nJob % 10 == 0) ? 54 : 358);
 
 		if (nHPBound > IncMaxHPVal(pUser, 0, nDec) + pUser->GetCharacterData()->mStat->nMaxHP)
@@ -92,16 +92,16 @@ long long int QWUser::CanStatChange(User * pUser, int nInc, int nDec)
 		int nMPBound = 0;
 		if (!nJob == 0)
 			nMPBound = 10 * GetLevel(pUser) - 5;
-		else if (UtilUser::IsAdventurerWarrior(nJob))
+		else if (UserUtil::IsAdventurerWarrior(nJob))
 		{
 			if (nJob >= 110 && nJob <= 112)
 				nMPBound = 4 * GetLevel(pUser) + 55;
 			else
 				nMPBound = 4 * GetLevel(pUser) + 115;
 		}
-		if (UtilUser::IsAdventurerMagic(nJob))
+		if (UserUtil::IsAdventurerMagic(nJob))
 			nMPBound = 22 * GetLevel(pUser) + ((nJob % 10 == 0) ? -1 : 449);
-		if (UtilUser::IsAdventurerArcher(nJob) || UtilUser::IsAdventurerThief(nJob))
+		if (UserUtil::IsAdventurerArcher(nJob) || UserUtil::IsAdventurerThief(nJob))
 			nMPBound = 14 * GetLevel(pUser) + ((nJob % 10 == 0) ? -15 : 135);
 
 		if (nMPBound > IncMaxMPVal(pUser, 0, nDec) + pUser->GetCharacterData()->mStat->nMaxMP)
@@ -357,7 +357,7 @@ long long int QWUser::IncEXP(User *pUser, int nInc, bool bOnlyFull)
 		if(QWUser::GetJob(pUser) != 0)
 			nRet |= IncSP(
 				pUser,
-				UtilUser::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),
+				UserUtil::GetJobLevel(pUser->GetCharacterData()->mStat->nJob),
 				3,
 				false);
 		pUser->OnLevelUp();

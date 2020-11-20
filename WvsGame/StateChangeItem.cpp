@@ -162,8 +162,11 @@ TemporaryStat::TS_Flag StateChangeItem::Apply(User *pUser, unsigned int tCur, bo
 		}
 	}
 	
-	pUser->SendTemporaryStatReset(retTSFlag);
-	pUser->SendTemporaryStatSet(retTSFlag, 0);
+	if (!bForcedSetTime)
+	{
+		pUser->SendTemporaryStatReset(retTSFlag);
+		pUser->SendTemporaryStatSet(retTSFlag, 0);
+	}
 	pUser->SendCharacterStat(true, liFlag);
 	pUser->ValidateStat();
 	return retTSFlag;

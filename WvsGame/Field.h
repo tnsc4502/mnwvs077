@@ -65,21 +65,17 @@ protected:
 	AffectedAreaPool* m_pAffectedAreaPool;
 
 	std::string m_sStreetName, 
-				m_sMapName, 
-				m_sWeatherMsg; //商城心情道具訊息?
-
-	int m_nWeatherItemID, //商城心情道具物品ID?
-		m_nJukeBoxItemID; //Juke Box?
+				m_sMapName;
 
 	double m_dIncRate_EXP = 1.0, 
 		   m_dRecoveryRate = 1.0,
 		   m_dIncRate_Drop = 1.0,
-			m_dMobRate = 1.0; //加倍?
+			m_dMobRate = 1.0;
 
-	bool m_bCloud, 
-		 m_bTown, 
-		 m_bSwim, 
-		 m_bFly;
+	bool m_bCloud,
+		m_bTown,
+		m_bSwim,
+		m_bFly;
 
 	int m_nReturnMap,
 		m_nForcedReturn,
@@ -92,13 +88,30 @@ protected:
 		m_nFixedMobCapacity;
 
 	unsigned int m_tLastStatChangeByField = 0;
+
 	std::string m_strFirstUserEnter, 
 				m_strUserEnter;
+
+	//Weather & JukeBox
+	int m_nWeatherItemID = 0,
+		m_nJukeBoxItemID = 0,
+		m_nJBCharacterID = 0;
+
+	unsigned int
+		m_tWeatherBegin = 0,
+		m_tJukeBoxEnd = 0;
+
+	bool m_bWeatherByAdmin = false;
+
+	std::string 
+		m_sWeatherMsg,
+		m_sJBCharacterName;
 
 public:
 	Field(void *pData, int nFieldID);
 	~Field();
 
+	//GET/SET
 	void SetCould(bool cloud);
 	bool IsCloud() const;
 	void SetTown(bool town);
@@ -138,48 +151,58 @@ public:
 	void SetFieldSet(FieldSet *pFieldSet);
 	FieldSet *GetFieldSet();
 
+	//Pools
 	void InitLifePool();
 	LifePool *GetLifePool();
 	DropPool *GetDropPool();
-
-	virtual void OnEnter(User *pUser);
-	virtual void OnLeave(User *pUser);
-
-	//發送oPacket給該地圖的其他User，其中pExcept是例外對象
-	void SplitSendPacket(OutPacket* oPacket, User* pExcept);
-	void BroadcastPacket(OutPacket* oPacket);
-	void BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID);
-	void RegisterFieldObj(FieldObj *pNew, OutPacket *oPacketEnter);
-
-	void OnMobMove(User* pCtrl, Mob* pMob, InPacket* iPacket);
-	virtual void OnPacket(User* pUser, InPacket* iPacket);
-	void OnUserMove(User* pUser, InPacket *iPacket);
-
 	PortalMap* GetPortalMap();
 	TownPortalPool* GetTownPortalPool();
 	ReactorPool* GetReactorPool();
 	SummonedPool* GetSummonedPool();
-	std::recursive_mutex& GetFieldLock();
 	WvsPhysicalSpace2D* GetSpace2D();
 	AffectedAreaPool* GetAffectedAreaPool();
-	const std::map<int, User*>& GetUsers();
 
-	virtual void AddCP(int nLastDamageCharacterID, int nAddCP);
+	//Field fundamental
+	virtual void OnEnter(User *pUser);
+	virtual void OnLeave(User *pUser);
+	void SplitSendPacket(OutPacket* oPacket, User* pExcept);
+	void BroadcastPacket(OutPacket* oPacket);
+	void BroadcastPacket(OutPacket* oPacket, std::vector<int>& anCharacterID);
+	void RegisterFieldObj(FieldObj *pNew, OutPacket *oPacketEnter);
+	std::recursive_mutex& GetFieldLock();
+
+	//Users & Mobs
+	virtual void OnPacket(User* pUser, InPacket* iPacket);
+	void OnMobMove(User* pCtrl, Mob* pMob, InPacket* iPacket);
+	void OnUserMove(User* pUser, InPacket *iPacket);
+	const std::map<int, User*>& GetUsers();
 	void TransferAll(int nFieldID, const std::string& sPortal);
+
+	//Party Quest Helpers
 	void LoadAreaRect(void *pData);
 	int CountFemaleInArea(const std::string& sArea);
 	int CountMaleInArea(const std::string& sArea);
 	int CountUserInArea(const std::string& sArea);
+
+	//Effects
 	void EffectScreen(const std::string& sEffect);
 	void EffectScreen(const std::string& sEffect, std::vector<int>& anCharacterID);
 	void EffectSound(const std::string& sEffect);
 	void EffectSound(const std::string& sEffect, std::vector<int>& anCharacterID);
 	void EffectObject(const std::string& sEffect);
 	void EnablePortal(const std::string& sPortal, bool bEnable);
+
+	//Weather & JukeBox
+	void OnWeather(int nItemID, const std::string& sUserName, const std::string& sMsg);
+	void OnJukeBox(int nItemID, unsigned int tDuration, User *pUser);
+	void EncodeWeather(OutPacket *oPacket);
+	void EncodeJukeBox(OutPacket *oPacket);
+
+	//Events
 	void OnContiMoveState(User *pUser, InPacket *iPacket);
 	bool OnSitRequest(User *pUser, int nSeatID);
-
 	virtual void OnReactorDestroyed(Reactor *pReactor);
+	virtual void AddCP(int nLastDamageCharacterID, int nAddCP);
 	void CheckReactorAction(const std::string& sReactorName, unsigned tEventTime);
 	virtual void Reset(bool bShuffleReactor);
 	virtual void OnStatChangeByField(unsigned int tCur);

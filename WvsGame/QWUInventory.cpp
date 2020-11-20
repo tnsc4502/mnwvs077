@@ -41,8 +41,12 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 		//Drop out the item from inventory.
 		if (nPOS2 == 0 && pUser->GetField())
 		{
+			auto pItem = pCharacterData->GetItem(nTI, nPOS1);
+			if (!pItem || pItem->IsProtectedItem())
+				return 0;
+
 			ZSharedPtr<GW_ItemSlotBase> pItemCopyed = nullptr;
-			InventoryManipulator::RawRemoveItem(pCharacterData, nTI, nPOS1, nCount, &aChangeLog, &nMovedCount, &pItemCopyed);
+			QWUInventory::RemoveItem(pUser, pItem, 1, true, true, &pItemCopyed);
 			if (pItemCopyed)
 			{
 				auto zpReward = MakeUnique<Reward>();
@@ -74,10 +78,8 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 
 			//Equip
 			if (nTI == GW_ItemSlotBase::EQUIP || 
-				ItemInfo::IsRechargable(pItemDst->nItemID) || 
-				ItemInfo::IsRechargable(pItemSrc->nItemID) ||
-				pItemSrc->liExpireDate != -1 ||
-				pItemDst->liExpireDate != -1)
+				(!pItemSrc || ItemInfo::IsRechargable(pItemSrc->nItemID) || pItemSrc->liExpireDate != -1) ||
+				(!pItemDst || ItemInfo::IsRechargable(pItemDst->nItemID) || pItemDst->liExpireDate != -1))
 				InventoryManipulator::SwapSlot(pCharacterData, aChangeLog, nTI, nPOS1, nPOS2);
 			else
 			{
@@ -110,10 +112,10 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 			auto pItemDst = pCharacterData->GetItem(nTI, nPOS2);
 			if (nTI == 1)
 			{
-				if (pItemSrc->nAttribute & ItemInfo::ItemAttribute::eTradeBlockAfterEquip) 
+				if (pItemSrc->nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_BlockTradeOnEquipped)
 				{
-					pItemSrc->nAttribute &= (~ItemInfo::ItemAttribute::eTradeBlockAfterEquip);
-					pItemSrc->nAttribute |= (ItemInfo::ItemAttribute::eUntradable);
+					pItemSrc->nAttribute &= (~GW_ItemSlotBase::ItemAttribute::eItemAttr_BlockTradeOnEquipped);
+					pItemSrc->nAttribute |= (GW_ItemSlotBase::ItemAttribute::eItemAttr_Untradable);
 					InventoryManipulator::InsertChangeLog(aChangeLog, InventoryManipulator::Change_RemoveFromSlot, nTI, nPOS1, nullptr, nPOS2, 1);
 					InventoryManipulator::InsertChangeLog(aChangeLog, InventoryManipulator::Change_AddToSlot, nTI, nPOS1, pItemSrc, nPOS2, 1);
 				}
@@ -213,7 +215,7 @@ bool QWUInventory::RawRemoveItem(User * pUser, int nTI, int nPOS, int nCount, st
 	return false;
 }
 
-int QWUInventory::RemoveItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount, bool bSendInventoryOperation, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved)
+int QWUInventory::RemoveItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, int nCount, bool bSendInventoryOperation, bool bOnExclResult, ZSharedPtr<GW_ItemSlotBase>* ppItemRemoved)
 {
 	std::vector<InventoryManipulator::ChangeLog> aChange;
 	int nDec = 0;
@@ -222,7 +224,7 @@ int QWUInventory::RemoveItem(User * pUser, ZSharedPtr<GW_ItemSlotBase>& pItem, i
 	);
 
 	if (bSendInventoryOperation)
-		SendInventoryOperation(pUser, false, aChange);
+		SendInventoryOperation(pUser, bOnExclResult, aChange);
 
 	return nDec;
 }
@@ -604,7 +606,7 @@ int QWUInventory::GetItemCount(User * pUser, int nItemID, bool bProtected)
 	for (auto& prItem : mSlot)
 	{
 		pItem = prItem.second;
-		if (pItem->nItemID == nItemID /*|| bProtected == ?*/)
+		if (pItem->nItemID == nItemID && (bProtected || !pItem->IsProtectedItem()))
 		{
 			if (pItem->nType == GW_ItemSlotBase::EQUIP || pItem->nType == GW_ItemSlotBase::CASH)
 				nResult += (pUser->GetCharacterData()->GetTradingCount(pItem->nType, pItem->nPOS) == 0 ? 1 : 0);

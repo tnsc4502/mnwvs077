@@ -293,7 +293,7 @@ int ScriptUser::TargetIncSP(lua_State * L)
 	auto liFlag = QWUser::IncSP(
 		self->m_pUser, 
 		(nJobLevel != -1 ? nJobLevel : 
-			UtilUser::GetJobLevel(
+			UserUtil::GetJobLevel(
 				self->m_pUser->GetCharacterData()->mStat->nJob
 			)
 		),

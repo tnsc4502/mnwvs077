@@ -55,7 +55,7 @@ bool QWUSkillRecord::SkillUp(User * pUser, int nSkillID, int nAmount, bool bDecS
 		((nJob < 10000 && (nJob / 100 == nSkillJob / 100)) ||
 		(nJob / 1000 == nSkillJob / 1000)))
 	{
-		int nSkillRootLevel = UtilUser::GetJobLevel(nSkillJob);
+		int nSkillRootLevel = UserUtil::GetJobLevel(nSkillJob);
 		if (/*nSkillRootLevel >= 0 &&
 			nSkillRootLevel < GW_CharacterStat::EXTEND_SP_SIZE &&*/
 			(!bDecSP || pUser->GetCharacterData()->mStat->aSP[0] >= nAmount))
@@ -226,11 +226,11 @@ bool QWUSkillRecord::IsValidSkill(User *pUser, void* pmNewSkillRecord, int nItem
 	for (auto& prRecord : mNewSkillRecord)
 	{
 		auto& pSkillRecord = prRecord.second;
-		nSP[UtilUser::GetJobLevel(pSkillRecord->nSkillID / 10000) - 1] += pSkillRecord->nSLV;
+		nSP[UserUtil::GetJobLevel(pSkillRecord->nSkillID / 10000) - 1] += pSkillRecord->nSLV;
 	}
 
 	int nJob = QWUser::GetJob(pUser);
-	int nJobLevel = UtilUser::GetJobLevel(nJob);
+	int nJobLevel = UserUtil::GetJobLevel(nJob);
 	int nSPChekc =
 		nSP[0]
 		+ nSP[1]
@@ -261,7 +261,7 @@ bool QWUSkillRecord::IsValidSkill(User *pUser, void* pmNewSkillRecord, int nItem
 		}
 	}
 	
-	if (nItemLevel != UtilUser::GetJobLevel(nSkillRoot))
+	if (nItemLevel != UserUtil::GetJobLevel(nSkillRoot))
 	{
 		if (nItemLevel == 2)
 			return nSP[0] - nSPChekc >= 0;
@@ -282,13 +282,13 @@ bool QWUSkillRecord::CanSkillChange(User * pUser, int nIncSkillID, int nDecSkill
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	int nJob = QWUser::GetJob(pUser);
 
-	if ((nJob / 100) < 1 || (nJob / 100) > 5 || UtilUser::GetJobLevel(nJob) < nItemLevel)
+	if ((nJob / 100) < 1 || (nJob / 100) > 5 || UserUtil::GetJobLevel(nJob) < nItemLevel)
 		return false;
 
 	int nIncSkillRoot = nIncSkillID / 10000,
 		nDecSkillRoot = nDecSkillID / 10000;
 
-	if (nItemLevel == UtilUser::GetJobLevel(nIncSkillRoot))
+	if (nItemLevel == UserUtil::GetJobLevel(nIncSkillRoot))
 	{
 		std::vector<int> anSkillRoot;
 		GetSkillRootFromJob(nJob, anSkillRoot);

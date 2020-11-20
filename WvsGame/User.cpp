@@ -170,11 +170,11 @@ User::~User()
 	EncodeCharacterDataInternal(&oPacket);
 	if (m_nTransferStatus == TransferStatus::eOnTransferShop || m_nTransferStatus == TransferStatus::eOnTransferChannel) 
 	{
-		oPacket.Encode1(1); //bGameEnd
+		oPacket.Encode1(CenterMigrationType::eMigrateOut_TransferChannelFromGame); //Encode/Decode extra transferstatus info.
 		EncodeInternal(&oPacket);
 	}
 	else
-		oPacket.Encode1(0); //bGameEnd, Dont decode and save the secondarystat info.
+		oPacket.Encode1(CenterMigrationType::eMigrateOut_ClientDisconnected);
 	WvsGame::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	GetField()->GetSummonedPool()->RemoveSummoned(GetUserID(), -1, 0);
 	LeaveField();
@@ -264,8 +264,9 @@ void User::MakeEnterFieldPacket(OutPacket *oPacket)
 	//MiniRoom
 	EncodeMiniRoomBalloon(oPacket, m_pMiniRoom == nullptr ? false : m_pMiniRoom->IsOpened());
 
-	//ChatBallon
-	oPacket->Encode1(0);
+	oPacket->Encode1(m_bADBoard);
+	if (m_bADBoard)
+		oPacket->EncodeStr(m_sADBoard);
 
 	EncodeCoupleInfo(oPacket);
 	EncodeFriendshipInfo(oPacket);
@@ -718,6 +719,9 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketType::User_OnPetFoodItemUseRequest:
 			OnPetFoodItemUseRequest(iPacket);
+			break;
+		case UserRecvPacketType::User_OnCloseADBoard:
+			SetADBoard("");
 			break;
 		default:
 			iPacket->RestorePacket();
@@ -1891,7 +1895,7 @@ void User::DecreaseEXP(bool bTown)
 		if (nLevel > 200)
 			liEXP = 0x7FFFFFFF;
 		else
-			liEXP = UtilUser::m_nEXP[nLevel];
+			liEXP = UserUtil::m_nEXP[nLevel];
 		
 		if (bTown)
 			dDecRate = 0.01;
@@ -2557,6 +2561,20 @@ void User::SendPlayPortalSE()
 	SendPacket(&oPacket);
 }
 
+void User::ShowConsumeItemEffect(int nUserID, bool bShow, int nItemID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserCommon_SetConsumeItemEffect);
+	oPacket.Encode4(nUserID);
+	oPacket.Encode4(bShow ? nItemID : 0);
+
+	std::lock_guard<std::recursive_mutex> lock(GetLock());
+	if (nUserID == GetUserID())
+		GetField()->SplitSendPacket(&oPacket, nullptr);
+	else
+		SendPacket(&oPacket);
+}
+
 void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
 {
 	int tTick = iPacket->Decode4();
@@ -2775,8 +2793,10 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 			nResult = UserCashItemImpl::ConsumeSkillChange(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_SetItemName:
+			nResult = UserCashItemImpl::ConsumeSetItemName(this, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_ItemProtector:
+			nResult = UserCashItemImpl::ConsumeItemProtector(this, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_Incubator:
 			break;
@@ -2788,6 +2808,7 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		case ItemInfo::CashItemType::CashItemType_MapTransfer:
 			break;
 		case ItemInfo::CashItemType::CashItemType_ADBoard:
+			nResult = UserCashItemImpl::ConsumeADBoard(this, iPacket);
 			break;
 		
 		//Skip MapleTVs (which do not exist in TW ver.) impl.
@@ -2812,25 +2833,20 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 			nResult = UserCashItemImpl::ConsumeSpeakerWorld(this, nType, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_Weather:
+			nResult = UserCashItemImpl::ConsumeWeatherItem(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_JukeBox:
+			nResult = UserCashItemImpl::ConsumeJukeBox(this, nItemID, iPacket);
 			break;
 	}
 	if (nResult)
 	{
-		int nDecCount = 0;
-		std::vector<InventoryManipulator::ChangeLog> aLog;
-		bool bRemove = QWUInventory::RawRemoveItem(
-			this, GW_ItemSlotBase::CASH, nPOS, 1, &aLog, nDecCount, nullptr
-		);
-		if (!bRemove)
+		if (QWUInventory::RemoveItem(this, pItem, 1, true, true) != 1)
 		{
 			SendNoticeMessage(GET_STRING(GameSrv_User_Invalid_ConsumeItem_Usage));
 			//Log to files or send some packets to the Center.
 		}
-		QWUInventory::SendInventoryOperation(
-			this, true, aLog
-		);
+		FlushCharacterData();
 	}
 	else
 		goto INVALID_CONSUME_CASHITEM;
@@ -2872,6 +2888,20 @@ void User::OnCenterCashItemResult(InPacket* iPacket)
 			break;
 		}
 	}
+}
+
+void User::SetADBoard(const std::string & sADBoard)
+{
+	m_sADBoard = sADBoard;
+	m_bADBoard = m_sADBoard != "";
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserCommon_OnADBoard);
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(m_bADBoard);
+	oPacket.EncodeStr(m_sADBoard);
+
+	SendPacket(&oPacket);
 }
 
 void User::OnMigrateOut()

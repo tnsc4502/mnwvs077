@@ -78,6 +78,7 @@ class User
 	};
 
 	int m_nChannelID, m_nNexonCash = 0, m_nMaplePoint = 0;
+	bool m_bTransferChannel = false;
 	ClientSocket *m_pSocket;
 	ZUniquePtr<GA_Character> m_pCharacterData;
 	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;

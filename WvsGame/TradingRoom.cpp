@@ -65,7 +65,8 @@ void TradingRoom::OnPutItem(User *pUser, InPacket *iPacket)
 	if (pItem)
 	{
 		if (ItemInfo::GetInstance()->IsTradeBlockItem(pItem->nItemID)
-			|| ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID))
+			|| ItemInfo::GetInstance()->IsQuestItem(pItem->nItemID)
+			|| pItem->IsProtectedItem())
 		{
 			pUser->SendNoticeMessage("無法交易的物品。");
 			pUser->SendCharacterStat(true, 0);

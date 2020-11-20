@@ -110,12 +110,12 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 		case CenterRequestPacketType::RequestMigrateOut:
 			OnRequestMigrateOut(iPacket);
 			break;
-		case CenterRequestPacketType::RequestTransferChannel:
-			OnRequestTransferChannel(iPacket);
-			break;
 		case CenterRequestPacketType::RequestTransferShop:
-			OnRequestMigrateCashShop(iPacket);
+		case CenterRequestPacketType::RequestTransferChannel:
+			OnRequestTransferChannel(iPacket, nType == CenterRequestPacketType::RequestTransferShop);
 			break;
+			//OnRequestMigrateCashShop(iPacket);
+			//break;
 		case CenterRequestPacketType::PartyRequest:
 			OnPartyRequest(iPacket);
 			break;
@@ -443,72 +443,49 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 
 	CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
 	char nGameEndType = iPacket->Decode1();
-	WvsLogger::LogFormat("OnRequestMigrateOut code = %d\n", (int)nGameEndType);
 
-	if (nGameEndType == 1) //Transfer to another game server or to the shop.
+	if (nGameEndType == CenterMigrationType::eMigrateOut_TransferChannelFromGame) //Transfer to another game server or to the shop.
 	{
 		UserTransferStatus* pStatus = AllocObj( UserTransferStatus );
 		pStatus->Decode(iPacket);
 		WvsWorld::GetInstance()->SetUserTransferStatus(nCharacterID, pStatus);
 		WvsWorld::GetInstance()->SetUserTransfering(nCharacterID, true);
 	}
-	else if (nGameEndType == 0) //Migrate out from the game server.
+	else if (nGameEndType == CenterMigrationType::eMigrateOut_ClientDisconnected) //Migrate out from the game server.
 	{
 		WvsWorld::GetInstance()->ClearUserTransferStatus(nCharacterID);
 		WvsWorld::GetInstance()->RemoveUser(nCharacterID, nChannelID, nClientSocketID, false);
 	}
-	// nGameEndType = 2 : From shop to game server
 }
 
-void LocalServer::OnRequestTransferChannel(InPacket * iPacket)
+void LocalServer::OnRequestTransferChannel(InPacket * iPacket, bool bShop)
 {
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
-	int nChannelID = iPacket->Decode1();
+	int nChannelID = bShop ? WvsWorld::CHANNELID_SHOP : iPacket->Decode1();
 	auto pEntry = WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID);
 	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::TransferChannelResult);
 	oPacket.Encode4(nClientSocketID);
-	oPacket.Encode1((pEntry != nullptr ? 1 : 0)); //bSuccess
-	if (pEntry != nullptr)
+
+	if (pEntry)
 	{
+		oPacket.Encode1(1);
 		oPacket.Encode1(1);
 		oPacket.Encode4(pEntry->GetExternalIP());
 		oPacket.Encode2(pEntry->GetExternalPort());
 		oPacket.Encode4(0);
 	}
-	this->SendPacket(&oPacket);
-
-	if(pUser)
-		pUser->m_nChannelID = nChannelID;
-}
-
-void LocalServer::OnRequestMigrateCashShop(InPacket * iPacket)
-{
-	int nClientSocketID = iPacket->Decode4();
-	int nCharacterID = iPacket->Decode4();
-	auto pUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
-	OutPacket oPacket;
-	oPacket.Encode2(CenterResultPacketType::MigrateCashShopResult);
-	oPacket.Encode4(nClientSocketID);
-	auto pEntry = WvsBase::GetInstance<WvsCenter>()->GetShop();
-	if (WvsBase::GetInstance<WvsCenter>()->GetShop() == nullptr)
-		oPacket.Encode1(0); //bSuccess
 	else
+		oPacket.Encode1(0);
+
+	if (pUser)
 	{
-		oPacket.Encode1(1);
-		oPacket.Encode1(1);
-		oPacket.Encode4(pEntry->GetExternalIP());
-		oPacket.Encode2(pEntry->GetExternalPort());
-		oPacket.Encode4(0);
+		pUser->m_nChannelID = nChannelID;
+		pUser->m_bInShop = bShop;
 	}
-	this->SendPacket(&oPacket);
-
-	pUser->m_nChannelID = WvsWorld::CHANNELID_SHOP;
-	pUser->m_bInShop = true;
-
-	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, WvsWorld::CHANNELID_SHOP);
+	SendPacket(&oPacket);
 }
 
 void LocalServer::OnGameClientDisconnected(InPacket *iPacket)

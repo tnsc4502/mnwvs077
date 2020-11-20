@@ -340,6 +340,7 @@
     <ClInclude Include="SkillLearnItem.h" />
     <ClInclude Include="SkillLevelData.h" />
     <ClInclude Include="StateChangeItem.h" />
+    <ClInclude Include="StateChangingWeatherItem.h" />
     <ClInclude Include="StaticFoothold.h" />
     <ClInclude Include="StoreBank.h" />
     <ClInclude Include="Summoned.h" />
@@ -359,8 +360,8 @@
     <ClInclude Include="User.h" />
     <ClInclude Include="UserCashItemImpl.h" />
     <ClInclude Include="UserPacketTypes.hpp" />
+    <ClInclude Include="UserUtil.h" />
     <ClInclude Include="USkill.h" />
-    <ClInclude Include="UtilUser.h" />
     <ClInclude Include="WarriorSkills.h" />
     <ClInclude Include="WvsGame.h" />
     <ClInclude Include="WvsPhysicalSpace2D.h" />
@@ -448,8 +449,8 @@
     <ClCompile Include="UMiniRoom.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="UserCashItemImpl.cpp" />
+    <ClCompile Include="UserUtil.cpp" />
     <ClCompile Include="USkill.cpp" />
-    <ClCompile Include="UtilUser.cpp" />
     <ClCompile Include="WvsGame.cpp" />
     <ClCompile Include="WvsPhysicalSpace2D.cpp" />
   </ItemGroup>

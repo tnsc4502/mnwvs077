@@ -87,7 +87,7 @@ void Npc::OnShopSellItem(User * pUser, InPacket * iPacket)
 			nTI,
 			nPOS
 		);
-		if (pItem == nullptr)
+		if (pItem == nullptr || pItem->IsProtectedItem())
 		{
 			pUser->SendNoticeMessage(GET_STRING(GameSrv_Shop_Invalid_Item));
 			pUser->SendCharacterStat(true, 0);

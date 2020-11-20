@@ -144,7 +144,7 @@ DEFINE_PACKET_TYPE(UserRecvPacketType)
 	REGISTER_TYPE(User_OnUserAttack_BodyAttack, 0x22);
 	REGISTER_TYPE(User_OnHit, 0x23);
 	REGISTER_TYPE(User_OnUserChat, 0x24);
-	REGISTER_TYPE(User_OnCloseChatBallon, 0x25);
+	REGISTER_TYPE(User_OnCloseADBoard, 0x25);
 	REGISTER_TYPE(User_OnEmotion, 0x26);
 	REGISTER_TYPE(User_OnSetActiveEffectItem, 0x27);
 	REGISTER_TYPE(User_OnSelectNpc, 0x2C);

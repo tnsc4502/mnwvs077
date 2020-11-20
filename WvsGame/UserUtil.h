@@ -1,5 +1,5 @@
 #pragma once
-class UtilUser
+class UserUtil
 {
 public:
 	static long m_nEXP[251];

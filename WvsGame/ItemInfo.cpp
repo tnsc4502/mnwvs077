@@ -82,7 +82,10 @@ void ItemInfo::IterateMapString(void *dataNode)
 			if (!isdigit(img.GetName()[0]) || atoi(img.GetName().c_str()) < 1000)
 				IterateMapString((void*)&img);
 			else
-				m_mMapString[atoi(img.GetName().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["mapName"]).c_str());
+			{
+				for (auto& strNode : img)
+					m_mMapString[atoi(img.GetName().c_str())][strNode.GetName()] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)strNode).c_str());
+			}
 		}
 	}
 }
@@ -107,9 +110,11 @@ void ItemInfo::IterateItemString(void *dataNode)
 		{
 			if (!isdigit(img.GetName()[0]) || atoi(img.GetName().c_str()) < 1000)
 				IterateItemString((void*)&img);
-
 			else
-				m_mItemString[atoi(img.GetName().c_str())] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)img["name"]).c_str());
+			{
+				for (auto& strNode : img)
+					m_mItemString[atoi(img.GetName().c_str())][strNode.GetName()] = StringUtility::ConvertUTF8ToSystemEncoding(((std::string)strNode).c_str());
+			}
 		}
 	}
 }
@@ -136,7 +141,7 @@ void ItemInfo::IterateEquipItem(void *dataNode)
 				continue;
 			EquipItem* pNewEquip = AllocObj(EquipItem);
 			pNewEquip->nItemID = nItemID;
-			pNewEquip->sItemName = m_mItemString[nItemID];
+			pNewEquip->sItemName = GetItemName(nItemID);
 			RegisterEquipItemInfo(pNewEquip, nItemID, (void*)&(data));
 			m_mEquipItem[nItemID] = pNewEquip;
 		}
@@ -166,7 +171,7 @@ void ItemInfo::IterateBundleItem()
 					m_mCashItem.insert({ nItemID, AllocObj(CashItem) });
 
 				pNewBundle->nItemID = nItemID;
-				pNewBundle->sItemName = m_mItemString[nItemID];
+				pNewBundle->sItemName = GetItemName(nItemID);
 				pNewBundle->nMaxPerSlot = infoImg["slotMax"];
 				if (!pNewBundle->nMaxPerSlot)
 					pNewBundle->nMaxPerSlot = 100;
@@ -183,7 +188,7 @@ void ItemInfo::IterateBundleItem()
 				else
 					pNewBundle->nMCType = -1;
 
-				pNewBundle->nPAD = infoImg["incPAD"]; //­¸Ãð
+				pNewBundle->nPAD = infoImg["incPAD"]; //bullet
 				m_mBundleItem[nItemID] = pNewBundle;
 				int nItemCategory = nItemID / 10000;
 				void* pProp = (void*)&item;
@@ -251,6 +256,9 @@ void ItemInfo::IterateCashItem()
 			int nType = nItemID / 10000;
 			switch (nType)
 			{
+				case 512:
+					RegisterStateChangingWeatherItem(nItemID, &item);
+					break;
 				case 518:
 					break;
 				case 521:
@@ -435,6 +443,16 @@ void ItemInfo::RegisterPetSkillChangeItem(int nItemID, void * pProp)
 	m_mPetSkillChangeItem.insert({ nItemID, pItem });
 }
 
+void ItemInfo::RegisterStateChangingWeatherItem(int nItemID, void * pProp)
+{
+	auto& infoImg = (*((WzIterator*)pProp))["info"];
+	StateChangingWeatherItem *pItem = AllocObj(StateChangingWeatherItem);
+	pItem->nItemID = nItemID;
+	pItem->nStateChangeItemID = infoImg["stateChangeItem"];
+	pItem->sMsg = GetItemString(nItemID, "msg");
+	m_mStateChangingWeatherItem[nItemID] = pItem;
+}
+
 void ItemInfo::LoadPetSkillChangeInfo(void * pImg, void * pFlag)
 {
 	auto& infoImg = (*((WzIterator*)pImg));
@@ -479,6 +497,12 @@ PetSkillChangeItem * ItemInfo::GetPetSkillChangeItem(int nItemID)
 {
 	auto findIter = m_mPetSkillChangeItem.find(nItemID);
 	return (findIter != m_mPetSkillChangeItem.end() ? findIter->second : nullptr);
+}
+
+StateChangingWeatherItem * ItemInfo::GetStateChangingWeatherItem(int nItemID)
+{
+	auto findIter = m_mStateChangingWeatherItem.find(nItemID);
+	return (findIter != m_mStateChangingWeatherItem.end() ? findIter->second : nullptr);
 }
 
 BundleItem * ItemInfo::GetBundleItem(int nItemID)
@@ -572,13 +596,13 @@ bool ItemInfo::ExpireOnLogout(int nItemID)
 		{
 			auto pItem = GetEquipItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eExpireOnLogout) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_ExpireOnLogout) != 0;
 		}
 		else
 		{
 			auto pItem = GetBundleItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eExpireOnLogout) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_ExpireOnLogout) != 0;
 		}
 	return false;
 }
@@ -603,11 +627,21 @@ long long int ItemInfo::GetItemDateExpire(const std::string & sDate)
 	return (std::mktime(&dt) - lTimeZone) * 10000000 + 116444736000000000;
 }
 
-const std::string & ItemInfo::GetItemName(int nItemID)
+const std::string & ItemInfo::GetItemString(int nItemID, const std::string & sKey)
 {
 	static std::string strEmpty = "";
-	auto findResult = m_mItemString.find(nItemID);
-	return (findResult == m_mItemString.end() ? strEmpty : findResult->second);
+	auto itemResult = m_mItemString.find(nItemID);
+	if (itemResult != m_mItemString.end())
+	{
+		auto strResult = itemResult->second.find(sKey);
+		return (strResult == itemResult->second.end() ? strEmpty : strResult->second);
+	}
+	return strEmpty;
+}
+
+const std::string & ItemInfo::GetItemName(int nItemID)
+{
+	return GetItemString(nItemID, "name");
 }
 
 bool ItemInfo::IsAbleToEquip(int nGender, int nLevel, int nJob, int nSTR, int nDEX, int nINT, int nLUK, int nPOP, GW_ItemSlotBase * pPetItem, int nItemID)
@@ -623,13 +657,13 @@ bool ItemInfo::IsNotSaleItem(int nItemID)
 		{
 			auto pItem = GetEquipItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eNotSale) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_NotSale) != 0;
 		}
 		else
 		{
 			auto pItem = GetBundleItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eNotSale) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_NotSale) != 0;
 		}
 	return false;
 }
@@ -642,13 +676,13 @@ bool ItemInfo::IsOnlyItem(int nItemID)
 		{
 			auto pItem = GetEquipItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eOnly) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_Only) != 0;
 		}
 		else
 		{
 			auto pItem = GetBundleItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eOnly) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_Only) != 0;
 		}
 	return false;
 }
@@ -661,13 +695,13 @@ bool ItemInfo::IsTradeBlockItem(int nItemID)
 		{
 			auto pItem = GetEquipItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eTradeBlock) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_TradeBlock) != 0;
 		}
 		else
 		{
 			auto pItem = GetBundleItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eTradeBlock) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_TradeBlock) != 0;
 		}
 	return false;
 }
@@ -680,13 +714,13 @@ bool ItemInfo::IsQuestItem(int nItemID)
 		{
 			auto pItem = GetEquipItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eQuest) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_Quest) != 0;
 		}
 		else
 		{
 			auto pItem = GetBundleItem(nItemID);
 			if (pItem != nullptr)
-				return (pItem->abilityStat.nAttribute & ItemAttribute::eQuest) != 0;
+				return (pItem->abilityStat.nAttribute & GW_ItemSlotBase::ItemAttribute::eItemAttr_Quest) != 0;
 		}
 	return false;
 }
@@ -1028,19 +1062,19 @@ void ItemInfo::LoadAbilityStat(BasicAbilityStat & refStat, void * pProp)
 {
 	auto& infoImg = (*((WzIterator*)pProp));	
 	refStat.nAttribute = atoi(((std::string)infoImg["bagType"]).c_str());
-	refStat.nAttribute |= atoi(((std::string)infoImg["notSale"]).c_str()) * ItemAttribute::eNotSale;
-	refStat.nAttribute |= atoi(((std::string)infoImg["expireOnLogout"]).c_str()) * ItemAttribute::eExpireOnLogout;
-	refStat.nAttribute |= atoi(((std::string)infoImg["pickUpBlock"]).c_str()) * ItemAttribute::ePickUpBlock;
-	refStat.nAttribute |= atoi(((std::string)infoImg["equipTradeBlock"]).c_str()) * ItemAttribute::eTradeBlockAfterEquip;
-	refStat.nAttribute |= atoi(((std::string)infoImg["only"]).c_str()) * ItemAttribute::eOnly;
-	refStat.nAttribute |= atoi(((std::string)infoImg["accountSharable"]).c_str()) * ItemAttribute::eAccountSharable;
-	refStat.nAttribute |= atoi(((std::string)infoImg["quest"]).c_str()) * ItemAttribute::eQuest;
-	refStat.nAttribute |= atoi(((std::string)infoImg["tradeBlock"]).c_str()) * ItemAttribute::eTradeBlock;
-	refStat.nAttribute |= atoi(((std::string)infoImg["accountShareTag"]).c_str()) * ItemAttribute::eAccountShareTag;
+	refStat.nAttribute |= atoi(((std::string)infoImg["notSale"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_NotSale;
+	refStat.nAttribute |= atoi(((std::string)infoImg["expireOnLogout"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_ExpireOnLogout;
+	refStat.nAttribute |= atoi(((std::string)infoImg["pickUpBlock"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_PickUpBlock;
+	refStat.nAttribute |= atoi(((std::string)infoImg["equipTradeBlock"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_BlockTradeOnEquipped;
+	refStat.nAttribute |= atoi(((std::string)infoImg["only"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_Only;
+	refStat.nAttribute |= atoi(((std::string)infoImg["accountSharable"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_AccountSharable;
+	refStat.nAttribute |= atoi(((std::string)infoImg["quest"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_Quest;
+	refStat.nAttribute |= atoi(((std::string)infoImg["tradeBlock"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_TradeBlock;
+	refStat.nAttribute |= atoi(((std::string)infoImg["accountShareTag"]).c_str()) * GW_ItemSlotBase::ItemAttribute::eItemAttr_AccountShareTag;
 	
 	int nMobHP = atoi(((std::string)infoImg["mobHP"]).c_str());
 	if(nMobHP && nMobHP < 0100)
-		refStat.nAttribute |= ItemAttribute::eMobHP;
+		refStat.nAttribute |= GW_ItemSlotBase::ItemAttribute::eItemAttr_MobHP;
 
 	refStat.bCash = (atoi(((std::string)infoImg["cash"]).c_str())) == 1;
 	refStat.bTimeLimited = (atoi(((std::string)infoImg["timeLimited"]).c_str())) == 1;

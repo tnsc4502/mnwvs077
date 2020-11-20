@@ -10,9 +10,12 @@ Implementations of cash item usages.
 #include "QWUSkillRecord.h"
 #include "WvsGame.h"
 #include "ItemInfo.h"
+#include "Field.h"
 
 #include "..\Database\GW_ItemSlotPet.h"
+#include "..\Database\GW_ItemSlotEquip.h"
 #include "..\Database\GA_Character.hpp"
+
 #include "..\WvsLib\String\StringPool.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -158,4 +161,70 @@ int UserCashItemImpl::ConsumeSkillChange(User * pUser, int nItemID, InPacket *iP
 		return 1;
 	}
 	return 0;
+}
+
+int UserCashItemImpl::ConsumeSetItemName(User * pUser, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+
+	short nPOS = iPacket->Decode1();
+	auto pItem = pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::EQUIP, nPOS);
+	if (pItem && !pItem->bIsCash && ((GW_ItemSlotEquip*)pItem)->sTitle == "")
+	{
+		((GW_ItemSlotEquip*)pItem)->sTitle = pUser->GetName();
+		std::vector<InventoryManipulator::ChangeLog> aChange;
+		InventoryManipulator::InsertChangeLog(aChange, InventoryManipulator::ChangeType::Change_RemoveFromSlot, GW_ItemSlotBase::EQUIP, nPOS, pItem, 0, 0);
+		InventoryManipulator::InsertChangeLog(aChange, InventoryManipulator::ChangeType::Change_AddToSlot, GW_ItemSlotBase::EQUIP, nPOS, pItem, 0, 0);
+		QWUInventory::SendInventoryOperation(pUser, true, aChange);
+
+		return 1;
+	}
+	return 0;
+}
+
+int UserCashItemImpl::ConsumeADBoard(User * pUser, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	if (!pUser->GetMiniRoom())
+	{
+		std::string sADBoard = iPacket->DecodeStr();
+		if (sADBoard.size() <= 128)
+			pUser->SetADBoard(sADBoard);
+	}
+	//Always return 0 (the item won't get removed until it expires).
+	return 0;
+}
+
+int UserCashItemImpl::ConsumeItemProtector(User * pUser, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	int nTI = iPacket->Decode4();
+	int nPOS = iPacket->Decode4();
+	
+	auto pItem = pUser->GetCharacterData()->GetItem(nTI, nPOS);
+	if (pItem && !pItem->IsProtectedItem())
+	{
+		pItem->nAttribute |= GW_ItemSlotBase::ItemAttribute::eItemAttr_Protected;
+		std::vector<InventoryManipulator::ChangeLog> aChange;
+		InventoryManipulator::InsertChangeLog(aChange, InventoryManipulator::ChangeType::Change_RemoveFromSlot, GW_ItemSlotBase::EQUIP, nPOS, pItem, 0, 0);
+		InventoryManipulator::InsertChangeLog(aChange, InventoryManipulator::ChangeType::Change_AddToSlot, GW_ItemSlotBase::EQUIP, nPOS, pItem, 0, 0);
+		QWUInventory::SendInventoryOperation(pUser, true, aChange);
+
+		return 1;
+	}
+	return 0;
+}
+
+int UserCashItemImpl::ConsumeWeatherItem(User * pUser, int nItemID, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	pUser->GetField()->OnWeather(nItemID, pUser->GetName(), iPacket->DecodeStr());
+	return 1;
+}
+
+int UserCashItemImpl::ConsumeJukeBox(User * pUser, int nItemID, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
+	pUser->GetField()->OnJukeBox(nItemID, iPacket->Decode4(), pUser);
+	return 1;
 }

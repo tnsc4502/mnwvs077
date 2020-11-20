@@ -1,18 +1,5 @@
 #include "Field.h"
 #include "LifePool.h"
-#include "..\WvsGame\UserPacketTypes.hpp"
-#include "..\WvsGame\ReactorPacketTypes.hpp"
-#include "..\WvsGame\MobPacketTypes.hpp"
-#include "..\WvsGame\NpcPacketTypes.hpp"
-#include "..\WvsGame\FieldPacketTypes.hpp"
-#include "..\WvsLib\Net\InPacket.h"
-#include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsLib\DateTime\GameDateTime.h"
-#include "..\WvsLib\Logger\WvsLogger.h"
-#include "..\WvsLib\Task\AsyncScheduler.h"
-#include "..\WvsLib\Wz\WzResMan.hpp"
-#include "..\Database\GA_Character.hpp"
-#include "..\Database\GW_CharacterStat.h"
 #include "Mob.h"
 #include "MovePath.h"
 #include "PortalMap.h"
@@ -29,7 +16,23 @@
 #include "AffectedAreaPool.h"
 #include "QWUser.h"
 #include "SecondaryStat.h"
+#include "ItemInfo.h"
+
+#include "..\WvsGame\UserPacketTypes.hpp"
+#include "..\WvsGame\ReactorPacketTypes.hpp"
+#include "..\WvsGame\MobPacketTypes.hpp"
+#include "..\WvsGame\NpcPacketTypes.hpp"
+#include "..\WvsGame\FieldPacketTypes.hpp"
+#include "..\WvsLib\Net\InPacket.h"
+#include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Logger\WvsLogger.h"
+#include "..\WvsLib\Task\AsyncScheduler.h"
+#include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
+
+#include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_CharacterStat.h"
 
 #undef min
 #undef max
@@ -355,6 +358,21 @@ void Field::OnEnter(User *pUser)
 	}
 	PartyMan::GetInstance()->NotifyTransferField(pUser->GetUserID(), GetFieldID());
 	m_pSummonedPool->OnEnter(pUser);
+
+	if (m_nWeatherItemID)
+	{
+		OutPacket oPacket;
+		EncodeWeather(&oPacket);
+		pUser->SendPacket(&oPacket);
+	}
+
+	if (m_nJukeBoxItemID)
+	{
+		OutPacket oPacket;
+		EncodeJukeBox(&oPacket);
+		pUser->SendPacket(&oPacket);
+		pUser->ShowConsumeItemEffect(m_nJBCharacterID, true, m_nJukeBoxItemID);
+	}
 }
 
 void Field::OnLeave(User *pUser)
@@ -667,6 +685,59 @@ bool Field::OnSitRequest(User *pUser, int nSeatID)
 	return false;
 }
 
+void Field::OnWeather(int nItemID, const std::string& sUserName, const std::string & sMsg)
+{
+	std::lock_guard<std::recursive_mutex> lock(GetFieldLock());
+	auto tCur = GameDateTime::GetTime();
+	
+	auto pWeatherItem = ItemInfo::GetInstance()->GetStateChangingWeatherItem(nItemID);
+	if (pWeatherItem)
+	{
+		m_nWeatherItemID = nItemID;
+		m_sWeatherMsg = sMsg;
+		m_tWeatherBegin = tCur;
+
+		auto pStateChangeItem = ItemInfo::GetInstance()->GetStateChangeItem(pWeatherItem->nStateChangeItemID);
+		if(pStateChangeItem)
+			for (auto& prUser : m_mUser)
+				pStateChangeItem->Apply(prUser.second, tCur, false);
+
+		OutPacket oPacket;
+		EncodeWeather(&oPacket);
+		BroadcastPacket(&oPacket);
+	}
+}
+
+void Field::OnJukeBox(int nItemID, unsigned int tDuration, User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(GetFieldLock());
+	m_nJukeBoxItemID = nItemID;
+	m_tJukeBoxEnd = GameDateTime::GetTime() + tDuration;
+	m_nJBCharacterID = pUser->GetUserID();
+	m_sJBCharacterName = pUser->GetName();
+
+	OutPacket oPacket;
+	EncodeJukeBox(&oPacket);
+	BroadcastPacket(&oPacket);
+
+	pUser->ShowConsumeItemEffect(pUser->GetUserID(), true, m_nJukeBoxItemID);
+}
+
+void Field::EncodeWeather(OutPacket * oPacket)
+{
+	oPacket->Encode2(FieldSendPacketType::Field_OnBlowWeather);
+	oPacket->Encode1(m_bWeatherByAdmin);
+	oPacket->Encode4(m_nWeatherItemID);
+	oPacket->EncodeStr(m_sWeatherMsg);
+}
+
+void Field::EncodeJukeBox(OutPacket * oPacket)
+{
+	oPacket->Encode2(FieldSendPacketType::Field_OnPlayJukeBox);
+	oPacket->Encode4(m_nJukeBoxItemID);
+	oPacket->EncodeStr(m_sJBCharacterName);
+}
+
 void Field::AddCP(int nLastDamageCharacterID, int nAddCP)
 {
 }
@@ -730,4 +801,29 @@ void Field::Update()
 	m_pDropPool->TryExpire(false);
 	m_pSummonedPool->Update(tCur);
 	OnStatChangeByField(tCur);
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+
+	if (ItemInfo::GetConsumeCashItemType(m_nWeatherItemID) == ItemInfo::CashItemType::CashItemType_Weather &&
+		tCur > m_tWeatherBegin + 30 * 1000)
+	{
+		m_nWeatherItemID = 0;
+		m_sWeatherMsg = "";
+
+		OutPacket oPacket;
+		EncodeWeather(&oPacket);
+		BroadcastPacket(&oPacket);
+	}
+
+	if (m_nJukeBoxItemID && tCur > m_tJukeBoxEnd)
+	{
+		auto prUser = m_mUser.find(m_nJBCharacterID);
+		if (prUser != m_mUser.end())
+			prUser->second->ShowConsumeItemEffect(m_nJBCharacterID, false, 0);
+
+		m_nJukeBoxItemID = 0;
+		OutPacket oPacket;
+		EncodeJukeBox(&oPacket);
+		BroadcastPacket(&oPacket);
+	}
 }

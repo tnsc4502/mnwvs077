@@ -1,6 +1,6 @@
 #pragma once
 #include "FieldObj.h"
-#include "UtilUser.h"
+#include "UserUtil.h"
 #include <mutex>
 #include <map>
 #include <set>
@@ -144,6 +144,10 @@ private:
 	ZUniquePtr<CalcDamage> m_pCalcDamage;
 	int m_nTrunkTemplateID = 0, m_nStoreBankTemplateID = 0;
 
+	//ADBoard
+	std::string m_sADBoard;
+	bool m_bADBoard = false;
+
 	//Pet
 	ZUniquePtr<Pet> m_apPet[MAX_PET_INDEX] = { nullptr };
 
@@ -279,6 +283,7 @@ public:
 	void OnPortalScrollUseRequest(InPacket *iPacket);
 	void OnConsumeCashItemUseRequest(InPacket *iPacket);
 	void OnCenterCashItemResult(InPacket *iPacket);
+	void SetADBoard(const std::string& sADBoard);
 
 	//Message
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);
@@ -314,6 +319,7 @@ public:
 	void SendLevelUpEffect();
 	void SendChangeJobEffect();
 	void SendPlayPortalSE();
+	void ShowConsumeItemEffect(int nUserID, bool bShow, int nItemID);
 
 	//Message
 	void SendChatMessage(int nType, const std::string& sMsg);

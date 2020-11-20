@@ -15,6 +15,22 @@ struct GW_ItemSlotBase
 	typedef unsigned long long int ATOMIC_COUNT_TYPE;
 	static const int LOCK_POS = 32767;
 
+	enum ItemAttribute
+	{
+		eItemAttr_Protected = 1,
+		eItemAttr_BlockTradeOnEquipped = 0x02,
+		eItemAttr_Untradable = 0x08,
+		eItemAttr_NotSale = 0x10,
+		eItemAttr_ExpireOnLogout = 0x20,
+		eItemAttr_PickUpBlock = 0x40,
+		eItemAttr_Only = 0x80,
+		eItemAttr_AccountSharable = 0x1000,
+		eItemAttr_Quest = 0x200,
+		eItemAttr_TradeBlock = 0x400,
+		eItemAttr_AccountShareTag = 0x800,
+		eItemAttr_MobHP = 0x1000
+	};
+
 	enum GW_ItemSlotType
 	{
 		EQUIP = 1,

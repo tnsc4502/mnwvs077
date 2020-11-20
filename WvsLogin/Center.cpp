@@ -48,36 +48,36 @@ void Center::OnPacket(InPacket *iPacket)
 	int nType = (unsigned short)iPacket->Decode2();
 	switch (nType)
 	{
-	case CenterResultPacketType::RegisterCenterAck:
-	{
-		auto result = iPacket->Decode1();
-		if (!result)
+		case CenterResultPacketType::RegisterCenterAck:
 		{
-			WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][RegisterCenterAck]Center rejected the connection request, WvsLogin server may not work properly.\n");
-			exit(0);
+			auto nResult = iPacket->Decode1();
+			if (!nResult)
+			{
+				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsLogin][RegisterCenterAck]Center rejected the connection request, WvsLogin server may not work properly.\n");
+				exit(0);
+			}
+			WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
+			OnUpdateWorldInfo(iPacket);
+			break;
 		}
-		WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
-		OnUpdateWorldInfo(iPacket);
-		break;
-	}
-	case CenterResultPacketType::CenterStatChanged:
-		OnUpdateChannelInfo(iPacket);
-		break;
-	case CenterResultPacketType::CharacterListResponse:
-		OnCharacterListResponse(iPacket);
-		break;
-	case CenterResultPacketType::GameServerInfoResponse:
-		OnGameServerInfoResponse(iPacket);
-		break;
-	case CenterResultPacketType::CreateCharacterResult:
-		OnCreateCharacterResult(iPacket);
-		break;
-	case CenterResultPacketType::LoginAuthResult:
-		OnLoginAuthResult(iPacket);
-		break;
-	case CenterResultPacketType::CheckDuplicatedIDResult:
-		OnCheckDuplicatedIDResult(iPacket);
-		break;
+		case CenterResultPacketType::CenterStatChanged:
+			OnUpdateChannelInfo(iPacket);
+			break;
+		case CenterResultPacketType::CharacterListResponse:
+			OnCharacterListResponse(iPacket);
+			break;
+		case CenterResultPacketType::GameServerInfoResponse:
+			OnGameServerInfoResponse(iPacket);
+			break;
+		case CenterResultPacketType::CreateCharacterResult:
+			OnCreateCharacterResult(iPacket);
+			break;
+		case CenterResultPacketType::LoginAuthResult:
+			OnLoginAuthResult(iPacket);
+			break;
+		case CenterResultPacketType::CheckDuplicatedIDResult:
+			OnCheckDuplicatedIDResult(iPacket);
+			break;
 	}
 }
 

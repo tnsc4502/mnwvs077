@@ -27,8 +27,7 @@ public:
 	void OnRequestLoginAuth(InPacket *iPacket);
 	void OnRequestMigrateIn(InPacket *iPacket);
 	void OnRequestMigrateOut(InPacket *iPacket);
-	void OnRequestTransferChannel(InPacket *iPacket);
-	void OnRequestMigrateCashShop(InPacket *iPacket);
+	void OnRequestTransferChannel(InPacket *iPacket, bool bShop);
 	void OnGameClientDisconnected(InPacket *iPacket);
 	void OnCheckMigrationStateAck(InPacket *iPacket);
 	void OnBroadcastPacket(InPacket *iPacket);

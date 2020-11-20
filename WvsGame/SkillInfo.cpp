@@ -11,7 +11,7 @@
 #include "QWUInventory.h"
 #include "BasicStat.h"
 #include "SecondaryStat.h"
-#include "UtilUser.h"
+#include "UserUtil.h"
 #include "ItemInfo.h"
 #include "SkillEntry.h"
 #include "SkillLevelData.h"

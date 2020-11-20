@@ -1148,7 +1148,7 @@ void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPack
 	for (const auto& dmgInfo : pInfo->m_mDmgInfo)
 	{
 		oPacket->Encode4(dmgInfo.first);
-		oPacket->Encode1(7);
+		oPacket->Encode1(pInfo->m_nAction);
 		if (pInfo->m_nSkillID == 4211006)
 			oPacket->Encode1(dmgInfo.second.nDamageCount);
 		for (int i = 0; i < dmgInfo.second.nDamageCount; ++i)
