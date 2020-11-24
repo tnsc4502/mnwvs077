@@ -1,7 +1,6 @@
 #include "WvsUnified.h"
 #include "Poco\Data\Data.h"
 #include "Poco\Data\Statement.h"
-#include "DBConstants.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "Poco\Data\MySQL\Connector.h"
 

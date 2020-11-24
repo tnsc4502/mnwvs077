@@ -56,19 +56,19 @@ public:
 		//eQuestRecordMessageAddValidCheck = 0x02,
 		eCashItemExpireMessage = 0x02,
 		eIncEXPMessage = 0x03,
-		eIncSPMessage = 0x04,
-		eIncPOPMessage = 0x05,
-		eIncMoneyMessage = 0x06,
-		eIncGPMessage = 0x07,
-		eIncCommitmentMessage = 0x08,
-		eGiveBuffMessage = 0x09,
-		eGeneralItemExpireMessage = 0x0B,
-		eSystemMessage = 0x0C,
-		eQuestRecordExMessage = 0x0D,
+		//eIncSPMessage = 0x04,
+		eIncPOPMessage = 0x04,
+		eIncMoneyMessage = 0x05,
+		eIncGPMessage = 0x06,
+		eIncCommitmentMessage = 0x07,
+		eGiveBuffMessage = 0x08,
+		eGeneralItemExpireMessage = 0x09,
+		eSystemMessage = 0x0A,
+		/*eQuestRecordExMessage = 0x0D,
 		eWorldShareRecordMessage = 0x0E,
 		eItemProtectExpireMessage = 0x0F,
 		eItemExpireReplaceMessage = 0x10,
-		eItemAbilityTimeLimitedExpireMessage = 0x11,
+		eItemAbilityTimeLimitedExpireMessage = 0x11,*/
 	};
 
 	enum Effect : unsigned char
@@ -298,6 +298,7 @@ public:
 	void SendDropPickUpFailPacket(bool bOnExcelRequest);
 	void SendQuestRecordMessage(int nKey, int nState, const std::string& sStringRecord);
 	void SendIncEXPMessage(bool bIsLastHit, int nIncEXP, bool bOnQuest, int nIncEXPBySMQ, int nEventPercentage, int nPartyBonusPercentage, int nPlayTimeHour, int nQuestBonusRate, int nQuestBonusRemainCount, int nPartyBonusEventRate, int nWeddingBonusEXP);
+	void SendIncPOPMessage(int nInc);
 
 	//Npc & Script
 	Script* GetScript();

@@ -12,6 +12,7 @@
 #include "..\WvsLib\Common\ServerConstants.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Exception\WvsException.h"
 
 #include "User.h"
 #include "WvsShop.h"
@@ -72,14 +73,9 @@ void Center::OnPacket(InPacket *iPacket)
 	{
 		case CenterResultPacketType::RegisterCenterAck:
 		{
-			auto result = iPacket->Decode1();
-			if (!result)
-			{
-				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, "[WvsShop][RegisterCenterAck]Center rejected the connection request, WvsShop server may not work properly.\n");
-				exit(0);
-			}
+			if (!iPacket->Decode1())
+				WvsException::FatalError("[WvsShop][RegisterCenterAck]Center rejected the connection request, WvsShop server may not work properly.\n");
 			WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsShop][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
-			//OnUpdateWorldInfo(iPacket);
 			break;
 		}
 		case CenterResultPacketType::CenterMigrateInResult:
@@ -89,15 +85,11 @@ void Center::OnPacket(InPacket *iPacket)
 			OnCenterMigrateOutResult(iPacket);
 			break;
 		case CenterResultPacketType::CashItemResult:
-		{
-			int nClientSocketID = iPacket->Decode4();
-			int nUserID = iPacket->Decode4();
-			auto pSocket = WvsBase::GetInstance<WvsShop>()->GetSocket(nClientSocketID);
-			auto pUser = User::FindUser(nUserID);
-			if (pSocket && pUser)
-				pUser->OnCenterCashItemResult((unsigned short)iPacket->Decode2(), iPacket);
-		}
-		break;
+			OnCenterCashItemResult(iPacket);
+			break;
+		case CenterResultPacketType::MemoResult:
+			OnCenterMemoResult(iPacket);
+			break;
 		case CenterRequestPacketType::CheckMigrationState:
 			OnCheckMigrationState(iPacket);
 			break;
@@ -198,4 +190,22 @@ void Center::OnCheckMigrationState(InPacket *iPacket)
 		}
 	}
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
+}
+
+void Center::OnCenterCashItemResult(InPacket * iPacket)
+{
+	int nClientSocketID = iPacket->Decode4();
+	int nUserID = iPacket->Decode4();
+	auto pSocket = WvsBase::GetInstance<WvsShop>()->GetSocket(nClientSocketID);
+	auto pUser = User::FindUser(nUserID);
+	if (pSocket && pUser)
+		pUser->OnCenterCashItemResult((unsigned short)iPacket->Decode2(), iPacket);
+}
+
+void Center::OnCenterMemoResult(InPacket * iPacket)
+{
+	int nUserID = iPacket->Decode4();
+	auto pUser = User::FindUser(nUserID);
+	if (pUser)
+		pUser->OnCenterMemoResult(iPacket);
 }

@@ -154,6 +154,7 @@
     <ClInclude Include="GW_CharacterStat.h" />
     <ClInclude Include="GW_Friend.h" />
     <ClInclude Include="GW_FuncKeyMapped.h" />
+    <ClInclude Include="GW_GiftList.h" />
     <ClInclude Include="GW_ItemSlotBase.h" />
     <ClInclude Include="GW_ItemSlotBundle.h" />
     <ClInclude Include="GW_ItemSlotEquip.h" />
@@ -184,6 +185,7 @@
     <ClCompile Include="GW_CharacterStat.cpp" />
     <ClCompile Include="GW_Friend.cpp" />
     <ClCompile Include="GW_FuncKeyMapped.cpp" />
+    <ClCompile Include="GW_GiftList.cpp" />
     <ClCompile Include="GW_ItemSlotBase.cpp" />
     <ClCompile Include="GW_ItemSlotBundle.cpp" />
     <ClCompile Include="GW_ItemSlotEquip.cpp" />

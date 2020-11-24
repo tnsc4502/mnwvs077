@@ -1,4 +1,6 @@
 #include "CashItemDBAccessor.h"
+#include "CharacterDBAccessor.h"
+#include "MemoDBAccessor.h"
 #include "WvsUnified.h"
 #include "GW_Account.h"
 #include "GW_CashItemInfo.h"
@@ -6,6 +8,7 @@
 #include "GW_ItemSlotBundle.h"
 #include "GW_ItemSlotPet.h"
 #include "GA_Character.hpp"
+#include "GW_GiftList.h"
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -13,23 +16,36 @@
 #include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
-void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, void * iPacket_)
+void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, void * iPacket_, bool bGift)
 {
 	InPacket *iPacket = (InPacket*)iPacket_;
-
-	int nAccountID = iPacket->Decode4();
-	int nChargeType = iPacket->Decode1();
-	int nType = iPacket->Decode1();
-	bool bIsPet = iPacket->Decode1() == 1;
-	int nPrice = iPacket->Decode4();
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode2(CenterCashItemRequestType::eBuyCashItemRequest);
+	oPacket.Encode2(bGift ? CenterCashItemRequestType::eGiftCashItemRequest : CenterCashItemRequestType::eBuyCashItemRequest);
 
+	int nAccountID = iPacket->Decode4(), nReceiverID = 0, nReceiverAccountID = 0;
 	GW_Account account;
 	account.Load(nAccountID);
+
+	std::string sBuyCharacterID = iPacket->DecodeStr(), sReceiver, sMemo;
+	if (bGift)
+	{
+		sReceiver = iPacket->DecodeStr();
+		nReceiverID = CharacterDBAccessor::QueryCharacterIDByName(sReceiver);
+		nReceiverAccountID = nReceiverID < 0 ? -1 : CharacterDBAccessor::QueryCharacterAccountID(nReceiverID);
+		if (nReceiverID == -1 || nReceiverAccountID == -1)
+		{
+			oPacket.Encode1(0);
+			goto DELIVER_PACKET;
+		}
+		sMemo = iPacket->DecodeStr();
+	}
+	int nChargeType = iPacket->Decode1();
+	int nType = iPacket->Decode1();
+	bool bIsPet = iPacket->Decode1() == 1;
+	int nPrice = iPacket->Decode4();
 
 	if (account.QueryCash(nChargeType) >= nPrice)
 	{
@@ -50,14 +66,15 @@ void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSo
 		pItem->bIsPet = bIsPet;
 		pItem->DecodeInventoryPosition(iPacket);
 		pItem->Decode(iPacket, false);
-		pItem->nCharacterID = nCharacterID;
+		pItem->nCharacterID = bGift ? nReceiverID : nCharacterID;
 		pItem->liCashItemSN = GW_ItemSlotBase::IncItemSN(GW_ItemSlotBase::GW_ItemSlotType::CASH);
 		pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
 		pItem->liItemSN = -1;
 
 		GW_CashItemInfo cashItemInfo;
+		cashItemInfo.sBuyCharacterID = sBuyCharacterID;
 		cashItemInfo.Decode(iPacket);
-		cashItemInfo.nAccountID = nAccountID;
+		cashItemInfo.nAccountID = bGift ? nReceiverAccountID : nAccountID;
 		cashItemInfo.cashItemOption.liCashItemSN = pItem->liCashItemSN;
 		cashItemInfo.bLocked = true;
 		cashItemInfo.nGWItemSlotInstanceType = pItem->nInstanceType;
@@ -70,15 +87,40 @@ void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSo
 		//A pet will only have ExpireDate in GW_ItemSlotPet(which stands for it's life time)
 		if (!pItem->bIsPet)
 			pItem->liExpireDate = cashItemInfo.liDateExpire;
-		pItem->Save(nCharacterID);
+		pItem->Save(pItem->nCharacterID);
 
 		oPacket.Encode4(account.QueryCash(1));
 		oPacket.Encode4(account.QueryCash(2));
-		cashItemInfo.Encode(&oPacket);
+		if (bGift)
+		{
+			oPacket.EncodeStr(sReceiver);
+			oPacket.Encode4(pItem->nItemID);
+			oPacket.Encode2(
+				nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet ?
+				((GW_ItemSlotBundle*)pItem)->nNumber : 1
+			);
+			oPacket.Encode2(0);
+			oPacket.Encode4(nPrice);
+		}
+		else
+			cashItemInfo.Encode(&oPacket);
+
+		if (sMemo != "")
+		{
+			GW_GiftList GList;
+			GList.nCharacterID = nReceiverID;
+			GList.liItemSN = pItem->liCashItemSN;
+			GList.nItemID = pItem->nItemID;
+			GList.sBuyCharacterName = sBuyCharacterID;
+			GList.sText = sMemo;
+			GList.nState = 1;
+			GList.Save();
+		}
 	}
 	else
 		oPacket.Encode1(1);
 
+DELIVER_PACKET:
 	pSrv->SendPacket(&oPacket);
 }
 

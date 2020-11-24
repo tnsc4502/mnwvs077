@@ -607,8 +607,9 @@ void LocalServer::OnCashItemRequest(InPacket * iPacket)
 	int nRequest = iPacket->Decode2();
 	switch (nRequest)
 	{
+		case CenterCashItemRequestType::eGiftCashItemRequest:
 		case CenterCashItemRequestType::eBuyCashItemRequest:
-			CashItemDBAccessor::PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket, nRequest == CenterCashItemRequestType::eGiftCashItemRequest);
 			break;
 		case CenterCashItemRequestType::eLoadCashItemLockerRequest:
 			CashItemDBAccessor::PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
@@ -959,18 +960,20 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 			{
 				std::lock_guard<std::recursive_mutex> lock(WvsWorld::GetInstance()->GetLock());
 				auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
-				if (pwUser)
+				/*if (pwUser)
 					nFailReason = GW_Memo::MemoSendFailReason::eMemoFailReason_UserIsOnline;
-				else
-					nFailReason = (MemoDBAccessor::PostSendMemoRequest(this, nCharacterID, iPacket) ? -1 : GW_Memo::MemoSendFailReason::eMemoFailReason_UserInBoxIsFull);
+				else*/
+					
+				nFailReason = (MemoDBAccessor::PostSendMemoRequest(this, nCharacterID, iPacket) ? -1 : GW_Memo::MemoSendFailReason::eMemoFailReason_UserInBoxIsFull);
 
+#define ONLINE_MEMO
 #ifdef ONLINE_MEMO
 				//Notify if your sever supports online memo sending.
 				if (pwUser)
 				{
 					auto pSrv = WvsBase::GetInstance<WvsCenter>()->GetChannel(pwUser->m_nChannelID);
 					if (pSrv)
-						MemoDBAccessor::GetInstance()->PostLoadMemoRequest(pSrv->GetLocalSocket().get(), nCharacterID);
+						MemoDBAccessor::PostLoadMemoRequest(pSrv->GetLocalSocket().get(), nCharacterID);
 				}
 #endif
 			}
@@ -992,7 +995,10 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 			break;
 		}
 		case GW_Memo::MemoRequestType::eMemoReq_Load:
-			MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
+			if (iPacket->Decode1() >= 0) //nChannelID
+				MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
+			else
+				MemoDBAccessor::PostLoadGiftListRequest(this, nCharacterID);
 			break;
 		case GW_Memo::MemoRequestType::eMemoReq_Delete:
 			MemoDBAccessor::PostDeleteMemoRequest(this, nCharacterID, iPacket);

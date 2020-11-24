@@ -1,5 +1,6 @@
 #pragma once
 #include "..\WvsLib\Memory\ZMemory.h"
+#include <map>
 
 class ClientSocket;
 class OutPacket;
@@ -7,6 +8,7 @@ class InPacket;
 class AsyncScheduler;
 struct GA_Character;
 struct GW_FuncKeyMapped;
+struct GW_GiftList;
 
 class User
 {
@@ -83,10 +85,13 @@ class User
 	ZUniquePtr<GA_Character> m_pCharacterData;
 	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;
 	ZUniquePtr<AsyncScheduler> m_pUpdateTimer;
+	std::map<int, ZUniquePtr<GW_GiftList>> m_mGiftList;
 
 public:
 	User(ClientSocket *pSocket, InPacket *iPacket);
 	~User();
+
+	//Basic Stuffs
 	int GetUserID() const;
 	int GetAccountID() const;
 	static User * FindUser(int nUserID);
@@ -97,19 +102,28 @@ public:
 	void Update();
 
 	void OnUserCashItemRequest(InPacket *iPacket);
-	void OnQueryCashRequest();
 	void ValidateState();
 
+	//CenterRes
 	void OnCenterCashItemResult(int nType, InPacket *iPacket);
 	void OnCenterResLoadLockerDone(InPacket *iPacket);
 	void OnCenterResBuyDone(InPacket *iPacket);
+	void OnCenterGiftCashItemDone(InPacket *iPacket);
 	void OnCenterUpdateCashDone(InPacket *iPacket);
 	void OnCenterMoveItemToSlotDone(InPacket *iPacket);
 	void OnCenterMoveItemToLockerDone(InPacket *iPacket);
+	void OnCenterMemoResult(InPacket *iPacket);
 
+	//CenterReq
+	void OnQueryCashRequest();
 	void OnRequestCenterLoadLocker();
 	void OnRequestCenterUpdateCash();
+	void OnRequestLoadMemo();
+	void OnMemoRequest(InPacket *iPacket);
+
+	//CashItemReq
 	void OnRequestBuyCashItem(InPacket *iPacket);
 	void OnRequestMoveItemToSlot(InPacket *iPacket);
 	void OnRequestMoveItemToLocker(InPacket *iPacket);
+	void OnRequestCashItemGift(InPacket *iPacket);
 };

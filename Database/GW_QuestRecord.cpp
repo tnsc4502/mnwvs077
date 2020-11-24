@@ -12,7 +12,6 @@ void GW_QuestRecord::Load(void* pRecordSet)
 	nState = recordSet["State"];
 	tTime = recordSet["Time"];
 	sStringRecord = recordSet["StrRecord"].toString();
-	std::string sMobRecord = recordSet["MobRecord"].toString();
 }
 
 void GW_QuestRecord::Save()
@@ -24,8 +23,7 @@ void GW_QuestRecord::Save()
 		<< nQuestID << ", "
 		<< nState << ", "
 		<< tTime << ", "
-		<< "\'" << sStringRecord << "\', "
-		<< "\'" << mobRecord << "\') ON DUPLICATE KEY UPDATE "
+		<< "\'" << sStringRecord << "\') ON DUPLICATE KEY UPDATE "
 		<< "State = " << nState << ", "
 		<< "StrRecord = \'" << sStringRecord << "\', "
 		<< "Time = " << tTime;

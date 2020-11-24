@@ -28,6 +28,8 @@ public:
 
 	void OnCenterMigrateInResult(InPacket *iPacket);
 	void OnCenterMigrateOutResult(InPacket *iPacket);
+	void OnCenterCashItemResult(InPacket *iPacket);
+	void OnCenterMemoResult(InPacket *iPacket);
 	void OnCheckMigrationState(InPacket *iPacket);
 };
 

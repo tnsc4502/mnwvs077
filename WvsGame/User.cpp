@@ -4295,8 +4295,10 @@ void User::OnMemoRequest(InPacket * iPacket)
 				{
 					auto& pMemo = findIter->second;
 					if (pMemo->nFlag == GW_Memo::MemoType::eMemo_IncPOP) 
+					{
 						SendCharacterStat(false, QWUser::IncPOP(this, 1, false));
-
+						SendIncPOPMessage(1);
+					}
 					m_mMemo.erase(findIter);
 				}
 			}
@@ -4348,6 +4350,16 @@ void User::SendIncEXPMessage(bool bIsLastHit, int nIncEXP, bool bOnQuest, int nI
 			oPacket.Encode1(nQuestBonusRemainCount);
 	}
 	oPacket.Encode1(nPartyBonusEventRate);
+	SendPacket(&oPacket);
+}
+
+void User::SendIncPOPMessage(int nInc)
+{
+	OutPacket oPacket;
+	oPacket.Encode2((short)UserSendPacketType::UserLocal_OnMessage);
+	oPacket.Encode1((char)Message::eIncPOPMessage);
+	oPacket.Encode4(nInc);
+
 	SendPacket(&oPacket);
 }
 
@@ -4416,6 +4428,7 @@ void User::OnMigrateIn()
 	oMemoRequest.Encode2(CenterRequestPacketType::MemoRequest);
 	oMemoRequest.Encode4(GetUserID());
 	oMemoRequest.Encode1(GW_Memo::MemoRequestType::eMemoReq_Load);
+	oMemoRequest.Encode1(GetChannelID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oMemoRequest);
 
 	m_nGradeCode = m_pCharacterData->nGradeCode;
