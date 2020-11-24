@@ -11,6 +11,7 @@
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotPet.h"
+#include "..\Database\GW_Memo.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -722,6 +723,9 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketType::User_OnCloseADBoard:
 			SetADBoard("");
+			break;
+		case UserRecvPacketType::User_OnMemoRequest:
+			OnMemoRequest(iPacket);
 			break;
 		default:
 			iPacket->RestorePacket();
@@ -2785,7 +2789,8 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 		case ItemInfo::CashItemType::CashItemType_SetPetName:
 			break;
 		case ItemInfo::CashItemType::CashItemType_SendMemo:
-			break;
+			UserCashItemImpl::ConsumeSendMemo(this, nPOS, iPacket);
+			return;
 		case ItemInfo::CashItemType::CashItemType_StatChange:
 			nResult = UserCashItemImpl::ConsumeStatChange(this, iPacket);
 			break;
@@ -2804,7 +2809,8 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 			nResult = UserCashItemImpl::ConsumePetSkill(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_ShopScanner:
-			break;
+			UserCashItemImpl::ConsumeShopScanner(this, nPOS, iPacket);
+			return;
 		case ItemInfo::CashItemType::CashItemType_MapTransfer:
 			break;
 		case ItemInfo::CashItemType::CashItemType_ADBoard:
@@ -2901,6 +2907,19 @@ void User::SetADBoard(const std::string & sADBoard)
 	oPacket.Encode1(m_bADBoard);
 	oPacket.EncodeStr(m_sADBoard);
 
+	SendPacket(&oPacket);
+}
+
+void User::OnShopScannerResult(InPacket * iPacket)
+{
+	int nPOS = iPacket->Decode2();
+	if(nPOS != 0)
+		QWUInventory::RemoveItem(this, m_pCharacterData->GetItem(GW_ItemSlotBase::CASH, nPOS), 1, true, true);
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnShopScannerResult);
+	oPacket.Encode1(6);
+	oPacket.EncodeBuffer(iPacket->GetPacket() + iPacket->GetReadCount(), iPacket->GetPacketSize() - iPacket->GetReadCount());
 	SendPacket(&oPacket);
 }
 
@@ -4147,6 +4166,11 @@ void User::CreateEmployee(bool bOpen)
 			oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
 			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop);
 			oPacket.Encode4(GetUserID());
+			oPacket.EncodeStr(GetName());
+			oPacket.EncodeStr(GetMiniRoom()->GetTitle());
+			oPacket.Encode4(GetField()->GetFieldID());
+			oPacket.Encode4(GetChannelID());
+			oPacket.Encode4(GetMiniRoom()->GetMiniRoomSN());
 			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 		}
 }
@@ -4204,6 +4228,81 @@ ZUniquePtr<StoreBank>& User::GetStoreBank()
 void User::SetStoreBank(StoreBank *pStoreBank)
 {
 	m_pStoreBank.reset(pStoreBank);
+}
+
+void User::OnCenterMemoResult(InPacket * iPacket)
+{
+	int nResultType = iPacket->Decode1();
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnMemoResult);
+	oPacket.Encode1(nResultType);
+
+	switch (nResultType)
+	{
+		case GW_Memo::MemoResultType::eMemoRes_Load:
+		{
+			int nCount = iPacket->Decode1();
+			oPacket.Encode1(nCount);
+
+			GW_Memo *pMemo = nullptr;
+			for (int i = 0; i < nCount; ++i)
+			{
+				pMemo = AllocObj(GW_Memo);
+				pMemo->Decode(iPacket);
+				pMemo->Encode(&oPacket);
+				m_mMemo.insert({ (int)pMemo->liSN, pMemo });
+			}
+			break;
+		}
+		case GW_Memo::MemoResultType::eMemoRes_SendSuccess:
+			QWUInventory::RemoveItem(this, m_pCharacterData->GetItem(GW_ItemSlotBase::CASH, iPacket->Decode2()), 1, true, true);
+			break;
+		case GW_Memo::MemoResultType::eMemoRes_SendFailed:
+			oPacket.Encode1(iPacket->Decode1()); //nFailReason
+			break;
+	}
+	SendPacket(&oPacket);
+}
+
+void User::OnMemoRequest(InPacket * iPacket)
+{
+	int nType = iPacket->Decode1();
+	switch (nType)
+	{
+		case 0:
+			break;
+		case 1: 
+		{
+			int nCount = iPacket->Decode1();
+			iPacket->Decode1();
+			iPacket->Decode1();
+
+			OutPacket oPacket;
+			oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+			oPacket.Encode4(GetUserID());
+			oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Delete);
+			oPacket.Encode1(nCount);
+
+			int nSN = 0;
+			for (int i = 0; i < nCount; ++i)
+			{
+				nSN = iPacket->Decode4();
+				oPacket.Encode4(nSN);
+				oPacket.Encode1(iPacket->Decode1()); //bIncPOP
+
+				auto findIter = m_mMemo.find(nSN);
+				if (findIter != m_mMemo.end())
+				{
+					auto& pMemo = findIter->second;
+					if (pMemo->nFlag == GW_Memo::MemoType::eMemo_IncPOP) 
+						SendCharacterStat(false, QWUser::IncPOP(this, 1, false));
+
+					m_mMemo.erase(findIter);
+				}
+			}
+			WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+		}
+	}
 }
 
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
@@ -4312,6 +4411,12 @@ void User::OnMigrateIn()
 	oPacketForFriendLoading.Encode1(FriendMan::FriendRequest::rq_Friend_Load);
 	oPacketForFriendLoading.Encode4(GetUserID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);
+
+	OutPacket oMemoRequest;
+	oMemoRequest.Encode2(CenterRequestPacketType::MemoRequest);
+	oMemoRequest.Encode4(GetUserID());
+	oMemoRequest.Encode1(GW_Memo::MemoRequestType::eMemoReq_Load);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oMemoRequest);
 
 	m_nGradeCode = m_pCharacterData->nGradeCode;
 	m_tMigrateTime = GameDateTime::GetTime();

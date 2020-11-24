@@ -2,6 +2,7 @@
 #include "FieldObj.h"
 #include "UserUtil.h"
 #include <mutex>
+#include <unordered_map>
 #include <map>
 #include <set>
 #include <vector>
@@ -20,6 +21,7 @@ class AsyncScheduler;
 struct GA_Character;
 struct GW_Avatar;
 struct GW_FuncKeyMapped;
+struct GW_Memo;
 
 class BasicStat;
 class SecondaryStat;
@@ -169,6 +171,9 @@ private:
 	MiniRoomBase* m_pMiniRoom = nullptr;
 	bool m_bHasOpenedEntrustedShop = false;
 
+	//Memo
+	std::unordered_map<int, ZUniquePtr<GW_Memo>> m_mMemo;
+
 	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
 	//Check routines
@@ -284,8 +289,11 @@ public:
 	void OnConsumeCashItemUseRequest(InPacket *iPacket);
 	void OnCenterCashItemResult(InPacket *iPacket);
 	void SetADBoard(const std::string& sADBoard);
+	void OnShopScannerResult(InPacket *iPacket);
 
 	//Message
+	void SendChatMessage(int nType, const std::string& sMsg);
+	void SendNoticeMessage(const std::string& sMsg);
 	void SendDropPickUpResultPacket(bool bPickedUp, bool bIsMoney, int nItemID, int nCount, bool bOnExcelRequest);
 	void SendDropPickUpFailPacket(bool bOnExcelRequest);
 	void SendQuestRecordMessage(int nKey, int nState, const std::string& sStringRecord);
@@ -320,10 +328,6 @@ public:
 	void SendChangeJobEffect();
 	void SendPlayPortalSE();
 	void ShowConsumeItemEffect(int nUserID, bool bShow, int nItemID);
-
-	//Message
-	void SendChatMessage(int nType, const std::string& sMsg);
-	void SendNoticeMessage(const std::string& sMsg);
 
 	//Func Key Mapped
 	void SendFuncKeyMapped();
@@ -386,5 +390,9 @@ public:
 	//StoreBank
 	ZUniquePtr<StoreBank>& GetStoreBank();
 	void SetStoreBank(StoreBank *pStoreBank);
+
+	//Memo
+	void OnCenterMemoResult(InPacket *iPacket);
+	void OnMemoRequest(InPacket *iPacket);
 };
 

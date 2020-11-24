@@ -63,6 +63,7 @@ public:
 	void SetConfigLoader(ConfigLoader* pCfg);
 	void InitializeWorld();
 	const WorldInfo& GetWorldInfo() const;
+	void EncodeWorldInfo(OutPacket *oPacket);
 	static WvsWorld* GetInstance();
 	WorldUser* GetUser(int nUserID);
 	void Update();
@@ -78,6 +79,7 @@ public:
 	AuthEntry* GetAuthEntry(int nAuthCharacterID);
 	AuthEntry* GetAuthEntryByAccountID(int nAuthAccountID);
 	void RemoveAuthEntry(int nAuthCharacterID);
+	void EncodeAuthEntry(OutPacket *oPacket);
 
 	//Transferring
 	void SetUserTransferStatus(int nUserID, UserTransferStatus* pStatus);

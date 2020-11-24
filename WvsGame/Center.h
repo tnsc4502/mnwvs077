@@ -28,6 +28,8 @@ public:
 	void OnGuildBBSResult(InPacket *iPacket);
 	void OnCheckGivePopularityResult(InPacket *iPacket);
 	void OnCenterCashItemResult(InPacket *iPacket);
+	void OnCenterMemoResult(InPacket *iPacket);
+	void OnShopScannerResult(InPacket *iPacket);
 
 	static void OnNotifyCenterDisconnected(SocketBase *pSocket);
 };

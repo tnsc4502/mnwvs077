@@ -1,4 +1,5 @@
 #pragma once
+#include "..\WvsLib\Memory\ZMemory.h"
 #include "..\WvsLib\Net\WvsBase.h"
 #include "..\WvsLib\Common\ConfigLoader.hpp"
 #include "Center.h"
@@ -21,7 +22,7 @@ private:
 	std::shared_ptr<std::thread> m_apCenterWorkThread[ServerConstants::kMaxNumberOfCenters];
 
 	std::map<unsigned int, int> m_mSocketIDToAccountID;
-	std::map<int, std::shared_ptr<LoginEntry>> m_mAccountIDToLoginEntry;
+	std::map<int, ZSharedPtr<LoginEntry>> m_mAccountIDToLoginEntry;
 
 	bool m_aIsConnecting[ServerConstants::kMaxNumberOfCenters];
 	void CenterAliveMonitor(int idx);
@@ -36,10 +37,13 @@ public:
 	void SetConfigLoader(ConfigLoader *pCfg);
 	void InitializeCenter();
 	void OnNotifySocketDisconnected(SocketBase *pSocket);
-	void RegisterLoginEntry(std::shared_ptr<LoginEntry> &pLoginEntry);
+
+	//Security
+	void RegisterLoginEntry(ZSharedPtr<LoginEntry> &pLoginEntry);
 	void RemoveLoginEntryByAccountID(int nAccountID);
 	void RemoveLoginEntryByLoginSocketID(unsigned int uLoginSocketSN);
-	std::shared_ptr<LoginEntry> GetLoginEntryByAccountID(int nAccountID);
-	std::shared_ptr<LoginEntry> GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN);
+	ZSharedPtr<LoginEntry> GetLoginEntryByAccountID(int nAccountID);
+	ZSharedPtr<LoginEntry> GetLoginEntryByLoginSocketSN(unsigned int uLoginSocketSN);
+	void RestoreLoginEntry(void *iPacket);
 };
 

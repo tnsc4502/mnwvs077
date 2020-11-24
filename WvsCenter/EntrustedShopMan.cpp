@@ -9,6 +9,7 @@
 #include "..\WvsGame\UserPacketTypes.hpp"
 #include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
+#include "..\WvsLib\Logger\WvsLogger.h"
 
 EntrustedShopMan::EntrustedShopMan()
 {
@@ -27,7 +28,7 @@ EntrustedShopMan* EntrustedShopMan::GetInstance()
 
 int EntrustedShopMan::CheckEntrustedShopOpenPossible(int nCharacterID, long long int liCashItemSN)
 {
-	if (m_sEmployer.find(nCharacterID) == m_sEmployer.end())
+	if (m_mEmployer.find(nCharacterID) == m_mEmployer.end())
 	{
 		std::vector<ZUniquePtr<GW_ItemSlotBase>> aItem;
 		EntrustedShopDBAccessor::LoadEntrustedShopItem(
@@ -57,16 +58,22 @@ void EntrustedShopMan::CheckEntrustedShopOpenPossible(LocalServer* pSrv, int nCh
 	}
 }
 
-void EntrustedShopMan::CreateEntrustedShop(LocalServer * pSrv, int nCharacterID, int SlotCount, long long int liCashItemSN)
+void EntrustedShopMan::CreateEntrustedShop(LocalServer * pSrv, int nCharacterID, int SlotCount, long long int liCashItemSN, InPacket *iPacket)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
-	m_sEmployer.insert(nCharacterID);
+	ShopData shop;
+	shop.sEmployer = iPacket->DecodeStr();
+	shop.sTitle = iPacket->DecodeStr();
+	shop.nFieldID = iPacket->Decode4();
+	shop.nChannelID = iPacket->Decode4();
+	shop.nShopSN = iPacket->Decode4();
+	m_mEmployer.insert({ nCharacterID, shop });
 }
 
 void EntrustedShopMan::RemoveEntrustedShop(LocalServer * pSrv, int nCharacterID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
-	m_sEmployer.erase(nCharacterID);
+	m_mEmployer.erase(nCharacterID);
 }
 
 void EntrustedShopMan::SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *iPacket)
@@ -132,7 +139,7 @@ void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nCharacterID)
 	oPacket.Encode1(EntrustedShopCheckResult::res_EShop_LoadItemResult);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
-	if (m_sEmployer.find(nCharacterID) != m_sEmployer.end())
+	if (m_mEmployer.find(nCharacterID) != m_mEmployer.end())
 		oPacket.Encode1(-1);
 	else
 	{
@@ -149,4 +156,55 @@ void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nCharacterID)
 		}
 	}
 	pSrv->SendPacket(&oPacket);
+}
+
+void EntrustedShopMan::UpdateItemListRequest(LocalServer * pSrv, int nCharacterID, InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	auto findIter = m_mEmployer.find(nCharacterID);
+	if (findIter == m_mEmployer.end())
+		return;
+
+	auto& shop = findIter->second;
+	shop.mItem.clear();
+
+	int nCount = iPacket->Decode1();
+	long long int liItemSN = 0;
+	for (int i = 0; i < nCount; ++i)
+	{
+		ShopItem item;
+		liItemSN = iPacket->Decode8();
+		item.nNumber = iPacket->Decode2();
+		item.nSet = iPacket->Decode2();
+		item.nPrice = iPacket->Decode4();
+		if (iPacket->Decode1() == GW_ItemSlotBase::EQUIP) 
+		{
+			item.pItem.reset(GW_ItemSlotBase::CreateItem(iPacket->Decode1()));
+			item.pItem->RawDecode(iPacket);
+		}
+		shop.mItem.insert({ liItemSN, item });
+	}
+}
+
+const EntrustedShopMan::ShopData * EntrustedShopMan::GetShopData(int nCharacterID)
+{
+	auto findIter = m_mEmployer.find(nCharacterID);
+	if (findIter == m_mEmployer.end())
+		return nullptr;
+
+	return &(findIter->second);
+}
+
+std::recursive_mutex & EntrustedShopMan::GetLock()
+{
+	return m_mtxLock;
+}
+
+const EntrustedShopMan::ShopItem * EntrustedShopMan::ShopData::GetShopItem(long long int liItemSN) const
+{
+	auto findIter = mItem.find(liItemSN);
+	if (findIter == mItem.end())
+		return nullptr;
+
+	return &(findIter->second);
 }

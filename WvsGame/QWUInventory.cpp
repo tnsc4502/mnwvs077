@@ -311,10 +311,11 @@ void QWUInventory::UpgradeEquip(User * pUser, int nUPOS, int nEPOS, int nWhiteSc
 			&ppEntry), ppEntry))
 	{
 		auto pUItem = pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::CONSUME, nUPOS);
-		GW_ItemSlotEquip* pEItem = (GW_ItemSlotEquip*)(pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::EQUIP, nEPOS));
-		if (!pUItem || !pEItem)
+		auto pItem = (pUser->GetCharacterData()->GetItem(GW_ItemSlotBase::EQUIP, nEPOS));
+		if (!pUItem || !pItem)
 			return;
 
+		auto pEItem = (GW_ItemSlotEquip*)pItem;
 		std::vector<InventoryManipulator::ChangeLog> aChangeLog;
 		auto pScroll = ItemInfo::GetInstance()->GetUpgradeItem(pUItem->nItemID);
 		if (pScroll)
@@ -383,7 +384,7 @@ void QWUInventory::UpgradeEquip(User * pUser, int nUPOS, int nEPOS, int nWhiteSc
 					aChangeLog,
 					InventoryManipulator::Change_AddToSlot,
 					GW_ItemSlotBase::EQUIP,
-					nEPOS, pEItem, 0, 0);
+					nEPOS, pItem, 0, 0);
 			SendInventoryOperation(pUser, true, aChangeLog);
 		}
 	}

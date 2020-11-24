@@ -1,4 +1,5 @@
 #pragma once
+#include "..\WvsLib\Memory\ZMemory.h"
 #include "..\WvsLib\Net\SocketBase.h"
 #include "LoginEntry.h"
 
@@ -6,7 +7,7 @@ class LoginSocket :
 	public SocketBase
 {
 private:
-	std::shared_ptr<LoginEntry> m_pLoginEntry;
+	ZSharedPtr<LoginEntry> m_pLoginEntry;
 	void OnClosed();
 
 public:

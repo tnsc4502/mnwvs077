@@ -401,6 +401,33 @@ void EntrustedShop::CloseShop()
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
+void EntrustedShop::OnOpened()
+{
+	BroadcastItemList();
+}
+
+void EntrustedShop::BroadcastItemList()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UpdateItemListRequest);
+	oPacket.Encode4(GetEmployerID());
+	oPacket.Encode1((char)m_aItem.size());
+	for (auto& item : m_aItem)
+	{
+		oPacket.Encode8(item.pItem->liItemSN);
+		oPacket.Encode2(item.nNumber);
+		oPacket.Encode2(item.nSet);
+		oPacket.Encode4(item.nPrice);
+		oPacket.Encode1(item.nTI);
+		if(item.nTI == 1)
+			item.pItem->RawEncode(&oPacket);
+	}
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	PersonalShop::BroadcastItemList();
+}
+
 int EntrustedShop::GetEmployeeTemplateID() const
 {
 	return m_nEmployeeTemplateID;

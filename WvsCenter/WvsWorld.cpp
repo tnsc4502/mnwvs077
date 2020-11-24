@@ -78,8 +78,8 @@ void WvsWorld::UserMigrateIn(int nCharacterID, int nChannelID)
 
 void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigrate)
 {
-	auto pwUser = GetUser(nUserID);
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	auto pwUser = GetUser(nUserID);
 	if (pwUser)
 	{
 		WvsLogger::LogFormat("WvsWorld::RemoveUser[pwUser = [nIdx = %d], [nLocalSocketSN = %d]], Received: [nIdx = %d], [nLocalSocketSN = %d]\n",
@@ -104,7 +104,7 @@ void WvsWorld::RemoveUser(int nUserID, int nIdx, int nLocalSocketSN, bool bMigra
 		m_mAccountToUser.erase(pwUser->m_nAccountID);
 
 		//Remove Auth Entry
-		RemoveAuthEntry(pwUser->m_nAccountID);
+		RemoveAuthEntry(nUserID);
 		FreeObj(pwUser);
 		WvsBase::GetInstance<WvsCenter>()->GetLoginServer()->GetLocalSocket()->SendPacket(&oPacket);
 	}
@@ -280,6 +280,15 @@ void WvsWorld::RemoveAuthEntry(int nAuthCharacterID)
 	}
 }
 
+void WvsWorld::EncodeAuthEntry(OutPacket * oPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
+	oPacket->Encode1(GetWorldInfo().nWorldID);
+	oPacket->Encode4((int)m_mAuthEntry.size());
+	for (auto& prEntry : m_mAuthEntry)
+		oPacket->Encode4(prEntry.second->nAccountID);
+}
+
 void WvsWorld::Update()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxWorldLock);
@@ -290,6 +299,14 @@ void WvsWorld::Update()
 const WorldInfo& WvsWorld::GetWorldInfo() const
 {
 	return m_WorldInfo;
+}
+
+void WvsWorld::EncodeWorldInfo(OutPacket * oPacket)
+{
+	oPacket->Encode1(GetWorldInfo().nWorldID);
+	oPacket->Encode1(GetWorldInfo().nEventType);
+	oPacket->EncodeStr(GetWorldInfo().strWorldDesc);
+	oPacket->EncodeStr(GetWorldInfo().strEventDesc);
 }
 
 WvsWorld *WvsWorld::GetInstance()

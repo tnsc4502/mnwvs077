@@ -1149,7 +1149,7 @@ void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPack
 	{
 		oPacket->Encode4(dmgInfo.first);
 		oPacket->Encode1(pInfo->m_nAction);
-		if (pInfo->m_nSkillID == 4211006)
+		if (pInfo->m_nSkillID == ThiefSkills::Chief_Bandit_MesoExplosion)
 			oPacket->Encode1(dmgInfo.second.nDamageCount);
 		for (int i = 0; i < dmgInfo.second.nDamageCount; ++i)
 			oPacket->Encode4((int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31));

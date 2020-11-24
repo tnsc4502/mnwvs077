@@ -13,27 +13,23 @@ void GW_QuestRecord::Load(void* pRecordSet)
 	tTime = recordSet["Time"];
 	sStringRecord = recordSet["StrRecord"].toString();
 	std::string sMobRecord = recordSet["MobRecord"].toString();
-	std::vector<std::string> mobRecords;
-	/*StringUtility::Split(sMobRecord, mobRecords, ",");
-	for (int i = 0; i < (int)mobRecords.size(); ++i)
-		aMobRecord.push_back(atoi(mobRecords[i].c_str()));*/
 }
 
 void GW_QuestRecord::Save()
 {
 	Poco::Data::Statement queryStatement(GET_DB_SESSION);
-	queryStatement << "DELETE FROM QuestRecord Where QuestID = " << nQuestID << " and CharacterID = " << nCharacterID;
-	queryStatement.execute();
-
 	std::string mobRecord = StringUtility::VectorToString(aMobRecord, ",");
-	queryStatement.reset(GET_DB_SESSION);
-	queryStatement << "INSERT INTO QuestRecord VALUES(null, "
+	queryStatement << "INSERT INTO QuestRecord VALUES("
 		<< nCharacterID << ", "
 		<< nQuestID << ", "
 		<< nState << ", "
-		<< tTime << ", \'"
-		<< sStringRecord << "\', \'"
-		<< mobRecord << "\')";
+		<< tTime << ", "
+		<< "\'" << sStringRecord << "\', "
+		<< "\'" << mobRecord << "\') ON DUPLICATE KEY UPDATE "
+		<< "State = " << nState << ", "
+		<< "StrRecord = \'" << sStringRecord << "\', "
+		<< "Time = " << tTime;
+
 	queryStatement.execute();
 }
 

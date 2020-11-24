@@ -34,10 +34,15 @@ void WvsCenter::OnNotifySocketDisconnected(SocketBase *pSocket)
 		//--nConnectedChannel;
 		NotifyWorldChanged();
 	}
-	else if (pSocket->GetServerType() == ServerConstants::SRV_SHOP) 
+	else if (pSocket->GetServerType() == ServerConstants::SRV_SHOP && m_pShopEntry && (pSocket == m_pShopEntry->GetLocalSocket().get()))
 	{
 		FreeObj( m_pShopEntry );
 		m_pShopEntry = nullptr;
+	}
+	else if (pSocket->GetServerType() == ServerConstants::SRV_LOGIN && m_pLoginEntry && (pSocket == m_pLoginEntry->GetLocalSocket().get()))
+	{
+		FreeObj(m_pLoginEntry);
+		m_pLoginEntry = nullptr;
 	}
 }
 

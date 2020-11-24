@@ -91,6 +91,8 @@ public:
 
 	MiniRoomBase(int nMaxUsers);
 	virtual ~MiniRoomBase();
+
+	//Attribute
 	int GetMiniRoomSN() const;
 	int GetType() const;
 	int GetMaxUsers() const;
@@ -112,25 +114,35 @@ public:
 	void RemoveMiniRoom();
 	virtual int GetLeaveType() const;
 
+	//OnPacket
+	void OnPacketBase(User *pUser, int nType, InPacket *iPacket);
 	virtual void OnPacket(User *pUser, int nType, InPacket *iPacket) = 0;
 	virtual void Encode(OutPacket *oPacket) = 0;
 	virtual void Release() = 0;
+
+	//User
 	unsigned char FindEmptySlot(int nCharacterID);
 	User* FindUser(User *pUser);
 	int FindUserSlot(User *pUser);
-	void OnPacketBase(User *pUser, int nType, InPacket *iPacket);
 	void OnChat(User *pUser, InPacket *iPacket, int nMessageCode);
+
+	//OnCreate
+	virtual int IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate);
 	unsigned char OnCreateBase(User *pUser, InPacket *iPacket, int nRound);
+	void OnBalloonBase(User *pUser, InPacket *iPacket);
+	unsigned char OnEnterBase(User *pUser, InPacket *iPacket);
+	virtual void OnCreated();
+
+	//OnInvite
 	void OnInviteBase(User *pUser, InPacket *iPacket);
 	void OnInviteResult(User *pUser, int nResult);
+
+	//OnLeave
 	void OnLeaveBase(User *pUser, InPacket *iPacket);
-	void OnBalloonBase(User *pUser, InPacket *iPacket);
+	//void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
 	virtual void OnLeave(User *pUser, int nLeaveType);
 	void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
 	void DoLeave(int nIdx, int nLeaveType, bool bBroadcast);
-	unsigned char OnEnterBase(User *pUser, InPacket *iPacket);
-	virtual int IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate);
-	//void CloseRequest(User *pUser, int nLeaveType, int nLeaveType2);
 	void ProcessLeaveRequest();
 
 	//Encode

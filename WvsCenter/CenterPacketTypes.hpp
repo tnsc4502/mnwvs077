@@ -67,6 +67,8 @@ DEFINE_PACKET_TYPE(CenterRequestPacketType)
 	REGISTER_TYPE(CheckGivePopularityRequest, 0x500F);
 	REGISTER_TYPE(CashItemRequest, 0x5010);
 	REGISTER_TYPE(FlushCharacterData, 0x5011);
+	REGISTER_TYPE(MemoRequest, 0x5012);
+	REGISTER_TYPE(ShopScannerRequest, 0x5013);
 
 	//Center specific
 	REGISTER_TYPE(CheckMigrationState, 0x6000);
@@ -96,6 +98,8 @@ DEFINE_PACKET_TYPE(CenterResultPacketType)
 	REGISTER_TYPE(GuildBBSResult, 0x5A06);
 	REGISTER_TYPE(CheckGivePopularityResult, 0x5A07);
 	REGISTER_TYPE(CashItemResult, 0x5A08);
+	REGISTER_TYPE(MemoResult, 0x5A09);
+	REGISTER_TYPE(ShopScannerResult, 0x5A0A);
 
 	//From WvsCenter
 	REGISTER_TYPE(CheckMigrationStateResult, 0x6A00);

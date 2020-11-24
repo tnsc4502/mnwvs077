@@ -397,7 +397,7 @@ void FriendMan::SetFriend(InPacket *iPacket, OutPacket *oPacket)
 				return;
 			}
 	}
-	int nFriendID = CharacterDBAccessor::GetInstance()->QueryCharacterIDByName(strFriendName);
+	int nFriendID = CharacterDBAccessor::QueryCharacterIDByName(strFriendName);
 	if (nFriendID != -1)
 	{
 		if ((int)pFriendEntry->aFriend.size() == pFriendEntry->nFriendMax)
@@ -512,7 +512,7 @@ FriendMan::FriendEntry* FriendMan::LoadFriendEntry(int nCharacterID)
 	FriendEntry *pEntry = AllocObj(FriendEntry);
 	pEntry->aFriend = GW_Friend::LoadAll(nCharacterID);
 	pEntry->aInShop.resize(pEntry->aFriend.size(), 0);
-	pEntry->nFriendMax = CharacterDBAccessor::GetInstance()->QueryCharacterFriendMax(nCharacterID);
+	pEntry->nFriendMax = CharacterDBAccessor::QueryCharacterFriendMax(nCharacterID);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFriendLock);
 	std::lock_guard<std::recursive_mutex> entryLock(pEntry->mtxEntryLock);

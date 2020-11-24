@@ -11,7 +11,7 @@
 LoginSocket::LoginSocket(asio::io_service& serverService)
 	: SocketBase(serverService)
 {
-	m_pLoginEntry.reset(AllocObj(LoginEntry), [](LoginEntry* p) { FreeObj(p); });
+	m_pLoginEntry.reset(AllocObj(LoginEntry));
 	m_pLoginEntry->Initialize();
 }
 
@@ -36,39 +36,39 @@ void LoginSocket::OnPacket(InPacket *iPacket)
 
 	switch (nType)
 	{
-	case LoginRecvPacketType::Client_ClientRequestStart:
-		//OnClientRequestStart();
-		break;
-	case LoginRecvPacketType::Client_ClientLoginBackgroundRequest:
-		//OnLoginBackgroundRequest();
-		break;
-	case LoginRecvPacketType::Client_ClientCheckPasswordRequest:
-		OnCheckPasswordRequst(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientSelectGenderAnd2ndPassword:
-		OnSelectGenderAnd2ndPassword(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientSelectWorld:
-		OnClientSelectWorld(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientWorldStatusCheck:
-		OnCheckWorldStatusRequst(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientSecondPasswordCheck:
-		OnClientSecondPasswdCheck();
-		break;
-	case LoginRecvPacketType::Client_ClientCheckDuplicatedID:
-		OnClientCheckDuplicatedID(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientCreateNewCharactar:
-		OnClientCreateNewCharacter(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientSelectCharacter:
-		OnClientSelectCharacter(iPacket);
-		break;
-	case LoginRecvPacketType::Client_ClientRequestServerList:
-		SendWorldInformation();
-		break;
+		case LoginRecvPacketType::Client_ClientRequestStart:
+			//OnClientRequestStart();
+			break;
+		case LoginRecvPacketType::Client_ClientLoginBackgroundRequest:
+			//OnLoginBackgroundRequest();
+			break;
+		case LoginRecvPacketType::Client_ClientCheckPasswordRequest:
+			OnCheckPasswordRequst(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientSelectGenderAnd2ndPassword:
+			OnSelectGenderAnd2ndPassword(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientSelectWorld:
+			OnClientSelectWorld(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientWorldStatusCheck:
+			OnCheckWorldStatusRequst(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientSecondPasswordCheck:
+			OnClientSecondPasswdCheck();
+			break;
+		case LoginRecvPacketType::Client_ClientCheckDuplicatedID:
+			OnClientCheckDuplicatedID(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientCreateNewCharactar:
+			OnClientCreateNewCharacter(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientSelectCharacter:
+			OnClientSelectCharacter(iPacket);
+			break;
+		case LoginRecvPacketType::Client_ClientRequestServerList:
+			SendWorldInformation();
+			break;
 	}
 }
 
@@ -115,7 +115,7 @@ void LoginSocket::OnCheckPasswordRequst(InPacket *iPacket)
 
 	OutPacket oPacket;
 	oPacket.Encode2(LoginSendPacketType::Client_CheckPasswordResponse);
-	std::shared_ptr<LoginEntry> pEntry = nullptr;
+	ZSharedPtr<LoginEntry> pEntry = nullptr;
 
 	if (nCheckResult == LoginResult::res_PasswdCheck_Success)
 	{

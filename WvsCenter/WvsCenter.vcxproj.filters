@@ -65,6 +65,9 @@
     <ClCompile Include="..\WvsGame\SkillInfo.cpp">
       <Filter>InGame\Skill</Filter>
     </ClCompile>
+    <ClCompile Include="ShopScannerMan.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WvsCenter.h">
@@ -115,6 +118,9 @@
     </ClInclude>
     <ClInclude Include="..\WvsGame\SkillInfo.h">
       <Filter>InGame\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="ShopScannerMan.h">
+      <Filter>World</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

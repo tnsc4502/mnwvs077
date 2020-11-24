@@ -192,6 +192,7 @@ DEFINE_PACKET_TYPE(UserRecvPacketType)
 	REGISTER_TYPE(User_OnPartyRequestRejected, 0x61);
 	REGISTER_TYPE(User_OnGuildRequest, 0x62);
 	REGISTER_TYPE(User_OnFriendRequest, 0x66);
+	REGISTER_TYPE(User_OnMemoRequest, 0x67);
 
 
 	REGISTER_TYPE(User_OnFuncKeyMappedModified, 0x6B);

@@ -23,5 +23,7 @@ public:
 	static int ConsumeItemProtector(User *pUser, InPacket *iPacket);
 	static int ConsumeWeatherItem(User *pUser, int nItemID, InPacket *iPacket);
 	static int ConsumeJukeBox(User *pUser, int nItemID, InPacket *iPacket);
+	static int ConsumeSendMemo(User *pUser, int nPOS, InPacket *iPacket);
+	static int ConsumeShopScanner(User *pUser, int nPOS, InPacket *iPacket);
 };
 

@@ -1,14 +1,12 @@
 #pragma once
-#include "WvsUnified.h"
+#include <vector>
+#include <string>
 
 class SocketBase;
 
 class CharacterDBAccessor
 {
-private:
-
 public:
-
 	enum CharacterBodyEquipPosition
 	{
 		eBodyEquip_POS_Cap = -1,
@@ -50,28 +48,18 @@ public:
 		eStatData_POS_END = 13,
 	};
 
-	static CharacterDBAccessor* GetInstance()
-	{
-		static CharacterDBAccessor* sPtrAccessor = new CharacterDBAccessor();
-		return sPtrAccessor;
-	}
-
 	static void GetDefaultCharacterStat(int *aStat);
 
-	std::vector<int> PostLoadCharacterListRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID);
-	void PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, const std::string& sCharacterName);
-	void PostCreateNewCharacterRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID, const std::string& strName, int nGender, int nFace, int nHair, int nSkin, const int* aBody, const int* aStat);
-	void PostCharacterDataRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *oPacket);
-	void PostBuyCashItemRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void PostLoadLockerRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void PostUpdateCashRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void PostMoveSlotToLockerRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void PostMoveLockerToSlotRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void PostExpireCashItemRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	int QueryCharacterIDByName(const std::string& strName);
-	int QueryCharacterFriendMax(int nCharacterID);
-	int QueryCharacterAccountID(int nCharacterID);
-	//void PostChargeCashRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *iPacket);
-	void OnCharacterSaveRequest(void *iPacket);
+	//Character & Account Data
+	static std::vector<int> PostLoadCharacterListRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID);
+	static void PostCheckDuplicatedID(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, const std::string& sCharacterName);
+	static void PostCreateNewCharacterRequest(SocketBase *pSrv, int uLocalSocketSN, int nAccountID, int nWorldID, const std::string& strName, int nGender, int nFace, int nHair, int nSkin, const int* aBody, const int* aStat);
+	static void PostCharacterDataRequest(SocketBase *pSrv, int uClientSocketSN, int nCharacterID, void *oPacket);
+	static int QueryCharacterIDByName(const std::string& strName);
+	static int QueryCharacterFriendMax(int nCharacterID);
+	static int QueryCharacterAccountID(int nCharacterID);
+	static void OnCharacterSaveRequest(void *iPacket);
+
+	//Memo
 };
 

@@ -5,6 +5,8 @@
 #include "BackupItem.h"
 #include "ExchangeElement.h"
 #include "QWUInventory.h"
+#include "WvsGame.h"
+
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotBase.h"
@@ -254,6 +256,7 @@ void PersonalShop::Release()
 
 void PersonalShop::BroadcastItemList()
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	OutPacket oPacket;
 	oPacket.Encode2(FieldSendPacketType::Field_MiniRoomRequest);
 	oPacket.Encode1(PersonalShopMessgae::e_Message_ShopItemUpdated);

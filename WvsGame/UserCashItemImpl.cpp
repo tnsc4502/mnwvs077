@@ -15,10 +15,12 @@ Implementations of cash item usages.
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\Database\GW_ItemSlotEquip.h"
 #include "..\Database\GA_Character.hpp"
+#include "..\Database\GW_Memo.h"
 
 #include "..\WvsLib\String\StringPool.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
+#include "..\WvsCenter\ShopScannerMan.h"
 #include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsGame\UserPacketTypes.hpp"
 
@@ -227,4 +229,35 @@ int UserCashItemImpl::ConsumeJukeBox(User * pUser, int nItemID, InPacket * iPack
 	std::lock_guard<std::recursive_mutex> lock(pUser->GetLock());
 	pUser->GetField()->OnJukeBox(nItemID, iPacket->Decode4(), pUser);
 	return 1;
+}
+
+int UserCashItemImpl::ConsumeSendMemo(User* pUser, int nPOS, InPacket* iPacket)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+	oPacket.Encode4(pUser->GetUserID());
+	oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Send);
+	oPacket.EncodeStr(iPacket->DecodeStr());
+	oPacket.EncodeStr(pUser->GetName());
+	oPacket.EncodeStr(iPacket->DecodeStr());
+	oPacket.Encode8(GameDateTime::GetCurrentDate());
+	oPacket.Encode1(0);
+	oPacket.Encode2(nPOS);
+
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	return 0;
+}
+
+int UserCashItemImpl::ConsumeShopScanner(User * pUser, int nPOS, InPacket * iPacket)
+{
+	int nItemID = iPacket->Decode4();
+	OutPacket oCenterPacket;
+	oCenterPacket.Encode2(CenterRequestPacketType::ShopScannerRequest);
+	oCenterPacket.Encode4(pUser->GetUserID());
+	oCenterPacket.Encode1(ShopScannerMan::ShopScannerRequestType::eScanner_OnSearch);
+	oCenterPacket.Encode1(WvsBase::GetInstance<WvsGame>()->GetCenter()->GetWorldID());
+	oCenterPacket.Encode4(nItemID);
+	oCenterPacket.Encode2(nPOS);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oCenterPacket);
+	return 0;
 }

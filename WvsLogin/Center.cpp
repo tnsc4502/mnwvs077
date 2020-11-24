@@ -58,6 +58,7 @@ void Center::OnPacket(InPacket *iPacket)
 			}
 			WvsLogger::LogRaw(WvsLogger::LEVEL_INFO, "[WvsLogin][RegisterCenterAck]The connection between local server(WvsCenter) has been authenciated by remote server.\n");
 			OnUpdateWorldInfo(iPacket);
+			WvsBase::GetInstance<WvsLogin>()->RestoreLoginEntry(iPacket);
 			break;
 		}
 		case CenterResultPacketType::CenterStatChanged:

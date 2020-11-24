@@ -162,6 +162,12 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterResultPacketType::CashItemResult:
 			OnCenterCashItemResult(iPacket);
 			break;
+		case CenterResultPacketType::MemoResult:
+			OnCenterMemoResult(iPacket);
+			break;
+		case CenterResultPacketType::ShopScannerResult:
+			OnShopScannerResult(iPacket);
+			break;
 	}
 }
 
@@ -344,5 +350,21 @@ void Center::OnCenterCashItemResult(InPacket * iPacket)
 	auto pUser = User::FindUser(nUserID);
 	if (pUser)
 		pUser->OnCenterCashItemResult(iPacket);
+}
+
+void Center::OnCenterMemoResult(InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+		pUser->OnCenterMemoResult(iPacket);
+}
+
+void Center::OnShopScannerResult(InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	auto pUser = User::FindUser(nCharacterID);
+	if (pUser)
+		pUser->OnShopScannerResult(iPacket);
 }
 

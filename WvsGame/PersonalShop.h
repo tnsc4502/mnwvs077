@@ -49,6 +49,6 @@ public:
 	virtual void EncodeItemList(OutPacket *oPacket);
 	virtual void Encode(OutPacket *oPacket);
 	virtual void Release();
-	void BroadcastItemList();
+	virtual void BroadcastItemList();
 };
 

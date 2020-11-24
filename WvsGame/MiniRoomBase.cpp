@@ -345,6 +345,7 @@ void MiniRoomBase::OnBalloonBase(User *pUser, InPacket *iPacket)
 	{
 		pUser->SetMiniRoomBalloon(iPacket->Decode1() == 1);
 	}
+	OnCreated();
 }
 
 void MiniRoomBase::OnLeave(User * pUser, int nLeaveType)
@@ -504,6 +505,10 @@ int MiniRoomBase::IsAdmitted(User *pUser, InPacket *iPacket, bool bOnCreate)
 		SetPassword(iPacket->DecodeStr());
 
 	return MiniRoomAdmissionResult::res_Admission_Success;
+}
+
+void MiniRoomBase::OnCreated()
+{
 }
 
 void MiniRoomBase::CloseRequest(User *pUser, int nLeaveType, int nLeaveType2)

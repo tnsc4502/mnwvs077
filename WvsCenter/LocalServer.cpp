@@ -1,28 +1,33 @@
-
 #include "..\Database\CharacterDBAccessor.h"
+#include "..\Database\CashItemDBAccessor.h"
+#include "..\Database\MemoDBAccessor.h"
+#include "..\Database\GW_Memo.h"
 #include "..\Database\GW_ItemSlotBase.h"
+
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-
-#include "..\WvsLogin\LoginPacketTypes.hpp"
-#include "..\WvsCenter\CenterPacketTypes.hpp"
-#include "..\WvsShop\ShopPacketTypes.hpp"
-#include "..\WvsGame\FieldPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Common\ServerConstants.hpp"
+#include "..\WvsLogin\LoginPacketTypes.hpp"
+#include "..\WvsShop\ShopPacketTypes.hpp"
+
+#include "..\WvsGame\FieldPacketTypes.hpp"
+#include "..\WvsGame\ItemInfo.h"
+#include "..\WvsGame\PartyMan.h"
+#include "..\WvsGame\GuildMan.h"
+#include "..\WvsGame\FriendMan.h"
+#include "..\WvsGame\Trunk.h"
+
 #include "WvsCenter.h"
+#include "CenterPacketTypes.hpp"
 #include "WvsWorld.h"
 #include "LocalServer.h"
 #include "AuthEntry.h"
 #include "UserTransferStatus.h"
 #include "EntrustedShopMan.h"
 #include "GuildBBSMan.h"
+#include "ShopScannerMan.h"
 
-#include "..\WvsGame\ItemInfo.h"
-#include "..\WvsGame\PartyMan.h"
-#include "..\WvsGame\GuildMan.h"
-#include "..\WvsGame\FriendMan.h"
-#include "..\WvsGame\Trunk.h"
 #include <cmath>
 
 LocalServer::LocalServer(asio::io_service& serverService)
@@ -114,8 +119,6 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 		case CenterRequestPacketType::RequestTransferChannel:
 			OnRequestTransferChannel(iPacket, nType == CenterRequestPacketType::RequestTransferShop);
 			break;
-			//OnRequestMigrateCashShop(iPacket);
-			//break;
 		case CenterRequestPacketType::PartyRequest:
 			OnPartyRequest(iPacket);
 			break;
@@ -138,7 +141,7 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 			OnTrunkRequest(iPacket);
 			break;
 		case CenterRequestPacketType::FlushCharacterData:
-			CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
+			CharacterDBAccessor::OnCharacterSaveRequest(iPacket);
 			break;
 		case CenterRequestPacketType::EntrustedShopRequest:
 			OnEntrustedShopRequest(iPacket);
@@ -157,6 +160,12 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 			break;
 		case CenterRequestPacketType::CashItemRequest:
 			OnCashItemRequest(iPacket);
+			break;
+		case CenterRequestPacketType::MemoRequest:
+			OnMemoRequest(iPacket);
+			break;
+		case CenterRequestPacketType::ShopScannerRequest:
+			OnShopScannerRequest(iPacket);
 			break;
 	}
 }
@@ -182,10 +191,13 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::RegisterCenterAck);
-	oPacket.Encode1(1); //Success;
+	bool bSuccess = false;
 
 	if (nServerType == ServerConstants::SRV_GAME)
 	{
+		bSuccess = true;
+		oPacket.Encode1(1);
+
 		oPacket.Encode1(WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 		for (int i = 1; i <= 5; ++i)
 			oPacket.Encode8(GW_ItemSlotBase::GetInitItemSN(
@@ -197,18 +209,32 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 
 	if (nServerType == ServerConstants::SRV_LOGIN)
 	{
-		auto pWorld = WvsWorld::GetInstance();
-		oPacket.Encode1(pWorld->GetWorldInfo().nWorldID);
-		oPacket.Encode1(pWorld->GetWorldInfo().nEventType);
-		oPacket.EncodeStr(pWorld->GetWorldInfo().strWorldDesc);
-		oPacket.EncodeStr(pWorld->GetWorldInfo().strEventDesc);
-		WvsBase::GetInstance<WvsCenter>()->RegisterLoginServer(shared_from_this());
-		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
-	}
-	
-	if (nServerType == ServerConstants::SRV_SHOP)
-		WvsBase::GetInstance<WvsCenter>()->RegisterCashShop(shared_from_this(), iPacket);
+		if (!WvsBase::GetInstance<WvsCenter>()->GetLoginServer())
+		{
+			bSuccess = true;
+			oPacket.Encode1(1);
 
+			WvsWorld::GetInstance()->EncodeWorldInfo(&oPacket);
+			WvsWorld::GetInstance()->EncodeAuthEntry(&oPacket);
+			WvsBase::GetInstance<WvsCenter>()->RegisterLoginServer(shared_from_this());
+			WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
+		}
+	}
+	else if (nServerType == ServerConstants::SRV_SHOP) 
+	{
+		if (!WvsBase::GetInstance<WvsCenter>()->GetShop())
+		{
+			bSuccess = true;
+			oPacket.Encode1(1);
+
+			WvsBase::GetInstance<WvsCenter>()->RegisterCashShop(shared_from_this(), iPacket);
+		}
+	}
+	if (!bSuccess) 
+	{
+		oPacket.Encode1(0);
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[LocalServer::OnRegisterCenterRequest]A %s LocalServer failed to pass center registration.\n", sInstanceName);
+	}
 	SendPacket(&oPacket);
 }
 
@@ -218,7 +244,7 @@ void LocalServer::OnRequestCharacterList(InPacket *iPacket)
 	int nAccountID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode1();
 	if (WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) != nullptr) 
-		CharacterDBAccessor::GetInstance()->PostLoadCharacterListRequest(this, nLoginSocketID, nAccountID, WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
+		CharacterDBAccessor::PostLoadCharacterListRequest(this, nLoginSocketID, nAccountID, WvsWorld::GetInstance()->GetWorldInfo().nWorldID);
 }
 
 void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
@@ -279,7 +305,7 @@ void LocalServer::OnRequestCreateNewCharacter(InPacket *iPacket)
 		= aStats[CharacterDBAccessor::eStatData_POS_Int] 
 		= aStats[CharacterDBAccessor::eStatData_POS_Luk] = 4;
 
-	CharacterDBAccessor::GetInstance()->PostCreateNewCharacterRequest(
+	CharacterDBAccessor::PostCreateNewCharacterRequest(
 		this, 
 		nLoginSocketID, 
 		nAccountID, 
@@ -299,7 +325,7 @@ void LocalServer::OnRequestCheckDuplicatedID(InPacket * iPacket)
 	int nAccountID = iPacket->Decode4();
 	std::string sCharacterName = iPacket->DecodeStr();
 
-	CharacterDBAccessor::GetInstance()->PostCheckDuplicatedID(
+	CharacterDBAccessor::PostCheckDuplicatedID(
 		this,
 		nLoginSocketID,
 		nAccountID,
@@ -319,9 +345,12 @@ void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)
 	oPacket.Encode2(CenterResultPacketType::GameServerInfoResponse);
 	oPacket.Encode4(nLoginSocketID);
 
-	if (nWorldID != WvsWorld::GetInstance()->GetWorldInfo().nWorldID ||
-		WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) == nullptr ||
-		CharacterDBAccessor::GetInstance()->QueryCharacterAccountID(nCharacterID) != nAccountID)
+	auto pAuthEntry = WvsWorld::GetInstance()->GetAuthEntryByAccountID(nAccountID);
+	if (nWorldID != WvsWorld::GetInstance()->GetWorldInfo().nWorldID || //Packet Hacker
+		WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID) == nullptr || //Invalid Channel
+		CharacterDBAccessor::QueryCharacterAccountID(nCharacterID) != nAccountID || //Invalid Auth
+		pAuthEntry //Multiple login on same account.
+		)
 	{
 		WvsLogger::LogFormat(
 			WvsLogger::LEVEL_ERROR, 
@@ -335,7 +364,7 @@ void LocalServer::OnRequestGameServerInfo(InPacket *iPacket)
 		return;
 	}
 
-	auto pAuthEntry = AllocObj(AuthEntry);
+	pAuthEntry = AllocObj(AuthEntry);
 	pAuthEntry->nAccountID = nAccountID;
 	pAuthEntry->nChannelID = nChannelID;
 	pAuthEntry->nCharacterID = nCharacterID;
@@ -379,22 +408,33 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode4();
+	int nAccountID = CharacterDBAccessor::QueryCharacterAccountID(nCharacterID);
+	AuthEntry *pAuthEntry = nullptr;
 
 	InsertConnectedUser(nCharacterID);
+	if (nAccountID == -1 ||
+		((pAuthEntry = WvsWorld::GetInstance()->GetAuthEntryByAccountID(nAccountID)) && pAuthEntry->nCharacterID != nCharacterID)
+		)
+	{
+		RemoveConnectedUser(nCharacterID);
+		WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]Warning: A clienRemoveAuthEntryt is trying to login to an account that has already been issued a migration for other characters. [CharacterID = %d].\n", nCharacterID);
+		return;
+	}
+
 	if (!WvsWorld::GetInstance()->IsUserTransfering(nCharacterID))
 	{
-		auto pAuthEntry = WvsWorld::GetInstance()->GetAuthEntry(nCharacterID);
+		pAuthEntry = WvsWorld::GetInstance()->GetAuthEntry(nCharacterID);
 		auto pMigratedInUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
 
 		if(!pAuthEntry)
 		{
+			RemoveConnectedUser(nCharacterID);
 			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]Warning: A client is trying to login to a character without authentications. [CharacterID = %d].\n",	nCharacterID);
 			return;
 		}
 
 		if (pMigratedInUser)
 		{
-			WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
 			WvsLogger::LogFormat(WvsLogger::LEVEL_ERROR, "[WvsCenter][LocalServer::OnRequestMigrateIn]Warning: A client is trying to login to a character that has already logged into the game server. [CharacterID = %d].\n", nCharacterID);
 			return;
 		}
@@ -407,7 +447,6 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 		pwUser->m_nLocalSocketSN = nClientSocketID;
 		pwUser->m_nAccountID = pAuthEntry->nAccountID;
 
-		WvsWorld::GetInstance()->RemoveAuthEntry(nCharacterID);
 		WvsWorld::GetInstance()->SetUser(
 			nCharacterID,
 			pwUser
@@ -418,10 +457,9 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 	oPacket.Encode2(CenterResultPacketType::CenterMigrateInResult);
 	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
-	CharacterDBAccessor::GetInstance()->PostCharacterDataRequest(this, nClientSocketID, nCharacterID, &oPacket); // for WvsGame
+	CharacterDBAccessor::PostCharacterDataRequest(this, nClientSocketID, nCharacterID, &oPacket); // for WvsGame
 	auto pUserTransferStatus = WvsWorld::GetInstance()->GetUserTransferStatus(nCharacterID);
 
-	WvsLogger::LogFormat("OnRequestMigrateIn, has transfer status ? %d\n", (pUserTransferStatus != nullptr));
 	if (pUserTransferStatus == nullptr)
 		oPacket.Encode1(0);
 	else
@@ -430,7 +468,6 @@ void LocalServer::OnRequestMigrateIn(InPacket *iPacket)
 		pUserTransferStatus->Encode(&oPacket);
 	}
 	this->SendPacket(&oPacket);
-
 	WvsWorld::GetInstance()->UserMigrateIn(nCharacterID, nChannelID);
 }
 
@@ -439,9 +476,9 @@ void LocalServer::OnRequestMigrateOut(InPacket * iPacket)
 	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nChannelID = iPacket->Decode4();
-	RemoveConnectedUser(nCharacterID);
 
-	CharacterDBAccessor::GetInstance()->OnCharacterSaveRequest(iPacket);
+	RemoveConnectedUser(nCharacterID);
+	CharacterDBAccessor::OnCharacterSaveRequest(iPacket);
 	char nGameEndType = iPacket->Decode1();
 
 	if (nGameEndType == CenterMigrationType::eMigrateOut_TransferChannelFromGame) //Transfer to another game server or to the shop.
@@ -491,7 +528,7 @@ void LocalServer::OnRequestTransferChannel(InPacket * iPacket, bool bShop)
 void LocalServer::OnGameClientDisconnected(InPacket *iPacket)
 {
 	iPacket->Decode4();
-	WvsWorld::GetInstance()->RemoveAuthEntry(iPacket->Decode4());
+	//WvsWorld::GetInstance()->RemoveAuthEntry(iPacket->Decode4());
 }
 
 void LocalServer::OnCheckMigrationStateAck(InPacket *iPacket)
@@ -571,22 +608,22 @@ void LocalServer::OnCashItemRequest(InPacket * iPacket)
 	switch (nRequest)
 	{
 		case CenterCashItemRequestType::eBuyCashItemRequest:
-			CharacterDBAccessor::GetInstance()->PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 		case CenterCashItemRequestType::eLoadCashItemLockerRequest:
-			CharacterDBAccessor::GetInstance()->PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 		case CenterCashItemRequestType::eMoveCashItemLtoSRequest:
-			CharacterDBAccessor::GetInstance()->PostMoveLockerToSlotRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostMoveLockerToSlotRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 		case CenterCashItemRequestType::eMoveCashItemStoLRequest:
-			CharacterDBAccessor::GetInstance()->PostMoveSlotToLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostMoveSlotToLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 		case CenterCashItemRequestType::eExpireCashItemRequest:
-			CharacterDBAccessor::GetInstance()->PostExpireCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostExpireCashItemRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 		case CenterCashItemRequestType::eGetMaplePointRequest:
-			CharacterDBAccessor::GetInstance()->PostUpdateCashRequest(this, nClientSocketID, nCharacterID, iPacket);
+			CashItemDBAccessor::PostUpdateCashRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 	}
 }
@@ -765,7 +802,7 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 	std::string strTargetName = iPacket->DecodeStr();
 
 	//Query the character id of the specified name.
-	int nTargetID = CharacterDBAccessor::GetInstance()->QueryCharacterIDByName(strTargetName);
+	int nTargetID = CharacterDBAccessor::QueryCharacterIDByName(strTargetName);
 
 	//Check again the existence of sender.
 	std::lock_guard<std::recursive_mutex> lock(WvsWorld::GetInstance()->GetLock());
@@ -873,7 +910,7 @@ void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop:
 			EntrustedShopMan::GetInstance()->CreateEntrustedShop(
-				this, iPacket->Decode4(), 0, 0
+				this, iPacket->Decode4(), 0, 0, iPacket
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop:
@@ -896,5 +933,84 @@ void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
 				this, iPacket->Decode4()
 			);
 			break;
+		case EntrustedShopMan::EntrustedShopRequest::req_EShop_UpdateItemListRequest:
+			EntrustedShopMan::GetInstance()->UpdateItemListRequest(
+				this, iPacket->Decode4(), iPacket
+			);
+			break;
+	}
+}
+
+void LocalServer::OnMemoRequest(InPacket* iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nType = iPacket->Decode1(), nFailReason = -1;
+	switch (nType)
+	{
+		case GW_Memo::MemoRequestType::eMemoReq_Send:
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(CenterResultPacketType::MemoResult);
+			oPacket.Encode4(nCharacterID);
+
+			std::string sReceiver = iPacket->DecodeStr();
+			nCharacterID = CharacterDBAccessor::QueryCharacterIDByName(sReceiver);
+			if (nCharacterID != -1)
+			{
+				std::lock_guard<std::recursive_mutex> lock(WvsWorld::GetInstance()->GetLock());
+				auto pwUser = WvsWorld::GetInstance()->GetUser(nCharacterID);
+				if (pwUser)
+					nFailReason = GW_Memo::MemoSendFailReason::eMemoFailReason_UserIsOnline;
+				else
+					nFailReason = (MemoDBAccessor::PostSendMemoRequest(this, nCharacterID, iPacket) ? -1 : GW_Memo::MemoSendFailReason::eMemoFailReason_UserInBoxIsFull);
+
+#ifdef ONLINE_MEMO
+				//Notify if your sever supports online memo sending.
+				if (pwUser)
+				{
+					auto pSrv = WvsBase::GetInstance<WvsCenter>()->GetChannel(pwUser->m_nChannelID);
+					if (pSrv)
+						MemoDBAccessor::GetInstance()->PostLoadMemoRequest(pSrv->GetLocalSocket().get(), nCharacterID);
+				}
+#endif
+			}
+			else
+				nFailReason = GW_Memo::MemoSendFailReason::eMemoFailReason_UserDoesNotExist;
+
+			if (nFailReason >= 0)
+			{
+				oPacket.Encode1(GW_Memo::MemoResultType::eMemoRes_SendFailed);
+				oPacket.Encode1(nFailReason);
+			}
+			else
+			{
+				oPacket.Encode1(GW_Memo::MemoResultType::eMemoRes_SendSuccess);
+				oPacket.Encode2(iPacket->Decode2()); //Item POS
+			}
+
+			SendPacket(&oPacket);
+			break;
+		}
+		case GW_Memo::MemoRequestType::eMemoReq_Load:
+			MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
+			break;
+		case GW_Memo::MemoRequestType::eMemoReq_Delete:
+			MemoDBAccessor::PostDeleteMemoRequest(this, nCharacterID, iPacket);
+			break;
+	}
+}
+
+void LocalServer::OnShopScannerRequest(InPacket * iPacket)
+{
+	int nCharacterID = iPacket->Decode4();
+	int nType = iPacket->Decode1();
+	switch (nType)
+	{
+		case ShopScannerMan::ShopScannerRequestType::eScanner_OnSearch: {
+			int nWorldID = iPacket->Decode1();
+			int nItemID = iPacket->Decode4();
+			ShopScannerMan::GetInstance()->Search(this, nCharacterID, nWorldID, nItemID, iPacket->Decode2());
+			break;
+		}
 	}
 }

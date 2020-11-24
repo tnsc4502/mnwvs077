@@ -7,6 +7,7 @@
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_CharacterStat.h"
+#include "..\Database\GW_Memo.h"
 #include "User.h"
 #include "USkill.h"
 #include "Field.h"
@@ -20,6 +21,8 @@
 #include "..\WvsLib\String\StringUtility.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Memory\ZMemory.h"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
+#include "WvsGame.h"
 #include "ScriptMan.h"
 #include "GuildMan.h"
 
@@ -247,6 +250,23 @@ CommandManager::CommandManager()
 		[](User*pUser, PARAM_TYPE aInput)->int
 	{
 		pUser->SendChatMessage(0, "Mob Count In This Field: " + std::to_string( pUser->GetField()->GetLifePool()->GetMobCount()) );
+		return 1;
+	});
+
+	m_mCmdInvoke["#memo"] = (
+		[](User*pUser, PARAM_TYPE aInput)->int
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Send);
+		oPacket.EncodeStr(Get(aInput, 1));
+		oPacket.EncodeStr(pUser->GetName());
+		oPacket.EncodeStr(Get(aInput, 2));
+		oPacket.Encode8(GameDateTime::GetCurrentDate());
+		oPacket.Encode1(0);
+
+		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 		return 1;
 	});
 }

@@ -12,5 +12,6 @@ public:
 	static void LoadEntrustedShopItem(std::vector<ZUniquePtr<GW_ItemSlotBase>>& aItemRet, int nCharacterID);
 	static long long int QueryEntrustedShopMoney(int nCharacterID);
 	static void UpdateEntrustedShopMoney(int nCharacterID, int nMoney);
+	static std::vector<std::pair<int, long long int>> QueryItemExistence(int nWorldID, int nItemID);
 };
 

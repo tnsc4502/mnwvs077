@@ -237,6 +237,7 @@
     <ClCompile Include="GuildBBSMan.cpp" />
     <ClCompile Include="LocalServerEntry.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShopScannerMan.cpp" />
     <ClCompile Include="UserTransferStatus.cpp" />
     <ClCompile Include="WvsCenter.cpp" />
     <ClCompile Include="LocalServer.cpp" />
@@ -255,6 +256,7 @@
     <ClInclude Include="CenterApp.h" />
     <ClInclude Include="GuildBBSMan.h" />
     <ClInclude Include="LocalServerEntry.h" />
+    <ClInclude Include="ShopScannerMan.h" />
     <ClInclude Include="UserTransferStatus.h" />
     <ClInclude Include="WorldInfo.h" />
     <ClInclude Include="WvsCenter.h" />

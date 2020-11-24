@@ -130,6 +130,12 @@ public:
 	bool operator != (const SP& p) const { return m_s != p; }
 
 	template<typename U>
+	bool operator == (const ZSharedPtr<U>& p) const { return m_s == p.m_s; }
+
+	template<typename U>
+	bool operator != (const ZSharedPtr<U>& p) const { return m_s != p.m_s; }
+
+	template<typename U>
 	operator U*() { return (U*)m_s.get(); }
 
 	template<typename U>
