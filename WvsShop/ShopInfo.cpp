@@ -27,10 +27,19 @@ const CSCommodity * ShopInfo::GetCSCommodity(int nSN) const
 	return &(findIter->second);
 }
 
-void ShopInfo::LoadCommodity(void * pCashPackage, bool bCheckValid)
+const std::vector<const CSCommodity*>& ShopInfo::GetCashPackage(int nSN) const
 {
-	auto& refPackage = *((WzIterator*)pCashPackage);
-	for (auto& item : refPackage)
+	const static std::vector<const CSCommodity*> aEmpty;
+	auto findIter = m_mCashPackage.find(nSN);
+	if (findIter == m_mCashPackage.end())
+		return aEmpty;
+	return findIter->second;
+}
+
+void ShopInfo::LoadCommodity(void * pCommodity, bool bCheckValid)
+{
+	auto& refCommodity = *((WzIterator*)pCommodity);
+	for (auto& item : refCommodity)
 	{
 		CSCommodity& commodity = m_mOriginalCommodity[(int)item["SN"]];
 		commodity.nSN = (int)item["SN"];
@@ -88,6 +97,25 @@ void ShopInfo::LoadCommodity(void * pCashPackage, bool bCheckValid)
 	m_mCommodity = m_mOriginalCommodity;
 }
 
+void ShopInfo::LoadCashPackage(void * pCashPackage, bool bCheckValid)
+{
+	auto& refCashPackage = *((WzIterator*)pCashPackage);
+
+	const CSCommodity* pCommodity = nullptr;
+	for (auto& package : refCashPackage)
+	{
+		std::vector<const CSCommodity*> aCommodity;
+		auto& nodeSN = package["SN"];
+		for (auto& SN : nodeSN)
+		{
+			pCommodity = GetCSCommodity((int)SN);
+			if (pCommodity)
+				aCommodity.push_back(pCommodity);
+		}
+		m_mCashPackage.insert({ atoi(package.GetName().c_str()), std::move(aCommodity) });
+	}
+}
+
 GW_CashItemInfo * ShopInfo::GetCashItemInfo(const CSCommodity * pCS) const
 {
 	GW_CashItemInfo *pRet = AllocObj(GW_CashItemInfo);
@@ -104,6 +132,7 @@ void ShopInfo::Init()
 {
 	auto& wzEtc = WzResMan::GetInstance()->GetWz(Wz::Etc);
 	LoadCommodity((void*)&(wzEtc["Commodity"]), true);
+	LoadCashPackage((void*)&(wzEtc["CashPackage"]), true);
 }
 
 void ShopInfo::EncodeModifiedCommodity(OutPacket *oPacket)

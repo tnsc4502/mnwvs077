@@ -22,6 +22,7 @@ struct GA_Character;
 struct GW_Avatar;
 struct GW_FuncKeyMapped;
 struct GW_Memo;
+struct GW_WishList;
 
 class BasicStat;
 class SecondaryStat;
@@ -171,8 +172,9 @@ private:
 	MiniRoomBase* m_pMiniRoom = nullptr;
 	bool m_bHasOpenedEntrustedShop = false;
 
-	//Memo
+	//Cash Sys
 	std::unordered_map<int, ZUniquePtr<GW_Memo>> m_mMemo;
+	ZUniquePtr<GW_WishList> m_pWishList;
 
 	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
@@ -287,7 +289,6 @@ public:
 	void SendSkillLearnItemResult(int nItemID, int nTargetSkill, int nMasterLevel, bool bItemUsed, bool bSucceed);
 	void OnPortalScrollUseRequest(InPacket *iPacket);
 	void OnConsumeCashItemUseRequest(InPacket *iPacket);
-	void OnCenterCashItemResult(InPacket *iPacket);
 	void SetADBoard(const std::string& sADBoard);
 	void OnShopScannerResult(InPacket *iPacket);
 
@@ -392,8 +393,12 @@ public:
 	ZUniquePtr<StoreBank>& GetStoreBank();
 	void SetStoreBank(StoreBank *pStoreBank);
 
-	//Memo
+	//Cash Sys
+	void OnCenterCashItemResult(InPacket *iPacket);
+	void OnCenterCashItemExpireResult(InPacket *iPacket);
+	void OnCenterLoadWishListResult(InPacket *iPacket);
 	void OnCenterMemoResult(InPacket *iPacket);
+	void OnCenterWishListResult(InPacket *iPacket);
 	void OnMemoRequest(InPacket *iPacket);
 };
 

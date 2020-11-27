@@ -9,6 +9,7 @@
 #include "GW_ItemSlotPet.h"
 #include "GA_Character.hpp"
 #include "GW_GiftList.h"
+#include "GW_WishList.h"
 
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
@@ -16,20 +17,21 @@
 #include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
-void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, void * iPacket_, bool bGift)
+void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, int nRequestType, void * iPacket_, bool bGift)
 {
 	InPacket *iPacket = (InPacket*)iPacket_;
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::CashItemResult);
 	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
-	oPacket.Encode2(bGift ? CenterCashItemRequestType::eGiftCashItemRequest : CenterCashItemRequestType::eBuyCashItemRequest);
+	oPacket.Encode2(nRequestType);
 
 	int nAccountID = iPacket->Decode4(), nReceiverID = 0, nReceiverAccountID = 0;
 	GW_Account account;
 	account.Load(nAccountID);
 
 	std::string sBuyCharacterID = iPacket->DecodeStr(), sReceiver, sMemo;
+	std::vector<std::pair<ZUniquePtr<GW_CashItemInfo>, ZSharedPtr<GW_ItemSlotBase>>> aItem;
 	if (bGift)
 	{
 		sReceiver = iPacket->DecodeStr();
@@ -37,88 +39,103 @@ void CashItemDBAccessor::PostBuyCashItemRequest(SocketBase * pSrv, int uClientSo
 		nReceiverAccountID = nReceiverID < 0 ? -1 : CharacterDBAccessor::QueryCharacterAccountID(nReceiverID);
 		if (nReceiverID == -1 || nReceiverAccountID == -1)
 		{
-			oPacket.Encode1(0);
+			oPacket.Encode1(1);
 			goto DELIVER_PACKET;
 		}
 		sMemo = iPacket->DecodeStr();
 	}
-	int nChargeType = iPacket->Decode1();
-	int nType = iPacket->Decode1();
-	bool bIsPet = iPacket->Decode1() == 1;
-	int nPrice = iPacket->Decode4();
+	int nChargeType = iPacket->Decode1(), nType = 0, nPrice = 0;
+	nPrice = iPacket->Decode4();
 
 	if (account.QueryCash(nChargeType) >= nPrice)
 	{
 		account.UpdateCash(nChargeType, -nPrice);
-		oPacket.Encode1(0); //Success
-		ZSharedPtr<GW_ItemSlotBase> pItem;
-		if (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP)
-			pItem = MakeShared<GW_ItemSlotEquip>();
-		else if (bIsPet)
-			pItem = MakeShared<GW_ItemSlotPet>();
-		else
-			pItem = MakeShared<GW_ItemSlotBundle>();
 
-		pItem->nType = (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP ?
-			GW_ItemSlotBase::GW_ItemSlotType::EQUIP
-			: GW_ItemSlotBase::GW_ItemSlotType::CASH);
-		pItem->bIsCash = true;
-		pItem->bIsPet = bIsPet;
-		pItem->DecodeInventoryPosition(iPacket);
-		pItem->Decode(iPacket, false);
-		pItem->nCharacterID = bGift ? nReceiverID : nCharacterID;
-		pItem->liCashItemSN = GW_ItemSlotBase::IncItemSN(GW_ItemSlotBase::GW_ItemSlotType::CASH);
-		pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
-		pItem->liItemSN = -1;
-
-		GW_CashItemInfo cashItemInfo;
-		cashItemInfo.sBuyCharacterID = sBuyCharacterID;
-		cashItemInfo.Decode(iPacket);
-		cashItemInfo.nAccountID = bGift ? nReceiverAccountID : nAccountID;
-		cashItemInfo.cashItemOption.liCashItemSN = pItem->liCashItemSN;
-		cashItemInfo.bLocked = true;
-		cashItemInfo.nGWItemSlotInstanceType = pItem->nInstanceType;
-		cashItemInfo.Save(true);
-
-		//09/12/2019 added. fix for bundled items.
-		if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet)
-			((GW_ItemSlotBundle*)pItem)->nNumber = cashItemInfo.nNumber;
-
-		//A pet will only have ExpireDate in GW_ItemSlotPet(which stands for it's life time)
-		if (!pItem->bIsPet)
-			pItem->liExpireDate = cashItemInfo.liDateExpire;
-		pItem->Save(pItem->nCharacterID);
-
+		int nItemCount = iPacket->Decode1();
+		bool bIsPet = false;
+		oPacket.Encode1(0);
+		oPacket.Encode1(nItemCount);
 		oPacket.Encode4(account.QueryCash(1));
 		oPacket.Encode4(account.QueryCash(2));
-		if (bGift)
+		for (int i = 0; i < nItemCount; ++i)
 		{
-			oPacket.EncodeStr(sReceiver);
-			oPacket.Encode4(pItem->nItemID);
-			oPacket.Encode2(
-				nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet ?
-				((GW_ItemSlotBundle*)pItem)->nNumber : 1
-			);
-			oPacket.Encode2(0);
-			oPacket.Encode4(nPrice);
-		}
-		else
-			cashItemInfo.Encode(&oPacket);
+			nType = iPacket->Decode1();
+			bIsPet = iPacket->Decode1() == 1;
 
-		if (sMemo != "")
-		{
-			GW_GiftList GList;
-			GList.nCharacterID = nReceiverID;
-			GList.liItemSN = pItem->liCashItemSN;
-			GList.nItemID = pItem->nItemID;
-			GList.sBuyCharacterName = sBuyCharacterID;
-			GList.sText = sMemo;
-			GList.nState = 1;
-			GList.Save();
+			ZSharedPtr<GW_ItemSlotBase> pItem;
+			if (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP)
+				pItem = MakeShared<GW_ItemSlotEquip>();
+			else if (bIsPet)
+				pItem = MakeShared<GW_ItemSlotPet>();
+			else
+				pItem = MakeShared<GW_ItemSlotBundle>();
+
+			pItem->nType = (nType == GW_ItemSlotBase::GW_ItemSlotType::EQUIP ?
+				GW_ItemSlotBase::GW_ItemSlotType::EQUIP
+				: GW_ItemSlotBase::GW_ItemSlotType::CASH);
+			pItem->bIsCash = true;
+			pItem->bIsPet = bIsPet;
+			pItem->DecodeInventoryPosition(iPacket);
+			pItem->Decode(iPacket, false);
+			pItem->nCharacterID = bGift ? nReceiverID : nCharacterID;
+			pItem->liCashItemSN = GW_ItemSlotBase::IncItemSN(GW_ItemSlotBase::GW_ItemSlotType::CASH);
+			pItem->nPOS = GW_ItemSlotBase::LOCK_POS;
+			pItem->liItemSN = -1;
+
+			GW_CashItemInfo* pCashItemInfo = AllocObj(GW_CashItemInfo);
+			pCashItemInfo->sBuyCharacterID = sBuyCharacterID;
+			pCashItemInfo->Decode(iPacket);
+			pCashItemInfo->nAccountID = bGift ? nReceiverAccountID : nAccountID;
+			pCashItemInfo->cashItemOption.liCashItemSN = pItem->liCashItemSN;
+			pCashItemInfo->bLocked = true;
+			pCashItemInfo->nGWItemSlotInstanceType = pItem->nInstanceType;
+			//pCashItemInfo->Save(true);
+
+			//09/12/2019 added. fix for bundled items.
+			if (nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet)
+				((GW_ItemSlotBundle*)pItem)->nNumber = pCashItemInfo->nNumber;
+
+			//A pet will only have ExpireDate in GW_ItemSlotPet(which stands for it's life time)
+			if (!pItem->bIsPet)
+				pItem->liExpireDate = pCashItemInfo->liDateExpire;
+			//pItem->Save(pItem->nCharacterID);
+
+			aItem.push_back({ pCashItemInfo, pItem });
+			if (bGift)
+			{
+				oPacket.EncodeStr(sReceiver);
+				oPacket.Encode4(pItem->nItemID);
+				oPacket.Encode2(
+					nType == GW_ItemSlotBase::GW_ItemSlotType::CASH && !bIsPet ?
+					((GW_ItemSlotBundle*)pItem)->nNumber : 1
+				);
+				oPacket.Encode2(0);
+				oPacket.Encode4(nPrice);
+			}
+			else
+				pCashItemInfo->Encode(&oPacket);
+
+			if (sMemo != "")
+			{
+				GW_GiftList GList;
+				GList.nCharacterID = nReceiverID;
+				GList.liItemSN = pItem->liCashItemSN;
+				GList.nItemID = pItem->nItemID;
+				GList.sBuyCharacterName = sBuyCharacterID;
+				GList.sText = sMemo;
+				GList.nState = 1;
+				GList.Save();
+			}
 		}
 	}
 	else
 		oPacket.Encode1(1);
+
+	for (auto& prItem : aItem)
+	{
+		prItem.first->Save(true);
+		prItem.second->Save(prItem.second->nCharacterID);
+	}
 
 DELIVER_PACKET:
 	pSrv->SendPacket(&oPacket);
@@ -276,6 +293,7 @@ void CashItemDBAccessor::PostExpireCashItemRequest(SocketBase * pSrv, int uClien
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::CashItemResult);
+	oPacket.Encode4(uClientSocketSN);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode2(CenterCashItemRequestType::eExpireCashItemRequest);
 	oPacket.Encode1((char)nSize);
@@ -294,4 +312,44 @@ void CashItemDBAccessor::PostExpireCashItemRequest(SocketBase * pSrv, int uClien
 	}
 
 	pSrv->SendPacket(&oPacket);
+}
+
+void CashItemDBAccessor::PostLoadGiftListRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID)
+{
+	std::vector<ZUniquePtr<GW_GiftList>> aList = GW_GiftList::Load(nCharacterID);
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterResultPacketType::CashItemResult);
+	oPacket.Encode4(uClientSocketSN);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode2(CenterCashItemRequestType::eLoadGiftListRequest);
+	oPacket.Encode2((int)aList.size());
+	for (auto& pList : aList)
+		pList->Encode(&oPacket);
+
+	pSrv->SendPacket(&oPacket);
+}
+
+void CashItemDBAccessor::PostLoadWishListRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID)
+{
+	auto pWishList = GW_WishList::Load(nCharacterID);
+	if (pWishList)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(CenterResultPacketType::CashItemResult);
+		oPacket.Encode4(uClientSocketSN);
+		oPacket.Encode4(nCharacterID);
+		oPacket.Encode2(CenterCashItemRequestType::eLoadWishItemRequest);
+		pWishList->Encode(&oPacket);
+		pSrv->SendPacket(&oPacket);
+	}
+}
+
+void CashItemDBAccessor::PostSetWishListRequest(SocketBase * pSrv, int uClientSocketSN, int nCharacterID, void *iPacket_)
+{
+	auto iPacket = (InPacket*)iPacket_;
+	GW_WishList WishList;
+	WishList.nCharacterID = nCharacterID;
+	WishList.Decode(iPacket);
+	WishList.Save();
 }

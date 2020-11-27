@@ -346,6 +346,7 @@ void Center::OnCheckGivePopularityResult(InPacket * iPacket)
 
 void Center::OnCenterCashItemResult(InPacket * iPacket)
 {
+	int uClientSocketID = iPacket->Decode4();
 	int nUserID = iPacket->Decode4();
 	auto pUser = User::FindUser(nUserID);
 	if (pUser)

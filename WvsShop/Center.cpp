@@ -87,9 +87,6 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterResultPacketType::CashItemResult:
 			OnCenterCashItemResult(iPacket);
 			break;
-		case CenterResultPacketType::MemoResult:
-			OnCenterMemoResult(iPacket);
-			break;
 		case CenterRequestPacketType::CheckMigrationState:
 			OnCheckMigrationState(iPacket);
 			break;
@@ -200,12 +197,4 @@ void Center::OnCenterCashItemResult(InPacket * iPacket)
 	auto pUser = User::FindUser(nUserID);
 	if (pSocket && pUser)
 		pUser->OnCenterCashItemResult((unsigned short)iPacket->Decode2(), iPacket);
-}
-
-void Center::OnCenterMemoResult(InPacket * iPacket)
-{
-	int nUserID = iPacket->Decode4();
-	auto pUser = User::FindUser(nUserID);
-	if (pUser)
-		pUser->OnCenterMemoResult(iPacket);
 }

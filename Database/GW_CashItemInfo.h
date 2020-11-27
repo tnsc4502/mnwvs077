@@ -25,7 +25,7 @@ struct GW_CashItemInfo
 	long long int liSN = 0,
 				  liDateExpire = GameDateTime::TIME_UNLIMITED;
 
-	double dDiscountRate;
+	double dDiscountRate = 0.0;
 
 	int nAccountID = 0,
 		nCharacterID = 0,

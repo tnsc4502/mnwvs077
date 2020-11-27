@@ -52,21 +52,6 @@ void MemoDBAccessor::PostLoadMemoRequest(SocketBase * pSrv, int nCharacterID)
 	}
 }
 
-void MemoDBAccessor::PostLoadGiftListRequest(SocketBase * pSrv, int nCharacterID)
-{
-	std::vector<ZUniquePtr<GW_GiftList>> aList = GW_GiftList::Load(nCharacterID);
-
-	OutPacket oPacket;
-	oPacket.Encode2(CenterResultPacketType::MemoResult);
-	oPacket.Encode4(nCharacterID);
-	oPacket.Encode1(GW_Memo::MemoResultType::eMemoRes_Load);
-	oPacket.Encode2((int)aList.size());
-	for (auto& pList : aList)
-		pList->Encode(&oPacket);
-
-	pSrv->SendPacket(&oPacket);
-}
-
 void MemoDBAccessor::PostDeleteMemoRequest(SocketBase * pSrv, int nCharacterID, void *iPacket_)
 {
 	auto iPacket = (InPacket*)iPacket_;

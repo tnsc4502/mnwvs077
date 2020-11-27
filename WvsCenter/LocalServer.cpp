@@ -607,9 +607,18 @@ void LocalServer::OnCashItemRequest(InPacket * iPacket)
 	int nRequest = iPacket->Decode2();
 	switch (nRequest)
 	{
+		case CenterCashItemRequestType::eGiftCashPackageRequest:
+		case CenterCashItemRequestType::eBuyCashPackageRequest:
 		case CenterCashItemRequestType::eGiftCashItemRequest:
 		case CenterCashItemRequestType::eBuyCashItemRequest:
-			CashItemDBAccessor::PostBuyCashItemRequest(this, nClientSocketID, nCharacterID, iPacket, nRequest == CenterCashItemRequestType::eGiftCashItemRequest);
+			CashItemDBAccessor::PostBuyCashItemRequest(
+				this, 
+				nClientSocketID, 
+				nCharacterID, 
+				nRequest, 
+				iPacket, 
+				nRequest == CenterCashItemRequestType::eGiftCashItemRequest || nRequest == CenterCashItemRequestType::eGiftCashPackageRequest
+			);
 			break;
 		case CenterCashItemRequestType::eLoadCashItemLockerRequest:
 			CashItemDBAccessor::PostLoadLockerRequest(this, nClientSocketID, nCharacterID, iPacket);
@@ -625,6 +634,15 @@ void LocalServer::OnCashItemRequest(InPacket * iPacket)
 			break;
 		case CenterCashItemRequestType::eGetMaplePointRequest:
 			CashItemDBAccessor::PostUpdateCashRequest(this, nClientSocketID, nCharacterID, iPacket);
+			break;
+		case CenterCashItemRequestType::eLoadGiftListRequest:
+			CashItemDBAccessor::PostLoadGiftListRequest(this, nClientSocketID, nCharacterID);
+			break;
+		case CenterCashItemRequestType::eLoadWishItemRequest:
+			CashItemDBAccessor::PostLoadWishListRequest(this, nClientSocketID, nCharacterID);
+			break;
+		case CenterCashItemRequestType::eSetWishItemRequest:
+			CashItemDBAccessor::PostSetWishListRequest(this, nClientSocketID, nCharacterID, iPacket);
 			break;
 	}
 }
@@ -995,10 +1013,7 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 			break;
 		}
 		case GW_Memo::MemoRequestType::eMemoReq_Load:
-			if (iPacket->Decode1() >= 0) //nChannelID
-				MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
-			else
-				MemoDBAccessor::PostLoadGiftListRequest(this, nCharacterID);
+			MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
 			break;
 		case GW_Memo::MemoRequestType::eMemoReq_Delete:
 			MemoDBAccessor::PostDeleteMemoRequest(this, nCharacterID, iPacket);

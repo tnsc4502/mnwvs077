@@ -16,6 +16,7 @@
 #include "..\Database\GW_Avatar.hpp"
 #include "..\Database\GW_CashItemInfo.h"
 #include "..\Database\GW_FuncKeyMapped.h"
+#include "..\Database\GW_WishList.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -29,7 +30,8 @@
 
 User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	: m_pSocket(_pSocket),
-	m_pCharacterData(AllocObj(GA_Character))
+	m_pCharacterData(AllocObj(GA_Character)),
+	m_pWishList(AllocObj(GW_WishList))
 {
 	_pSocket->SetUser(this);
 	m_pFuncKeyMapped.reset(MakeUnique<GW_FuncKeyMapped>(m_pCharacterData->nCharacterID));
@@ -64,11 +66,20 @@ User::User(ClientSocket *_pSocket, InPacket *iPacket)
 	SendPacket(&oPacket);
 	//m_pSecondaryStat->DecodeInternal(this, iPacket);
 
-	OnRequestLoadMemo();
+	RequestLoadGiftList();
+	RequestLoadWishList();
 }
 
 User::~User()
 {
+	OutPacket oSetWishList;
+	oSetWishList.Encode2(CenterRequestPacketType::CashItemRequest);
+	oSetWishList.Encode4(m_pSocket->GetSocketID());
+	oSetWishList.Encode4(GetUserID());
+	oSetWishList.Encode2(CenterCashItemRequestType::eSetWishItemRequest);
+	m_pWishList->Encode(&oSetWishList);
+	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oSetWishList);
+
 	OutPacket oPacket;
 	oPacket.Encode2((short)CenterRequestPacketType::RequestMigrateOut);
 	oPacket.Encode4(m_pSocket->GetSocketID());
@@ -76,12 +87,10 @@ User::~User()
 	oPacket.Encode4(-1);
 	m_pCharacterData->EncodeCharacterData(&oPacket, true);
 	m_pFuncKeyMapped->Encode(&oPacket, true);
-
 	oPacket.Encode1(m_bTransferChannel ? 
 		CenterMigrationType::eMigrateOut_TransferChannelFromShop : 
 		CenterMigrationType::eMigrateOut_ClientDisconnected
 	);
-
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 
 	m_pUpdateTimer->Abort();
@@ -185,6 +194,15 @@ void User::OnUserCashItemRequest(InPacket * iPacket)
 		case CashItemRequest::Recv_OnCashItemReqGift:
 			OnRequestCashItemGift(iPacket);
 			break;
+		case CashItemRequest::Recv_OnCashItemReqBuyCashPackage:
+			OnRequestBuyCashPackage(iPacket);
+			break;
+		case CashItemRequest::Recv_OnCashItemReqGiftCashPackage:
+			OnRequestGiftCashPackage(iPacket);
+			break;
+		case CashItemRequest::Recv_OnCashItemReqSetWish:
+			OnRequestSetWishList(iPacket);
+			break;
 	}
 }
 
@@ -209,7 +227,17 @@ void User::OnCenterCashItemResult(int nType, InPacket * iPacket)
 			OnCenterMoveItemToLockerDone(iPacket);
 			break;
 		case CenterCashItemRequestType::eGiftCashItemRequest:
+		case CenterCashItemRequestType::eGiftCashPackageRequest:
 			OnCenterGiftCashItemDone(iPacket);
+			break;
+		case CenterCashItemRequestType::eLoadGiftListRequest:
+			OnCenterGiftListResult(iPacket);
+			break;
+		case CenterCashItemRequestType::eBuyCashPackageRequest:
+			OnCenterBuyCashPackageDone(iPacket);
+			break;
+		case CenterCashItemRequestType::eLoadWishItemRequest:
+			OnRequestSetWishList(iPacket, true);
 			break;
 		default:
 			bValidate = false;
@@ -236,6 +264,7 @@ void User::OnCenterResLoadLockerDone(InPacket * iPacket)
 void User::OnCenterResBuyDone(InPacket * iPacket)
 {
 	short nFailedReason = iPacket->Decode1();
+	int nItemCount = iPacket->Decode1();
 
 	m_nNexonCash = iPacket->Decode4();
 	m_nMaplePoint = iPacket->Decode4();
@@ -257,15 +286,36 @@ void User::OnCenterResBuyDone(InPacket * iPacket)
 void User::OnCenterGiftCashItemDone(InPacket * iPacket)
 {
 	short nFailedReason = iPacket->Decode1();
+	int nItemCount = iPacket->Decode1();
 
 	m_nNexonCash = iPacket->Decode4();
 	m_nMaplePoint = iPacket->Decode4();
 
+	int nGiftPacketSize = (iPacket->GetPacketSize() - iPacket->GetReadCount()) / nItemCount;
+	for (int i = 0; i < nItemCount; ++i)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
+		oPacket.Encode1(CashItemRequest::Send_OnCashItemResGiftDone);
+		oPacket.EncodeBuffer(iPacket->GetPacket() + iPacket->GetReadCount() + nGiftPacketSize * i, nGiftPacketSize);
+		SendPacket(&oPacket);
+	}
+}
+
+void User::OnCenterBuyCashPackageDone(InPacket * iPacket)
+{
+	short nFailedReason = iPacket->Decode1();
+	int nItemCount = iPacket->Decode1();
+
+	m_nNexonCash = iPacket->Decode4();
+	m_nMaplePoint = iPacket->Decode4();
 
 	OutPacket oPacket;
 	oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
-	oPacket.Encode1(CashItemRequest::Send_OnCashItemResGiftDone);
+	oPacket.Encode1(CashItemRequest::Send_OnCashItemResBuyPackageDone);
+	oPacket.Encode1(nItemCount);
 	oPacket.EncodeBuffer(iPacket->GetPacket() + iPacket->GetReadCount(), iPacket->GetPacketSize() - iPacket->GetReadCount());
+	oPacket.Encode2(0); //nMaplePoint
 	SendPacket(&oPacket);
 }
 
@@ -329,29 +379,25 @@ void User::OnCenterMoveItemToLockerDone(InPacket * iPacket)
 	SendPacket(&oPacket);
 }
 
-void User::OnCenterMemoResult(InPacket * iPacket)
+void User::OnCenterGiftListResult(InPacket * iPacket)
 {
-	int nType = iPacket->Decode1(); //ResultType
-	if (nType == GW_Memo::MemoResultType::eMemoRes_Load)
-	{
-		OutPacket oPacket;
-		oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
-		oPacket.Encode1(CashItemRequest::Send_OnCashItemResLoadGiftDone);
-		oPacket.EncodeBuffer(
-			iPacket->GetPacket() + iPacket->GetReadCount(),
-			iPacket->GetPacketSize() - iPacket->GetReadCount()
-		);
+	OutPacket oPacket;
+	oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
+	oPacket.Encode1(CashItemRequest::Send_OnCashItemResLoadGiftDone);
+	oPacket.EncodeBuffer(
+		iPacket->GetPacket() + iPacket->GetReadCount(),
+		iPacket->GetPacketSize() - iPacket->GetReadCount()
+	);
 
-		m_mGiftList.clear();
-		int nCount = iPacket->Decode2();
-		for (int i = 0; i < nCount; ++i)
-		{
-			auto pGList = AllocObj(GW_GiftList);
-			pGList->Decode(iPacket);
-			m_mGiftList.insert({ i, pGList });
-		}
-		SendPacket(&oPacket);
+	m_mGiftList.clear();
+	int nCount = iPacket->Decode2();
+	for (int i = 0; i < nCount; ++i)
+	{
+		auto pGList = AllocObj(GW_GiftList);
+		pGList->Decode(iPacket);
+		m_mGiftList.insert({ i, pGList });
 	}
+	SendPacket(&oPacket);
 }
 
 void User::OnRequestCenterLoadLocker()
@@ -376,14 +422,24 @@ void User::OnRequestCenterUpdateCash()
 	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 }
 
-void User::OnRequestLoadMemo()
+void User::RequestLoadGiftList()
 {
-	OutPacket oMemoRequest;
-	oMemoRequest.Encode2(CenterRequestPacketType::MemoRequest);
-	oMemoRequest.Encode4(GetUserID());
-	oMemoRequest.Encode1(GW_Memo::MemoRequestType::eMemoReq_Load);
-	oMemoRequest.Encode1(-1);
-	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oMemoRequest);
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::CashItemRequest);
+	oPacket.Encode4(m_pSocket->GetSocketID());
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode2(CenterCashItemRequestType::eLoadGiftListRequest);
+	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
+}
+
+void User::RequestLoadWishList()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::CashItemRequest);
+	oPacket.Encode4(m_pSocket->GetSocketID());
+	oPacket.Encode4(GetUserID());
+	oPacket.Encode2(CenterCashItemRequestType::eLoadWishItemRequest);
+	WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
 }
 
 void User::OnMemoRequest(InPacket *iPacket)
@@ -418,37 +474,52 @@ void User::OnMemoRequest(InPacket *iPacket)
 	}
 }
 
+bool User::EncodeBuyCashItem(OutPacket* oPacket, const std::vector<const CSCommodity *>& apCommodity, int nRequestType, int nChargeType, int nPrice, bool bGift, const std::string & sReceiver, const std::string & sMemo)
+{
+	oPacket->Encode2((short)CenterRequestPacketType::CashItemRequest);
+	oPacket->Encode4(m_pSocket->GetSocketID());
+	oPacket->Encode4(this->m_pCharacterData->nCharacterID);
+	oPacket->Encode2((short)nRequestType);
+	oPacket->Encode4(this->m_pCharacterData->nAccountID);
+	oPacket->EncodeStr(m_pCharacterData->strName);
+	if (bGift)
+	{
+		oPacket->EncodeStr(sReceiver);
+		oPacket->EncodeStr(sMemo);
+	}
+	oPacket->Encode1(nChargeType);
+	oPacket->Encode4(nPrice);
+	oPacket->Encode1((char)apCommodity.size());
+
+	for (auto pCommodity : apCommodity)
+	{
+		oPacket->Encode1(pCommodity->nItemID / 1000000);
+
+		ZSharedPtr<GW_ItemSlotBase> pItem = ItemInfo::GetInstance()->GetItemSlot(
+			pCommodity->nItemID,
+			ItemInfo::ItemVariationOption::ITEMVARIATION_NONE);
+
+		if (!pItem)
+			return false;
+
+		oPacket->Encode1(pItem->bIsPet);
+		pItem->Encode(oPacket, false);
+		ZUniquePtr<GW_CashItemInfo> pCashItemInfo = ShopInfo::GetInstance()->GetCashItemInfo(pCommodity);
+		pCashItemInfo->Encode(oPacket);
+	}
+
+	return true;
+}
+
 void User::OnRequestBuyCashItem(InPacket * iPacket)
 {
 	int nChargeType = iPacket->Decode1();
 	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(iPacket->Decode4());
 	if (pCommodity)
 	{
-		ZSharedPtr<GW_ItemSlotBase> pItem = ItemInfo::GetInstance()->GetItemSlot(
-			pCommodity->nItemID,
-			ItemInfo::ItemVariationOption::ITEMVARIATION_NONE);
-
-		if (pItem)
-		{
-			/*
-			Sending packets to Center, requests it to charge cash points and save the item.
-			*/
-			OutPacket oPacket;
-			oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
-			oPacket.Encode4(m_pSocket->GetSocketID());
-			oPacket.Encode4(this->m_pCharacterData->nCharacterID);
-			oPacket.Encode2((short)CenterCashItemRequestType::eBuyCashItemRequest);
-			oPacket.Encode4(this->m_pCharacterData->nAccountID);
-			oPacket.EncodeStr(m_pCharacterData->strName);
-			oPacket.Encode1(nChargeType);
-			oPacket.Encode1(pCommodity->nItemID / 1000000);
-			oPacket.Encode1(pItem->bIsPet);
-			oPacket.Encode4(pCommodity->nPrice);
-			pItem->Encode(&oPacket, false);
-			ZUniquePtr<GW_CashItemInfo> pCashItemInfo = ShopInfo::GetInstance()->GetCashItemInfo(pCommodity);
-			pCashItemInfo->Encode(&oPacket);
+		OutPacket oPacket;
+		if (EncodeBuyCashItem(&oPacket, { pCommodity }, CenterCashItemRequestType::eBuyCashItemRequest, nChargeType, pCommodity->nPrice))
 			WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
-		}
 	}
 }
 
@@ -487,29 +558,59 @@ void User::OnRequestCashItemGift(InPacket * iPacket)
 	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(nSN);
 	if (pCommodity)
 	{
-		ZSharedPtr<GW_ItemSlotBase> pItem = ItemInfo::GetInstance()->GetItemSlot(
-			pCommodity->nItemID,
-			ItemInfo::ItemVariationOption::ITEMVARIATION_NONE);
-
-		if (pItem)
-		{
-			OutPacket oPacket;
-			oPacket.Encode2((short)CenterRequestPacketType::CashItemRequest);
-			oPacket.Encode4(m_pSocket->GetSocketID());
-			oPacket.Encode4(this->m_pCharacterData->nCharacterID);
-			oPacket.Encode2((short)CenterCashItemRequestType::eGiftCashItemRequest);
-			oPacket.Encode4(this->m_pCharacterData->nAccountID);
-			oPacket.EncodeStr(m_pCharacterData->strName);
-			oPacket.EncodeStr(sReceiver);
-			oPacket.EncodeStr(sMemo);
-			oPacket.Encode1(0); //nChargeType
-			oPacket.Encode1(pCommodity->nItemID / 1000000);
-			oPacket.Encode1(pItem->bIsPet);
-			oPacket.Encode4(pCommodity->nPrice);
-			pItem->Encode(&oPacket, false);
-			ZUniquePtr<GW_CashItemInfo> pCashItemInfo = ShopInfo::GetInstance()->GetCashItemInfo(pCommodity);
-			pCashItemInfo->Encode(&oPacket);
+		OutPacket oPacket;
+		if (EncodeBuyCashItem(&oPacket, { pCommodity }, CenterCashItemRequestType::eGiftCashItemRequest, 1, pCommodity->nPrice, true, sReceiver, sMemo))
 			WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
-		}
 	}
+}
+
+void User::OnRequestBuyCashPackage(InPacket * iPacket)
+{
+	int nChargeType = iPacket->Decode1();
+	int nSN = iPacket->Decode4();
+	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(nSN);
+	if (!pCommodity || pCommodity->nItemID / 1000000 != 9)
+		return;
+
+	auto& aCommodity = ShopInfo::GetInstance()->GetCashPackage(pCommodity->nItemID);
+	if (aCommodity.size())
+	{
+		OutPacket oPacket;
+		if (EncodeBuyCashItem(&oPacket, { aCommodity }, CenterCashItemRequestType::eBuyCashPackageRequest, nChargeType, pCommodity->nPrice))
+			WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void User::OnRequestGiftCashPackage(InPacket * iPacket)
+{
+	std::string s2ndPass = iPacket->DecodeStr();
+	int nSN = iPacket->Decode4();
+	std::string sReceiver = iPacket->DecodeStr();
+	std::string sMemo = iPacket->DecodeStr();
+	auto pCommodity = ShopInfo::GetInstance()->GetCSCommodity(nSN);
+	if (!pCommodity || pCommodity->nItemID / 1000000 != 9)
+		return;
+
+	auto& aCommodity = ShopInfo::GetInstance()->GetCashPackage(pCommodity->nItemID);
+	if (aCommodity.size())
+	{
+		OutPacket oPacket;
+		if (EncodeBuyCashItem(&oPacket, { aCommodity }, CenterCashItemRequestType::eGiftCashPackageRequest, 1, pCommodity->nPrice, true, sReceiver, sMemo))
+			WvsBase::GetInstance<WvsShop>()->GetCenter()->SendPacket(&oPacket);
+	}
+}
+
+void User::OnRequestSetWishList(InPacket * iPacket, bool bLoad)
+{
+	if (!m_pWishList)
+		return;
+
+	m_pWishList->Decode(iPacket);
+	OutPacket oPacket;
+	oPacket.Encode2(ShopSendPacketType::User_CashItemResult);
+	oPacket.Encode1(bLoad ? CashItemRequest::Send_OnCashItemResLoadWishDone : CashItemRequest::Send_OnCashItemResSetWishDone);
+	for (int i = 0; i < GW_WishList::MAX_WISHLIST_COUNT; ++i)
+		oPacket.Encode4(m_pWishList->aWishList[i]);
+
+	SendPacket(&oPacket);
 }

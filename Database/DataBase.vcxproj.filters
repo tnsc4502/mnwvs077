@@ -33,6 +33,7 @@
     <ClInclude Include="CashItemDBAccessor.h" />
     <ClInclude Include="MemoDBAccessor.h" />
     <ClInclude Include="GW_GiftList.h" />
+    <ClInclude Include="GW_WishList.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDBAccessor.cpp" />
@@ -64,5 +65,6 @@
     <ClCompile Include="CashItemDBAccessor.cpp" />
     <ClCompile Include="MemoDBAccessor.cpp" />
     <ClCompile Include="GW_GiftList.cpp" />
+    <ClCompile Include="GW_WishList.cpp" />
   </ItemGroup>
 </Project>

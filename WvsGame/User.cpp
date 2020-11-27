@@ -12,6 +12,7 @@
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\Database\GW_Memo.h"
+#include "..\Database\GW_WishList.h"
 
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Net\InPacket.h"
@@ -2433,7 +2434,12 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 	oPacket.Encode1(0);
 
 	//Wishlist Info
-	oPacket.Encode1(0);
+	oPacket.Encode1(m_pWishList->nValidWishList);
+	for (int i = 0; i < GW_WishList::MAX_WISHLIST_COUNT; ++i)
+		if (m_pWishList->aWishList[i] == 0)
+			break;
+		else
+			oPacket.Encode4(m_pWishList->aWishList[i]);
 
 	SendPacket(&oPacket);
 }
@@ -2864,36 +2870,48 @@ void User::OnCenterCashItemResult(InPacket* iPacket)
 	switch (nResultType)
 	{
 		case CenterCashItemRequestType::eExpireCashItemRequest:
-		{
-			std::vector<InventoryManipulator::ChangeLog> aChangeLog;
-			int nSize = iPacket->Decode1(), nTI = 0, nPOS = 0, nDecCount = 0;
-			for (int i = 0; i < nSize; ++i)
-			{
-				nTI = iPacket->Decode1();
-				nPOS = m_pCharacterData->FindCashItemSlotPosition(nTI, iPacket->Decode8());
-				if (nPOS) 
-				{
-					auto pItem = m_pCharacterData->mItemSlot[nTI][nPOS];
-					if (!pItem)
-						continue;
-
-					OutPacket oPacket;
-					oPacket.Encode2(UserSendPacketType::UserLocal_OnMessage);
-					oPacket.Encode1((char)Message::eCashItemExpireMessage);
-					oPacket.Encode4(pItem->nItemID);
-					SendPacket(&oPacket);
-
-					QWUInventory::RawRemoveItem(
-						this, nTI, nPOS, 1, &aChangeLog, nDecCount, nullptr
-					);
-				}
-			}
-			QWUInventory::SendInventoryOperation(
-				this, true, aChangeLog
-			);
+			OnCenterCashItemExpireResult(iPacket);
 			break;
+		case CenterCashItemRequestType::eLoadWishItemRequest:
+			OnCenterLoadWishListResult(iPacket);
+			break;
+	}
+}
+
+void User::OnCenterCashItemExpireResult(InPacket * iPacket)
+{
+	std::vector<InventoryManipulator::ChangeLog> aChangeLog;
+	int nSize = iPacket->Decode1(), nTI = 0, nPOS = 0, nDecCount = 0;
+	for (int i = 0; i < nSize; ++i)
+	{
+		nTI = iPacket->Decode1();
+		nPOS = m_pCharacterData->FindCashItemSlotPosition(nTI, iPacket->Decode8());
+		if (nPOS)
+		{
+			auto pItem = m_pCharacterData->mItemSlot[nTI][nPOS];
+			if (!pItem)
+				continue;
+
+			OutPacket oPacket;
+			oPacket.Encode2(UserSendPacketType::UserLocal_OnMessage);
+			oPacket.Encode1((char)Message::eCashItemExpireMessage);
+			oPacket.Encode4(pItem->nItemID);
+			SendPacket(&oPacket);
+
+			QWUInventory::RawRemoveItem(
+				this, nTI, nPOS, 1, &aChangeLog, nDecCount, nullptr
+			);
 		}
 	}
+	QWUInventory::SendInventoryOperation(
+		this, true, aChangeLog
+	);
+}
+
+void User::OnCenterLoadWishListResult(InPacket * iPacket)
+{
+	m_pWishList.reset(AllocObj(GW_WishList));
+	m_pWishList->Decode(iPacket);
 }
 
 void User::SetADBoard(const std::string & sADBoard)
@@ -4307,6 +4325,11 @@ void User::OnMemoRequest(InPacket * iPacket)
 	}
 }
 
+void User::OnCenterWishListResult(InPacket * iPacket)
+{
+	
+}
+
 void User::SendQuestRecordMessage(int nKey, int nState, const std::string & sStringRecord)
 {
 	OutPacket oPacket;
@@ -4430,6 +4453,13 @@ void User::OnMigrateIn()
 	oMemoRequest.Encode1(GW_Memo::MemoRequestType::eMemoReq_Load);
 	oMemoRequest.Encode1(GetChannelID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oMemoRequest);
+
+	OutPacket oWishListRequest;
+	oWishListRequest.Encode2(CenterRequestPacketType::CashItemRequest);
+	oWishListRequest.Encode4(m_pSocket->GetSocketID());
+	oWishListRequest.Encode4(GetUserID());
+	oWishListRequest.Encode2(CenterCashItemRequestType::eLoadWishItemRequest);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oWishListRequest);
 
 	m_nGradeCode = m_pCharacterData->nGradeCode;
 	m_tMigrateTime = GameDateTime::GetTime();

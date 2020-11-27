@@ -1,14 +1,18 @@
 #pragma once
 #include "..\WvsLib\Memory\ZMemory.h"
+#include <vector>
+#include <string>
 #include <map>
 
 class ClientSocket;
 class OutPacket;
 class InPacket;
 class AsyncScheduler;
+struct CSCommodity;
 struct GA_Character;
 struct GW_FuncKeyMapped;
 struct GW_GiftList;
+struct GW_WishList;
 
 class User
 {
@@ -23,10 +27,12 @@ class User
 		Recv_OnCashItemReqCoupon = 0x00,
 		Recv_OnCashItemReqBuy = 0x03,
 		Recv_OnCashItemReqGift = 0x04,
-		Recv_OnCashItemReqIncItemSlot = 0x05,
+		Recv_OnCashItemReqSetWish = 0x05,
+		Recv_OnCashItemReqIncItemSlot = 0x06,
 		Recv_OnCashItemReqMoveItemToSlot = 0x0C,
 		Recv_OnCashItemReqMoveItemToLocker = 0x0D,
-		Recv_OnCashItemReqPackage = 0x24,
+		Recv_OnCashItemReqBuyCashPackage = 0x1C,
+		Recv_OnCashItemReqGiftCashPackage = 0x1D,
 
 		Send_OnCashItemResLimitGoodsCountChanged = 0x4C,
 		Send_OnCashItemResLoadLockerDone = 46,
@@ -63,20 +69,20 @@ class User
 		Send_OnCashItemResExpireDone = 73,
 		Send_OnCashItemResRebateDone = 74,
 		Send_OnCashItemResRebateFailed = 75,
-		Send_OnCashItemResCoupleDone = 0x88,
-		Send_OnCashItemResCoupleFailed = 0x89,
-		Send_OnCashItemResBuyPackageDone = 0x8A,
-		Send_OnCashItemResBuyPackageFailed = 0x8B,
-		Send_OnCashItemResGiftPackageDone = 0x8C,
-		Send_OnCashItemResGiftPackageFailed = 0x8D,
-		Send_OnCashItemResBuyNormalDone = 0x8E,
-		Send_OnCashItemResBuyNormalFailed = 0x8F,
-		Send_OnCashItemResApplyWishListEventDone = 0x90,
-		Send_OnCashItemResApplyWishListEvenFailed = 0x91,
-		Send_OnCashItemResFriendShopDone = 0x92,
-		Send_OnCashItemResFirendShopFailed = 0x93,
-		Send_OnCashItemResPurchaseRecord = 0x9D,
-		Send_OnCashItemResPurchaseRecordFailed = 0x9E,
+		Send_OnCashItemResCoupleDone = 98,
+		Send_OnCashItemResCoupleFailed = 99,
+		Send_OnCashItemResBuyPackageDone = 100,
+		Send_OnCashItemResBuyPackageFailed = 101,
+		Send_OnCashItemResGiftPackageDone = 102,
+		Send_OnCashItemResGiftPackageFailed = 103,
+		Send_OnCashItemResBuyNormalDone = 104,
+		Send_OnCashItemResBuyNormalFailed = 105,
+		Send_OnCashItemResApplyWishListEventDone = 106,
+		Send_OnCashItemResApplyWishListEvenFailed = 107,
+		Send_OnCashItemResFriendShopDone = 108,
+		Send_OnCashItemResFirendShopFailed = 109,
+		Send_OnCashItemResPurchaseRecord = 110,
+		Send_OnCashItemResPurchaseRecordFailed = 111,
 	};
 
 	int m_nChannelID, m_nNexonCash = 0, m_nMaplePoint = 0;
@@ -86,6 +92,7 @@ class User
 	ZUniquePtr<GW_FuncKeyMapped> m_pFuncKeyMapped;
 	ZUniquePtr<AsyncScheduler> m_pUpdateTimer;
 	std::map<int, ZUniquePtr<GW_GiftList>> m_mGiftList;
+	ZUniquePtr<GW_WishList> m_pWishList;
 
 public:
 	User(ClientSocket *pSocket, InPacket *iPacket);
@@ -109,21 +116,28 @@ public:
 	void OnCenterResLoadLockerDone(InPacket *iPacket);
 	void OnCenterResBuyDone(InPacket *iPacket);
 	void OnCenterGiftCashItemDone(InPacket *iPacket);
+	void OnCenterBuyCashPackageDone(InPacket *iPacket);
 	void OnCenterUpdateCashDone(InPacket *iPacket);
 	void OnCenterMoveItemToSlotDone(InPacket *iPacket);
 	void OnCenterMoveItemToLockerDone(InPacket *iPacket);
-	void OnCenterMemoResult(InPacket *iPacket);
+	void OnCenterGiftListResult(InPacket *iPacket);
+	void OnCenterWishListResult(InPacket *iPacket, bool bLoad = false);
 
 	//CenterReq
 	void OnQueryCashRequest();
 	void OnRequestCenterLoadLocker();
 	void OnRequestCenterUpdateCash();
-	void OnRequestLoadMemo();
+	void RequestLoadGiftList();
+	void RequestLoadWishList();
 	void OnMemoRequest(InPacket *iPacket);
 
 	//CashItemReq
+	bool EncodeBuyCashItem(OutPacket *oPacket, const std::vector<const CSCommodity *>& apCommodity, int nRequestType, int nChargeType, int nPrice, bool bGift = false, const std::string &sReceiver = "", const std::string& sMemo = "");
 	void OnRequestBuyCashItem(InPacket *iPacket);
 	void OnRequestMoveItemToSlot(InPacket *iPacket);
 	void OnRequestMoveItemToLocker(InPacket *iPacket);
 	void OnRequestCashItemGift(InPacket *iPacket);
+	void OnRequestBuyCashPackage(InPacket *iPacket);
+	void OnRequestGiftCashPackage(InPacket *iPacket);
+	void OnRequestSetWishList(InPacket *iPacket, bool bLoad = false);
 };

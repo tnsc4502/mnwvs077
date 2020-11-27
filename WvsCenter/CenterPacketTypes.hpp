@@ -12,9 +12,11 @@ enum CenterCashItemRequestType
 {
 	eLoadCashItemLockerRequest,
 	eLoadWishItemRequest,
+	eLoadGiftListRequest,
 	eBuyCashItemRequest,
+	eBuyCashPackageRequest,
 	eGiftCashItemRequest,
-	eGiftPackageCashItemRequest,
+	eGiftCashPackageRequest,
 	eBuyCoupleCashItemRequest,
 	eBuyFriendshipCashItemRequest,
 	eSetWishItemRequest,
