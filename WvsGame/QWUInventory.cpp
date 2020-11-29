@@ -46,7 +46,7 @@ bool QWUInventory::ChangeSlotPosition(User * pUser, int bOnExclRequest, int nTI,
 				return 0;
 
 			ZSharedPtr<GW_ItemSlotBase> pItemCopyed = nullptr;
-			QWUInventory::RemoveItem(pUser, pItem, 1, true, true, &pItemCopyed);
+			QWUInventory::RemoveItem(pUser, pItem, nCount, true, true, &pItemCopyed);
 			if (pItemCopyed)
 			{
 				auto zpReward = MakeUnique<Reward>();

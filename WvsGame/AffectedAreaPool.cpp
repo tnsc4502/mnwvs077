@@ -1,6 +1,8 @@
 #include "AffectedAreaPool.h"
 #include "AffectedArea.h"
 #include "Field.h"
+#include "User.h"
+
 #include "..\WvsLib\Net\OutPacket.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\DateTime\GameDateTime.h"
@@ -13,6 +15,16 @@ AffectedAreaPool::AffectedAreaPool(Field *pField)
 
 AffectedAreaPool::~AffectedAreaPool()
 {
+}
+
+void AffectedAreaPool::OnEnter(User * pUser)
+{
+	for (auto& pAffectedArea : m_apAffectedArea)
+	{
+		OutPacket oPacket;
+		pAffectedArea->MakeEnterFieldPacket(&oPacket);
+		pUser->SendPacket(&oPacket);
+	}
 }
 
 const std::vector<AffectedArea*>& AffectedAreaPool::GetAffectedAreas() const

@@ -40,6 +40,7 @@ public:
 		res_Party_ChangeBoss = 25,
 		res_Party_MigrateIn = 31,
 		res_Party_ChangeLevelOrJob = 32,
+		res_Party_TownPortalChanged = 33,
 	};
 
 	enum PartyRejectReason
@@ -127,6 +128,7 @@ public:
 	void OnLeave(User *pUser, bool bMigrate);
 	void OnUserMigration(InPacket *iPacket);
 	void NotifyTransferField(int nCharacterID, int nFieldID);
+	void NotifyTownPortalChanged(int nCharacterID, int nTownID, int nFieldID, int nX, int nY);
 
 	void OnRejectInvitation(User *pUser, InPacket *iPacket);
 	void PostChangeLevelOrJob(User *pUser, int nVal, bool bLevelChanged);

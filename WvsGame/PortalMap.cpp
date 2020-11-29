@@ -87,6 +87,23 @@ Portal * PortalMap::FindCloseStartPoint(int x, int y)
 	return m_apPortal[nIdx];
 }
 
+Portal * PortalMap::FindClosePortal(int x, int y)
+{
+	double dDis = 0, calcDis;
+	int nIdx = -1, nIter = 0;
+	for (auto pPortal : m_apPortal)
+	{
+		calcDis = std::sqrt(std::pow(pPortal->GetX() - x, 2) + std::pow(pPortal->GetY() - y, 2));
+		if (nIdx < 0 || (calcDis < dDis))
+		{
+			nIdx = nIter;
+			dDis = calcDis;
+		}
+		++nIter;
+	}
+	return m_apPortal[nIdx];
+}
+
 Portal* PortalMap::FindPortal(const std::string & sName)
 {
 	for (auto pPortal : m_apPortal)

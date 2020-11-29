@@ -74,6 +74,7 @@ Field::Field(void *pData, int nFieldID)
 	if (areaData != mapWz.end())
 		LoadAreaRect(&areaData);
 
+	GetTownPortalPool()->SetField(this);
 	GetPortalMap()->RestorePortal(this, &(mapWz["portal"]));
 	GetReactorPool()->Init(this, &(mapWz["reactor"]));
 
@@ -338,9 +339,10 @@ void Field::OnEnter(User *pUser)
 	m_pLifePool->OnEnter(pUser);
 	m_pDropPool->OnEnter(pUser);
 	m_pReactorPool->OnEnter(pUser);
+	m_pAffectedAreaPool->OnEnter(pUser);
+	m_pTownPortalPool->OnEnter(pUser);
 	if (m_pParentFieldSet != nullptr)
 		m_pParentFieldSet->OnUserEnterField(pUser, this);
-
 
 	OutPacket oPacketForBroadcasting;
 	pUser->MakeEnterFieldPacket(&oPacketForBroadcasting);
@@ -800,6 +802,7 @@ void Field::Update()
 	m_pAffectedAreaPool->Update(tCur);
 	m_pDropPool->TryExpire(false);
 	m_pSummonedPool->Update(tCur);
+	m_pTownPortalPool->Update(tCur);
 	OnStatChangeByField(tCur);
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);

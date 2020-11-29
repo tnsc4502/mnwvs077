@@ -82,6 +82,7 @@
 #include "AdminSkills.h"
 #include "ThiefSkills.h"
 #include "UserCashItemImpl.h"
+#include "TownPortalPool.h"
 
 #define REGISTER_TS_BY_MOB(name, value) \
 tsFlag |= GET_TS_FLAG(##name); \
@@ -728,6 +729,9 @@ void User::OnPacket(InPacket *iPacket)
 		case UserRecvPacketType::User_OnMemoRequest:
 			OnMemoRequest(iPacket);
 			break;
+		case UserRecvPacketType::User_OnEnterTownPortalRequest:
+			OnEnterTownPortalRequest(iPacket);
+			break;
 		default:
 			iPacket->RestorePacket();
 			//Pet Packet
@@ -785,21 +789,26 @@ void User::OnTransferFieldRequest(InPacket * iPacket)
 	);
 }
 
-bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
+bool User::TryTransferField(int nFieldID, const std::string& sPortalName, const FieldPoint* pTownPortalPos)
 {
 	std::lock_guard<std::recursive_mutex> user_lock(m_mtxUserLock);
 	SetTransferStatus(TransferStatus::eOnTransferField);
 	Field *pTargetField = nFieldID == -1 ? m_pField : FieldMan::GetInstance()->GetField(nFieldID);
 	if (pTargetField != nullptr)
 	{
-		Portal* pTargetPortal = pTargetField->GetPortalMap()->FindPortal(sPortalName);
-		if(!pTargetPortal)
+		Portal* pTargetPortal = pTownPortalPos ? nullptr : pTargetField->GetPortalMap()->FindPortal(sPortalName);
+		if(!pTargetPortal && !pTownPortalPos)
 			pTargetPortal = pTargetField->GetPortalMap()->GetRandStartPoint();
 
 		if (pTargetPortal)
 		{
 			SetPosX(pTargetPortal->GetX());
 			SetPosY(pTargetPortal->GetY());
+		}
+		else if (pTownPortalPos)
+		{
+			SetPosX(pTownPortalPos->x);
+			SetPosY(pTownPortalPos->y);
 		}
 
 		if (nFieldID == -1 && pTargetPortal)
@@ -814,11 +823,13 @@ bool User::TryTransferField(int nFieldID, const std::string& sPortalName)
 			//Process Entering
 			m_pField = pTargetField;
 			m_pCharacterData->mStat->nPosMap = m_pField->GetFieldID();
-			m_pCharacterData->mStat->nPortal = (pTargetPortal == nullptr ? 0x80 : pTargetPortal->GetID());
-			//PostTransferField(nFieldID, pTargetPortal, false);
+			m_pCharacterData->mStat->nPortal |= (pTargetPortal == nullptr ? 0x80 : pTargetPortal->GetID());
+
 			SendSetFieldPacket(false);
 			m_pField->OnEnter(this);
+
 			m_pCharacterData->nFieldID = m_pField->GetFieldID();
+			m_pCharacterData->mStat->nPortal = 0;
 			SetTransferStatus(TransferStatus::eOnTransferNone);
 
 			ReregisterPet();
@@ -2434,12 +2445,10 @@ void User::OnCharacterInfoRequest(InPacket *iPacket)
 	oPacket.Encode1(0);
 
 	//Wishlist Info
-	oPacket.Encode1(m_pWishList->nValidWishList);
-	for (int i = 0; i < GW_WishList::MAX_WISHLIST_COUNT; ++i)
-		if (m_pWishList->aWishList[i] == 0)
-			break;
-		else
-			oPacket.Encode4(m_pWishList->aWishList[i]);
+	int nWishListCount = pUser->m_pWishList->nValidWishList;
+	oPacket.Encode1(nWishListCount);
+	for (int i = 0; i < nWishListCount; ++i)
+		oPacket.Encode4(pUser->m_pWishList->aWishList[i]);
 
 	SendPacket(&oPacket);
 }
@@ -4463,4 +4472,67 @@ void User::OnMigrateIn()
 
 	m_nGradeCode = m_pCharacterData->nGradeCode;
 	m_tMigrateTime = GameDateTime::GetTime();
+}
+
+int User::GetTownPortalFieldID() const
+{
+	return m_nTownPortalFieldID;
+}
+
+void User::SetTownPortalFieldID(int nTownPortalFieldID)
+{
+	m_nTownPortalFieldID = nTownPortalFieldID;
+}
+
+const FieldPoint & User::GetFieldPortalPos() const
+{
+	return m_ptFieldPortal;
+}
+
+void User::SetFieldPortalPos(const FieldPoint & pt)
+{
+	m_ptFieldPortal = pt;
+}
+
+void User::OnCreateTownPortal(int nTownID)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnTownPortal);
+	oPacket.Encode4(nTownID);
+	oPacket.Encode4(GetTownPortalFieldID());
+	oPacket.Encode2(GetFieldPortalPos().x);
+	oPacket.Encode2(GetFieldPortalPos().y);
+	SendPacket(&oPacket);
+}
+
+void User::OnEnterTownPortalRequest(InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(GetLock());
+	int nUserID = iPacket->Decode4(), nFieldID = 0, nUserIdx = 0;
+	auto pParty = PartyMan::GetInstance()->GetPartyByCharID(GetUserID());
+	bool bTown = iPacket->Decode1() ? true : false;
+	auto pUser = User::FindUser(nUserID);
+
+	if (!pUser || 
+		!pParty || 
+		((nUserIdx = PartyMan::GetInstance()->FindUser(nUserID, pParty)) < 0 || nUserIdx >= 6) ||
+		((nFieldID = pUser->GetTownPortalFieldID()) == 999999999))
+	{
+INVALID_PORTAL:
+		SendCharacterStat(true, 0);
+		return;
+	}
+	FieldPoint ptTownPortal = pUser->GetFieldPortalPos();
+	if (!bTown)
+	{
+		auto pField = FieldMan::GetInstance()->GetField(nFieldID);
+		if (!pField)
+			goto INVALID_PORTAL;
+
+		nFieldID = pField->GetReturnMap();
+		ptTownPortal = FieldMan::GetInstance()->GetField(nFieldID)->GetTownPortalPool()->GetTownPortalPos(nUserIdx);
+	}
+
+	m_pCharacterData->mStat->nPortal = (nUserIdx & 0x7F);
+	TryTransferField(nFieldID, "", &ptTownPortal);
 }

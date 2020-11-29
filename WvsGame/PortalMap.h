@@ -19,6 +19,7 @@ public:
 	void RestorePortal(Field* pField, void* pPropPortal);
 	void EnablePortal(const std::string& sName, bool bEnable);
 	Portal* FindCloseStartPoint(int x, int y);
+	Portal* FindClosePortal(int x, int y);
 	Portal* FindPortal(const std::string& sName);
 	Portal* GetRandStartPoint();
 	bool IsPortalNear(const std::list<FieldPoint>& aptRoute, int nXrange);

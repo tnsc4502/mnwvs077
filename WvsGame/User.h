@@ -176,6 +176,10 @@ private:
 	std::unordered_map<int, ZUniquePtr<GW_Memo>> m_mMemo;
 	ZUniquePtr<GW_WishList> m_pWishList;
 
+	//TownPortal
+	int m_nTownPortalFieldID = 999999999;
+	FieldPoint m_ptFieldPortal;
+
 	AttackInfo* TryParsingAttackInfo(AttackInfo* pInfo, int nType, InPacket *iPacket);
 
 	//Check routines
@@ -219,7 +223,7 @@ public:
 	TransferStatus GetTransferStatus() const;
 
 	void OnTransferFieldRequest(InPacket* iPacket);
-	bool TryTransferField(int nFieldID, const std::string& sPortalName);
+	bool TryTransferField(int nFieldID, const std::string& sPortalName, const FieldPoint* pTownPortalPos = nullptr);
 	void OnPortalScriptRequest(InPacket *iPacket);
 	void OnTransferChannelRequest(InPacket* iPacket);
 	void OnMigrateToCashShopRequest(InPacket* iPacket);
@@ -400,5 +404,13 @@ public:
 	void OnCenterMemoResult(InPacket *iPacket);
 	void OnCenterWishListResult(InPacket *iPacket);
 	void OnMemoRequest(InPacket *iPacket);
+
+	//TownPortal
+	int GetTownPortalFieldID() const;
+	void SetTownPortalFieldID(int nTownPortalFieldID);
+	const FieldPoint& GetFieldPortalPos() const;
+	void SetFieldPortalPos(const FieldPoint& pt);
+	void OnCreateTownPortal(int nTownID);
+	void OnEnterTownPortalRequest(InPacket *iPacket);
 };
 

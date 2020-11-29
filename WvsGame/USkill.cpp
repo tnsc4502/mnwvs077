@@ -13,6 +13,7 @@
 #include "Field.h"
 #include "LifePool.h"
 #include "AffectedAreaPool.h"
+#include "TownPortalPool.h"
 
 //Skill constants
 #include "AdminSkills.h"
@@ -151,6 +152,8 @@ void USkill::OnSkillUseRequest(User * pUser, InPacket *iPacket, const SkillEntry
 		DoActiveSkill_MobStatChange(pUser, pEntry, nSLV, iPacket, true);
 	else if (nSkillID == ThiefSkills::Shadower_Smokescreen)
 		DoActiveSkill_SmokeShell(pUser, pEntry, nSLV, iPacket);
+	else if (nSkillID == MagicSkills::Adv_Magic_Holy_MysticDoor)
+		DoActiveSkill_TownPortal(pUser, pEntry, nSLV, iPacket);
 	else
 		DoActiveSkill_SelfStatChange(pUser, pEntry, nSLV, iPacket, nOptionValue, bResetBySkill, bForceSetTime, nForceSetTime);
 
@@ -356,8 +359,8 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			REGISTER_TS(PAD, pSkillLVLData->m_nPad);
 			break;
 		case PirateSkills::Pirate_Dash:
-			REGISTER_TS(Dash_Speed, 1);
-			REGISTER_TS(Dash_Jump, 1);
+			/*REGISTER_TS(Dash_Speed, 1);
+			REGISTER_TS(Dash_Jump, 1);*/
 			break;
 		case WarriorSkills::Fighter_PowerGuard:
 		case WarriorSkills::Page_PowerGuard:
@@ -450,6 +453,27 @@ void USkill::DoActiveSkill_WeaponBooster(User* pUser, const SkillEntry * pSkill,
 
 void USkill::DoActiveSkill_TownPortal(User* pUser, const SkillEntry * pSkill, int nSLV, InPacket * iPacket)
 {
+	auto pField = pUser->GetField();
+	if (pField && !pField->IsTown() && (pField->GetFieldID() / 1000000) % 100 != 9 && !(pField->GetFieldLimit() & 8))
+	{
+		auto pLevelData = pSkill->GetLevelData(nSLV);
+		if (!pLevelData)
+			return;
+
+		int nTownID = pField->GetReturnMap();
+		int nX = iPacket->Decode2();
+		int nY = iPacket->Decode2();
+		int nPortalID = pUser->GetTownPortalFieldID();
+
+		if (pField->GetTownPortalPool()->CreateTownPortal(pUser->GetUserID(), nX, nY, pLevelData->m_nTime + GameDateTime::GetTime()))
+		{
+			pUser->SetTownPortalFieldID(pField->GetFieldID());
+			pUser->SetFieldPortalPos({ nX, nY });
+			pUser->OnCreateTownPortal(nTownID);
+			PartyMan::GetInstance()->NotifyTownPortalChanged(pUser->GetUserID(), nTownID, pField->GetFieldID(), nX, nY);
+		}
+		pUser->SendUseSkillEffect(pSkill->GetSkillID(), nSLV);
+	}
 }
 
 void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill, int nSLV, InPacket *iPacket, bool bResetBySkill, bool bForcedSetTime, unsigned int nForcedSetTime)

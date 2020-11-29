@@ -522,6 +522,34 @@ void PartyMan::NotifyTransferField(int nCharacterID, int nFieldID)
 	}
 }
 
+void PartyMan::NotifyTownPortalChanged(int nCharacterID, int nTownID, int nFieldID, int nX, int nY)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxPartyLock);
+	int nPartyID = GetPartyIDByCharID(nCharacterID);
+	auto pParty = GetParty(nPartyID);
+	if (pParty)
+	{
+		int nIdx = FindUser(nCharacterID, pParty);
+		if (nIdx >= 0)
+		{
+			auto& portalData = pParty->party.aTownPortal[nIdx];
+			portalData.m_TownPortalReturnFieldID = nTownID;
+			portalData.m_TownPortalFieldID = nFieldID;
+			portalData.m_nFieldPortalX = nX;
+			portalData.m_nFieldPortalY = nY;
+		}
+		OutPacket oPacket;
+		oPacket.Encode2(UserSendPacketType::UserLocal_OnPartyResult);
+		oPacket.Encode1(PartyResult::res_Party_TownPortalChanged);
+		oPacket.Encode1(nIdx);
+		oPacket.Encode4(nTownID);
+		oPacket.Encode4(nFieldID);
+		oPacket.Encode2(nX);
+		oPacket.Encode2(nY);
+		Broadcast(&oPacket, pParty->party.anCharacterID, 0);
+	}
+}
+
 void PartyMan::OnRejectInvitation(User * pUser, InPacket * iPacket)
 {
 	auto pInviter = User::FindUserByName(iPacket->DecodeStr());

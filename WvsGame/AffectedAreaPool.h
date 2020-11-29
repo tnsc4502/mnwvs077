@@ -6,6 +6,7 @@
 
 class AffectedArea;
 class Field;
+class User;
 
 class AffectedAreaPool
 {
@@ -16,6 +17,7 @@ class AffectedAreaPool
 public:
 	AffectedAreaPool(Field *pField);
 	~AffectedAreaPool();
+	void OnEnter(User *pUser);
 
 	const std::vector<AffectedArea*>& GetAffectedAreas() const;
 	void InsertAffectedArea(bool bMobSkill, int nOwnerID, int nSkillID, int nSLV, unsigned int tStart, unsigned int tEnd, const FieldPoint& pt, const FieldRect& rc, bool bSmoke);
