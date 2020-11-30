@@ -691,7 +691,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 	SkillEntry *pSPSkill;
 	int nSPSLV = SkillInfo::GetInstance()->GetSkillLevel(
 		cd,
-		4111002,
+		ThiefSkills::Hermit_ShadowPartner,
 		&pSPSkill
 	);
 	for (auto& nRnd : aRandom)
@@ -745,7 +745,7 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 			continue;
 
 		PrepareNextRand();
-		if (nSkillID == WarriorSkills::Paladin_HeavensHammer || (ms->nPImmune_ && (int)(nRnd % 100) > ss->nRespectPImmune_))
+		if ((ms->nPImmune_ && (int)(nRnd % 100) > ss->nRespectPImmune_))
 		{
 			aDamage[i] = 1;
 			continue;
@@ -1056,10 +1056,9 @@ void CalcDamage::PDamage(Mob *pMob, MobStat* ms, int nDamagePerMob, int nWeaponI
 					nDamage += pEntry->GetLevelData(nPirateSkillLV)->m_nDamage;
 			}
 
-			if (nAdvancedChargeDamage && nSkillID == 1211002)
+			if (nAdvancedChargeDamage && nSkillID == WarriorSkills::WhiteKnight_ChargedBlow)
 				damage *= (double)nAdvancedChargeDamage * 0.01;
-
-			if (nDamage > 0)
+			else if (nDamage > 0)
 				damage *= (double)nDamage * 0.01;
 
 			if (nComboParam)

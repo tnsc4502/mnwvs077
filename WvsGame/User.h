@@ -295,6 +295,8 @@ public:
 	void OnConsumeCashItemUseRequest(InPacket *iPacket);
 	void SetADBoard(const std::string& sADBoard);
 	void OnShopScannerResult(InPacket *iPacket);
+	void OnMapTransferItemRequest(InPacket *iPacket);
+	void SendMapTransferItemResult(int nResultType, bool bCanTransferContinent);
 
 	//Message
 	void SendChatMessage(int nType, const std::string& sMsg);

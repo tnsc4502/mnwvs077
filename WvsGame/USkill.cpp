@@ -302,7 +302,6 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 			break;
 		case BowmanSkills::Hunter_SoulArrowBow:
 		case BowmanSkills::Crossbowman_SoulArrowCrossbow:
-		case 2311002: // mystic door - hacked buff icon
 			REGISTER_TS(SoulArrow, pSkillLVLData->m_nX);
 			break;
 		case WarriorSkills::WhiteKnight_FireChargeSword:
@@ -313,6 +312,7 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case WarriorSkills::WhiteKnight_LightningChargeBW:
 		case WarriorSkills::Paladin_HolyChargeSword:
 		case WarriorSkills::Paladin_DivineChargeBW:
+		case WarriorSkills::WhiteKnight_ChargedBlow:
 			REGISTER_TS(WeaponCharge, pSkillLVLData->m_nX);
 			break;
 		case WarriorSkills::Fighter_SwordBooster:
@@ -395,8 +395,9 @@ void USkill::DoActiveSkill_SelfStatChange(User* pUser, const SkillEntry * pSkill
 		case PirateSkills::Corsair_Battleship:
 			REGISTER_TS(RideVehicle, 1932000);
 			break;
-		case WarriorSkills::DragonKnight_DragonRoar: //dragon roar
-			//ret.hpR = -x / 100.0;
+		case WarriorSkills::DragonKnight_DragonRoar:
+			nDuration = 1000 * pSkillLVLData->m_nY;
+			REGISTER_TS(Stun, 1);
 			break;
 		case WarriorSkills::DragonKnight_DragonBlood:
 			REGISTER_TS(DragonBlood, pSkillLVLData->m_nX);

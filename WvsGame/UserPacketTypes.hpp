@@ -183,7 +183,7 @@ DEFINE_PACKET_TYPE(UserRecvPacketType)
 	REGISTER_TYPE(User_OnActivatePetRequest, 0x4F);
 	REGISTER_TYPE(User_OnTemporaryStatUpdateRequest, 0x50);
 	REGISTER_TYPE(User_OnPortalScriptRequest, 0x51);
-
+	REGISTER_TYPE(User_OnMapTransferItemRequest, 0x53);
 	REGISTER_TYPE(User_OnQuestRequest, 0x57);
 	REGISTER_TYPE(User_OnSendGroupMessage, 0x5C);
 	REGISTER_TYPE(User_OnSendWhisperMessage, 0x5D);

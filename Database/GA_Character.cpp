@@ -62,6 +62,8 @@ void GA_Character::LoadCharacter(int nCharacterID)
 	nGradeCode = recordSet["GradeCode"];
 	nActiveEffectItemID = recordSet["ActiveEffectItemID"];
 	//nGender = recordSet["Gender"];
+
+	LoadMapTransfer();
 }
 
 void GA_Character::EncodeAvatar(OutPacket *oPacket)
@@ -175,6 +177,7 @@ void GA_Character::Save(bool bIsNewCharacter)
 	mLevel->Save(nCharacterID, bIsNewCharacter);
 	mStat->Save(nCharacterID, bIsNewCharacter);
 	mSlotCount->Save(nCharacterID, bIsNewCharacter);
+	SaveMapTransfer();
 
 	for (auto& eqp : mItemSlot[1])
 		((eqp.second))->Save(nCharacterID);
@@ -219,7 +222,7 @@ void GA_Character::SaveInventoryRemovedRecord()
 			}
 			else
 			{
-				if(i == GW_ItemSlotBase::CASH)
+				if (i == GW_ItemSlotBase::CASH)
 					bundleRemovedInstance.liCashItemSN = prRecord.first * -1;
 				else
 					bundleRemovedInstance.liItemSN = prRecord.first * -1;
@@ -227,6 +230,34 @@ void GA_Character::SaveInventoryRemovedRecord()
 				bundleRemovedInstance.Save(nCharacterID, true);
 			}
 	}
+}
+
+void GA_Character::SaveMapTransfer()
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+
+	std::stringstream sUpdateStat;
+	queryStatement << "INSERT INTO MapTransfer VALUES("
+		<< nCharacterID << ", ";
+	for (int i = 0; i < MaxMapTransferCount; ++i)
+	{
+		queryStatement << anMapTransfer[i] << (i == MaxMapTransferCount - 1 ? ") " : ", ");
+		sUpdateStat << "Map" << i << " = " << anMapTransfer[i] << (i == MaxMapTransferCount - 1 ? "" : ", ");
+	}
+	queryStatement << "ON DUPLICATE KEY UPDATE " << sUpdateStat.str();
+	queryStatement.execute();
+
+	sUpdateStat.str(std::string());
+	queryStatement.reset(GET_DB_SESSION);
+	queryStatement << "INSERT INTO MapTransferEx VALUES("
+		<< nCharacterID << ", ";
+	for (int i = 0; i < MaxMapTransferExCount; ++i)
+	{
+		queryStatement << anMapTransferEx[i] << (i == MaxMapTransferExCount - 1 ? ") " : ", ");
+		sUpdateStat << "Map" << i << " = " << anMapTransferEx[i] << (i == MaxMapTransferExCount - 1 ? "" : ", ");
+	}
+	queryStatement << "ON DUPLICATE KEY UPDATE " << sUpdateStat.str();
+	queryStatement.execute();
 }
 
 int GA_Character::FindEmptySlotPosition(int nTI)
@@ -290,7 +321,7 @@ void GA_Character::RemoveItem(int nTI, int nPOS)
 			mItemRemovedRecord[nTI].insert({ pItem->liItemSN, false });
 
 		//09/12/2019 added, for CASH ITEMs.
-		else if(nTI == GW_ItemSlotBase::CASH && pItem->liCashItemSN != -1)
+		else if (nTI == GW_ItemSlotBase::CASH && pItem->liCashItemSN != -1)
 			mItemRemovedRecord[nTI].insert({ pItem->liCashItemSN, true });
 	}
 }
@@ -510,10 +541,8 @@ void GA_Character::DecodeCharacterData(InPacket *iPacket, bool bForInternal)
 
 	if (flag & 0x1000) //ROCK INFO
 	{
-		for (int i = 0; i < 5; ++i)
-			iPacket->Decode4();
-		for (int i = 0; i < 10; ++i)
-			iPacket->Decode4();
+		iPacket->DecodeBuffer((unsigned char*)&anMapTransfer, sizeof(anMapTransfer));
+		iPacket->DecodeBuffer((unsigned char*)&anMapTransferEx, sizeof(anMapTransferEx));
 	}
 
 	//ALWAYS PUT AT DOWNMOST PLACE.
@@ -652,7 +681,7 @@ void GA_Character::DecodeInventoryRemovedRecord(InPacket * iPacket)
 	long long int liItemSN_ = -1;
 
 	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
-	for (int i = 1; i <= 5; ++i) 
+	for (int i = 1; i <= 5; ++i)
 		while ((liItemSN_ = iPacket->Decode8()), liItemSN_ != -1)
 			mItemRemovedRecord[i].insert({ liItemSN_, iPacket->Decode1() ? true : false });
 }
@@ -736,12 +765,10 @@ void GA_Character::EncodeCharacterData(OutPacket *oPacket, bool bForInternal)
 		oPacket->Encode2(0);
 	}
 
-	if (flag & 0x1000) //ROCK INFO
+	if (flag & 0x1000) //MapTransfer
 	{
-		for (int i = 0; i < 5; ++i)
-			oPacket->Encode4(0);
-		for (int i = 0; i < 10; ++i)
-			oPacket->Encode4(0);
+		oPacket->EncodeBuffer((unsigned char*)&anMapTransfer, sizeof(anMapTransfer));
+		oPacket->EncodeBuffer((unsigned char*)&anMapTransferEx, sizeof(anMapTransferEx));
 	}
 
 	//ALWAYS PUT AT DOWNMOST PLACE.
@@ -798,7 +825,7 @@ void GA_Character::EncodeInventoryRemovedRecord(OutPacket * oPacket)
 	//09/12/2019 modified, for CASH ITEMs (nTI = 5).
 	for (int i = 1; i <= 5; ++i)
 	{
-		for (const auto& prRecord : mItemRemovedRecord[i]) 
+		for (const auto& prRecord : mItemRemovedRecord[i])
 		{
 			oPacket->Encode8(prRecord.first);
 			oPacket->Encode1(prRecord.second);
@@ -858,4 +885,21 @@ void GA_Character::LoadQuestRecord()
 		else
 			mQuestComplete.insert({ pQuestRecord->nQuestID, pQuestRecord });
 	}
+}
+
+void GA_Character::LoadMapTransfer()
+{
+	Poco::Data::Statement queryStatement(GET_DB_SESSION);
+	queryStatement << "SELECT * FROM MapTransfer Where CharacterID = " << nCharacterID;
+	queryStatement.execute();
+	Poco::Data::RecordSet recordSet(queryStatement);
+	for (int i = 0; i < MaxMapTransferCount; ++i)
+		anMapTransfer[i] = recordSet.rowCount() ? recordSet["Map" + std::to_string(i)] : 999999999;
+
+	queryStatement.reset(GET_DB_SESSION);
+	queryStatement << "SELECT * FROM MapTransferEx Where CharacterID = " << nCharacterID;
+	queryStatement.execute();
+	recordSet.reset(queryStatement);
+	for (int i = 0; i < MaxMapTransferExCount; ++i)
+		anMapTransferEx[i] = recordSet.rowCount() ? recordSet["Map" + std::to_string(i)] : 999999999;
 }

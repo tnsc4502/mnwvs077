@@ -16,7 +16,7 @@ GW_CashItemInfo::~GW_CashItemInfo()
 
 void GW_CashItemInfo::Encode(OutPacket * oPacket)
 {
-	oPacket->Encode8(liSN);
+	oPacket->Encode8(cashItemOption.liCashItemSN);
 	oPacket->Encode4(nAccountID);
 	oPacket->Encode4(nCharacterID);
 	oPacket->Encode4(nItemID);

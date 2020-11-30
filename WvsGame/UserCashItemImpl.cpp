@@ -11,6 +11,9 @@ Implementations of cash item usages.
 #include "WvsGame.h"
 #include "ItemInfo.h"
 #include "Field.h"
+#include "Portal.h"
+#include "PortalMap.h"
+#include "FieldMan.h"
 
 #include "..\Database\GW_ItemSlotPet.h"
 #include "..\Database\GW_ItemSlotEquip.h"
@@ -260,4 +263,94 @@ int UserCashItemImpl::ConsumeShopScanner(User * pUser, int nPOS, InPacket * iPac
 	oCenterPacket.Encode2(nPOS);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oCenterPacket);
 	return 0;
+}
+
+int UserCashItemImpl::ConsumeMapTransfer(User * pUser, int nItemID, InPacket * iPacket)
+{
+	bool bCanTransferContinent = (nItemID % 10000 / 1000) ? true : false;
+	bool bTransferToUser = iPacket->Decode1() ? true : false;
+
+	int nListSize = bCanTransferContinent ? GA_Character::MaxMapTransferExCount : GA_Character::MaxMapTransferCount,
+		*paList = bCanTransferContinent ? pUser->GetCharacterData()->anMapTransferEx : pUser->GetCharacterData()->anMapTransfer;
+
+	if (bTransferToUser)
+	{
+		std::string sUserName = iPacket->DecodeStr();
+		auto pTarget = User::FindUserByName(sUserName);
+		if (pTarget && pTarget->GetField() && IsMapTransferAvailable(pUser, 999999999, pTarget, bCanTransferContinent))
+		{
+			auto pPortal = pTarget->GetField()->GetPortalMap()->FindCloseStartPoint(pTarget->GetPosX(), pTarget->GetPosY());
+			pUser->TryTransferField(pTarget->GetField()->GetFieldID(), pPortal ? pPortal->GetPortalName() : "");
+		}
+		else
+			return false;
+	}
+	else
+	{
+		int nFieldID = iPacket->Decode4();
+		for (int i = 0; i < nListSize; ++i)
+			if (paList[i] == nFieldID)
+				break;
+			else if (i == nListSize - 1)
+			{
+				return false;
+			}
+
+		if (IsMapTransferAvailable(pUser, nFieldID, nullptr, bCanTransferContinent))
+		{
+			pUser->TryTransferField(nFieldID, "");
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UserCashItemImpl::IsMapTransferAvailable(User *pUser, int nFieldID, User * pTarget, bool bCanTransferContinent)
+{
+	auto pField = pUser->GetField(), pTargetField = pTarget ? pTarget->GetField() : FieldMan::GetInstance()->GetField(nFieldID);
+
+	if (!pField || !pTargetField || pField->GetFieldLimit() & 0x40 || pField->GetFieldID() / 1000000 % 100 == 9)
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_InValidFieldID, bCanTransferContinent);
+		return false;
+	}
+
+	if (pTarget && QWUser::GetHP(pTarget) == 0)
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_InValidUserStat, bCanTransferContinent);
+		return false;
+	}
+
+	if (QWUser::GetLevel(pUser) < 7 && pTargetField->GetFieldID() > 9999999)
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_LevelNotSatisfied, bCanTransferContinent);
+		return false;
+	}
+
+	if (pField->GetFieldID() == pTargetField->GetFieldID())
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_TransferOnIdenticalField, bCanTransferContinent);
+		return false;
+	}
+
+	if (pField->GetFieldID() / 10000000 == 19 ||
+		pTargetField->GetFieldLimit() & 0x40 ||
+		pTargetField->GetFieldID() == 180000000 ||
+		!(pTargetField->GetFieldID() / 100000000) && pField->GetFieldID() / 100000000 ||
+		(pField->GetFieldID() / 1000000) % 100 == 9 ||
+		(pTargetField->GetFieldID() / 1000000) % 100 == 9 ||
+		(pField->GetFieldID() / 10000 == 20009) ||
+		(pTargetField->GetFieldID() / 10000 == 20009))
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_InValidFieldID, bCanTransferContinent);
+		return false;
+	}
+
+	if (!bCanTransferContinent && !FieldMan::GetInstance()->IsConnected(pField->GetFieldID(), pTargetField->GetFieldID()))
+	{
+		pUser->SendMapTransferItemResult(MapTransferResult::eMapTransfer_InValidFieldStat, bCanTransferContinent);
+		return false;
+	}
+
+	return true;
 }

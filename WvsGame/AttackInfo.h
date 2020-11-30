@@ -70,7 +70,9 @@ struct AttackInfo
 		m_nCsStar = 0,
 		m_tKeyDown = 0,
 		m_pGrenade = 0,
-		m_nFinalAttack = 0
+		m_nFinalAttack = 0,
+		m_nProp = 0,
+		m_nAdvancedChargeDamage = 0
 		;
 };
 

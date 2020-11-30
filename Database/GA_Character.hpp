@@ -37,21 +37,26 @@ private:
 	void LoadItemSlot();
 	void LoadSkillRecord();
 	void LoadQuestRecord();
+	void LoadMapTransfer();
 #endif
 
 public:
+	const static int MaxMapTransferCount = 5, MaxMapTransferExCount = 10;
 
 	bool bOnTrading = false;
-	int nWorldID, 
-		nAccountID, 
-		nGuildID, 
-		nPartyID, 
-		nFieldID, 
-		nCharacterID, 
-		nFriendMax, 
-		nMoneyTrading = 0, 
+	int nWorldID,
+		nAccountID,
+		nGuildID,
+		nPartyID,
+		nFieldID,
+		nCharacterID,
+		nFriendMax,
+		nMoneyTrading = 0,
 		nGradeCode = 0,
 		nActiveEffectItemID = 0;
+
+	int anMapTransfer[MaxMapTransferCount] = { 0 },
+		anMapTransferEx[MaxMapTransferExCount] = { 0 };
 
 	std::string strName;
 	ZUniquePtr<GW_Avatar> mAvatarData = nullptr;
@@ -71,10 +76,13 @@ public:
 	//where the bool value represents "bIsCash".
 	std::set<std::pair<long long int, bool>> mItemRemovedRecord[6];
 
+#ifdef DBLIB
 	void Load(int nCharacterID);
 	void LoadCharacter(int nCharacterID);
 	void Save(bool isNewCharacter = false);
 	void SaveInventoryRemovedRecord();
+	void SaveMapTransfer();
+#endif
 
 	void DecodeStat(InPacket *iPacket);
 	void DecodeCharacterData(InPacket *iPacket, bool bForInternal);

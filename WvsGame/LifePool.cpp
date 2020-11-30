@@ -47,6 +47,8 @@
 #include "QWUser.h"
 #include "ItemInfo.h"
 #include "AffectedAreaPool.h"
+#include "USkill.h"
+
 #include <cmath>
 
 #undef min
@@ -814,7 +816,7 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					pInfo->m_nPartyCount + pInfo->GetDamagedMobCount(),
 					pInfo->m_tKeyDown
 				);
-			else //Physical Damages
+			else if(!pSkill || pSkill->GetSkillID() != WarriorSkills::Paladin_HeavensHammer)//Physical Damages
 				pUser->GetCalcDamage()->PDamage(
 					pMob,
 					pMob->GetMobStat(),
@@ -830,20 +832,18 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					dmgInfo.abDamageCriticalSrv,
 					pInfo->m_tKeyDown,
 					0,
-					0
+					pInfo->m_nAdvancedChargeDamage
 				);
+			else //For Paladin_HeavensHammer, no m_RndGenForCharacter pooling
+				dmgInfo.anDamageClient[0] = dmgInfo.anDamageSrv[0] =
+					std::max(1, (int)std::min(99999, (int)(pMob->GetHP() - 1)));
 
-			/*if(pInfo->m_nSkillID == ThiefSkills::Shadower_Assassinate)
-				pUser->GetSecondaryStat()->mDarkSight_ = pUser->GetSecondaryStat()->mDarkSight_ < 0 ? 0 : -pUser->GetSecondaryStat()->mDarkSight_;*/
-			
 			if (pSkill)
 				pSkill->AdjustDamageDecRate(
 					pInfo->m_nSLV, nOrder, dmgInfo.anDamageSrv, (pInfo->m_nOption & 1) != 0
 				);
 
 			for (int i = 0; i < dmgInfo.nDamageCount; ++i)
-				/*WvsLogger::LogFormat("AttackInfo i = [%d], Damage (Srv = %d, Client = %d) Critical ? %d\n",
-					i, dmgInfo.anDamageSrv[i], dmgInfo.anDamageClient[i], dmgInfo.abDamageCriticalSrv[i]);*/
 				if (dmgInfo.anDamageClient[i] != dmgInfo.anDamageSrv[i])
 					pUser->SendChatMessage(0,
 						StringUtility::Format(
@@ -857,10 +857,6 @@ void LifePool::OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *p
 					);
 		}
 		pUser->GetCalcDamage()->InspectAttackDamage(dmgInfo, dmgInfo.nDamageCount);
-
-		if (pInfo->m_nSkillID != ThiefSkills::Chief_Bandit_MesoExplosion && pUser->GetSecondaryStat()->nPickPocket_)
-			pMob->GiveMoney(pUser, &dmgInfo, dmgInfo.nDamageCount);
-
 		++nOrder;
 	}
 
@@ -1004,11 +1000,12 @@ void LifePool::ApplyUserAttack(User * pUser, const SkillEntry *pSkill, AttackInf
 					pUser->SendTemporaryStatSet(TemporaryStat::TS_Flag(TemporaryStat::TS_ComboCounter), 0);
 			}
 
-			if (pSkill && !SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
+			if (!SkillInfo::IsSummonSkill(pSkill->GetSkillID()))
 			{
 				nMobStatChangeSkillID = pSkill->GetSkillID();
 				nMobStatChangeSkillLV = pInfo->m_nSLV;
 				tMobStatChangeSkillDelay = 0;
+				auto pLevelData = pSkill->GetLevelData(nMobStatChangeSkillLV);
 
 				/*Apply some passive 'MobStatChange' skills*/
 				if (nJob == 412 &&
@@ -1046,15 +1043,52 @@ void LifePool::ApplyUserAttack(User * pUser, const SkillEntry *pSkill, AttackInf
 					nMobStatChangeSkillID = BowmanSkills::Marksman_Blind;
 					tMobStatChangeSkillDelay = 1000;
 				}
+				else if (nMobStatChangeSkillID == WarriorSkills::DragonKnight_DragonRoar ||	
+					nMobStatChangeSkillID == WarriorSkills::WhiteKnight_ChargedBlow)
+				{
+					if (nMobStatChangeSkillID == WarriorSkills::WhiteKnight_ChargedBlow &&
+						pUser->GetSecondaryStat()->rWeaponCharge_)
+					{
+						USkill::DoActiveSkill_SelfStatChange(
+							pUser,
+							SkillInfo::GetInstance()->GetSkillByID(pUser->GetSecondaryStat()->rWeaponCharge_),
+							pInfo->m_nSLV,
+							nullptr,
+							0,
+							!pInfo->m_nProp || (int)(Rand32::GetInstance()->Random() % 100 > pInfo->m_nProp)
+						);
+					}
+					else
+						USkill::DoActiveSkill_SelfStatChange(
+							pUser,
+							pSkill,
+							pInfo->m_nSLV,
+							nullptr,
+							0,
+							false
+						);
+				}
+				else if (liDamageSum > 0 && 
+					nMobStatChangeSkillID != 1000 &&
+					pUser->GetSecondaryStat()->rWeaponCharge_ && 
+					(pUser->GetSecondaryStat()->rWeaponCharge_ == WarriorSkills::WhiteKnight_IceChargeSword || pUser->GetSecondaryStat()->rWeaponCharge_ == WarriorSkills::WhiteKnight_BlizzardChargeBW)
+					)
+				{
+					nMobStatChangeSkillID = pUser->GetSecondaryStat()->rWeaponCharge_;
+					tMobStatChangeSkillDelay = 1000;
+				}
 
-				if (nMobStatChangeSkillID != pSkill->GetSkillID())
-					nMobStatChangeSkillLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), m_nMobDamagedByMobState, nullptr);
+				if (nMobStatChangeSkillID != pSkill->GetSkillID()) 
+				{
+					pSkill = SkillInfo::GetInstance()->GetSkillByID(nMobStatChangeSkillID);
+					nMobStatChangeSkillLV = SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nMobStatChangeSkillID, nullptr);
+				}
 
-				OnMobStatChangeSkill(
+				dmgInfo.pMob->OnMobStatChangeSkill(
 					pUser,
-					dmgInfo.pMob->GetFieldObjectID(),
-					SkillInfo::GetInstance()->GetSkillByID(nMobStatChangeSkillID),
-					SkillInfo::GetInstance()->GetSkillLevel(pUser->GetCharacterData(), nMobStatChangeSkillID, nullptr),
+					pSkill,
+					nMobStatChangeSkillLV,
+					(int)liDamageSum,
 					tMobStatChangeSkillDelay
 				);
 			}
@@ -1079,6 +1113,9 @@ void LifePool::ApplyUserAttack(User * pUser, const SkillEntry *pSkill, AttackInf
 			if (liFlag)
 				pUser->SendCharacterStat(false, liFlag);
 		}
+
+		if (pInfo->m_nSkillID != ThiefSkills::Chief_Bandit_MesoExplosion && pUser->GetSecondaryStat()->nPickPocket_)
+			dmgInfo.pMob->GiveMoney(pUser, &dmgInfo, dmgInfo.nDamageCount);
 
 		if (dmgInfo.pMob && dmgInfo.pMob->GetHP() <= 0)
 		{
@@ -1152,7 +1189,7 @@ void LifePool::EncodeAttackInfo(User *pUser, AttackInfo *pInfo, OutPacket *oPack
 		if (pInfo->m_nSkillID == ThiefSkills::Chief_Bandit_MesoExplosion)
 			oPacket->Encode1(dmgInfo.second.nDamageCount);
 		for (int i = 0; i < dmgInfo.second.nDamageCount; ++i)
-			oPacket->Encode4((int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalClient[i] << 31));
+			oPacket->Encode4((int)dmgInfo.second.anDamageClient[i] | (dmgInfo.second.abDamageCriticalSrv[i] << 31));
 	}
 
 	if (pInfo->m_nType == UserRecvPacketType::User_OnUserAttack_ShootAttack)

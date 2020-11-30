@@ -79,6 +79,7 @@
 #include "Reward.h"
 #include "DropPool.h"
 #include "WvsPhysicalSpace2D.h"
+#include "WarriorSkills.h"
 #include "AdminSkills.h"
 #include "ThiefSkills.h"
 #include "UserCashItemImpl.h"
@@ -731,6 +732,9 @@ void User::OnPacket(InPacket *iPacket)
 			break;
 		case UserRecvPacketType::User_OnEnterTownPortalRequest:
 			OnEnterTownPortalRequest(iPacket);
+			break;
+		case UserRecvPacketType::User_OnMapTransferItemRequest:
+			OnMapTransferItemRequest(iPacket);
 			break;
 		default:
 			iPacket->RestorePacket();
@@ -1467,6 +1471,19 @@ void User::OnAttack(int nType, InPacket * iPacket)
 		}
 		SetSkillCooltime(pResult->m_nSkillID, pLevel ? pLevel->m_nCooltime : 0);
 
+		//Advanced Charge
+		if (QWUser::GetJob(this) == 122)
+		{
+			SkillEntry* pEntry = nullptr;
+			int nAdvSLV = SkillInfo::GetInstance()->GetSkillLevel(GetCharacterData(), WarriorSkills::Paladin_AdvancedCharge, &pEntry);
+			if (nAdvSLV && pEntry)
+			{
+				auto pLevelData = pEntry->GetLevelData(nAdvSLV);
+				pResult->m_nAdvancedChargeDamage = pLevelData->m_nDamage;
+				pResult->m_nProp = pLevelData->m_nX;
+			}
+		}
+
 		//Apply to LifePool
 		m_pField->GetLifePool()->OnUserAttack(
 			this,
@@ -1960,8 +1977,8 @@ void User::Update()
 		if (m_tLastAliveCheckRespondTime == -1)
 		{
 			WvsLogger::LogFormat(WvsLogger::LEVEL_WARNING, "Alive check timed out, User: [%d][%s]\n", GetUserID(), GetName().c_str());
-			m_pSocket->GetSocket().close();
-			return;
+			//m_pSocket->GetSocket().close();
+			//return;
 		}
 		m_tLastAliveCheckRespondTime = -1;
 		m_tLastAliveCheckRequestTime = tCur;
@@ -2827,6 +2844,7 @@ void User::OnConsumeCashItemUseRequest(InPacket * iPacket)
 			UserCashItemImpl::ConsumeShopScanner(this, nPOS, iPacket);
 			return;
 		case ItemInfo::CashItemType::CashItemType_MapTransfer:
+			nResult = UserCashItemImpl::ConsumeMapTransfer(this, nItemID, iPacket);
 			break;
 		case ItemInfo::CashItemType::CashItemType_ADBoard:
 			nResult = UserCashItemImpl::ConsumeADBoard(this, iPacket);
@@ -2947,6 +2965,54 @@ void User::OnShopScannerResult(InPacket * iPacket)
 	oPacket.Encode2(UserSendPacketType::UserLocal_OnShopScannerResult);
 	oPacket.Encode1(6);
 	oPacket.EncodeBuffer(iPacket->GetPacket() + iPacket->GetReadCount(), iPacket->GetPacketSize() - iPacket->GetReadCount());
+	SendPacket(&oPacket);
+}
+
+void User::OnMapTransferItemRequest(InPacket * iPacket)
+{
+	int nType = iPacket->Decode1();
+	bool bCanTransferContinent = iPacket->Decode1() ? true : false;
+	int nListSize = bCanTransferContinent ? GA_Character::MaxMapTransferExCount : GA_Character::MaxMapTransferCount,
+		*paList = bCanTransferContinent ? m_pCharacterData->anMapTransferEx : m_pCharacterData->anMapTransfer;
+
+	std::lock_guard<std::recursive_mutex> lock(GetLock());
+	if (nType == 1)
+	{
+		int nFieldID = m_pField->GetFieldID();
+		for (int i = 0; i < nListSize; ++i)
+			if (paList[i] == 999999999) 
+			{
+				paList[i] = nFieldID;
+				SendMapTransferItemResult(UserCashItemImpl::MapTransferResult::eMapTransfer_SuccessfullyRecorded, bCanTransferContinent);
+				return;
+			}
+		SendMapTransferItemResult(UserCashItemImpl::MapTransferResult::eMapTransfer_ListIsFull, bCanTransferContinent);
+	}
+	else
+	{
+		int nRemoveID = iPacket->Decode4();
+		for(int i = 0; i < nListSize; ++i)
+			if (paList[i] == nRemoveID)
+			{
+				for (int j = i; j < nListSize - 1 && paList[j] != 999999999; ++j)
+					paList[j] = paList[j + 1];
+				break;
+			}
+		SendMapTransferItemResult(UserCashItemImpl::MapTransferResult::eMapTransfer_RecordedDeleted, bCanTransferContinent);
+	}
+}
+
+void User::SendMapTransferItemResult(int nResultType, bool bCanTransferContinent)
+{
+	int nListSize = bCanTransferContinent ? GA_Character::MaxMapTransferExCount : GA_Character::MaxMapTransferCount,
+		*paList = bCanTransferContinent ? m_pCharacterData->anMapTransferEx : m_pCharacterData->anMapTransfer;
+
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnMapTransferResult);
+	oPacket.Encode1(nResultType);
+	oPacket.Encode1(bCanTransferContinent ? 1 : 0);
+	oPacket.EncodeBuffer((unsigned char*)paList, sizeof(int) * nListSize);
+
 	SendPacket(&oPacket);
 }
 
