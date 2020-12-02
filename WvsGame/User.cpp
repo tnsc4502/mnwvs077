@@ -3406,7 +3406,7 @@ void User::OnScriptLinkedQuest(InPacket * iPacket, int nQuestID, int dwTemplateI
 
 		auto sScriptName = pAct ? "s_" + pAct->sScriptName : "";
 		auto sScriptFile = ScriptMan::GetInstance()->SearchScriptNameByFunc(
-			"Portal",
+			"Quest",
 			sScriptName
 		);
 

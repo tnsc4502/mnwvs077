@@ -54,16 +54,19 @@ public:
 	const std::vector<RewardInfo*>& GetMobReward();
 	static MobTemplate* GetMobTemplate(int dwTemplateID);
 	static void RegisterMob(int dwTemplateID);
+
+	//ElemAttr
 	static int GetElementAttribute(const std::string& s, int *aElemAttr);
 	static int GetMagicAttackElementAttribute(const char *s, int *nElemAttr);
+
+	//Skill
 	void MakeSkillContext();
 	int GetSkillIndex(int nSkillID, int nSLV);
+
+	//Quest
 	void SetMobCountQuestInfo(User *pUser) const;
 	
-	/*
-	直接作為public attribute
-	*/
-	long long int m_lnMaxHP, m_lnMaxMP;
+	long long int m_liMaxHP, m_liMaxMP;
 
 	int 
 		m_nTemplateID,
@@ -85,6 +88,8 @@ public:
 		m_nFlySpeed,
 		m_nSummonType, 
 		m_nMoveAbility,
+		m_nHPTagColor = 0,
+		m_nHPTagBgColor = 0,
 		m_aDamagedElemAttr[MAX_DAMAGED_ELEM_ATTR] = { 0 }
 	;
 
@@ -96,6 +101,7 @@ public:
 		m_bInvincible,
 		m_bOnlyNormalAttack,
 		m_bIsExplosiveDrop,
+		m_bHPgaugeHide = false,
 		m_bIsBoss = false,
 		m_bIsTargetFromSrv = true;
 

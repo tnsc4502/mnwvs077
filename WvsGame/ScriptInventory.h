@@ -21,5 +21,7 @@ public:
 	static int InventoryGetSlotCount(lua_State* L);
 	static int InventoryGetHoldCount(lua_State* L);
 	static int InventoryGetFreeCount(lua_State* L);
+	static int InventoryRemoveEquippedItem(lua_State* L);
+	static int InventoryGetThisItemInHisParty(lua_State* L);
 };
 

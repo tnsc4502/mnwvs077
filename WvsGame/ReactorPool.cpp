@@ -159,11 +159,31 @@ void ReactorPool::SetState(const std::string &sName, int nState)
 	pReactor->m_nState = nState;
 	pReactor->FindAvailableAction();
 	auto pInfo = pReactor->m_pTemplate->GetStateInfo(nState);
-	pReactor->m_bRemove = (!pInfo || pInfo->m_aEventInfo.size() == 0);
+	pReactor->m_bRemove = (!pInfo || pInfo->m_aEventInfo.size() == 0) && (m_pField->GetFieldSet() == nullptr || pReactor->m_pTemplate->RemoveInFieldSet());
 
 	OutPacket oPacket;
 	pReactor->MakeStateChangePacket(&oPacket, 0, -1);
 	m_pField->BroadcastPacket(&oPacket);
+}
+
+int ReactorPool::GetReactorTotalHit() const
+{
+	return m_nReactorTotalHit;
+}
+
+void ReactorPool::SetReactorTotalHit(int nHit)
+{
+	m_nReactorTotalHit = nHit;
+}
+
+bool ReactorPool::IsReactorHitEnabled() const
+{
+	return m_bReactorHitEnable;
+}
+
+void ReactorPool::SetReactorHitEnable(bool bEnable)
+{
+	m_bReactorHitEnable = bEnable;
 }
 
 void ReactorPool::RemoveAllReactor()
@@ -232,6 +252,10 @@ void ReactorPool::Reset(bool bShuffle)
 	RemoveNpc();
 	RemoveAllReactor();
 	TryCreateReactor(true);
+
+	//Guild FielSet
+	m_nReactorTotalHit = 0;
+	m_bReactorHitEnable = false;
 
 	if (bShuffle)
 	{

@@ -477,6 +477,9 @@
     <ClInclude Include="StateChangingWeatherItem.h">
       <Filter>WvsGame\InGame\Item</Filter>
     </ClInclude>
+    <ClInclude Include="Field_GuildBoss.h">
+      <Filter>WvsGame\InGame\Field</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WvsGame.cpp">
@@ -734,6 +737,9 @@
     </ClCompile>
     <ClCompile Include="UserUtil.cpp">
       <Filter>WvsGame\InGame\User</Filter>
+    </ClCompile>
+    <ClCompile Include="Field_GuildBoss.cpp">
+      <Filter>WvsGame\InGame\Field</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

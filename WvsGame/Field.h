@@ -26,6 +26,15 @@ class FieldObj;
 
 class Field
 {
+public:
+	enum FieldEffect
+	{
+		e_FieldEffect_Object = 0x02,
+		e_FieldEffect_Screen = 0x03,
+		e_FieldEffect_Sound = 0x04,
+		e_FieldEffect_Mob = 0x05,
+	};
+
 protected:
 	static const int FIELD_STAT_CHANGE_PERIOD = 3 * 1000;
 
@@ -38,13 +47,6 @@ protected:
 
 		int nBalloonType = 0;
 		int nHostX = 0, nHostY = 0;
-	};
-
-	enum FieldEffect
-	{
-		e_FieldEffect_Object = 0x02,
-		e_FieldEffect_Screen = 0x03,
-		e_FieldEffect_Sound = 0x04
 	};
 
 	std::recursive_mutex m_mtxFieldLock;
@@ -73,6 +75,7 @@ protected:
 			m_dMobRate = 1.0;
 
 	bool m_bCloud,
+		m_bClock,
 		m_bTown,
 		m_bSwim,
 		m_bFly;
@@ -180,6 +183,7 @@ public:
 
 	//Party Quest Helpers
 	void LoadAreaRect(void *pData);
+	bool IsItemInArea(const std::string& sArea, int nItemID);
 	int CountFemaleInArea(const std::string& sArea);
 	int CountMaleInArea(const std::string& sArea);
 	int CountUserInArea(const std::string& sArea);

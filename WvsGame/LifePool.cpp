@@ -288,12 +288,12 @@ void LifePool::CreateMob(const Mob& mob, int nX, int nY, int nFh, int bNoDropPri
 			++((MobGen*)mob.GetMobGen())->nMobCount;
 
 		int nMoveAbility = newMob->GetMobTemplate()->m_nMoveAbility;
-		newMob->SetHP(/*1 for test purpose*/ newMob->GetMobTemplate()->m_lnMaxHP);
-		newMob->SetMP((int)newMob->GetMobTemplate()->m_lnMaxMP);
+		newMob->SetHP(/*1 for test purpose*/ newMob->GetMobTemplate()->m_liMaxHP);
+		newMob->SetMP((int)newMob->GetMobTemplate()->m_liMaxMP);
 		newMob->SetMovePosition(nX, nY, bLeft & 1 | 2 * (nMoveAbility == 3 ? 6 : (nMoveAbility == 0 ? 1 : 0) + 1), nFh);
 		newMob->SetMoveAction(5); //Mob = 5 initially ?
 		newMob->GetDamageLog().nFieldID = m_pField->GetFieldID();
-		newMob->GetDamageLog().liInitHP = newMob->GetMobTemplate()->m_lnMaxHP;
+		newMob->GetDamageLog().liInitHP = newMob->GetMobTemplate()->m_liMaxHP;
 		newMob->SetMobType(nMobType);
 
 		OutPacket createMobPacket;
@@ -576,7 +576,7 @@ void LifePool::TryKillingAllMobs(User * pUser)
 	while (m_mMob.empty() == false) 
 	{
 		m_mMob.begin()->second->OnMobHit(
-			pUser, m_mMob.begin()->second->GetMobTemplate()->m_lnMaxHP, 1
+			pUser, m_mMob.begin()->second->GetMobTemplate()->m_liMaxHP, 1
 		);
 		m_mMob.begin()->second->OnMobDead(
 			m_mMob.begin()->second->GetPosX(), 
@@ -1100,7 +1100,7 @@ void LifePool::ApplyUserAttack(User * pUser, const SkillEntry *pSkill, AttackInf
 			{
 				int nDrain = (int)(liDamageSum * pSkill->GetLevelData(pInfo->m_nSLV)->m_nX / 100);
 				nDrain = std::min(
-					(int)dmgInfo.pMob->GetMobTemplate()->m_lnMaxHP / 2,
+					(int)dmgInfo.pMob->GetMobTemplate()->m_liMaxHP / 2,
 					std::min((int)liDamageSum, pUser->GetBasicStat()->nMHP / 2)
 				);
 				liFlag |= QWUser::IncHP(pUser, nDrain, false);
@@ -1221,6 +1221,17 @@ ZSharedPtr<Mob> LifePool::GetMob(int nFieldObjID)
 	if (findIter != m_mMob.end())
 		return findIter->second;
 	return nullptr;
+}
+
+std::vector<ZSharedPtr<Mob>> LifePool::GetMobByTemplateID(int nTemplateID)
+{
+	std::vector<ZSharedPtr<Mob>> aRet;
+	std::lock_guard<std::recursive_mutex> lock(m_lifePoolMutex);
+	for (auto& prMob : m_mMob)
+		if (prMob.second->GetTemplateID() == nTemplateID)
+			aRet.push_back(prMob.second);
+
+	return aRet;
 }
 
 void LifePool::UpdateMobSplit(User * pUser)

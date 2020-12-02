@@ -5,6 +5,7 @@
 #include "TimerThread.h"
 
 #include "Field.h"
+#include "Field_GuildBoss.h"
 #include "Field_MonsterCarnival.h"
 #include "FieldSet.h"
 #include "PortalMap.h"
@@ -68,6 +69,9 @@ void FieldMan::FieldFactory(int nFieldID)
 	Field* pField = nullptr;
 	switch (nFieldType)
 	{
+		case 8:
+			pField = AllocObjCtor(Field_GuildBoss)(&mapWz, nFieldID);
+			break;
 		case 10:
 			pField = AllocObjCtor(Field_MonsterCarnival)(&mapWz, nFieldID);
 			break;

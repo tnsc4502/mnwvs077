@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <list>
 #include <vector>
 #include <mutex>
 #include <atomic>
@@ -22,7 +23,7 @@ private:
 	AsyncScheduler *m_pTimer;
 	FieldSetEventManager();
 	~FieldSetEventManager();
-	std::map<FieldSet*, std::vector<EventInfo>> m_maEvent;
+	std::map<FieldSet*, std::list<EventInfo>> m_maEvent;
 	void Update();
 
 public:

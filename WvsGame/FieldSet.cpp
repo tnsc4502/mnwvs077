@@ -131,10 +131,10 @@ void FieldSet::InitConfig()
 	m_nTimeLimit = pCfg->IntValue("TimeLimit");
 	m_bParty = pCfg->IntValue("Party") == 1;
 	m_bInvokeUpdateFunc = pCfg->IntValue("InvokeUpdate") == 1;
-	m_nPartyMemberMin = pCfg->IntValue("PartyMember_Min");
-	m_nPartyMemberMax = pCfg->IntValue("PartyMember_Max");
-	m_nLevelMin = pCfg->IntValue("Level_Min");
-	m_nLevelMax = pCfg->IntValue("Level_Max");
+	m_nPartyMemberMin = pCfg->IntValue("PartyMember_Min", 1);
+	m_nPartyMemberMax = pCfg->IntValue("PartyMember_Max", 6);
+	m_nLevelMin = pCfg->IntValue("Level_Min", 10);
+	m_nLevelMax = pCfg->IntValue("Level_Max", 200);
 	m_aJobType = pCfg->GetArray<int>("JobType");
 
 	std::string sFieldSetInfo = pCfg->StrValue("FieldSetInfo");
@@ -412,6 +412,10 @@ void FieldSet::SetReactorState(int nFieldIdx, const std::string & sReactorName, 
 	info.avArgs.push_back({ nState });
 	info.avArgs.push_back({ nOrder });
 
+	//After all statues light up, the players are then able to hit them.
+	if (GetFieldSetName() == "Guild1")
+		SetVar("WaitForLightingUp", "1");
+
 	m_mEventAction.insert({
 		FieldSetEventManager::GetInstance()->RegisterEvent(this, 3200 * nOrder),
 		std::move(info)
@@ -437,7 +441,6 @@ void FieldSet::DoReactorAction(const ActionInfo & prai)
 {
 	if (prai.avArgs.size() < 1)
 		return;
-	auto pReactorPool = m_aField[prai.avArgs[0].nVal]->GetReactorPool();
 
 	switch (prai.nActionType)
 	{
@@ -448,8 +451,12 @@ void FieldSet::DoReactorAction(const ActionInfo & prai)
 			[2] = nState
 			[3] = nOder <Optional>
 			*/
-			if (prai.avArgs.size() < 3)
+			if (prai.avArgs.size() < 3 || prai.avArgs[0].nVal < 0 || prai.avArgs[0].nVal >= m_aField.size())
 				return;
+
+			auto pReactorPool = m_aField[prai.avArgs[0].nVal]->GetReactorPool();
+			//auto pField = m_aField[prai.avArgs[0].nVal];
+
 			pReactorPool->SetState(
 				prai.avArgs[1].sVal,
 				prai.avArgs[2].nVal != -1 ? prai.avArgs[2].nVal : pReactorPool->GetState(prai.avArgs[1].sVal) + 1
@@ -466,6 +473,13 @@ void FieldSet::DoReactorAction(const ActionInfo & prai)
 				}
 				if (prai.avArgs[3].nVal == nIdx - 1)
 					SetVar("statueAnswer", "00000000000000000000");
+
+				//This is for guild fieldset that enables player to attack statues after lighting up.
+				if (m_mEventAction.size() == 1 && GetFieldSetName() == "Guild1" && GetVar("WaitForLightingUp") != "")
+				{
+					SetVar("WaitForLightingUp", "");
+					pReactorPool->SetReactorHitEnable(true);
+				}
 			}
 			break;
 	}

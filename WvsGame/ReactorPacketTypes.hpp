@@ -12,7 +12,7 @@ END_PACKET_TYPE(ReactorSendPacketType)
 
 
 DEFINE_PACKET_TYPE(ReactorRecvPacketType)
-	REGISTER_TYPE(Reactor_OnHitReactor, 0x9E);
 	REGISTER_TYPE(Reactor_OnClickReactor, 0x9D);
+	REGISTER_TYPE(Reactor_OnHitReactor, 0x9E);
 END_PACKET_TYPE(ReactorRecvPacketType)
 #endif

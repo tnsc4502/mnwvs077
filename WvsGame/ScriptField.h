@@ -29,5 +29,7 @@ public:
 	static int FieldEnablePortal(lua_State* L);
 	static int FieldGetContiState(lua_State* L);
 	static int FieldGetContiBoardingTime(lua_State* L);
+	static int FieldGetReactorState(lua_State* L);
+	static int FieldIsItemInArea(lua_State* L);
 };
 

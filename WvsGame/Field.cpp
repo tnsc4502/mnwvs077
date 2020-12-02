@@ -7,6 +7,7 @@
 #include "ReactorPool.h"
 #include "SummonedPool.h"
 #include "DropPool.h"
+#include "Drop.h"
 #include "FieldSet.h"
 #include "User.h"
 #include "PartyMan.h"
@@ -28,6 +29,7 @@
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Task\AsyncScheduler.h"
+#include "..\Database\GW_ItemSlotBase.h"
 #include "..\WvsLib\Wz\WzResMan.hpp"
 #include "..\WvsLib\Memory\ZMemory.h"
 
@@ -70,6 +72,7 @@ Field::Field(void *pData, int nFieldID)
 	m_nAutoDecHP = infoData["decHP"];
 	m_nAutoDecMP = infoData["decMP"];
 	m_nProtectItem = infoData["protectItem"];
+	m_bClock = mapWz["clock"] != mapWz.end();
 
 	if (areaData != mapWz.end())
 		LoadAreaRect(&areaData);
@@ -375,6 +378,21 @@ void Field::OnEnter(User *pUser)
 		pUser->SendPacket(&oPacket);
 		pUser->ShowConsumeItemEffect(m_nJBCharacterID, true, m_nJukeBoxItemID);
 	}
+
+	if (m_bClock)
+	{
+		OutPacket oPacket;
+		oPacket.Encode2(FieldSendPacketType::Field_OnClock);
+		oPacket.Encode1(1);
+
+		time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		tm tm;
+		localtime_s(&tm, &start_time);
+		oPacket.Encode1(tm.tm_hour);
+		oPacket.Encode1(tm.tm_min);
+		oPacket.Encode1(tm.tm_sec);
+		pUser->SendPacket(&oPacket);
+	}
 }
 
 void Field::OnLeave(User *pUser)
@@ -546,6 +564,24 @@ void Field::LoadAreaRect(void *pData)
 		rect.bottom = area["y2"];
 		m_mAreaRect[area.GetName()] = rect;
 	}
+}
+
+bool Field::IsItemInArea(const std::string & sArea, int nItemID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldLock);
+	auto findIter = m_mAreaRect.find(sArea);
+	if (findIter == m_mAreaRect.end())
+		return false;
+
+	auto apDrop = m_pDropPool->FindDropInRect(findIter->second, 0);
+	for (auto& pDrop : apDrop)
+	{
+		if (pDrop->GetMoney() && nItemID == 0)
+			return true;
+		else if (pDrop->GetItem() && pDrop->GetItem()->nItemID == nItemID)
+			return true;
+	}
+	return false;
 }
 
 int Field::CountFemaleInArea(const std::string & sArea)

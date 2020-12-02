@@ -5,6 +5,8 @@
 #include "User.h"
 #include "ScriptUser.h"
 #include "PartyMan.h"
+#include "Field.h"
+#include "ReactorPool.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 
 ScriptFieldSet::ScriptFieldSet()
@@ -106,6 +108,12 @@ int ScriptFieldSet::FieldSetSetVar(lua_State * L)
 	const char* sVarName = luaL_checkstring(L, 2);
 	const char* sVal = luaL_checkstring(L, 3);
 	self->m_pFieldSet->SetVar(sVarName, sVal);
+	if (!strcmp(sVarName, "statueQuestion")) 
+	{
+		auto pPool = FieldMan::GetInstance()->GetField(990000300)->GetReactorPool();
+		pPool->SetReactorHitEnable(false);
+		pPool->SetReactorTotalHit(0);
+	}
 	return 1;
 }
 

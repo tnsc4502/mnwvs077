@@ -57,8 +57,8 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	pTemplate->m_bIsChangeableMob = ((int)info["changeableMob"] == 1);
 	pTemplate->m_bIsDamagedByMob = ((int)info["damagedByMob"] == 1);
 	pTemplate->m_bIsSmartPhase = ((int)info["smartPhase"] == 1);
-	pTemplate->m_lnMaxHP = (int)info["maxHP"];
-	pTemplate->m_lnMaxMP = (int)info["maxMP"];
+	pTemplate->m_liMaxHP = (int)info["maxHP"];
+	pTemplate->m_liMaxMP = (int)info["maxMP"];
 	pTemplate->m_nSpeed = info["speed"];
 	pTemplate->m_nPAD = info["PADamage"];
 	pTemplate->m_nPDD = info["PDDamage"];
@@ -79,6 +79,10 @@ void MobTemplate::RegisterMob(int dwTemplateID)
 	GetElementAttribute(pTemplate->m_strElemAttr.c_str(), pTemplate->m_aDamagedElemAttr);
 	pTemplate->m_strMobType = info["mobType"];
 	pTemplate->m_nFixedDamage = info["fixedDamage"];
+	pTemplate->m_nHPTagColor = info["hpTagColor"];
+	pTemplate->m_nHPTagBgColor = info["hpTagBgcolor"];
+
+	pTemplate->m_bHPgaugeHide = ((int)info["HPgaugeHide"] == 1);
 	pTemplate->m_bInvincible = ((int)info["invincible"] == 1);
 	pTemplate->m_bIsExplosiveDrop = ((int)info["explosiveReward"] == 1);
 	pTemplate->m_bOnlyNormalAttack = ((int)info["onlyNormalAttack"] == 1);

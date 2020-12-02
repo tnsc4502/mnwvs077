@@ -532,31 +532,31 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 		}
 		if (pSkillLVLData->m_nPdd)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nPdd);
+			REGISTER_TS(PDD, pSkillLVLData->m_nPdd);
 		}
 		if (pSkillLVLData->m_nMad)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nMad);
+			REGISTER_TS(MAD, pSkillLVLData->m_nMad);
 		}		
 		if (pSkillLVLData->m_nMdd)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nMdd);
+			REGISTER_TS(MDD, pSkillLVLData->m_nMdd);
 		}
 		if (pSkillLVLData->m_nAcc)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nAcc);
+			REGISTER_TS(ACC, pSkillLVLData->m_nAcc);
 		}
 		if (pSkillLVLData->m_nEva)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nEva);
+			REGISTER_TS(EVA, pSkillLVLData->m_nEva);
 		}
 		if (pSkillLVLData->m_nCraft)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nCraft);
+			REGISTER_TS(Craft, pSkillLVLData->m_nCraft);
 		}		
 		if (pSkillLVLData->m_nSpeed)
 		{
-			REGISTER_TS(PAD, pSkillLVLData->m_nSpeed);
+			REGISTER_TS(Speed, pSkillLVLData->m_nSpeed);
 		}
 		if (pSkillLVLData->m_nJump)
 		{
@@ -596,8 +596,8 @@ void USkill::DoActiveSkill_PartyStatChange(User* pUser, const SkillEntry *pSkill
 			case ThiefSkills::Hermit_MesoUp:
 				REGISTER_TS(MesoUp, pSkillLVLData->m_nX);
 				break;
-			case ThiefSkills::Assassin_Haste:
-			case ThiefSkills::Bandit_Haste:
+			//case ThiefSkills::Assassin_Haste:
+			//case ThiefSkills::Bandit_Haste:
 			case AdminSkills::Admin_Super_HasteSuper:
 				REGISTER_TS(Speed, pSkillLVLData->m_nSpeed);
 				REGISTER_TS(Jump, pSkillLVLData->m_nJump);

@@ -54,6 +54,8 @@ DEFINE_PACKET_TYPE(FieldSendPacketType)
 	REGISTER_TYPE(Field_StoreBankRequest, 224);
 	REGISTER_TYPE(Field_MiniRoomRequest, 227);
 
+	REGISTER_TYPE(Field_GuildBoss_OnHealerMove, 206);
+	REGISTER_TYPE(Field_GuildBoss_OnPullyStateChange, 207);
 
 	REGISTER_TYPE(Field_MCarnival_OnEnter, 208);
 	REGISTER_TYPE(Field_MCarnival_SendPersonalCP, 209);
@@ -66,6 +68,7 @@ DEFINE_PACKET_TYPE(FieldSendPacketType)
 END_PACKET_TYPE(FieldSendPacketType)
 
 DEFINE_PACKET_TYPE(FieldRecvPacketType)
+	REGISTER_TYPE(Field_GuildBoss_OnPullyHit, 160);
 	REGISTER_TYPE(Field_MCarnival_OnRequest, 169);
 	REGISTER_TYPE(Field_OnContiMoveStateRequest, 171);
 END_PACKET_TYPE(FieldRecvPacketType)

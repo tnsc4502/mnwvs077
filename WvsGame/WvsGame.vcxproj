@@ -274,6 +274,7 @@
     <ClInclude Include="FieldRect.h" />
     <ClInclude Include="FieldSet.h" />
     <ClInclude Include="FieldSetEventManager.h" />
+    <ClInclude Include="Field_GuildBoss.h" />
     <ClInclude Include="Field_MonsterCarnival.h" />
     <ClInclude Include="FootholdTree.h" />
     <ClInclude Include="FriendMan.h" />
@@ -387,6 +388,7 @@
     <ClCompile Include="FieldObj.cpp" />
     <ClCompile Include="FieldSet.cpp" />
     <ClCompile Include="FieldSetEventManager.cpp" />
+    <ClCompile Include="Field_GuildBoss.cpp" />
     <ClCompile Include="Field_MonsterCarnival.cpp" />
     <ClCompile Include="FootholdTree.cpp" />
     <ClCompile Include="FriendMan.cpp" />

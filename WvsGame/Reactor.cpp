@@ -14,12 +14,14 @@
 #include "WvsPhysicalSpace2D.h"
 #include "User.h"
 #include "StaticFoothold.h"
+#include "FieldSet.h"
+#include "ReactorPacketTypes.hpp"
+
 #include "..\Database\GW_ItemSlotBase.h"
 #include "..\Database\GW_ItemSlotBundle.h"
 #include "..\WvsLib\DateTime\GameDateTime.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsGame\ReactorPacketTypes.hpp"
 #include "..\WvsLib\Random\Rand32.h"
 
 int Reactor::GetHitTypePriorityLevel(int nOption, int nType)
@@ -151,6 +153,25 @@ void Reactor::OnHit(User * pUser, InPacket * iPacket)
 			m_nLastHitCharacterID = pUser->GetUserID();
 		}
 		m_tLastHit = GameDateTime::GetTime();
+
+		//Guild1 FieldSet
+		if (m_pField->GetFieldID() == 990000300)
+		{
+			auto pPool = m_pField->GetReactorPool();
+			if (!pPool->IsReactorHitEnabled() ||
+				(pPool->SetReactorTotalHit(pPool->GetReactorTotalHit() + 1),
+					(pPool->GetReactorTotalHit() >= 10 || pPool->GetReactorTotalHit() < 0))
+				)
+				return;
+			
+			auto pFieldSet = m_pField->GetFieldSet();
+			if (pFieldSet)
+			{
+				auto sAnswer = pFieldSet->GetVar("statueAnswer");
+				sAnswer[atoi(GetReactorName().c_str()) - 1] = pPool->GetReactorTotalHit() + '0';
+				pFieldSet->SetVar("statueAnswer", sAnswer);
+			}
+		}
 	}
 }
 
@@ -170,7 +191,7 @@ void Reactor::SetState(int nEventIdx, int tActionDelay)
 		m_nState = (m_nState + 1) % m_pTemplate->m_aStateInfo.size();
 	pInfo = m_pTemplate->GetStateInfo(m_nState);
 	m_tTimeout = pInfo->m_tTimeout;
-	m_bRemove = (pInfo->m_aEventInfo.size() == 0) /*&& (m_pField->GetFieldSet() == nullptr || m_pTemplate->m_bRemoveInFieldSet)*/;
+	m_bRemove = (pInfo->m_aEventInfo.size() == 0) && (m_pField->GetFieldSet() == nullptr || m_pTemplate->m_bRemoveInFieldSet);
 	FindAvailableAction();
 
 	OutPacket oPacket;
@@ -218,7 +239,7 @@ void Reactor::FindAvailableAction()
 			}
 		}
 	}
-	m_pField->CheckReactorAction(m_sReactorName, m_tStateEnd);
+	m_pField->CheckReactorAction(m_sReactorName, m_tStateEnd - tCur);
 }
 
 void Reactor::DoAction(void *pInfo_, unsigned int tDelay, int nDropIdx)

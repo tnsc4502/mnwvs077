@@ -22,12 +22,13 @@
 #include "WvsPhysicalSpace2D.h"
 #include "StaticFoothold.h"
 #include "Controller.h"
-#include "MobPacketTypes.hpp"
 #include "AttackInfo.h"
 #include "WarriorSkills.h"
 #include "MagicSkills.h"
 #include "BowmanSkills.h"
 #include "ThiefSkills.h"
+#include "MobPacketTypes.hpp"
+#include "FieldPacketTypes.hpp"
 
 #include "..\Database\GW_MobReward.h"
 #include "..\Database\GW_ItemSlotBundle.h"
@@ -186,18 +187,6 @@ void Mob::SetMovePosition(int x, int y, char bMoveAction, short nSN)
 	SetMoveAction(bMoveAction);
 
 	SetFh(nSN);
-}
-
-bool Mob::IsLucidSpecialMob(int dwTemplateID)
-{
-	if ((dwTemplateID == 8880150 || dwTemplateID == 8880151 || (dwTemplateID >= 8880160 && dwTemplateID < 8880200)) 
-		&& (dwTemplateID != 8880182) 
-		&& (dwTemplateID != 8880184) 
-		&& (dwTemplateID != 8880171) 
-		&& (dwTemplateID != 8880161)
-		)
-		return true;
-	return false;
 }
 
 bool Mob::OnMobMove(bool bNextAttackPossible, int nAction, int nData, unsigned char *nSkillCommand, unsigned char *nSLV, bool *bShootAttack)
@@ -537,7 +526,7 @@ void Mob::PrepareNextSkill(unsigned char * nSkillCommand, unsigned char * nSLV, 
 			continue;
 
 		if (pLevel->nHPBelow &&
-			((((double)m_liHP / (double)m_pMobTemplate->m_lnMaxHP)) * 100.0 > pLevel->nHPBelow))
+			((((double)m_liHP / (double)m_pMobTemplate->m_liMaxHP)) * 100.0 > pLevel->nHPBelow))
 			continue;
 
 		if (pLevel->tInterval &&
@@ -626,7 +615,7 @@ void Mob::OnMobInAffectedArea(AffectedArea *pArea, unsigned int tCur)
 		{
 			int nValue = m_pMobTemplate->m_nFixedDamage;
 			if (nValue <= 0)
-				nValue = std::max(pLevel->m_nMad, (int)m_pMobTemplate->m_lnMaxHP / (70 - pArea->GetSkillLevel()));
+				nValue = std::max(pLevel->m_nMad, (int)m_pMobTemplate->m_liMaxHP / (70 - pArea->GetSkillLevel()));
 			if (m_pMobTemplate->m_bOnlyNormalAttack)
 				nValue = 0;
 
@@ -718,7 +707,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 				memcpy(m_pStat->aDamagedElemAttr, GetMobTemplate()->m_aDamagedElemAttr, sizeof(int) * 8);
 				CLEAR_MOB_STAT(Doom);
 			}
-			REGISTER_MOB_STAT_BY_USER(Poison, (std::max(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			REGISTER_MOB_STAT_BY_USER(Poison, (std::max(pLevel->m_nMad, (int)(GetMobTemplate()->m_liMaxHP / (70 - nSLV)))));
 			m_pStat->rPoison_ = nSkillID;
 			m_tLastUpdatePoison = tCur;
 			break;
@@ -727,7 +716,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
 
-			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_lnMaxHP / (70 - nSLV)))));
+			REGISTER_MOB_STAT_BY_USER(Poison, (std::min(pLevel->m_nMad, (int)(GetMobTemplate()->m_liMaxHP / (70 - nSLV)))));
 			m_tLastUpdatePoison = tCur;
 
 			if (m_pStat->aDamagedElemAttr[1] >= 1 && m_pStat->aDamagedElemAttr[1] <= 2)
@@ -799,7 +788,7 @@ void Mob::OnMobStatChangeSkill(User *pUser, const SkillEntry *pSkill, int nSLV, 
 		case ThiefSkills::Hermit_ShadowWeb:
 			if (GetMobTemplate()->m_bIsBoss)
 				return;
-			REGISTER_MOB_STAT_BY_USER(Web, (int)(GetMobTemplate()->m_lnMaxHP / (50 - nSLV)));
+			REGISTER_MOB_STAT_BY_USER(Web, (int)(GetMobTemplate()->m_liMaxHP / (50 - nSLV)));
 			break;
 		case ThiefSkills::NightsLord_VenomousStar:
 		case ThiefSkills::Shadower_VenomousStab:
@@ -865,23 +854,70 @@ void Mob::SendMobTemporaryStatReset(int nSet)
 	m_pField->BroadcastPacket(&oPacket);
 }
 
+void Mob::SendDamagedPacket(int nType, int nDecHP)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(MobSendPacketType::Mob_OnDamaged);
+	oPacket.Encode4(GetFieldObjectID());
+	oPacket.Encode1(nType);
+	oPacket.Encode4(nDecHP);
+	if (GetMobTemplate()->m_bIsDamagedByMob)
+	{
+		oPacket.Encode4((int)m_liHP);
+		oPacket.Encode4((int)GetMobTemplate()->m_liMaxHP);
+	}
+	m_pField->BroadcastPacket(&oPacket);
+}
+
+void Mob::SendMobHPChange(int nHP, int nColor, int nBgColor, bool bEnforce)
+{
+	auto tCur = GameDateTime::GetTime();
+	if (tCur > m_tLastSendMobHP + 500 || bEnforce)
+	{
+		m_tLastSendMobHP = tCur;
+
+		OutPacket oPacket;
+		oPacket.Encode2(FieldSendPacketType::Field_OnFieldEffect);
+		oPacket.Encode1(Field::FieldEffect::e_FieldEffect_Mob);
+		oPacket.Encode4(GetFieldObjectID());
+		oPacket.Encode4(nHP);
+		oPacket.Encode4((int)GetMobTemplate()->m_liMaxHP);
+		oPacket.Encode1(nColor);
+		oPacket.Encode1(nBgColor);
+
+		m_pField->BroadcastPacket(&oPacket);
+	}
+}
+
+void Mob::BroadcastHP()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(MobSendPacketType::Mob_OnHPIndicator);
+	oPacket.Encode4(GetFieldObjectID());
+	oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_liMaxHP) * 100));
+	oPacket.GetSharedPacket()->ToggleBroadcasting();
+
+	for (auto& prInfo : m_damageLog.mInfo)
+	{
+		auto pUser = User::FindUser(prInfo.first);
+		if (pUser && pUser->GetField() == m_pField)
+			pUser->SendPacket(&oPacket);
+
+		//? Remove the user if he/she does not exist in the list.
+	}
+}
+
 void Mob::OnMobHit(User * pUser, long long int nDamage, int nAttackType)
 {
-	//m_mAttackRecord[pUser->GetUserID()] += nDamage;
+	//MobDamageLog::AddLog
 	auto& log = m_damageLog.mInfo[pUser->GetUserID()];
 	log.nDamage += (int)nDamage;
 	log.nCharacterID = pUser->GetUserID();
 	m_damageLog.nLastHitCharacter = pUser->GetUserID();
 	m_damageLog.liTotalDamage += nDamage;
-	this->SetHP(this->GetHP() - nDamage);
-	if (GetHP() > 0)
-	{
-		OutPacket oPacket;
-		oPacket.Encode2(MobSendPacketType::Mob_OnHPIndicator);
-		oPacket.Encode4(GetFieldObjectID());
-		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
-		pUser->SendPacket(&oPacket);
-	}
+
+	nDamage = std::min(GetHP(), nDamage);
+	SetMobHP(this->GetHP() - nDamage);
 }
 
 void Mob::OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem)
@@ -899,6 +935,14 @@ void Mob::OnMobDead(int nHitX, int nHitY, int nMesoUp, int nMesoUpByItem)
 		nMesoUp,
 		nMesoUpByItem
 	);
+}
+
+void Mob::Heal(int nRangeMin, int nRangeMax)
+{
+	int nInc = nRangeMin + (int)(Rand32::GetInstance()->Random() % 100) % (nRangeMax - nRangeMin);
+	auto liHP = std::min(GetMobTemplate()->m_liMaxHP, (long long int)m_liHP + nInc);
+	SetMobHP(liHP);
+	SendDamagedPacket(1, -nInc);
 }
 
 void Mob::OnApplyCtrl(User *pUser, InPacket *iPacket)
@@ -922,7 +966,7 @@ void Mob::OnApplyCtrl(User *pUser, InPacket *iPacket)
 
 int Mob::DistributeExp(int & refOwnType, int & refOwnParyID, int & refLastDamageCharacterID)
 {
-	long long int nHighestDamageRecord = 0, nTotalHP = GetMobTemplate()->m_lnMaxHP;
+	long long int nHighestDamageRecord = 0, nTotalHP = GetMobTemplate()->m_liMaxHP;
 	int nHighestDamageUser = 0;
 
 	double dLastHitBonus = 0.0, 
@@ -1226,7 +1270,7 @@ void Mob::GiveMoney(User * pUser, void *pDamageInfo, int nAttackCount)
 				dLevelRatio = std::min(1.0, (double)pUser->GetBasicStat()->nLevel / GetMobTemplate()->m_nLevel);
 				if ((int)(dLevelRatio * pSkillEntry->GetLevelData(nSLVPickpocket)->m_nProp) >= nRnd && di->anDamageSrv[i])
 				{
-					dLevelRatio = (double)di->anDamageSrv[i] / (double)GetMobTemplate()->m_lnMaxHP;
+					dLevelRatio = (double)di->anDamageSrv[i] / (double)GetMobTemplate()->m_liMaxHP;
 					dLevelRatio = std::max(0.5, std::min(1.0, dLevelRatio));
 					dLevelRatio *= ((double)GetMobTemplate()->m_nLevel * (double)pSkillEntry->GetLevelData(nSLVPickpocket)->m_nX * 0.006666666666666667);
 					dLevelRatio = std::max(1.0, dLevelRatio);
@@ -1322,6 +1366,23 @@ long long int Mob::GetMP() const
 	return m_liMP;
 }
 
+void Mob::SetMobHP(long long int liHP)
+{
+	if (liHP >= 0 && liHP <= GetMobTemplate()->m_liMaxHP && m_liHP != liHP)
+	{
+		m_liHP = liHP;
+		if (GetMobTemplate()->m_nHPTagColor && GetMobTemplate()->m_nHPTagBgColor && !GetMobTemplate()->m_bHPgaugeHide)
+			SendMobHPChange(
+			(int)m_liHP,
+				GetMobTemplate()->m_nHPTagColor,
+				GetMobTemplate()->m_nHPTagBgColor,
+				false
+			);
+
+		BroadcastHP();
+	}
+}
+
 Mob::DamageLog& Mob::GetDamageLog()
 {
 	return m_damageLog;
@@ -1369,7 +1430,7 @@ void Mob::UpdateMobStatChange(unsigned int tCur, int nVal, unsigned int tVal, un
 		OutPacket oPacket;
 		oPacket.Encode2(MobSendPacketType::Mob_OnHPIndicator);
 		oPacket.Encode4(GetFieldObjectID());
-		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_lnMaxHP) * 100));
+		oPacket.Encode1((char)((GetHP() / (double)GetMobTemplate()->m_liMaxHP) * 100));
 		m_pField->BroadcastPacket(&oPacket);
 
 		nLastUpdateTime += 1000 * nTimes;

@@ -67,12 +67,15 @@ public:
 
 	void SetMaxMobCapacity(int max);
 	int GetMaxMobCapacity() const;
+
+	//Load
 	void LoadNpcData(WzIterator& dataNode);
 	void LoadMobData(WzIterator& dataNode);
+
+	//Create & Remove
 	Npc* CreateNpc(int nTemplateID, int nX, int nY, int nFh);
 	Npc* CreateNpc(const Npc&);
 	void TryCreateMob(bool bReset);
-
 	void SetMobGenEnable(bool bEnable);
 	void InsertMCMobGen(MobGen* pGen);
 	void CreateMob(int nTemplateID, int nX, int nY, int nFh, int bNoDropPriority, int nType, unsigned int dwOption, int bLeft, int nMobType, Controller* pOwner);
@@ -82,33 +85,49 @@ public:
 	void RemoveAllMob(bool bExceptMobDamagedByMob);
 	void Reset();
 	int GetMobCount() const;
+
+	//Employee
 	Employee* CreateEmployee(int x, int y, int nEmployerID, const std::string& sEmployerName, MiniRoomBase* pMiniRoom, int nFh);
 	void RemoveEmployee(int nEmployerID);
+
+	//Init&Enter
 	void Init(Field* pField, int nFieldID);
 	void OnEnter(User* pUser);
+
+	//Controller
 	void InsertController(User* pUser);
 	void RemoveController(User* pUser);
 	void UpdateCtrlHeap(Controller* pController);
 	bool ChangeMobController(int nCharacterID, Mob* pMobWanted, bool bChase);
-	void TryKillingAllMobs(User* pUser);
 	bool GiveUpMobController(Controller* pController);
+
+	//Commands
+	void TryKillingAllMobs(User* pUser);
 	bool OnMobSummonItemUseRequest(int nX, int nY, MobSummonItem* pInfo, bool bNoDropPriority);
+
+	//MC
 	void MobStatChangeByGuardian(int nTeam, int nSkillID, int nSLV);
 	void MobStatResetByGuardian(int nTeam, int nSkillID, int nSLV);
-	std::vector<ZSharedPtr<Mob>> FindAffectedMobInRect(FieldRect& rc, const ZSharedPtr<Mob>& pExcept);
 
+	//Update
+	std::vector<ZSharedPtr<Mob>> FindAffectedMobInRect(FieldRect& rc, const ZSharedPtr<Mob>& pExcept);
 	void RedistributeLife();
 	void Update();
+	void UpdateMobSplit(User* pUser);
 	void OnPacket(User* pUser, int nType, InPacket* iPacket);
+
+	//User Attack
 	void OnUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void OnUserAttack(User *pUser, int nMobID, int nDamage, const FieldPoint& ptHit, int tDelay, int nBlockingSkillID);
 	void OnSummonedAttack(User *pUser, Summoned *pSummoned, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void ApplyUserAttack(User *pUser, const SkillEntry *pSkill, AttackInfo *pInfo);
 	void OnMobStatChangeSkill(User *pUser, int nMobID, const SkillEntry *pSkill, int nSLV, int tDelay);
 	void EncodeAttackInfo(User * pUser, AttackInfo *pInfo, OutPacket *oPacket);
+
+	//Get
 	std::recursive_mutex& GetLock();
 	const ZUniquePtr<Npc>& GetNpc(int nFieldObjID);
 	ZSharedPtr<Mob> GetMob(int nFieldObjID);
-	void UpdateMobSplit(User* pUser);
+	std::vector<ZSharedPtr<Mob>> GetMobByTemplateID(int nTemplateID);
 };
 

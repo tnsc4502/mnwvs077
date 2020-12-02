@@ -292,9 +292,13 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 	MobSkillLevelData *pLevel = nullptr;
 	auto empty = skillLevelImg.end();
 
+	std::list<MobSkillLevelData*> lpLevel;
+	int nMaxLevel = 0;
 	for (auto& level : skillLevelImg)
 	{
 		pLevel = AllocObj(MobSkillLevelData);
+		pLevel->nLevel = atoi(level.GetName().c_str());
+		nMaxLevel = std::max(nMaxLevel, pLevel->nLevel);
 		for (int i = 0; ; ++i)
 		{
 			auto& mobIDNode = level[std::to_string(i)];
@@ -326,8 +330,14 @@ void SkillInfo::LoadMobSkillLeveData(MobSkillEntry *pEntry, void * pData)
 			pLevel->rcAffectedArea.bottom = rb["y"];
 		}
 
-		pEntry->m_apLevelData.push_back(pLevel);
+		lpLevel.push_back(pLevel);
+		//pEntry->m_apLevelData.push_back(pLevel);
 	}
+
+	//Ensure the order.
+	pEntry->m_apLevelData.resize(nMaxLevel + 1, nullptr);
+	for (auto& pLevel : lpLevel)
+		pEntry->m_apLevelData[pLevel->nLevel] = pLevel;
 }
 
 void SkillInfo::LoadMCSkill()

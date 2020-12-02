@@ -9,6 +9,9 @@
 #include "StaticFoothold.h"
 #include "WvsPhysicalSpace2D.h"
 #include "ContinentMan.h"
+#include "ReactorPool.h"
+#include "Reactor.h"
+
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 
@@ -59,6 +62,8 @@ void ScriptField::Register(lua_State * L)
 		{ "enablePortal", FieldEnablePortal },
 		{ "getContiState", FieldGetContiState },
 		{ "getContiBoardingTime", FieldGetContiBoardingTime },
+		{ "getReactorState", FieldGetReactorState },
+		{ "isItemInArea", FieldIsItemInArea },
 		{ NULL, NULL }
 	};
 
@@ -83,9 +88,9 @@ int ScriptField::FieldGetID(lua_State * L)
 int ScriptField::FieldSummonMob(lua_State * L)
 {
 	ScriptField* self = luaW_check<ScriptField>(L, 1);
-	int nTemplateID = (int)luaL_checkinteger(L, 2);
-	int nPosX = (int)luaL_checkinteger(L, 3);
-	int nPosY = (int)luaL_checkinteger(L, 4);
+	int nPosX = (int)luaL_checkinteger(L, 2);
+	int nPosY = (int)luaL_checkinteger(L, 3);
+	int nTemplateID = (int)luaL_checkinteger(L, 4);
 	int nFhX = 0, nFhY = 0;
 	Mob mob;
 	mob.SetPosX(nPosX);
@@ -196,5 +201,24 @@ int ScriptField::FieldGetContiBoardingTime(lua_State * L)
 {
 	ScriptField* self = luaW_check<ScriptField>(L, 1);
 	lua_pushinteger(L, ContinentMan::GetInstance()->GetBoardingTime(self->m_pField->GetFieldID()));
+	return 1;
+}
+
+int ScriptField::FieldGetReactorState(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char* sPortal = luaL_checkstring(L, 2);
+
+	lua_pushinteger(L, self->m_pField->GetReactorPool()->GetState(sPortal));
+	return 1;
+}
+
+int ScriptField::FieldIsItemInArea(lua_State * L)
+{
+	ScriptField* self = luaW_check<ScriptField>(L, 1);
+	const char* sArea = luaL_checkstring(L, 2);
+	int nItemID = (int)luaL_checkinteger(L, 3);
+
+	lua_pushinteger(L, self->m_pField->IsItemInArea(sArea, nItemID) ? 1 : 0);
 	return 1;
 }

@@ -15,6 +15,7 @@ struct MobSkillLevelData
 		nLimit = 0,
 		nSummonEffect = 0,
 		nMPCon = 0,
-		nCount = 0;
+		nCount = 0,
+		nLevel = 0;
 };
 

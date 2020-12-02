@@ -111,9 +111,12 @@ void ScriptUser::Register(lua_State * L)
 		{ "removeGuildMark", TargetRemoveGuildMark },
 		{ "isGuildMarkExist", TargetIsGuildMarkExist },
 		{ "incGuildCountMax", TargetIncGuildCountMax },
+		{ "incGuildPoint", TargetIncGuildPoint },
 		{ "message", TargetMessage },
 		{ "checkCondition", TargetCheckCondition },
 		{ "getMorphState", TargetGetMorphState },
+		{ "canEnterGuildQuest", TargetCanEnterGuildQuest },
+		{ "isGuildQuestRegistered", TargetIsGuildQuestRegistered },
 		{ "exception1", TargetException1 },
 		{ "exception2", TargetException2 },
 		{ NULL, NULL }
@@ -841,6 +844,17 @@ int ScriptUser::TargetIncGuildCountMax(lua_State * L)
 	return 1;
 }
 
+int ScriptUser::TargetIncGuildPoint(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nInc = (int)luaL_checkinteger(L, 2);
+	auto pGuild = GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	if (pGuild)
+		GuildMan::GetInstance()->OnIncPointRequest(pGuild->nGuildID, nInc);
+
+	return 1;
+}
+
 int ScriptUser::TargetMessage(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
@@ -880,6 +894,22 @@ int ScriptUser::TargetGetMorphState(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
 	lua_pushinteger(L, self->m_pUser->GetSecondaryStat()->nMorph_);
+	return 1;
+}
+
+int ScriptUser::TargetCanEnterGuildQuest(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, 1);
+	return 1;
+}
+
+int ScriptUser::TargetIsGuildQuestRegistered(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, 1);
 	return 1;
 }
 

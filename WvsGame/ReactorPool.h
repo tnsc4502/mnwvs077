@@ -39,7 +39,8 @@ private:
 	std::map<std::string, int> m_mReactorName;
 	std::list<Npc*> m_lNpc;
 
-	int m_nReactorTotalHit;
+	bool m_bReactorHitEnable = false;
+	int m_nReactorTotalHit = 0;
 	unsigned int m_tLastCreateReactorTime;
 
 	std::recursive_mutex m_mtxReactorPoolMutex;
@@ -62,5 +63,11 @@ public:
 	std::recursive_mutex& GetLock();
 	void Update(unsigned int tCur);
 	void Reset(bool bShuffle);
+
+	//Guild FieldSet
+	int GetReactorTotalHit() const;
+	void SetReactorTotalHit(int nHit);
+	bool IsReactorHitEnabled() const;
+	void SetReactorHitEnable(bool bEnable);
 };
 
