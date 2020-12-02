@@ -15,8 +15,8 @@ class ScriptNPC
 		ePlayerTalk = 0x10,
 		eFullScreen = 0x20
 	};
-
-	enum ScriptType
+public:
+	enum ScriptMessageType
 	{
 		OnSay = 0x00,
 		OnAskYesNo = 0x01,
@@ -29,7 +29,7 @@ class ScriptNPC
 		OnICQuiz = 0x0A,
 		OnAskAcceptDecline = 0x0B,
 	};
-public:
+
 	ScriptNPC();
 	~ScriptNPC();
 
@@ -51,6 +51,7 @@ public:
 	static int SelfAskAcceptDecline(lua_State* L);
 	static int SelfAskMenu(lua_State* L);
 	static int SelfGetField(lua_State* L);
+	static int SelfDealWithGuildQuest(lua_State* L);
 	static int Debug(lua_State* L);
 
 	static void CheckMessageParameter(lua_State* L, int nStartIndex, void *pInfo);

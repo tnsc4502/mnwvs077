@@ -70,7 +70,7 @@ public:
 	void Release();
 	void RegisterOpenTime();
 	void CloseShop();
-	void OnOpened();
+	void OnCreated();
 	void BroadcastItemList();
 
 	int GetEmployeeTemplateID() const;

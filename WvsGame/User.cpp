@@ -193,6 +193,16 @@ User::~User()
 	catch (...) {}
 }
 
+int User::GetSocketID() const
+{
+	return m_pSocket->GetSocketID();
+}
+
+void User::CloseSocket()
+{
+	m_pSocket->GetSocket().close();
+}
+
 int User::GetUserID() const
 {
 	return m_pCharacterData->nCharacterID;
@@ -216,6 +226,28 @@ const std::string & User::GetName() const
 void User::SendPacket(OutPacket *oPacket)
 {
 	m_pSocket->SendPacket(oPacket);
+}
+
+void User::OnCenterPacket(int nType, InPacket * iPacket)
+{
+	switch (nType)
+	{
+		case CenterResultPacketType::TrunkResult:
+			OnTrunkResult(iPacket);
+			break;
+		case CenterResultPacketType::CashItemResult:
+			OnCenterCashItemResult(iPacket);
+			break;
+		case CenterResultPacketType::MemoResult:
+			OnCenterMemoResult(iPacket);
+			break;
+		case CenterResultPacketType::ShopScannerResult:
+			OnShopScannerResult(iPacket);
+			break;
+		case CenterResultPacketType::WorldQueryResult:
+			OnWorldQueryResult(iPacket);
+			break;
+	}
 }
 
 ZUniquePtr<GA_Character>& User::GetCharacterData()
@@ -3074,6 +3106,27 @@ bool User::CanAttachAdditionalProcess()
 		!m_pTradingNpc;
 }
 
+void User::OnWorldQueryResult(InPacket * iPacket)
+{
+	int nQueryType = iPacket->Decode1();
+	switch (nQueryType)
+	{
+		case CenterWorldQueryType::eWorldQuery_QueryGuildQuest:
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(UserRecvPacketType::User_OnScriptMessageAnswer);
+			oPacket.Encode1(ScriptNPC::ScriptMessageType::OnAskNumber);
+			oPacket.Encode1(1);
+			oPacket.Encode4(iPacket->Decode4());
+
+			//Loopback
+			InPacket iForward(oPacket.GetPacket(), oPacket.GetPacketSize());
+			OnPacket(&iForward);
+			break;
+		}
+	}
+}
+
 void User::SetTransferStatus(TransferStatus e)
 {
 	m_nTransferStatus = e;
@@ -3175,9 +3228,10 @@ void User::OnSelectNpc(InPacket * iPacket)
 		m_nTrunkTemplateID = pNpc->GetTemplateID();
 		OutPacket oPacket;
 		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
-		oPacket.Encode1(Trunk::TrunkRequest::rq_Trunk_Load);
+		oPacket.Encode4(GetSocketID());
 		oPacket.Encode4(GetAccountID());
 		oPacket.Encode4(GetUserID());
+		oPacket.Encode1(Trunk::TrunkRequest::rq_Trunk_Load);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 		return;
 	}
@@ -4372,6 +4426,7 @@ void User::OnMemoRequest(InPacket * iPacket)
 
 			OutPacket oPacket;
 			oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+			oPacket.Encode4(m_pSocket->GetSocketID());
 			oPacket.Encode4(GetUserID());
 			oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Delete);
 			oPacket.Encode1(nCount);
@@ -4523,7 +4578,8 @@ void User::OnMigrateIn()
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacketForFriendLoading);
 
 	OutPacket oMemoRequest;
-	oMemoRequest.Encode2(CenterRequestPacketType::MemoRequest);
+	oMemoRequest.Encode2(CenterRequestPacketType::MemoRequest); 
+	oMemoRequest.Encode4(m_pSocket->GetSocketID());
 	oMemoRequest.Encode4(GetUserID());
 	oMemoRequest.Encode1(GW_Memo::MemoRequestType::eMemoReq_Load);
 	oMemoRequest.Encode1(GetChannelID());

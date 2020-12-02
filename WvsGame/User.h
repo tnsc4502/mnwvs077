@@ -197,6 +197,8 @@ public:
 	~User();
 
 	//Basic Routine
+	int GetSocketID() const;
+	void CloseSocket();
 	int GetUserID() const;
 	int GetChannelID() const;
 	int GetAccountID() const;
@@ -211,12 +213,14 @@ public:
 	void MakeEnterFieldPacket(OutPacket *oPacket);
 	void MakeLeaveFieldPacket(OutPacket *oPacket);
 	void SendPacket(OutPacket *oPacket);
+	void OnCenterPacket(int nType, InPacket *iPacket);
 	void OnPacket(InPacket *iPacket);
 	void LeaveField();
 	void OnMigrateIn();
 	void OnMigrateOut();
 	void SendSetFieldPacket(bool bCharacterData);
 	bool CanAttachAdditionalProcess();
+	void OnWorldQueryResult(InPacket *iPacket);
 
 	//TransferStatus
 	void SetTransferStatus(TransferStatus e);

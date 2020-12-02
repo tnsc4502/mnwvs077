@@ -116,9 +116,10 @@ void Trunk::OnMoveSlotToTrunkRequest(User *pUser, InPacket *iPacket)
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
-	oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
+	oPacket.Encode4(pUser->GetSocketID());
 	oPacket.Encode4(pUser->GetAccountID());
 	oPacket.Encode4(pUser->GetUserID());
+	oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
 	oPacket.Encode1(nTI);
 	oPacket.Encode2(nPOS);
 	oPacket.Encode2(nNumber);
@@ -150,9 +151,10 @@ void Trunk::OnMoveTrunkToSlotRequest(User *pUser, InPacket *iPacket)
 	{
 		OutPacket oPacket;
 		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
-		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveTrunkToSlot);
+		oPacket.Encode4(pUser->GetSocketID());
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveTrunkToSlot);
 		oPacket.Encode1(nTI);
 		oPacket.Encode1(nPOS);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -207,9 +209,10 @@ void Trunk::OnMoveTrunkToSlotDone(User *pUser, InPacket *iPacket)
 		//Force put back item.
 		OutPacket oPacket;
 		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
-		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
+		oPacket.Encode4(pUser->GetSocketID());
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(TrunkRequest::rq_Trunk_MoveSlotToTrunk);
 		oPacket.Encode1(nTI);
 		oPacket.Encode2(GW_ItemSlotBase::LOCK_POS);
 		oPacket.Encode2(nTI == GW_ItemSlotBase::EQUIP ? 1 : ((GW_ItemSlotBundle*)pItem)->nNumber);
@@ -261,9 +264,10 @@ void Trunk::OnWithdrawMoney(User *pUser, InPacket *iPacket)
 
 		OutPacket oPacket;
 		oPacket.Encode2(CenterRequestPacketType::TrunkRequest);
-		oPacket.Encode1(TrunkRequest::rq_Trunk_WithdrawMoney);
+		oPacket.Encode4(pUser->GetSocketID());
 		oPacket.Encode4(pUser->GetAccountID());
 		oPacket.Encode4(pUser->GetUserID());
+		oPacket.Encode1(TrunkRequest::rq_Trunk_WithdrawMoney);
 		oPacket.Encode1(m_nSlotCount);
 		oPacket.Encode4(m_nMoney);
 		WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
@@ -288,9 +292,8 @@ Trunk* Trunk::Load(int nAccountID)
 	return pRet;
 }
 
-void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
+void Trunk::MoveSlotToTrunk(int nClientSocketID, int nAccountID, int nCharacterID, InPacket *iPacket)
 {
-	int nCharacterID = iPacket->Decode4();
 	int nTI = iPacket->Decode1();
 	ZSharedPtr<GW_ItemSlotBase> pItem = (nTI == GW_ItemSlotBase::EQUIP ?
 		(GW_ItemSlotBase*)AllocObj(GW_ItemSlotEquip) : AllocObj(GW_ItemSlotBundle)
@@ -319,6 +322,7 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::TrunkResult);
+	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_MoveSlotToTrunk);
 	oPacket.Encode1(nTI);
@@ -331,9 +335,8 @@ void Trunk::MoveSlotToTrunk(int nAccountID, InPacket *iPacket)
 		pwUser->SendPacket(&oPacket);
 }
 
-void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)
+void Trunk::MoveTrunkToSlot(int nClientSocketID, int nAccountID, int nCharacterID, InPacket *iPacket)
 {
-	int nCharacterID = iPacket->Decode4();
 	int nTI = iPacket->Decode1();
 	int nPOS = iPacket->Decode1();
 	auto pItem = m_aaItemSlot[nTI][nPOS];
@@ -352,6 +355,7 @@ void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)
 	TrunkDBAccessor::MoveTrunkToSlot(nAccountID, liItemSN, nTI, bTreatSingly);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::TrunkResult);
+	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_MoveTrunkToSlot);
 	oPacket.Encode1(nTI);
@@ -362,9 +366,8 @@ void Trunk::MoveTrunkToSlot(int nAccountID, InPacket *iPacket)
 		pwUser->SendPacket(&oPacket);
 }
 
-void Trunk::WithdrawMoney(int nAccountID, InPacket * iPacket)
+void Trunk::WithdrawMoney(int nClientSocketID, int nAccountID, int nCharacterID, InPacket * iPacket)
 {
-	int nCharacterID = iPacket->Decode4();
 	int nSlotCount = iPacket->Decode1();
 	int nMoney = iPacket->Decode4();
 
@@ -373,6 +376,7 @@ void Trunk::WithdrawMoney(int nAccountID, InPacket * iPacket)
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::TrunkResult);
+	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(TrunkResult::res_Trunk_WithdrawMoney);
 	oPacket.Encode1(1);

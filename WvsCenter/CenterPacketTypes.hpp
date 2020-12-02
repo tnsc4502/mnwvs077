@@ -40,6 +40,11 @@ enum CenterCashItemRequestType
 	eExchangePetIDRequest,
 };
 
+enum CenterWorldQueryType
+{
+	eWorldQuery_QueryGuildQuest,
+};
+
 DEFINE_PACKET_TYPE(CenterRequestPacketType)
 
 	//Request from WvsLogin
@@ -71,6 +76,7 @@ DEFINE_PACKET_TYPE(CenterRequestPacketType)
 	REGISTER_TYPE(FlushCharacterData, 0x5011);
 	REGISTER_TYPE(MemoRequest, 0x5012);
 	REGISTER_TYPE(ShopScannerRequest, 0x5013);
+	REGISTER_TYPE(WorldQueryRequest, 0x5014);
 
 	//Center specific
 	REGISTER_TYPE(CheckMigrationState, 0x6000);
@@ -102,6 +108,7 @@ DEFINE_PACKET_TYPE(CenterResultPacketType)
 	REGISTER_TYPE(CashItemResult, 0x5A08);
 	REGISTER_TYPE(MemoResult, 0x5A09);
 	REGISTER_TYPE(ShopScannerResult, 0x5A0A);
+	REGISTER_TYPE(WorldQueryResult, 0x5A0B);
 
 	//From WvsCenter
 	REGISTER_TYPE(CheckMigrationStateResult, 0x6A00);

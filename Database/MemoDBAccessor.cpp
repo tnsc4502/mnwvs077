@@ -35,13 +35,14 @@ bool MemoDBAccessor::PostSendMemoRequest(SocketBase * pSrv, int nCharacterID, vo
 	return true;
 }
 
-void MemoDBAccessor::PostLoadMemoRequest(SocketBase * pSrv, int nCharacterID)
+void MemoDBAccessor::PostLoadMemoRequest(SocketBase * pSrv, int nClientSocketID, int nCharacterID)
 {
 	std::vector <ZUniquePtr<GW_Memo>> aMemo = GW_Memo::Load(nCharacterID);
 	if (aMemo.size() > 0)
 	{
 		OutPacket oPacket;
 		oPacket.Encode2(CenterResultPacketType::MemoResult);
+		oPacket.Encode4(nClientSocketID);
 		oPacket.Encode4(nCharacterID);
 		oPacket.Encode1(GW_Memo::MemoResultType::eMemoRes_Load);
 		oPacket.Encode1((int)aMemo.size());

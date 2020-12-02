@@ -4,13 +4,18 @@
 #include "User.h"
 #include "QWUser.h"
 #include "QWUInventory.h"
+#include "WvsGame.h"
+#include "GuildMan.h"
+#include "NpcPacketTypes.hpp"
+#include "UserPacketTypes.hpp"
+
 #include "..\Database\GA_Character.hpp"
 #include "..\Database\GW_CharacterStat.h"
+#include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Script\luaconf.h"
 #include "..\WvsLib\Script\lvm.h"
 #include "..\WvsLib\Net\InPacket.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "..\WvsGame\NpcPacketTypes.hpp"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Random\Rand32.h"
@@ -53,6 +58,7 @@ void ScriptNPC::Register(lua_State * L)
 		{ "sayNext", SelfSayNext },
 		{ "say", SelfSay },
 		{ "getField", SelfGetField },
+		{ "dealWithGuildQuest", SelfDealWithGuildQuest },
 		{ "debug", Debug },
 		{ NULL, NULL }
 	};
@@ -82,7 +88,7 @@ void ScriptNPC::Register(lua_State * L)
 void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 {
 	char nMsgType = iPacket->Decode1(), nAction = 0;
-	if (nMsgType != ScriptType::OnSay || pScript->GetConverstaionState().m_bPaging == false) 
+	if (nMsgType != ScriptMessageType::OnSay || pScript->GetConverstaionState().m_bPaging == false) 
 	{
 		pScript->GetConverstaionState().m_aPageStack.clear();
 		pScript->GetConverstaionState().m_nCurPage = 0;
@@ -90,7 +96,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 
 	switch (nMsgType)
 	{
-		case ScriptType::OnSay:
+		case ScriptMessageType::OnSay:
 		{
 			nAction = iPacket->Decode1();
 			if (nAction == (char)0xFF) 
@@ -120,8 +126,8 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			}
 			break;
 		}
-		case ScriptType::OnAskAcceptDecline:
-		case ScriptType::OnAskYesNo:
+		case ScriptMessageType::OnAskAcceptDecline:
+		case ScriptMessageType::OnAskYesNo:
 		{
 			nAction = iPacket->Decode1();
 			if (nAction == (char)0xFF) 
@@ -137,7 +143,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			pScript->GetConverstaionState().m_bResume = true;
 			break;
 		}
-		case ScriptType::OnAskText:
+		case ScriptMessageType::OnAskText:
 		{
 			nAction = iPacket->Decode1();
 			if (nAction == 0) 
@@ -150,7 +156,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			pScript->GetConverstaionState().m_bResume = true;
 			break;
 		}
-		case ScriptType::OnAskNumber:
+		case ScriptMessageType::OnAskNumber:
 		{
 			nAction = iPacket->Decode1();
 			if (nAction == 0) 
@@ -164,7 +170,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			pScript->GetConverstaionState().m_bResume = true;
 			break;
 		}
-		case ScriptType::OnAskMenu:
+		case ScriptMessageType::OnAskMenu:
 		{
 			nAction = iPacket->Decode1();
 			if (nAction == 0) 
@@ -178,7 +184,7 @@ void ScriptNPC::OnPacket(InPacket * iPacket, Script * pScript, lua_State* L)
 			pScript->GetConverstaionState().m_bResume = true;
 			break;
 		}
-		case ScriptType::OnAskAvatar:
+		case ScriptMessageType::OnAskAvatar:
 		{
 			int nResult = 1;
 			nAction = iPacket->Decode1();
@@ -221,7 +227,7 @@ int ScriptNPC::SelfSay(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnSay;
+	info.m_nMsgType = ScriptMessageType::OnSay;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
@@ -260,7 +266,7 @@ int ScriptNPC::SelfAskAvatar(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskAvatar;
+	info.m_nMsgType = ScriptMessageType::OnAskAvatar;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
@@ -320,7 +326,7 @@ int ScriptNPC::SelfAskText(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskText;
+	info.m_nMsgType = ScriptMessageType::OnAskText;
 	info.m_sTalkText = text;
 	info.m_aStrObj.push_back(defaultText);
 	info.m_nSpeakerTemplateID = self->GetID();
@@ -343,7 +349,7 @@ int ScriptNPC::SelfAskNumber(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskNumber;
+	info.m_nMsgType = ScriptMessageType::OnAskNumber;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	info.m_aIntObj.push_back(nDefaultValue);
@@ -363,7 +369,7 @@ int ScriptNPC::SelfAskYesNo(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskYesNo;
+	info.m_nMsgType = ScriptMessageType::OnAskYesNo;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
@@ -381,7 +387,7 @@ int ScriptNPC::SelfAskAcceptDecline(lua_State * L)
 
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskAcceptDecline;
+	info.m_nMsgType = ScriptMessageType::OnAskAcceptDecline;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
@@ -398,7 +404,7 @@ int ScriptNPC::SelfAskMenu(lua_State * L)
 	const char* text = luaL_checkstring(L, 2);
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnAskMenu;
+	info.m_nMsgType = ScriptMessageType::OnAskMenu;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	//====================
@@ -418,6 +424,21 @@ int ScriptNPC::SelfGetField(lua_State * L)
 		obj->SetField(self->GetField());
 
 	((Script*)L->selfPtr)->PushClassObject(obj);
+	return 1;
+}
+
+int ScriptNPC::SelfDealWithGuildQuest(lua_State * L)
+{
+	Script* self = (Script*)(L->selfPtr);
+	int nType = (int)luaL_checkinteger(L, 2);
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::WorldQueryRequest);
+	oPacket.Encode4(self->GetUser()->GetSocketID());
+	oPacket.Encode4(self->GetUser()->GetUserID());
+	oPacket.Encode1(CenterWorldQueryType::eWorldQuery_QueryGuildQuest);
+	oPacket.Encode1(nType);
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+	self->Wait();
 	return 1;
 }
 
@@ -453,7 +474,7 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 	oPacket.Encode1(pInfo->m_nMsgType);
 	switch (pInfo->m_nMsgType)
 	{
-		case ScriptType::OnSay:
+		case ScriptMessageType::OnSay:
 		{
 			if (pInfo->m_nParam & 4)
 				oPacket.Encode4(pInfo->m_nSpeakerTemplateID_);
@@ -463,26 +484,26 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 			oPacket.Encode4(pInfo->m_tWait);
 			break;
 		}
-		case ScriptType::OnAskMenu:
-		case ScriptType::OnAskYesNo:
-		case ScriptType::OnAskAcceptDecline:
+		case ScriptMessageType::OnAskMenu:
+		case ScriptMessageType::OnAskYesNo:
+		case ScriptMessageType::OnAskAcceptDecline:
 		{
 			if (pInfo->m_nParam & 4)
 				oPacket.Encode4(pInfo->m_nSpeakerTemplateID_);
 			oPacket.EncodeStr(pInfo->m_sTalkText);
 			break;
 		}
-		case ScriptType::OnAskText:
-		case ScriptType::OnAskNumber:
+		case ScriptMessageType::OnAskText:
+		case ScriptMessageType::OnAskNumber:
 		{
-			if (pInfo->m_nMsgType == ScriptType::OnAskText && (pInfo->m_nParam & 4))
+			if (pInfo->m_nMsgType == ScriptMessageType::OnAskText && (pInfo->m_nParam & 4))
 				oPacket.Encode4(pInfo->m_nSpeakerTemplateID_);
 			oPacket.EncodeStr(pInfo->m_sTalkText);
-			if (pInfo->m_nMsgType == ScriptType::OnAskText)
+			if (pInfo->m_nMsgType == ScriptMessageType::OnAskText)
 				oPacket.EncodeStr(pInfo->m_aStrObj[0]);
 			else
 				oPacket.Encode4(pInfo->m_aIntObj[0]);
-			if (pInfo->m_nMsgType == ScriptType::OnAskText)
+			if (pInfo->m_nMsgType == ScriptMessageType::OnAskText)
 			{
 				oPacket.Encode2(pInfo->m_aIntObj[0]);
 				oPacket.Encode2(pInfo->m_aIntObj[1]);
@@ -494,7 +515,7 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 			}
 			break;
 		}
-		case ScriptType::OnInitialQuiz:
+		case ScriptMessageType::OnInitialQuiz:
 		{
 			oPacket.Encode1(0);
 			oPacket.EncodeStr(pInfo->m_sTalkText);
@@ -505,9 +526,9 @@ void ScriptNPC::MakeMessagePacket(lua_State * L, void * pInfo_)
 			oPacket.Encode4(pInfo->m_tWait);
 			break;
 		}
-		case ScriptType::OnInitialSpeedQuiz:
-		case ScriptType::OnICQuiz:
-		case ScriptType::OnAskAvatar:
+		case ScriptMessageType::OnInitialSpeedQuiz:
+		case ScriptMessageType::OnICQuiz:
+		case ScriptMessageType::OnAskAvatar:
 		{
 			oPacket.EncodeStr(pInfo->m_sTalkText);
 			oPacket.Encode1((unsigned char)pInfo->m_aIntObj.size());
@@ -530,7 +551,7 @@ int ScriptNPC::SelfSayNext(lua_State * L)
 	
 	//====================
 	Script::NPCConverstaionInfo info;
-	info.m_nMsgType = ScriptType::OnSay;
+	info.m_nMsgType = ScriptMessageType::OnSay;
 	info.m_sTalkText = text;
 	info.m_nSpeakerTemplateID = self->GetID();
 	info.m_nPage = self->GetConverstaionState().m_nCurPage;

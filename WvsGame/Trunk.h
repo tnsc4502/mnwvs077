@@ -51,8 +51,8 @@ public:
 	void OnWithdrawMoneyDone(User *pUser, InPacket *iPacket);
 
 	//CENTER
-	void MoveSlotToTrunk(int nAccountID, InPacket *iPacket);
-	void MoveTrunkToSlot(int nAccountID, InPacket *iPacket);
-	void WithdrawMoney(int nAccountID, InPacket *iPacket);
+	void MoveSlotToTrunk(int nClientSocketID, int nAccountID, int nCharacterID, InPacket *iPacket);
+	void MoveTrunkToSlot(int nClientSocketID, int nAccountID, int nCharacterID, InPacket *iPacket);
+	void WithdrawMoney(int nClientSocketID, int nAccountID, int nCharacterID, InPacket *iPacket);
 };
 

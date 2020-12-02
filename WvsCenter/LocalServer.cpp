@@ -167,6 +167,9 @@ void LocalServer::ProcessPacket(InPacket * iPacket)
 		case CenterRequestPacketType::ShopScannerRequest:
 			OnShopScannerRequest(iPacket);
 			break;
+		case CenterRequestPacketType::WorldQueryRequest:
+			OnWorldQueryRequest(iPacket);
+			break;
 	}
 }
 
@@ -679,7 +682,7 @@ void LocalServer::OnPartyRequest(InPacket * iPacket)
 
 void LocalServer::OnGuildRequest(InPacket * iPacket)
 {
-	int nRequest = iPacket->Decode1();
+	int nRequest = (unsigned char)iPacket->Decode1();
 	OutPacket oPacket;
 	switch (nRequest)
 	{
@@ -717,7 +720,6 @@ void LocalServer::OnGuildRequest(InPacket * iPacket)
 		case GuildMan::GuildRequest::rq_Guild_LevelOrJobChanged:
 			GuildMan::GetInstance()->ChangeJobOrLevel(iPacket, &oPacket);
 			break;
-		
 	}
 
 	if (oPacket.GetPacketSize() != 0)
@@ -885,16 +887,18 @@ void LocalServer::OnWhisperMessage(InPacket * iPacket)
 
 void LocalServer::OnTrunkRequest(InPacket * iPacket)
 {
-	int nRequest = iPacket->Decode1();
+	int nClientSocketID = iPacket->Decode4();
 	int nAccountID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	int nRequest = iPacket->Decode1();
 	auto pTrunk = Trunk::Load(nAccountID);
 	switch (nRequest)
 	{
 		case Trunk::TrunkRequest::rq_Trunk_Load:
 		{
-			int nCharacterID = iPacket->Decode4();
 			OutPacket oPacket;
 			oPacket.Encode2(CenterResultPacketType::TrunkResult);
+			oPacket.Encode4(nClientSocketID);
 			oPacket.Encode4(nCharacterID);
 			oPacket.Encode1(Trunk::TrunkResult::res_Trunk_Load);
 			pTrunk->Encode(0xFFFFFFFF, &oPacket);
@@ -904,13 +908,13 @@ void LocalServer::OnTrunkRequest(InPacket * iPacket)
 			break;
 		}
 		case Trunk::TrunkRequest::rq_Trunk_MoveSlotToTrunk:
-			pTrunk->MoveSlotToTrunk(nAccountID, iPacket);
+			pTrunk->MoveSlotToTrunk(nClientSocketID, nAccountID, nCharacterID, iPacket);
 			break;
 		case Trunk::TrunkRequest::rq_Trunk_MoveTrunkToSlot:
-			pTrunk->MoveTrunkToSlot(nAccountID, iPacket);
+			pTrunk->MoveTrunkToSlot(nClientSocketID, nAccountID, nCharacterID, iPacket);
 			break;
 		case Trunk::TrunkRequest::rq_Trunk_WithdrawMoney:
-			pTrunk->WithdrawMoney(nAccountID, iPacket);
+			pTrunk->WithdrawMoney(nClientSocketID, nAccountID, nCharacterID, iPacket);
 			break;
 		
 	}
@@ -962,6 +966,7 @@ void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
 
 void LocalServer::OnMemoRequest(InPacket* iPacket)
 {
+	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nType = iPacket->Decode1(), nFailReason = -1;
 	switch (nType)
@@ -970,6 +975,7 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 		{
 			OutPacket oPacket;
 			oPacket.Encode2(CenterResultPacketType::MemoResult);
+			oPacket.Encode4(nClientSocketID);
 			oPacket.Encode4(nCharacterID);
 
 			std::string sReceiver = iPacket->DecodeStr();
@@ -991,7 +997,7 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 				{
 					auto pSrv = WvsBase::GetInstance<WvsCenter>()->GetChannel(pwUser->m_nChannelID);
 					if (pSrv)
-						MemoDBAccessor::PostLoadMemoRequest(pSrv->GetLocalSocket().get(), nCharacterID);
+						MemoDBAccessor::PostLoadMemoRequest(pSrv->GetLocalSocket().get(), nClientSocketID, nCharacterID);
 				}
 #endif
 			}
@@ -1013,7 +1019,7 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 			break;
 		}
 		case GW_Memo::MemoRequestType::eMemoReq_Load:
-			MemoDBAccessor::PostLoadMemoRequest(this, nCharacterID);
+			MemoDBAccessor::PostLoadMemoRequest(this, nClientSocketID, nCharacterID);
 			break;
 		case GW_Memo::MemoRequestType::eMemoReq_Delete:
 			MemoDBAccessor::PostDeleteMemoRequest(this, nCharacterID, iPacket);
@@ -1023,6 +1029,7 @@ void LocalServer::OnMemoRequest(InPacket* iPacket)
 
 void LocalServer::OnShopScannerRequest(InPacket * iPacket)
 {
+	int nClientSocketID = iPacket->Decode4();
 	int nCharacterID = iPacket->Decode4();
 	int nType = iPacket->Decode1();
 	switch (nType)
@@ -1030,8 +1037,33 @@ void LocalServer::OnShopScannerRequest(InPacket * iPacket)
 		case ShopScannerMan::ShopScannerRequestType::eScanner_OnSearch: {
 			int nWorldID = iPacket->Decode1();
 			int nItemID = iPacket->Decode4();
-			ShopScannerMan::GetInstance()->Search(this, nCharacterID, nWorldID, nItemID, iPacket->Decode2());
+			ShopScannerMan::GetInstance()->Search(this, nClientSocketID, nCharacterID, nWorldID, nItemID, iPacket->Decode2());
 			break;
 		}
 	}
+}
+
+void LocalServer::OnWorldQueryRequest(InPacket * iPacket)
+{
+	int nClientSocketID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
+	int nQueryType = iPacket->Decode1();
+
+	OutPacket oPacket;
+	oPacket.Encode2(CenterResultPacketType::WorldQueryResult);
+	oPacket.Encode4(nClientSocketID);
+	oPacket.Encode4(nCharacterID);
+	oPacket.Encode1(nQueryType);
+
+	switch (nQueryType)
+	{
+		case CenterWorldQueryType::eWorldQuery_QueryGuildQuest: 
+		{
+			int nType = iPacket->Decode1();
+			oPacket.Encode4(nType * 1000);
+			break;
+		}
+	}
+
+	SendPacket(&oPacket);
 }

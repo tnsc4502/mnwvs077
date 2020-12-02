@@ -401,7 +401,7 @@ void EntrustedShop::CloseShop()
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
-void EntrustedShop::OnOpened()
+void EntrustedShop::OnCreated()
 {
 	BroadcastItemList();
 }

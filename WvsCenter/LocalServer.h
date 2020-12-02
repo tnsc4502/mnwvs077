@@ -47,5 +47,6 @@ public:
 	void OnEntrustedShopRequest(InPacket *iPacket);
 	void OnMemoRequest(InPacket *iPacket);
 	void OnShopScannerRequest(InPacket *iPacket);
+	void OnWorldQueryRequest(InPacket *iPacket);
 };
 

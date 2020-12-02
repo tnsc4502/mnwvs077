@@ -18,13 +18,14 @@ ShopScannerMan * ShopScannerMan::GetInstance()
 	return pInstance;
 }
 
-void ShopScannerMan::Search(SocketBase * pSrv, int nCharacterID, int nWorldID, int nItemID, int nPOS)
+void ShopScannerMan::Search(SocketBase * pSrv, int nClientSocketID, int nCharacterID, int nWorldID, int nItemID, int nPOS)
 {
 	std::lock_guard<std::recursive_mutex> lock(EntrustedShopMan::GetInstance()->GetLock());
 	int nTI = nItemID / 1000000;
 	auto aRet = EntrustedShopDBAccessor::QueryItemExistence(nWorldID, nItemID);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::ShopScannerResult);
+	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode2(aRet.size() ? nPOS : 0);
 	oPacket.Encode4(nItemID);

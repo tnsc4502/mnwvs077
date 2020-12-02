@@ -258,6 +258,7 @@ CommandManager::CommandManager()
 	{
 		OutPacket oPacket;
 		oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+		oPacket.Encode4(pUser->GetSocketID());
 		oPacket.Encode4(pUser->GetUserID());
 		oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Send);
 		oPacket.EncodeStr(Get(aInput, 1));

@@ -238,6 +238,7 @@ int UserCashItemImpl::ConsumeSendMemo(User* pUser, int nPOS, InPacket* iPacket)
 {
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::MemoRequest);
+	oPacket.Encode4(pUser->GetSocketID());
 	oPacket.Encode4(pUser->GetUserID());
 	oPacket.Encode1(GW_Memo::MemoRequestType::eMemoReq_Send);
 	oPacket.EncodeStr(iPacket->DecodeStr());
@@ -256,6 +257,7 @@ int UserCashItemImpl::ConsumeShopScanner(User * pUser, int nPOS, InPacket * iPac
 	int nItemID = iPacket->Decode4();
 	OutPacket oCenterPacket;
 	oCenterPacket.Encode2(CenterRequestPacketType::ShopScannerRequest);
+	oCenterPacket.Encode4(pUser->GetSocketID());
 	oCenterPacket.Encode4(pUser->GetUserID());
 	oCenterPacket.Encode1(ShopScannerMan::ShopScannerRequestType::eScanner_OnSearch);
 	oCenterPacket.Encode1(WvsBase::GetInstance<WvsGame>()->GetCenter()->GetWorldID());

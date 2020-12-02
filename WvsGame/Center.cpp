@@ -26,6 +26,7 @@
 #include "GuildMan.h"
 #include "FriendMan.h"
 #include "StoreBank.h"
+#include "ScriptNPC.h"
 
 Center::Center(asio::io_service& serverService)
 	: SocketBase(serverService, true)
@@ -101,8 +102,8 @@ void Center::OnPacket(InPacket *iPacket)
 	{
 		case CenterResultPacketType::RegisterCenterAck:
 		{
-			auto result = iPacket->Decode1();
-			if (!result)
+			auto nResult = iPacket->Decode1();
+			if (!nResult)
 			{
 				WvsLogger::LogRaw(WvsLogger::LEVEL_ERROR, GET_STRING(GameSrv_System_Center_Connection_Rejected));
 				exit(0);
@@ -144,9 +145,6 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterResultPacketType::RemoteBroadcasting:
 			OnRemoteBroadcasting(iPacket);
 			break;
-		case CenterResultPacketType::TrunkResult:
-			OnTrunkResult(iPacket);
-			break;
 		case CenterResultPacketType::EntrustedShopResult:
 			OnEntrustedShopResult(iPacket);
 			break;
@@ -159,15 +157,14 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterResultPacketType::CheckGivePopularityResult:
 			OnCheckGivePopularityResult(iPacket);
 			break;
-		case CenterResultPacketType::CashItemResult:
-			OnCenterCashItemResult(iPacket);
-			break;
-		case CenterResultPacketType::MemoResult:
-			OnCenterMemoResult(iPacket);
-			break;
-		case CenterResultPacketType::ShopScannerResult:
-			OnShopScannerResult(iPacket);
-			break;
+		default:
+		{
+			int nClientSocketID = iPacket->Decode4();
+			int nCharacterID = iPacket->Decode4();
+			auto pUser = User::FindUser(nCharacterID);
+			if (pUser && pUser->GetSocketID() == nClientSocketID)
+				pUser->OnCenterPacket(nType, iPacket);
+		}
 	}
 }
 
@@ -237,13 +234,6 @@ void Center::OnRemoteBroadcasting(InPacket *iPacket)
 		if (pUser)
 			pUser->SendPacket(&oPacket);
 	}
-}
-
-void Center::OnTrunkResult(InPacket *iPacket)
-{
-	auto pUser = User::FindUser(iPacket->Decode4());
-	if (pUser)
-		pUser->OnTrunkResult(iPacket);
 }
 
 void Center::OnEntrustedShopResult(InPacket *iPacket)
@@ -343,29 +333,3 @@ void Center::OnCheckGivePopularityResult(InPacket * iPacket)
 		pUser->SendPacket(&oPacket);
 	}
 }
-
-void Center::OnCenterCashItemResult(InPacket * iPacket)
-{
-	int uClientSocketID = iPacket->Decode4();
-	int nUserID = iPacket->Decode4();
-	auto pUser = User::FindUser(nUserID);
-	if (pUser)
-		pUser->OnCenterCashItemResult(iPacket);
-}
-
-void Center::OnCenterMemoResult(InPacket * iPacket)
-{
-	int nCharacterID = iPacket->Decode4();
-	auto pUser = User::FindUser(nCharacterID);
-	if (pUser)
-		pUser->OnCenterMemoResult(iPacket);
-}
-
-void Center::OnShopScannerResult(InPacket * iPacket)
-{
-	int nCharacterID = iPacket->Decode4();
-	auto pUser = User::FindUser(nCharacterID);
-	if (pUser)
-		pUser->OnShopScannerResult(iPacket);
-}
-

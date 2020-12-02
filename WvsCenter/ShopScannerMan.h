@@ -12,6 +12,6 @@ public:
 	};
 
 	static ShopScannerMan* GetInstance();
-	void Search(SocketBase *pSrv, int nCharacterID, int nWorldID, int nItemID, int nPOS);
+	void Search(SocketBase *pSrv, int nClientSocketID, int nCharacterID, int nWorldID, int nItemID, int nPOS);
 };
 
