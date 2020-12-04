@@ -62,9 +62,10 @@ public:
 	void CheckEntrustedShopOpenPossible(LocalServer *pSrv, int nCharacterID, long long int liCashItemSN);
 	void CreateEntrustedShop(LocalServer *pSrv, int nCharacterID, int SlotCount, long long int liCashItemSN, InPacket *iPacket);
 	void RemoveEntrustedShop(LocalServer *pSrv, int nCharacterID);
+	void RemoveEntrustedShopInChannel(LocalServer *pSrv, int nChannelID);
 	void SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *iPacket);
 	void ItemNumberChanged(LocalServer *pSrv, int nCharacterID, InPacket *iPacket);
-	void LoadItemRequest(LocalServer *pSrv, int nCharacterID);
+	void LoadItemRequest(LocalServer *pSrv, int nClientSocketID, int nCharacterID);
 	void UpdateItemListRequest(LocalServer *pSrv, int nCharacterID, InPacket *iPacket);
 	const ShopData* GetShopData(int nCharacterID);
 	std::recursive_mutex& GetLock();

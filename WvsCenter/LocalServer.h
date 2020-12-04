@@ -8,6 +8,7 @@ class LocalServer : public SocketBase
 private:
 	std::set<int> m_sUser;
 	std::mutex m_mtxUserLock;
+	int m_nChannelID = 0;
 
 	void OnClosed();
 	void RemoveConnectedUser(int nUserID);

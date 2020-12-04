@@ -394,9 +394,8 @@ void PartyMan::OnWithdrawPartyDone(InPacket * iPacket)
 			if (pKickedUser) 
 			{
 				pKickedUser->SetPartyID(-1);
-				if (pKickedUser->GetFieldSet() &&
-					pKickedUser->GetFieldSet()->IsPartyFieldSet())
-					pKickedUser->GetFieldSet()->ForceClose();
+				if (pKickedUser->GetFieldSet())
+					pKickedUser->GetFieldSet()->OnLeaveParty(pParty->nPartyID, pKickedUser);
 			}
 		}
 	}

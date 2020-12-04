@@ -1,6 +1,8 @@
 #include "ScriptFieldSet.h"
 #include "Script.h"
+#include "ScriptField.h"
 #include "FieldMan.h"
+#include "GuildMan.h"
 #include "FieldSet.h"
 #include "User.h"
 #include "ScriptUser.h"
@@ -51,6 +53,7 @@ void ScriptFieldSet::Register(lua_State * L)
 	static luaL_Reg FieldSetMetatable[] = {
 		{ "enter", FieldSetEnter },
 		{ "join", FieldSetJoin },
+		{ "getField", FieldSetGetField },
 		{ "setVar", FieldSetSetVar },
 		{ "getVar", FieldSetGetVar },
 		{ "transferAll", FieldSetTransferAll },
@@ -63,6 +66,9 @@ void ScriptFieldSet::Register(lua_State * L)
 		{ "broadcastMsg", FieldSetBroadcastMsg },
 		{ "getReactorState", FieldGetReactorState },
 		{ "setReactorState", FieldSetReactorState },
+		{ "getQuestTime", FieldSetGetQuestTime },
+		{ "setGuildQuestStart", FieldSetSetGuildQuestStart },
+		{ "setGuildQuestComplete", FieldSetSetGuildQuestComplete },
 		{ NULL, NULL }
 	};
 
@@ -92,6 +98,20 @@ int ScriptFieldSet::FieldSetJoin(lua_State * L)
 	int nUserID = (int)luaL_checkinteger(L, 2);
 	lua_pushinteger(L, self->m_pFieldSet->Enter(nUserID, 0, true));
 	return 1;
+}
+
+int ScriptFieldSet::FieldSetGetField(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	int nFieldIdx = (int)luaL_checkinteger(L, 2);
+	auto pField = self->m_pFieldSet->GetField(nFieldIdx);
+	ScriptField* obj = (pField == nullptr ? nullptr : AllocObj(ScriptField));
+	if (obj)
+		obj->SetField(pField);
+
+	((Script*)L->selfPtr)->PushClassObject(obj);
+	return 1;
+	return 0;
 }
 
 int ScriptFieldSet::FieldSetGetVar(lua_State * L)
@@ -219,5 +239,26 @@ int ScriptFieldSet::FieldSetReactorState(lua_State * L)
 		nState,
 		nOrder
 	);
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetGetQuestTime(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	lua_pushinteger(L, self->m_pFieldSet->GetElaspedTime());
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetSetGuildQuestStart(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	GuildMan::GetInstance()->OnGuildQuestProcessing(false);
+	return 1;
+}
+
+int ScriptFieldSet::FieldSetSetGuildQuestComplete(lua_State * L)
+{
+	ScriptFieldSet* self = luaW_check<ScriptFieldSet>(L, 1);
+	GuildMan::GetInstance()->OnGuildQuestProcessing(true);
 	return 1;
 }

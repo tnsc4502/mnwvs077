@@ -291,8 +291,9 @@ void EntrustedShop::EncodeItemNumberChanged(OutPacket *oPacket, std::vector<Item
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	oPacket->Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket->Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
+	oPacket->Encode4(0); //ClientSocketID
 	oPacket->Encode4(GetEmployerID());
+	oPacket->Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
 	oPacket->Encode8(m_liEShopMoney);
 	oPacket->Encode1((char)apItem.size());
 	for (auto& prItem : apItem)
@@ -308,8 +309,9 @@ void EntrustedShop::SendItemBackup()
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest);
+	oPacket.Encode4(0); //ClientSocketID, 0 is fine for no response
 	oPacket.Encode4(GetEmployerID());
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest);
 	oPacket.Encode1((char)m_aItem.size());
 	for (auto& prItem : m_aItem)
 	{
@@ -396,8 +398,9 @@ void EntrustedShop::CloseShop()
 
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop);
+	oPacket.Encode4(0); //ClientSocketID, 0 is fine for no response
 	oPacket.Encode4(m_nEmployerID);
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 
@@ -411,8 +414,9 @@ void EntrustedShop::BroadcastItemList()
 	std::lock_guard<std::recursive_mutex> lock(m_mtxMiniRoomLock);
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UpdateItemListRequest);
+	oPacket.Encode4(0); //ClientSocketID
 	oPacket.Encode4(GetEmployerID());
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_UpdateItemListRequest);
 	oPacket.Encode1((char)m_aItem.size());
 	for (auto& item : m_aItem)
 	{

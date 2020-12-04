@@ -77,6 +77,7 @@ public:
 		eEffect_LevelUp = 0x00, //Flag only
 		eEffect_OnUseSkill = 0x01,
 		eEffect_OnSkillAppliedByParty = 0x02,
+		eEffect_ItemExchange = 0x03,
 		eEffect_ShowSkillAffected = 0x05,
 		eEffect_PlayPortalSE = 0x07,//Flag only
 		eEffect_ChangeJobEffect = 0x08,//Flag only
@@ -340,6 +341,7 @@ public:
 	void SendChangeJobEffect();
 	void SendPlayPortalSE();
 	void ShowConsumeItemEffect(int nUserID, bool bShow, int nItemID);
+	void ShowItemExchangeEffect(int nItemID, int nNumber);
 
 	//Func Key Mapped
 	void SendFuncKeyMapped();

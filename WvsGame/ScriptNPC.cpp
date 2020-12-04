@@ -436,7 +436,9 @@ int ScriptNPC::SelfDealWithGuildQuest(lua_State * L)
 	oPacket.Encode4(self->GetUser()->GetSocketID());
 	oPacket.Encode4(self->GetUser()->GetUserID());
 	oPacket.Encode1(CenterWorldQueryType::eWorldQuery_QueryGuildQuest);
-	oPacket.Encode1(nType);
+	oPacket.Encode1(GuildMan::GuildRequest::req_GuildQuest_CheckQuest + nType);
+	oPacket.Encode4(GuildMan::GetInstance()->GetGuildIDByCharID(self->GetUser()->GetUserID()));
+	oPacket.Encode4(self->GetUser()->GetChannelID());
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 	self->Wait();
 	return 1;

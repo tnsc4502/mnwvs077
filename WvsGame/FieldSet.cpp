@@ -111,6 +111,7 @@ void FieldSet::InitConfig()
 	m_aFieldUnAffected = pCfg->GetArray<int>("FieldUnAffected");
 	m_aFieldID = pCfg->GetArray<int>("FieldList");
 	m_aField.clear();
+	m_aField_Affected.clear();
 	Field *pField;
 	for (auto& nFieldID : m_aFieldID)
 	{
@@ -130,12 +131,14 @@ void FieldSet::InitConfig()
 	m_sScriptName = pCfg->StrValue("ScriptName");
 	m_nTimeLimit = pCfg->IntValue("TimeLimit");
 	m_bParty = pCfg->IntValue("Party") == 1;
+	m_bAllowJoinWithoutParty = pCfg->IntValue("AllowJoinWithoutParty") == 1;
 	m_bInvokeUpdateFunc = pCfg->IntValue("InvokeUpdate") == 1;
 	m_nPartyMemberMin = pCfg->IntValue("PartyMember_Min", 1);
 	m_nPartyMemberMax = pCfg->IntValue("PartyMember_Max", 6);
 	m_nLevelMin = pCfg->IntValue("Level_Min", 10);
 	m_nLevelMax = pCfg->IntValue("Level_Max", 200);
 	m_aJobType = pCfg->GetArray<int>("JobType");
+	m_bForceClosed = false;
 
 	std::string sFieldSetInfo = pCfg->StrValue("FieldSetInfo");
 	if (sFieldSetInfo != "")
@@ -174,16 +177,30 @@ int FieldSet::Enter(int nCharacterID, int nFieldInfo, bool bJoin)
 	std::vector<int> anUser;
 	if (pUser && m_bParty)
 	{
+		//Something like guild quest allow players join without party
 		auto pParty = PartyMan::GetInstance()->GetPartyByCharID(pUser->GetUserID());
-		if (!pParty)
-			return FieldSetEnterResult::res_Invalid_InvalidParty;
-		if (pParty->party.nPartyBossCharacterID != nCharacterID)
-			return FieldSetEnterResult::res_Invalid_NotPartyBoss;
-		for (int i = 0; i < PartyMan::MAX_PARTY_MEMBER_COUNT; ++i)
-			if (pParty->party.anChannelID[i] == pUser->GetChannelID() &&
-				pParty->party.anFieldID[i] == pUser->GetField()->GetFieldID())
-				anUser.push_back(pParty->party.anCharacterID[i]);
-		if (anUser.size() < m_nPartyMemberMin || anUser.size() > m_nPartyMemberMax)
+		bool bIgnorePartyCheck = bJoin && m_bAllowJoinWithoutParty;
+		if (bIgnorePartyCheck && !pParty)
+			anUser.push_back(nCharacterID);
+		else
+		{
+			if (!pParty)
+				return FieldSetEnterResult::res_Invalid_InvalidParty;
+			if (pParty->party.nPartyBossCharacterID != nCharacterID)
+				return FieldSetEnterResult::res_Invalid_NotPartyBoss;
+		}
+
+		//Force join all party members.
+		if (pParty)
+		{
+			for (int i = 0; i < PartyMan::MAX_PARTY_MEMBER_COUNT; ++i)
+				if (pParty->party.anChannelID[i] == pUser->GetChannelID() &&
+					pParty->party.anFieldID[i] == pUser->GetField()->GetFieldID())
+					anUser.push_back(pParty->party.anCharacterID[i]);
+				else
+					return FieldSetEnterResult::res_Invalid_MemberNotFound;
+		}
+		if (!bIgnorePartyCheck && (anUser.size() < m_nPartyMemberMin || anUser.size() > m_nPartyMemberMax))
 			return FieldSetEnterResult::res_Invalid_PartyMemberCount;
 	}
 	else if (pUser)
@@ -224,6 +241,20 @@ bool FieldSet::CheckEnterRequirement(User * pUser)
 	return false;
 }
 
+void FieldSet::CheckPartyValidity()
+{
+	if (m_mUser.size())
+	{
+		if (m_bParty && m_mUser.begin()->second->GetPartyID() == -1) 
+		{
+			//Normal Party Quest.
+			auto& sGuildQuestPartyID = GetVar("guildQuestLeaderParty");
+			if(sGuildQuestPartyID == "")
+				ForceClose();
+		}
+	}
+}
+
 bool FieldSet::IsPartyFieldSet() const
 {
 	return m_bParty;
@@ -232,6 +263,11 @@ bool FieldSet::IsPartyFieldSet() const
 bool FieldSet::IsGuildFieldSet() const
 {
 	return false;
+}
+
+Field * FieldSet::GetField(int nFieldIdx)
+{
+	return (nFieldIdx < 0 || nFieldIdx >= m_aField.size()) ? nullptr : m_aField[nFieldIdx];
 }
 
 int FieldSet::GetFieldIndex(Field * pField) const
@@ -246,11 +282,10 @@ void FieldSet::OnLeaveFieldSet(int nCharacterID)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
 	m_mUser.erase(nCharacterID);
-	if (m_mUser.size() == 0) 
-	{
+
+	auto& sGuildQuestPartyID = GetVar("guildQuestLeaderParty");
+	if (m_mUser.size() == 0 || (sGuildQuestPartyID != "" && PartyMan::GetInstance()->GetPartyIDByCharID(nCharacterID) == atoi(sGuildQuestPartyID.c_str())))
 		ForceClose();
-		m_pFieldSetTimer->Pause();
-	}
 }
 
 void FieldSet::TransferAll(int nFieldID, const std::string& sPortal)
@@ -296,16 +331,17 @@ void FieldSet::Update()
 	if (m_bInvokeUpdateFunc)
 		m_pScript->SafeInvocation("onUpdate", { tCur });
 
-	if (m_mUser.size() > 0 &&
-		m_bParty &&
-		m_mUser.begin()->second->GetPartyID() == -1)
-		ForceClose();
+	CheckPartyValidity();
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
 	if (m_tStartTime >= 0 && tCur - m_tStartTime > (unsigned int)m_nTimeLimit * 1000) 
 	{
 		m_tStartTime = -1;
-		m_pScript->SafeInvocation("onTimeout", { m_tStartTime == 0 });
+		m_pScript->SafeInvocation("onTimeout", { m_bForceClosed });
+		
+		//No reset.
+		if (m_tStartTime == -1)
+			m_pFieldSetTimer->Pause();
 	}
 }
 
@@ -322,6 +358,7 @@ void FieldSet::Reset()
 void FieldSet::ForceClose()
 {
 	m_tStartTime = 0;
+	m_bForceClosed = true;
 	DestroyClock();
 }
 
@@ -343,6 +380,14 @@ void FieldSet::ResetTimeLimit(int nTimeLimit, bool bResetTimeTick)
 	if (bResetTimeTick)
 		m_tStartTime = GameDateTime::GetTime();
 	m_nTimeLimit = nTimeLimit;
+
+	OutPacket oPacket;
+	MakeClockPacket(oPacket);
+	oPacket.GetSharedPacket()->ToggleBroadcasting();
+
+	for (auto& prUser : m_mUser)
+		if (prUser.second)
+			prUser.second->SendPacket(&oPacket);
 }
 
 void FieldSet::SetVar(const std::string& sVarName, const std::string& sVal)
@@ -435,6 +480,21 @@ void FieldSet::OnTime(unsigned int uEventSN)
 	else if (action.nEventType == ActionInfo::EventType::e_Event_EventAction)
 		DoEventAction(action);
 	m_mEventAction.erase(uEventSN);
+}
+
+void FieldSet::OnLeaveParty(int nPartyID, User * pUser)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxFieldSetLock);
+	auto& sGuildQuestPartyID = GetVar("guildQuestLeaderParty");
+
+	if ((sGuildQuestPartyID != "" && atoi(sGuildQuestPartyID.c_str()) == nPartyID) || //GuildQuest
+		(sGuildQuestPartyID == "" && IsPartyFieldSet())) //Normal PartyFieldSet
+		ForceClose();
+}
+
+unsigned int FieldSet::GetElaspedTime() const
+{
+	return (GameDateTime::GetTime() - (unsigned int)m_tStartTime) / 1000;
 }
 
 void FieldSet::DoReactorAction(const ActionInfo & prai)

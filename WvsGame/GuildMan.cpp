@@ -14,6 +14,8 @@
 #include "..\WvsCenter\CenterPacketTypes.hpp"
 #include "..\WvsLib\Logger\WvsLogger.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
+#include "..\WvsLib\DateTime\GameDateTime.h"
+#include "..\WvsLib\Task\AsyncScheduler.h"
 
 #ifdef _WVSCENTER
 #include "..\WvsCenter\WvsCenter.h"
@@ -25,12 +27,35 @@ GuildMan::GuildMan()
 {
 #ifdef _WVSCENTER
 	m_atiGuildIDCounter = GuildDBAccessor::GetGuildIDCounter();
+#else
+	static auto pTimer = AsyncScheduler::CreateTask(
+		std::bind(&GuildMan::Update, this), 2500, true
+	);
+	pTimer->Start();
 #endif
 }
 
 GuildMan::~GuildMan()
 {
 }
+
+#ifdef _WVSGAME
+void GuildMan::Update()
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	auto tCur = GameDateTime::GetTime();
+
+	//Timed out
+	if (tCur - m_tLastGuildQuestUpdate > 60 * 1000 &&
+		m_nQuestStartedGuildID == 0 &&
+		m_nQuestRegisteredCharacterID &&
+		m_nQuestRegisteredGuildID) 
+	{
+		OnGuildQuestProcessing(true);
+		m_tLastGuildQuestUpdate = tCur;
+	}
+}
+#endif
 
 int GuildMan::GetGuildIDByCharID(int nCharacterID)
 {
@@ -154,6 +179,9 @@ void GuildMan::OnPacket(InPacket * iPacket)
 			break;
 		case GuildMan::GuildResult::res_Guild_LevelOrJobChanged:
 			OnChangeLevelOrJob(iPacket);
+			break;
+		case GuildMan::GuildResult::res_GuildQuest_SetRegisteredGuild:
+			SetRegisteredQuestGuild(iPacket);
 			break;
 	}
 }
@@ -1004,6 +1032,13 @@ void GuildMan::OnChangeLevelOrJob(InPacket * iPacket)
 		}
 	}
 }
+void GuildMan::SetRegisteredQuestGuild(InPacket * iPacket)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	m_nQuestRegisteredCharacterID = iPacket->Decode4();
+	m_nQuestRegisteredGuildID = iPacket->Decode4();
+	m_tLastGuildQuestUpdate = GameDateTime::GetTime();
+}
 #endif
 
 bool GuildMan::IsGuildMaster(int nGuildID, int nCharacterID)
@@ -1050,6 +1085,45 @@ int GuildMan::GetMemberGrade(int nGuildID, int nCharacterID)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
 	return nIdx >= 0 ? pGuild->aMemberData[nIdx].nGrade : 0xFFFF;
 }
+
+#ifdef _WVSGAME
+
+int GuildMan::GetQuestRegisteredCharacterID() const
+{
+	return m_nQuestRegisteredCharacterID;
+}
+
+int GuildMan::GetQuestRegisteredGuildID() const
+{
+	return m_nQuestRegisteredGuildID;
+}
+
+void GuildMan::OnGuildQuestProcessing(bool bComplete)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	if (!bComplete)
+		m_nQuestStartedGuildID = m_nQuestRegisteredGuildID;
+	else
+	{
+		SendGuildQuestComplete();
+		m_nQuestRegisteredCharacterID = m_nQuestRegisteredGuildID = m_nQuestStartedGuildID = 0;
+	}
+}
+
+void GuildMan::SendGuildQuestComplete()
+{
+	OutPacket oPacket;
+	oPacket.Encode2(CenterRequestPacketType::WorldQueryRequest);
+	oPacket.Encode4(-1);
+	oPacket.Encode4(m_nQuestRegisteredCharacterID);
+	oPacket.Encode1(CenterWorldQueryType::eWorldQuery_QueryGuildQuest);
+	oPacket.Encode1((char)GuildRequest::req_GuildQuest_CompleteQuest);
+	oPacket.Encode4(m_nQuestRegisteredGuildID);
+	oPacket.Encode4(WvsBase::GetInstance<WvsGame>()->GetChannelID());
+	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
+}
+
+#endif
 
 void GuildMan::RemoveUser(GuildData *pGuild, int nCharacterID)
 {
@@ -1569,6 +1643,132 @@ void GuildMan::ChangeJobOrLevel(InPacket * iPacket, OutPacket * oPacket)
 	}
 	else
 		oPacket->Encode4(-1);
+}
+
+void GuildMan::OnGuildQuestRequest(int nCharacterID, int nGuildID, int nChannelID, int nType, OutPacket * oPacket)
+{
+	oPacket->Encode1(nType);
+
+	auto lmdFindInChannelList = [&](decltype(m_mChannelRegisteredQuest[0])& list, int nGuildID) 
+	{
+		for (auto& prGuild : list)
+			if (prGuild.second == nGuildID)
+				return prGuild;
+		return std::pair<const unsigned int, int>({ 0, 0 });
+	};
+
+	auto lmdSendSetRegisteredGuild = [&](int nChannelID, int nGuildID, int nCharacterID)
+	{
+		auto pChannel = WvsBase::GetInstance<WvsCenter>()->GetChannel(nChannelID - 1);
+		if (pChannel)
+		{
+			OutPacket oPacket;
+			oPacket.Encode2(CenterResultPacketType::GuildResult);
+			oPacket.Encode1(GuildResult::res_GuildQuest_SetRegisteredGuild);
+			oPacket.Encode4(nCharacterID);
+			oPacket.Encode4(nGuildID);
+			pChannel->GetLocalSocket()->SendPacket(&oPacket);
+		}
+	};
+
+	std::lock_guard<std::recursive_mutex> lock(m_mtxGuildLock);
+	switch (nType)
+	{
+		case GuildRequest::req_GuildQuest_CheckQuest:
+		{
+			auto findIter = m_mQuestRegisteredChannel.find(nGuildID);
+			if (findIter != m_mQuestRegisteredChannel.end())
+				oPacket->Encode4((findIter->second.first + 1 ) * -1);
+			else
+				oPacket->Encode4((int)m_mChannelRegisteredQuest[nChannelID].size());
+			break; 
+		}
+		case GuildRequest::req_GuildQuest_RegisterQuest:
+		{
+			auto findIter = m_mQuestRegisteredChannel.find(nGuildID);
+			if (findIter != m_mQuestRegisteredChannel.end())
+				oPacket->Encode4((findIter->second.first + 1) * -1);
+			else
+			{
+				m_mQuestRegisteredChannel.insert({ nGuildID, { nChannelID, nCharacterID } });
+				m_mChannelRegisteredQuest[nChannelID].insert({ GameDateTime::GetTime(), nGuildID });
+				oPacket->Encode4(1);
+			}
+
+			if (m_mQuestRegisteredChannel.size() == 1)
+			{
+				lmdSendSetRegisteredGuild(
+					m_mQuestRegisteredChannel.begin()->second.first + 1,
+					m_mQuestRegisteredChannel.begin()->first,
+					m_mQuestRegisteredChannel.begin()->second.second
+				);
+			}
+			break;
+		}
+		case GuildRequest::req_GuildQuest_CancelQuest: 
+		{
+			auto& lstChannel = m_mChannelRegisteredQuest[nChannelID];
+			if (lstChannel.size())
+			{
+				//On this guild's turn.
+				if (lstChannel.begin()->second == nGuildID)
+					oPacket->Encode4(0);
+				else
+				{
+					//Remove all by WvsCenter.
+					if (nCharacterID == -1 && nGuildID == -1)
+					{
+						for (auto& prRecord : lstChannel)
+							m_mQuestRegisteredChannel.erase(prRecord.second);
+						lstChannel.clear();
+					}
+					else
+					{
+						auto findRes = lmdFindInChannelList(lstChannel, nGuildID);
+						if (findRes.first && findRes.second)
+						{
+							lstChannel.erase(findRes.first);
+							m_mQuestRegisteredChannel.erase(nGuildID);
+						}
+						oPacket->Encode4(1);
+					}
+				}
+			}
+			break;
+		}
+		case GuildRequest::req_GuildQuest_CheckEnteringOrder:
+		{
+			auto& lstChannel = m_mChannelRegisteredQuest[nChannelID];
+			int nWaiting = 1;
+			for (auto& prGuild : lstChannel)
+				if (prGuild.second == nGuildID)
+					break;
+				else
+					++nWaiting;
+			oPacket->Encode4(nWaiting);
+			break;
+		}
+		case GuildRequest::req_GuildQuest_CompleteQuest:
+		{
+			auto& lstChannel = m_mChannelRegisteredQuest[nChannelID];
+			auto findRes = lmdFindInChannelList(lstChannel, nGuildID);
+			if (findRes.first && findRes.second)
+			{
+				lstChannel.erase(findRes.first);
+				m_mQuestRegisteredChannel.erase(nGuildID);
+			}
+
+			if (m_mQuestRegisteredChannel.size() > 0)
+			{
+				lmdSendSetRegisteredGuild(
+					m_mQuestRegisteredChannel.begin()->second.first + 1,
+					m_mQuestRegisteredChannel.begin()->first,
+					m_mQuestRegisteredChannel.begin()->second.second
+				);
+			}
+			break;
+		}
+	}
 }
 
 void GuildMan::NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn)

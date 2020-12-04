@@ -17,6 +17,7 @@ public:
 	static void Register(lua_State* L);
 	static int FieldSetEnter(lua_State* L);
 	static int FieldSetJoin(lua_State* L);
+	static int FieldSetGetField(lua_State* L);
 	static int FieldSetGetVar(lua_State* L);
 	static int FieldSetSetVar(lua_State* L);
 	static int FieldSetTransferAll(lua_State* L);
@@ -29,5 +30,8 @@ public:
 	static int FieldSetBroadcastMsg(lua_State* L);
 	static int FieldGetReactorState(lua_State* L);
 	static int FieldSetReactorState(lua_State* L);
+	static int FieldSetGetQuestTime(lua_State* L);
+	static int FieldSetSetGuildQuestStart(lua_State* L);
+	static int FieldSetSetGuildQuestComplete(lua_State* L);
 };
 

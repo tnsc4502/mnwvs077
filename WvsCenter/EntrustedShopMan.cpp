@@ -76,6 +76,19 @@ void EntrustedShopMan::RemoveEntrustedShop(LocalServer * pSrv, int nCharacterID)
 	m_mEmployer.erase(nCharacterID);
 }
 
+void EntrustedShopMan::RemoveEntrustedShopInChannel(LocalServer * pSrv, int nChannelID)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxLock);
+	for (auto iter = m_mEmployer.begin(); iter != m_mEmployer.end();)
+	{
+		auto& prEmployer = *iter;
+		if (prEmployer.second.nChannelID == nChannelID)
+			iter = m_mEmployer.erase(iter);
+		else
+			++iter;
+	}
+}
+
 void EntrustedShopMan::SaveItem(LocalServer *pSrv, int nCharacterID, InPacket *iPacket)
 {
 	int nCount = iPacket->Decode1(), nTI = 0;
@@ -131,10 +144,11 @@ void EntrustedShopMan::ItemNumberChanged(LocalServer *pSrv, int nCharacterID, In
 	}
 }
 
-void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nCharacterID)
+void EntrustedShopMan::LoadItemRequest(LocalServer *pSrv, int nClientSocketID, int nCharacterID)
 {
 	OutPacket oPacket;
 	oPacket.Encode2(CenterResultPacketType::EntrustedShopResult);
+	oPacket.Encode4(nClientSocketID);
 	oPacket.Encode4(nCharacterID);
 	oPacket.Encode1(EntrustedShopCheckResult::res_EShop_LoadItemResult);
 

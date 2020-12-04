@@ -60,6 +60,7 @@ public:
 	static int TargetQuestEndEffect(lua_State* L);
 	static int TargetIsGuildMember(lua_State* L);
 	static int TargetIsGuildMaster(lua_State* L);
+	static int TargetIsGuildSubMaster(lua_State* L);
 	static int TargetGetGuildCountMax(lua_State* L);
 	static int TargetIsPartyBoss(lua_State* L);
 	static int TargetGetPartyMemberJob(lua_State* L);

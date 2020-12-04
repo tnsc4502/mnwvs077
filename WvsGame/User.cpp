@@ -232,6 +232,10 @@ void User::OnCenterPacket(int nType, InPacket * iPacket)
 {
 	switch (nType)
 	{
+		case CenterResultPacketType::EntrustedShopResult:
+			if(GetStoreBank())
+				GetStoreBank()->OnPacket(iPacket);
+			break;
 		case CenterResultPacketType::TrunkResult:
 			OnTrunkResult(iPacket);
 			break;
@@ -2643,6 +2647,18 @@ void User::ShowConsumeItemEffect(int nUserID, bool bShow, int nItemID)
 		SendPacket(&oPacket);
 }
 
+void User::ShowItemExchangeEffect(int nItemID, int nNumber)
+{
+	OutPacket oPacket;
+	oPacket.Encode2(UserSendPacketType::UserLocal_OnEffect);
+	oPacket.Encode1(Effect::eEffect_ItemExchange);
+	oPacket.Encode1(1); //nType
+	oPacket.Encode4(nItemID);
+	oPacket.Encode4(nNumber);
+
+	SendPacket(&oPacket);
+}
+
 void User::OnStatChangeItemUseRequest(InPacket * iPacket, bool bByPet)
 {
 	int tTick = iPacket->Decode4();
@@ -3113,6 +3129,7 @@ void User::OnWorldQueryResult(InPacket * iPacket)
 	{
 		case CenterWorldQueryType::eWorldQuery_QueryGuildQuest:
 		{
+			iPacket->Decode1(); //GuildRequest Type
 			OutPacket oPacket;
 			oPacket.Encode2(UserRecvPacketType::User_OnScriptMessageAnswer);
 			oPacket.Encode1(ScriptNPC::ScriptMessageType::OnAskNumber);
@@ -3517,9 +3534,11 @@ void User::TryQuestCompleteAct(int nQuestID, Npc * pNpc)
 		return;
 
 	long long int liFlag = 0;
-	if (pCompleteAct->nEXP >= 0)
-		liFlag |= QWUser::IncEXP(this, pCompleteAct->nEXP, false);
+	liFlag |= QWUser::IncEXP(this, pCompleteAct->nEXP, false);
 	liFlag |= QWUser::IncMoney(this, pCompleteAct->nMoney, false);
+	liFlag |= QWUser::IncPOP(this, pCompleteAct->nPOP, false);
+
+	SendIncPOPMessage(pCompleteAct->nPOP);
 	SendCharacterStat(false, liFlag);
 	QWUQuestRecord::SetComplete(this, nQuestID);
 	SendQuestEndEffect();
@@ -4311,8 +4330,9 @@ void User::CreateEmployee(bool bOpen)
 		{
 			OutPacket oPacket;
 			oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop);
+			oPacket.Encode4(GetSocketID());
 			oPacket.Encode4(GetUserID());
+			oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop);
 			oPacket.EncodeStr(GetName());
 			oPacket.EncodeStr(GetMiniRoom()->GetTitle());
 			oPacket.Encode4(GetField()->GetFieldID());
@@ -4326,8 +4346,9 @@ void User::OnOpenEntrustedShop(InPacket * iPacket)
 {
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
+	oPacket.Encode4(GetSocketID());
 	oPacket.Encode4(GetUserID());
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck);
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
 

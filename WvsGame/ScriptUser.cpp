@@ -96,6 +96,7 @@ void ScriptUser::Register(lua_State * L)
 		{ "cancelBuff", TargetCancelBuff },
 		{ "isGuildMember", TargetIsGuildMember },
 		{ "isGuildMaster", TargetIsGuildMaster },
+		{ "isGuildSubMaster", TargetIsGuildSubMaster },
 		{ "getGuildCountMax", TargetGetGuildCountMax },
 		{ "isPartyBoss", TargetIsPartyBoss },
 		{ "getPartyMemberJob", TargetGetPartyMemberJob },
@@ -559,6 +560,14 @@ int ScriptUser::TargetIsGuildMaster(lua_State * L)
 	return 1;
 }
 
+int ScriptUser::TargetIsGuildSubMaster(lua_State * L)
+{
+	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
+	int nGuildID = GuildMan::GetInstance()->GetGuildIDByCharID(self->m_pUser->GetUserID());
+	lua_pushinteger(L, GuildMan::GetInstance()->IsGuildSubMaster(nGuildID, self->m_pUser->GetUserID()) ? 1 : 0);
+	return 1;
+}
+
 int ScriptUser::TargetGetGuildCountMax(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
@@ -900,16 +909,19 @@ int ScriptUser::TargetGetMorphState(lua_State * L)
 int ScriptUser::TargetCanEnterGuildQuest(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
-	GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
-	lua_pushinteger(L, 1);
+	if(GuildMan::GetInstance()->GetQuestRegisteredCharacterID() == self->m_pUser->GetUserID())
+		lua_pushinteger(L, 1);
+	else if(GuildMan::GetInstance()->GetQuestRegisteredGuildID() == GuildMan::GetInstance()->GetGuildIDByCharID(self->m_pUser->GetUserID()))
+		lua_pushinteger(L, 2);
+	else
+		lua_pushinteger(L, 0);
 	return 1;
 }
 
 int ScriptUser::TargetIsGuildQuestRegistered(lua_State * L)
 {
 	ScriptUser* self = luaW_check<ScriptUser>(L, 1);
-	GuildMan::GetInstance()->GetGuildByCharID(self->m_pUser->GetUserID());
-	lua_pushinteger(L, 1);
+	lua_pushinteger(L, GuildMan::GetInstance()->GetQuestRegisteredCharacterID() == self->m_pUser->GetUserID() ? 1 : 0);
 	return 1;
 }
 

@@ -22,7 +22,6 @@ public:
 	void OnCenterMigrateInResult(InPacket *iPacket);
 	void OnTransferChannelResult(InPacket *iPacket);
 	void OnRemoteBroadcasting(InPacket *iPacket);
-	void OnEntrustedShopResult(InPacket *iPacket);
 	void OnCheckMigrationState(InPacket *iPacket);
 	void OnGuildBBSResult(InPacket *iPacket);
 	void OnCheckGivePopularityResult(InPacket *iPacket);

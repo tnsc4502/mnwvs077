@@ -145,9 +145,6 @@ void Center::OnPacket(InPacket *iPacket)
 		case CenterResultPacketType::RemoteBroadcasting:
 			OnRemoteBroadcasting(iPacket);
 			break;
-		case CenterResultPacketType::EntrustedShopResult:
-			OnEntrustedShopResult(iPacket);
-			break;
 		case CenterRequestPacketType::CheckMigrationState:
 			OnCheckMigrationState(iPacket);
 			break;
@@ -234,13 +231,6 @@ void Center::OnRemoteBroadcasting(InPacket *iPacket)
 		if (pUser)
 			pUser->SendPacket(&oPacket);
 	}
-}
-
-void Center::OnEntrustedShopResult(InPacket *iPacket)
-{
-	auto pUser = User::FindUser(iPacket->Decode4());
-	if (pUser)
-		pUser->GetStoreBank()->OnPacket(iPacket);
 }
 
 void Center::OnCheckMigrationState(InPacket *iPacket)

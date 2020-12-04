@@ -67,7 +67,13 @@ class FieldSet
 		m_nLevelMax;
 
 	long long int m_tStartTime;
-	bool m_bParty, m_bEnd, m_bInvokeUpdateFunc;
+
+	bool m_bParty,
+		m_bEnd,
+		m_bForceClosed,
+		m_bAllowJoinWithoutParty, 
+		m_bInvokeUpdateFunc;
+
 	Script* m_pScript;
 	AsyncScheduler *m_pFieldSetTimer;
 	ScriptFieldSet* m_pScriptFieldSet;
@@ -83,7 +89,8 @@ public:
 		res_Invalid_NotPartyBoss = 0x02,
 		res_Invalid_PartyMemberCount = 0x03,
 		res_Invalid_PartyMemberStat = 0x04,
-		res_Invalid_AlreadyRegistered = 0x05
+		res_Invalid_AlreadyRegistered = 0x05,
+		res_Invalid_MemberNotFound = 0x06,
 	};
 
 	FieldSet();
@@ -96,8 +103,10 @@ public:
 
 	int Enter(int nCharacterID, int nFieldInfo, bool bJoin = false);
 	bool CheckEnterRequirement(User *pUser);
+	void CheckPartyValidity();
 	bool IsPartyFieldSet() const;
 	bool IsGuildFieldSet() const;
+	Field* GetField(int nFieldIdx);
 	int GetFieldIndex(Field *pField) const;
 	void SetVar(const std::string& sVarName, const std::string& sVal);
 	const std::string& GetVar(const std::string& sVarName);
@@ -118,6 +127,8 @@ public:
 	void BroadcastMsg(int nType, const std::string& sMsg, int nNPCTemplateID);
 
 	void OnTime(unsigned int uEventSN);
+	void OnLeaveParty(int nPartyID, User *pUser);
+	unsigned int GetElaspedTime() const;
 	int GetReactorState(int nFieldIdx, const std::string& sReactorName);
 	void SetReactorState(int nFieldIdx, const std::string& sReactorName, int nState, int nOrder);
 	void DoReactorAction(const ActionInfo& prai);

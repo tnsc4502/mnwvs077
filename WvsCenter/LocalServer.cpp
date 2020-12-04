@@ -37,10 +37,20 @@ LocalServer::LocalServer(asio::io_service& serverService)
 
 LocalServer::~LocalServer()
 {
-	for (auto& nCharacterID : m_sUser)
+	OutPacket oPacketVoid;
+	for (auto& nCharacterID : m_sUser) 
+	{
 		WvsWorld::GetInstance()->RemoveUser(
 			nCharacterID, -1, -1, false
 		);
+		GuildMan::GetInstance()->OnGuildQuestRequest(
+			-1, 
+			-1, 
+			m_nChannelID, 
+			GuildMan::GuildRequest::req_GuildQuest_CancelQuest, &oPacketVoid
+		);
+	}
+	EntrustedShopMan::GetInstance()->RemoveEntrustedShopInChannel(nullptr, m_nChannelID);
 }
 
 void LocalServer::OnClosed()
@@ -183,12 +193,12 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 	);
 
 	WvsLogger::LogFormat("[WvsCenter][LocalServer::OnRegisterCenterRequest]A connection request is received, instance information: [%s][%d].\n", sInstanceName, nServerType);
-	int nChannel = WvsWorld::CHANNELID_SHOP;
+	m_nChannelID = WvsWorld::CHANNELID_SHOP;
 
 	if (nServerType == ServerConstants::SRV_GAME)
 	{
-		nChannel = iPacket->Decode1();
-		WvsBase::GetInstance<WvsCenter>()->RegisterChannel(nChannel, shared_from_this(), iPacket);
+		m_nChannelID = iPacket->Decode1();
+		WvsBase::GetInstance<WvsCenter>()->RegisterChannel(m_nChannelID, shared_from_this(), iPacket);
 		WvsBase::GetInstance<WvsCenter>()->NotifyWorldChanged();
 	}
 
@@ -206,7 +216,7 @@ void LocalServer::OnRegisterCenterRequest(InPacket *iPacket)
 			oPacket.Encode8(GW_ItemSlotBase::GetInitItemSN(
 			(GW_ItemSlotBase::GW_ItemSlotType)i,
 				WvsWorld::GetInstance()->GetWorldInfo().nWorldID,
-				nChannel + 1 //Channel 0 is reserved for Center
+				m_nChannelID + 1 //Channel 0 is reserved for Center
 			));
 	}
 
@@ -923,42 +933,44 @@ void LocalServer::OnTrunkRequest(InPacket * iPacket)
 
 void LocalServer::OnEntrustedShopRequest(InPacket *iPacket)
 {
+	int nClientSocketID = iPacket->Decode4();
+	int nCharacterID = iPacket->Decode4();
 	int nType = iPacket->Decode1();
 	switch (nType)
 	{
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_OpenCheck:
 			EntrustedShopMan::GetInstance()->CheckEntrustedShopOpenPossible(
-				this, iPacket->Decode4(), 0
+				this, nCharacterID, 0
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_RegisterShop:
 			EntrustedShopMan::GetInstance()->CreateEntrustedShop(
-				this, iPacket->Decode4(), 0, 0, iPacket
+				this, nCharacterID, 0, 0, iPacket
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_UnRegisterShop:
 			EntrustedShopMan::GetInstance()->RemoveEntrustedShop(
-				this, iPacket->Decode4()
+				this, nCharacterID
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_SaveItemRequest:
 			EntrustedShopMan::GetInstance()->SaveItem(
-				this, iPacket->Decode4(), iPacket
+				this, nCharacterID, iPacket
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged:
 			EntrustedShopMan::GetInstance()->ItemNumberChanged(
-				this, iPacket->Decode4(), iPacket
+				this, nCharacterID, iPacket
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_LoadItemRequest:
 			EntrustedShopMan::GetInstance()->LoadItemRequest(
-				this, iPacket->Decode4()
+				this, nClientSocketID, nCharacterID
 			);
 			break;
 		case EntrustedShopMan::EntrustedShopRequest::req_EShop_UpdateItemListRequest:
 			EntrustedShopMan::GetInstance()->UpdateItemListRequest(
-				this, iPacket->Decode4(), iPacket
+				this, nCharacterID, iPacket
 			);
 			break;
 	}
@@ -1059,8 +1071,10 @@ void LocalServer::OnWorldQueryRequest(InPacket * iPacket)
 	{
 		case CenterWorldQueryType::eWorldQuery_QueryGuildQuest: 
 		{
-			int nType = iPacket->Decode1();
-			oPacket.Encode4(nType * 1000);
+			int nType = (unsigned char)iPacket->Decode1();
+			int nGuildID = iPacket->Decode4();
+			int nChannelID = iPacket->Decode4();
+			GuildMan::GetInstance()->OnGuildQuestRequest(nCharacterID, nGuildID, nChannelID, nType, &oPacket);
 			break;
 		}
 	}

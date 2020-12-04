@@ -55,8 +55,9 @@ void StoreBank::OnOpenStoreBank()
 {
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_LoadItemRequest);
+	oPacket.Encode4(m_pUser->GetSocketID());
 	oPacket.Encode4(m_pUser->GetUserID());
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_LoadItemRequest);
 
 	WvsBase::GetInstance<WvsGame>()->GetCenter()->SendPacket(&oPacket);
 }
@@ -120,8 +121,9 @@ void StoreBank::MoveItemToInventory(InPacket * iPacket)
 	ZSharedPtr<GW_ItemSlotBase> pClone;
 	OutPacket oPacket;
 	oPacket.Encode2(CenterRequestPacketType::EntrustedShopRequest);
-	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
+	oPacket.Encode4(m_pUser->GetSocketID());
 	oPacket.Encode4(m_pUser->GetUserID());
+	oPacket.Encode1(EntrustedShopMan::EntrustedShopRequest::req_EShop_ItemNumberChanged);
 	oPacket.Encode8(0);
 	oPacket.Encode1((char)m_aItem.size());
 

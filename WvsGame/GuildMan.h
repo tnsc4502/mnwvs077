@@ -32,6 +32,12 @@ public:
 		rq_Guild_IncMaxMemberNum = 0x11,
 		rq_Guild_IncPoint = 0x12,
 		rq_Guild_LevelOrJobChanged = 0x13,
+
+		req_GuildQuest_CheckQuest = 0xA0,
+		req_GuildQuest_RegisterQuest = 0xA1,
+		req_GuildQuest_CancelQuest = 0xA2,
+		req_GuildQuest_CheckEnteringOrder = 0xA3,
+		req_GuildQuest_CompleteQuest = 0xA4,
 	};
 
 	enum GuildResult
@@ -60,6 +66,7 @@ public:
 		res_Guild_SetMark = 66,
 		res_Guild_SetNotice = 68,
 		res_Guild_IncPoint = 72,
+		res_GuildQuest_SetRegisteredGuild = 126,
 	};
 
 	struct MemberData
@@ -104,10 +111,24 @@ private:
 	GuildMan();
 	~GuildMan();
 
+#ifdef _WVSGAME
+	void Update();
+#endif
+
 	std::map<int, int> m_mCharIDToGuildID;
 	std::map<int, GuildData*> m_mGuild;
 	std::map<std::string, GuildData*> m_mNameToGuild;
 
+	//--GUILD QUEST STUFF--
+	//<GuildID, <ChannelID, nCharacterID>>
+	std::map<int, std::pair<int, int>> m_mQuestRegisteredChannel;
+	//<ChannelID, <Register Time, GuildID>> --> use ordered map for searching the entering order.
+	std::map<int, std::map<unsigned int, int>> m_mChannelRegisteredQuest;
+
+	int m_nQuestRegisteredCharacterID = 0, 
+		m_nQuestRegisteredGuildID = 0, 
+		m_nQuestStartedGuildID = 0;
+	unsigned int m_tLastGuildQuestUpdate = 0;
 public:
 	static GuildMan* GetInstance();
 	int GetGuildIDByCharID(int nCharacterID);
@@ -128,10 +149,16 @@ public:
 	bool IsGuildFull(int nGuildID);
 	int GetMemberGrade(int nGuildID, int nCharacterID);
 	void RemoveUser(GuildData *pGuild, int nCharacterID);
-
 	void OnGuildInviteRequest(User *pUser, InPacket *iPacket);
 	void TryCreateNewGuild(User *pUser, InPacket *iPacket);
 	void OnCreateNewGuildRequest(User *pUser, const std::string& strGuildName, const std::vector<std::pair<int, MemberData>>& aMember);
+
+#ifdef _WVSGAME
+	int GetQuestRegisteredCharacterID() const;
+	int GetQuestRegisteredGuildID() const;
+	void OnGuildQuestProcessing(bool bComplete = false);
+	void SendGuildQuestComplete();
+#endif
 
 	void OnRemoveGuildRequest(User *pUser);
 	void OnJoinGuildReqest(User *pUser, InPacket *iPacket);
@@ -155,6 +182,7 @@ public:
 	void MakeGuildUpdatePacket(OutPacket *oPacket, GuildData *pGuild);
 	void PostChangeLevelOrJob(User *pUser, int nVal, bool bLevelChanged);
 	void OnChangeLevelOrJob(InPacket *iPacket);
+	void SetRegisteredQuestGuild(InPacket *iPacket);
 
 	///==========================CENTER=================================
 #ifdef _WVSCENTER
@@ -170,6 +198,7 @@ public:
 	void IncMaxMemberNum(InPacket *iPacket, OutPacket *oPacket);
 	void IncPoint(InPacket *iPacket, OutPacket *oPacket);
 	void ChangeJobOrLevel(InPacket *iPacket, OutPacket *oPacket);
+	void OnGuildQuestRequest(int nCharacterID, int nGuildID, int nChannelID, int nType, OutPacket *oPacket);
 	void NotifyLoginOrLogout(int nCharacterID, bool bMigrateIn);
 #endif
 };

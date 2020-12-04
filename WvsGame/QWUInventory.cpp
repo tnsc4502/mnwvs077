@@ -259,20 +259,26 @@ int QWUInventory::Exchange(User *pUser, int nMoney, std::vector<ExchangeElement>
 		&aLogDefault,
 		aBackupItem
 	);
-	if (!nResult && bSendOperation)
+	if (!nResult)
 	{
-		if (nMoney)
-			pUser->SendCharacterStat(true, BasicStat::BasicStatFlag::BS_Meso);
-
-		if(!aLogAdd && !aLogRemove)
-			QWUInventory::SendInventoryOperation(pUser, false, aLogDefault);
-		else 
+		if (bSendOperation)
 		{
-			if (aLogRemove)
-				QWUInventory::SendInventoryOperation(pUser, false, *aLogRemove);
-			if (aLogAdd)
-				QWUInventory::SendInventoryOperation(pUser, false, *aLogAdd);
+			if (nMoney)
+				pUser->SendCharacterStat(true, BasicStat::BasicStatFlag::BS_Meso);
+
+			if (!aLogAdd && !aLogRemove)
+				QWUInventory::SendInventoryOperation(pUser, false, aLogDefault);
+			else
+			{
+				if (aLogRemove)
+					QWUInventory::SendInventoryOperation(pUser, false, *aLogRemove);
+				if (aLogAdd)
+					QWUInventory::SendInventoryOperation(pUser, false, *aLogAdd);
+			}
 		}
+		for (auto& elem : aExchange)
+			if(elem.m_nItemID)
+				pUser->ShowItemExchangeEffect(elem.m_nItemID, elem.m_nCount);
 	}
 	return nResult;
 }
