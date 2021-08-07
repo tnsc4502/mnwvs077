@@ -1,3 +1,4 @@
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include "ScriptMan.h"
 #include "ScriptNPC.h"
 #include "ScriptInventory.h"
@@ -8,7 +9,7 @@
 #include "ScriptField.h"
 #include "ScriptPortal.h"
 #include <functional>
-#include <filesystem>
+#include <experimental\filesystem>
 #include "..\WvsLib\Task\AsyncScheduler.h"
 #include "..\WvsLib\Memory\MemoryPoolMan.hpp"
 

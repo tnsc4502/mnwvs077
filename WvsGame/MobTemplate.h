@@ -1,5 +1,6 @@
 #pragma once
 #include "FieldRect.h"
+#include <iostream>
 #include <vector>
 #include <map>
 

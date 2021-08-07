@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <typeinfo>
 
 #define FlagMin(FlagName) FlagName::Min()
 #define FlagMax(FlagName) FlagName::Max()

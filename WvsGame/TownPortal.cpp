@@ -1,6 +1,6 @@
 #include "TownPortal.h"
 #include "..\WvsLib\Net\OutPacket.h"
-#include "TownPortalPacketTypes.hpp"
+#include "..\WvsGame\TownPortalPacketTypes.hpp"
 
 
 TownPortal::TownPortal()
