@@ -3,6 +3,7 @@
 #define SHOP_FLAG
 
 #include "..\WvsLib\Net\PacketTypes.hpp"
+#include <typeinfo>
 
 //==================================SHOP SEND===============================
 DEFINE_PACKET_TYPE(ShopSendPacketType)

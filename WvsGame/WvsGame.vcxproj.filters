@@ -462,9 +462,6 @@
     <ClInclude Include="ReactorPacketTypes.hpp">
       <Filter>WvsGame\Network</Filter>
     </ClInclude>
-    <ClInclude Include="ShopPacketTypes.hpp">
-      <Filter>WvsGame\Network</Filter>
-    </ClInclude>
     <ClInclude Include="PetTemplate.h">
       <Filter>WvsGame\InGame\Field\Life\Pet</Filter>
     </ClInclude>

@@ -1,11 +1,11 @@
 #pragma once
-
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <string>
 #include <vector>
 #include <iostream>
 #include <map>
 #include <mutex>
-#include <filesystem>
+#include <experimental\filesystem>
 
 #include "Script.h"
 #include "..\WvsLib\Memory\ZMemory.h"
